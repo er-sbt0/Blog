@@ -16,22 +16,25 @@ import {
   ListItemIcon,
   ListItemText,
   Tooltip,
+  Typography,
   useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import {
+  Article,
   ChevronLeft,
   ChevronRight,
   Code,
   CollectionsBookmark,
   Create,
   Dashboard,
+  EditNote,
   Home,
   LibraryBooks,
   StickyNote2,
 } from "@mui/icons-material";
 import { styles } from "./styles";
-import type { User } from "@/types";
+import type { DocumentStatus, User } from "@/types";
 import { useSidebarState } from "./SideBar/hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./SideBar/hooks/useKeyboardShortcuts";
 import type { UserDocument } from "@/types";
@@ -87,11 +90,45 @@ const SideBar: React.FC = () => {
   // Redux selectors with proper typing
   const initialized = useSelector((state: RootState) => state.ui.initialized);
   const user = useSelector((state: RootState) => state.user);
+  const documents = useSelector((state: RootState) => state.documents);
 
   // Memoized computed values
   const isInEditMode = useMemo(() => isEditMode(pathname), [pathname]);
   // Remove file browser for blog structure
   const showFileBrowser = false;
+
+  // Get active documents (only show for authenticated users)
+  const activeDocuments = useMemo(() => {
+    if (!user || !documents) return [];
+
+    return documents
+      .filter((doc) => {
+        const cloudDocument = doc.cloud;
+        const localDocument = doc.local;
+
+        // For cloud documents, check author and status
+        if (cloudDocument) {
+          return cloudDocument.status === "ACTIVE" &&
+            cloudDocument.author.id === user.id;
+        }
+
+        // For local documents, assume they belong to the current user and check status
+        if (localDocument) {
+          return localDocument.status === "ACTIVE";
+        }
+
+        return false;
+      })
+      .slice(0, 10) // Limit to 10 items to avoid cluttering
+      .map((doc) => {
+        const document = doc.cloud || doc.local;
+        return {
+          id: doc.id,
+          name: document?.name || "Untitled",
+          handle: document?.handle,
+        };
+      });
+  }, [user, documents]);
 
   // Navigation items for blog structure
   const navigationItems = useMemo((): NavigationItem[] => {
@@ -324,13 +361,110 @@ const SideBar: React.FC = () => {
 
       <Divider sx={styles.divider} />
 
-      {/* Middle section - Flexible space since we don't have file browser */}
-      <Box
-        sx={{
-          flex: "1 1 auto",
-          minHeight: 0,
-        }}
-      />
+      {/* Middle section - Active Documents */}
+      {user && activeDocuments.length > 0 && (
+        <Box
+          sx={{
+            ...styles.sectionBox,
+            flex: "1 1 auto",
+            minHeight: 0,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {open && (
+            <Box
+              sx={{
+                px: 2.5,
+                py: 1,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <Box
+                sx={{
+                  fontSize: "0.75rem",
+                  fontWeight: 600,
+                  color: "text.secondary",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Active Posts
+              </Box>
+            </Box>
+          )}
+          <Box sx={{ overflow: "auto", flex: "1 1 auto" }}>
+            <List dense>
+              {activeDocuments.map((doc, index) => (
+                <ListItem
+                  key={doc.id}
+                  disablePadding
+                  sx={{ display: "block" }}
+                >
+                  <Tooltip
+                    title={open ? "" : doc.name}
+                    placement="right"
+                  >
+                    <ListItemButton
+                      component={SafeNavigationLink}
+                      href={doc.handle
+                        ? `/view/${doc.handle}`
+                        : `/edit/${doc.id}`}
+                      sx={{
+                        minHeight: 32,
+                        justifyContent: open ? "initial" : "center",
+                        px: open ? 3 : 2.5,
+                        py: 0.5,
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 0,
+                          mr: open ? 1.5 : "auto",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Article
+                          sx={{
+                            fontSize: "1rem",
+                            color: "text.secondary",
+                          }}
+                        />
+                      </ListItemIcon>
+                      {open && (
+                        <ListItemText
+                          primary={doc.name}
+                          primaryTypographyProps={{
+                            fontSize: "0.8rem",
+                            sx: {
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            },
+                          }}
+                        />
+                      )}
+                    </ListItemButton>
+                  </Tooltip>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+        </Box>
+      )}
+
+      {/* Flexible space when no active documents or user not logged in */}
+      {(!user || activeDocuments.length === 0) && (
+        <Box
+          sx={{
+            flex: "1 1 auto",
+            minHeight: 0,
+          }}
+        />
+      )}
 
       <Divider sx={styles.dividerBottom} />
 
