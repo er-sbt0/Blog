@@ -32,7 +32,7 @@ const PostCard: React.FC<PostCardProps> = memo(({
   sx,
 }) => {
   // Use consolidated state management hook
-  const { document, author, postState, href, seriesInfo, ariaLabel } =
+  const { document, author, postState, href, seriesInfo, ariaLabel, status } =
     usePostState(userDocument, user);
 
   // If loading, show unified loading card
@@ -45,6 +45,7 @@ const PostCard: React.FC<PostCardProps> = memo(({
     <CardBase
       href={href}
       isLoading={false}
+      status={status}
       topContent={
         <PostContent
           userDocument={userDocument}

@@ -2,6 +2,7 @@
 import { actions, useDispatch, useSelector } from "@/store";
 import {
   CheckHandleResponse,
+  DocumentStatus,
   DocumentType,
   DocumentUpdateInput,
   User,
@@ -17,12 +18,15 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControl,
   FormControlLabel,
   FormHelperText,
   IconButton,
+  InputLabel,
   ListItemIcon,
   ListItemText,
   MenuItem,
+  Select,
   TextField,
   Typography,
   useMediaQuery,
@@ -64,6 +68,7 @@ const EditDocument: React.FC<
   const document = isCloudOnly ? cloudDocument : localDocument;
   // All documents are posts now
   const isDirectory = false;
+  const currentStatus = document?.status || DocumentStatus.ACTIVE;
 
   const [input, setInput] = useState<Partial<DocumentUpdateInput>>({
     name,
@@ -75,6 +80,7 @@ const EditDocument: React.FC<
     background_image: document?.background_image || null,
     sort_order: document?.sort_order || null,
     createdAt: document?.createdAt || new Date().toISOString(),
+    status: currentStatus,
   });
 
   const [validating, setValidating] = useState(false);
@@ -96,10 +102,11 @@ const EditDocument: React.FC<
       background_image: document?.background_image || null,
       sort_order: document?.sort_order || null,
       createdAt: document?.createdAt || new Date().toISOString(),
+      status: currentStatus,
     });
     setValidating(false);
     setValidationErrors({});
-  }, [userDocument, editDialogOpen]);
+  }, [userDocument, editDialogOpen, currentStatus]);
 
   const openEditDialog = () => {
     if (closeMenu) closeMenu();
@@ -213,6 +220,10 @@ const EditDocument: React.FC<
     // Add createdAt to the update if it has changed
     if (input.createdAt && input.createdAt !== document?.createdAt) {
       partial.createdAt = input.createdAt;
+    }
+    // Add status to the update if it has changed
+    if (input.status !== currentStatus) {
+      partial.status = input.status;
     }
     // Preserve parentId when updating document
     if (document?.parentId) {
@@ -406,6 +417,26 @@ const EditDocument: React.FC<
             <FormHelperText sx={{ mt: 0.5 }}>
               The date and time when this post was published
             </FormHelperText>
+
+            {/* Post Status Section */}
+            <FormControl fullWidth margin="normal" size="small">
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={input.status || DocumentStatus.ACTIVE}
+                onChange={(e) =>
+                  updateInput({ status: e.target.value as DocumentStatus })}
+                label="Status"
+                disabled={!isAuthor}
+              >
+                <MenuItem value={DocumentStatus.ACTIVE}>Active</MenuItem>
+                <MenuItem value={DocumentStatus.DONE}>Done</MenuItem>
+              </Select>
+              <FormHelperText>
+                {input.status === DocumentStatus.DONE
+                  ? "This post is marked as done and will appear with a special visual indicator"
+                  : "This post is active and will appear normally"}
+              </FormHelperText>
+            </FormControl>
 
             {/* Background image uploader for directories */}
             {isDirectory && isAuthor && (

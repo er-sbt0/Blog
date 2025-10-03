@@ -59,6 +59,9 @@ export const usePostState = (userDocument?: UserDocument, user?: User) => {
     // Generate aria label
     const ariaLabel = document ? `Open ${document.name} post` : "Loading post";
 
+    // Document status
+    const status = document?.status;
+
     return {
       document,
       author,
@@ -66,6 +69,7 @@ export const usePostState = (userDocument?: UserDocument, user?: User) => {
       href,
       seriesInfo,
       ariaLabel,
+      status,
     };
   }, [userDocument, user, getDocumentUrl]);
 };

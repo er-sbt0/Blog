@@ -31,6 +31,7 @@ const findPublishedPosts = async (limit?: number) => {
       baseId: true,
       head: true,
       type: true,
+      status: true,
       background_image: true,
       revisions: {
         select: {
@@ -80,6 +81,7 @@ const findPublishedPosts = async (limit?: number) => {
       revisions: revisions as any,
       type: PrismaDocumentType.DOCUMENT, // Always DOCUMENT for posts
       head: post.head || "",
+      status: post.status as DocumentStatus | undefined,
     } as CloudDocument;
 
     return cloudPost;
@@ -111,6 +113,7 @@ const findAllPosts = async (limit?: number) => {
       baseId: true,
       head: true,
       type: true,
+      status: true,
       background_image: true,
       revisions: {
         select: {
@@ -156,6 +159,7 @@ const findAllPosts = async (limit?: number) => {
       revisions: revisions as any,
       type: PrismaDocumentType.DOCUMENT, // Always DOCUMENT for posts
       head: post.head || "",
+      status: post.status as DocumentStatus | undefined,
     } as CloudDocument;
 
     return cloudPost;
@@ -269,6 +273,7 @@ const findPostsByAuthorId = async (authorId: string) => {
       baseId: true,
       head: true,
       type: true,
+      status: true,
       background_image: true,
       revisions: {
         select: {
@@ -317,6 +322,7 @@ const findPostsByAuthorId = async (authorId: string) => {
       revisions: revisions as any,
       type: PrismaDocumentType.DOCUMENT,
       head: post.head || "",
+      status: post.status as DocumentStatus | undefined,
     } as CloudDocument;
 
     return cloudPost;
@@ -345,6 +351,7 @@ const findPublishedPostsByAuthorId = async (authorId: string) => {
       baseId: true,
       head: true,
       type: true,
+      status: true,
       background_image: true,
       revisions: {
         select: {
@@ -392,6 +399,7 @@ const findPublishedPostsByAuthorId = async (authorId: string) => {
       revisions: revisions as any,
       type: PrismaDocumentType.DOCUMENT,
       head: post.head || "",
+      status: post.status as DocumentStatus | undefined,
     };
 
     return cloudPost;

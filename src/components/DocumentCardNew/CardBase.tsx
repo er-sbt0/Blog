@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { SxProps, Theme } from "@mui/material/styles";
 import { Box, Card, CardActionArea } from "@mui/material";
 import Link from "next/link";
+import { DocumentStatus } from "@/types";
 
 /**
  * Simplified props interface for blog posts
@@ -21,6 +22,8 @@ interface SimplifiedCardBaseProps {
   chipContent: ReactNode;
   /** Action buttons for the bottom right */
   actionContent: ReactNode;
+  /** Status of the document (affects visual styling) */
+  status?: DocumentStatus;
   /** Additional styles */
   sx?: SxProps<Theme>;
   /** Accessible label */
@@ -36,9 +39,12 @@ const CardBase: React.FC<SimplifiedCardBaseProps> = ({
   topContent,
   chipContent,
   actionContent,
+  status,
   sx = {},
   ariaLabel = "Open post",
 }) => {
+  const isDone = status === DocumentStatus.DONE;
+
   const cardStyles: SxProps<Theme> = {
     width: "100%",
     height: "100%",
@@ -46,21 +52,21 @@ const CardBase: React.FC<SimplifiedCardBaseProps> = ({
     flexDirection: "column",
     borderRadius: 2,
     backgroundColor: "background.paper",
-    border: "1px solid",
-    borderColor: "divider",
+    border: "2px solid",
+    borderColor: isDone ? "#424242" : "divider", // Dark gray for DONE status
     overflow: "hidden",
     transition: "box-shadow 0.2s ease, border-color 0.2s ease",
 
     // Simple hover effects for blog cards
     "&:hover": {
       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      borderColor: "primary.light",
+      borderColor: isDone ? "#616161" : "primary.light", // Slightly lighter gray on hover for DONE
     },
 
     // Simple focus states
     "&:focus-within": {
       boxShadow: "0 0 0 2px rgba(25, 118, 210, 0.2)",
-      borderColor: "primary.main",
+      borderColor: isDone ? "#616161" : "primary.main",
     },
 
     ...sx,
