@@ -410,9 +410,7 @@ const SideBar: React.FC = () => {
                   >
                     <ListItemButton
                       component={SafeNavigationLink}
-                      href={doc.handle
-                        ? `/view/${doc.handle}`
-                        : `/edit/${doc.id}`}
+                      href={`/view/${doc.id}`}
                       sx={{
                         minHeight: 32,
                         justifyContent: open ? "initial" : "center",

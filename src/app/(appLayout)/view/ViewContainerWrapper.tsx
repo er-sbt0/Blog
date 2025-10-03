@@ -23,34 +23,15 @@ export default function ViewContainerWrapper(
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        maxWidth: {
-          xs: "100%",
-          sm: "calc(100% - 32px)",
-          md: "800px", // Fixed max width for better reading experience
-          lg: "900px",
-          xl: "1000px",
-        },
-        // Dynamic centering that accounts for sidebar width
-        mx: "auto",
-        // On desktop, shift content left by half the sidebar width to achieve true screen centering
-        marginLeft: {
-          xs: "auto", // Mobile: normal centering (no sidebar)
-          sm: isMobile ? "auto" : `calc(33% - ${centerOffset}px)`,
-        },
-        marginRight: "auto",
+        maxWidth: "100%", // Remove width constraints to match edit pages
+        // Remove centering logic to match edit pages
+        mx: 0,
         px: {
           xs: 0, // Let the parent AppLayout handle padding
           sm: 0,
           md: 0,
         },
-        // Smooth transition when sidebar toggles
-        transition: theme.transitions.create([
-          "margin-left",
-          "max-width",
-        ], {
-          easing: theme.transitions.easing.sharp,
-          duration: theme.transitions.duration.leavingScreen,
-        }),
+        // Remove transitions since we're not changing layout anymore
       }}
     >
       {children}
