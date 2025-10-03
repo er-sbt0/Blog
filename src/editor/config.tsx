@@ -10,6 +10,7 @@ import { ImageNode } from "./nodes/ImageNode";
 import { SketchNode } from "./nodes/SketchNode";
 import { GraphNode } from "./nodes/GraphNode";
 import { StickyNode } from "./nodes/StickyNode";
+import { KanbanNode } from "./nodes/KanbanNode";
 import theme from "./theme";
 import { PageBreakNode } from "./nodes/PageBreakNode";
 import { IFrameNode } from "./nodes/IFrameNode";
@@ -68,6 +69,7 @@ export const editorConfig = {
     SketchNode,
     GraphNode,
     StickyNode,
+    KanbanNode,
     PageBreakNode,
     IFrameNode,
     LayoutContainerNode,

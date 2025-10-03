@@ -31,6 +31,8 @@ const ViewDocument: React.FC<
       onDoubleClick={handleDoubleClick}
       style={{
         minHeight: "100vh",
+        paddingLeft: "5px",
+        paddingRight: "80px",
       }}
       title={isEditable ? "Double-click to edit document" : undefined}
     >

@@ -51,7 +51,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
   onSearchChange,
   timeFilter = "all",
   onTimeFilterChange,
-  granularity = "month",
+  granularity = "quarter",
   onGranularityChange,
   onNewPost,
 }) => {

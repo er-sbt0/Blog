@@ -33,12 +33,14 @@ import * as ReactDOM from "react-dom";
 
 import { INSERT_MATH_COMMAND } from "../MathPlugin";
 import { INSERT_STICKY_COMMAND } from "../StickyPlugin";
+import { INSERT_KANBAN_COMMAND } from "../KanbanPlugin";
 
 import { SET_DIALOGS_COMMAND } from "../ToolbarPlugin/Dialogs/commands";
 import { ImageNode } from "@/editor/nodes/ImageNode";
 import { GraphNode } from "@/editor/nodes/GraphNode";
 import { SketchNode } from "@/editor/nodes/SketchNode";
 import { StickyNode } from "@/editor/nodes/StickyNode";
+import { KanbanNode } from "@/editor/nodes/KanbanNode";
 import { PageBreakNode } from "@/editor/nodes/PageBreakNode";
 import { INSERT_PAGE_BREAK } from "../PageBreakPlugin";
 import {
@@ -70,6 +72,7 @@ import {
   StickyNote2,
   TableChart,
   ViewColumn,
+  ViewWeek,
   Web,
 } from "@mui/icons-material";
 import { IFrameNode } from "@/editor/nodes/IFrameNode";
@@ -479,6 +482,21 @@ export default function ComponentPickerMenuPlugin() {
           onSelect: () =>
             editor.dispatchCommand(
               INSERT_STICKY_COMMAND,
+              undefined,
+            ),
+        }),
+      );
+    }
+
+    if (editor.hasNode(KanbanNode)) {
+      baseOptions.push(
+        new ComponentPickerOption("Kanban Board", {
+          icon: <ViewWeek />,
+          keywords: ["kanban", "board", "tasks", "workflow", "todo", "backlog"],
+          keyboardShortcut: "/kanban",
+          onSelect: () =>
+            editor.dispatchCommand(
+              INSERT_KANBAN_COMMAND,
               undefined,
             ),
         }),

@@ -44,7 +44,7 @@ export const usePostsData = (): UsePostsDataReturn => {
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [timeFilter, setTimeFilter] = useState<TimeFilterValue>("all");
-  const [granularity, setGranularity] = useState<PartitionGranularity>("month");
+  const [granularity, setGranularity] = useState<PartitionGranularity>("quarter");
 
   // Use custom filtering hook to get all posts
   const { allPosts, totalCount } = usePostsFiltering();

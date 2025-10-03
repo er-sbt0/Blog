@@ -31,12 +31,12 @@ const granularityOptions = [
   {
     value: "month" as const,
     label: "Monthly",
-    description: "Group posts by month (default)",
+    description: "Group posts by month",
   },
   {
     value: "quarter" as const,
     label: "Quarterly",
-    description: "Group posts by 3-month periods",
+    description: "Group posts by 3-month periods (default)",
   },
   {
     value: "halfyear" as const,
