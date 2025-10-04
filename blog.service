@@ -1,0 +1,25 @@
+[Unit]
+Description=Blog Simple Next.js Application
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=eransa
+Group=eransa
+WorkingDirectory=$HOME/code/blog
+Environment=NODE_ENV=production
+EnvironmentFile=$HOME/code/blog/.env.production
+# ExecStartPre=/bin/bash -c 'source $HOME/.nvm/nvm.sh && npm run build'
+ExecStart=$HOME/code/blog/start-production.sh
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=blog
+KillMode=mixed
+KillSignal=SIGINT
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
