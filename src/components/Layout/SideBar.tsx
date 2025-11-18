@@ -119,7 +119,14 @@ const SideBar: React.FC = () => {
 
         return false;
       })
-      .slice(0, 10) // Limit to 10 items to avoid cluttering
+      .sort((a, b) => {
+        // Sort by creation time (newest first)
+        const aDoc = a.cloud || a.local;
+        const bDoc = b.cloud || b.local;
+        const aTime = aDoc?.createdAt ? new Date(aDoc.createdAt).getTime() : 0;
+        const bTime = bDoc?.createdAt ? new Date(bDoc.createdAt).getTime() : 0;
+        return bTime - aTime;
+      })
       .map((doc) => {
         const document = doc.cloud || doc.local;
         return {
