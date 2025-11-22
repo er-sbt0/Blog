@@ -120,7 +120,7 @@ export default function UsersAutocomplete({
         return option.email;
       }}
       renderOption={(props, option, { selected }) => {
-        const { key, ...rest } = props as any;
+        const { key, ...rest } = props;
         return (
           <ListItem
             dense

@@ -1,4 +1,4 @@
-import { LocalDocumentRevision, User, UserDocumentRevision } from "@/types";
+import { LocalDocumentRevision, User, UserDocumentRevision, EditorDocumentRevision, DocumentRevision } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import RevisionCard from "./EditRevisionCard";
 import { actions, useDispatch, useSelector } from "@/store";
@@ -62,10 +62,10 @@ export default function EditDocumentInfo(
       )
     : [];
 
-  const revisions: UserDocumentRevision[] = [...cloudDocumentRevisions];
+  const revisions: (UserDocumentRevision | EditorDocumentRevision)[] = [...cloudDocumentRevisions];
   localDocumentRevisions.forEach((revision) => {
     if (!cloudDocumentRevisions.some((r) => r.id === revision.id)) {
-      revisions.push(revision as any);
+      revisions.push(revision);
     }
   });
   const documentRevisions = [...revisions].sort((a, b) =>
@@ -477,7 +477,7 @@ export default function EditDocumentInfo(
           {documentRevisions.map((revision) => (
             <Grid size={{ xs: 12 }} key={revision.id}>
               <RevisionCard
-                revision={revision}
+                revision={revision as DocumentRevision}
                 editorRef={editorRef}
               />
             </Grid>

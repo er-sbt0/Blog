@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { CloudDocumentRevision } from "@/types";
 import { UserDocumentRevision } from "@/types";
 import { memo } from "react";
 import { SxProps, Theme } from "@mui/material/styles";
@@ -70,7 +71,7 @@ const RevisionCard: React.FC<{
     ? user?.id === cloudDocument.author.id
     : true;
   const isRevisionAuthor = isCloudRevision
-    ? user?.id === (cloudRevision as any).author?.id
+    ? user?.id === (cloudRevision as unknown as CloudDocumentRevision).author?.id
     : true;
   const diff = useSelector((state) => state.ui.diff);
   const showLocal = !diff.open && (isLocalRevision || isLocalHead);

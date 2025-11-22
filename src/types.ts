@@ -172,9 +172,27 @@ export interface EditorDocumentRevision {
 export type DocumentRevision = Omit<EditorDocumentRevision, "data"> & {
   author: User;
 };
-export type CloudDocumentRevision = DocumentRevision; // Cloud document revisions are the same as regular document revisions
+
+// Cloud document revisions always have authors
+export type CloudDocumentRevision = DocumentRevision & {
+  author: User;
+};
+
+// User document revisions can be either local (no author) or cloud (with author)
 export type UserDocumentRevision = DocumentRevision;
 export type LocalDocumentRevision = Partial<EditorDocumentRevision>; // Allow partial for local document revisions
+
+// Utility for creating empty editor states
+export const EMPTY_EDITOR_STATE: SerializedEditorState = {
+  root: {
+    children: [],
+    direction: null,
+    format: '',
+    indent: 0,
+    type: 'root',
+    version: 1
+  }
+};
 
 export interface User {
   id: string;

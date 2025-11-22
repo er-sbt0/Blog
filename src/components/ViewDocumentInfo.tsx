@@ -1,5 +1,5 @@
 "use client";
-import { CloudDocument, User } from "@/types";
+import { CloudDocument, User, CloudDocumentRevision } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import Grid from "@mui/material/Grid2";
 import {
@@ -191,7 +191,7 @@ export default function ViewDocumentInfo(
             <Grid size={{ xs: 12 }} key={revision.id}>
               <ViewRevisionCard
                 cloudDocument={cloudDocument}
-                revision={revision as any}
+                revision={revision as unknown as CloudDocumentRevision}
               />
             </Grid>
           ))}

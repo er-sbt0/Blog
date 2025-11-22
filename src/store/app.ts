@@ -7,7 +7,10 @@ import {
   AppState,
   BackupDocument,
   CloudDocument,
+  CloudDocumentRevision,
   DeleteRevisionResponse,
+  EMPTY_EDITOR_STATE,
+  UserPost,
   DocumentCreateInput,
   DocumentStorageUsage,
   DocumentUpdateInput,
@@ -123,8 +126,8 @@ export const loadLocalDocuments = createAsyncThunk(
             updatedAt: rest.updatedAt instanceof Date
               ? rest.updatedAt.toISOString()
               : rest.updatedAt,
-            data: {} as any, // Add missing data property
-            revisions: localRevisions as any,
+            data: EMPTY_EDITOR_STATE,
+            revisions: localRevisions.map(rev => ({ ...rev, data: EMPTY_EDITOR_STATE })),
           };
           return localDocument;
         }),
@@ -480,8 +483,8 @@ export const createLocalDocument = createAsyncThunk(
       ) => rest);
       const localDocument: EditorDocument = {
         ...rest,
-        data: {} as any,
-        revisions: localDocumentRevisions as any,
+        data: EMPTY_EDITOR_STATE,
+        revisions: localDocumentRevisions.map(rev => ({ ...rev, data: EMPTY_EDITOR_STATE })),
       };
       return thunkAPI.fulfillWithValue(localDocument);
     } catch (error: any) {
@@ -613,7 +616,7 @@ export const updateLocalDocument = createAsyncThunk(
         const localDocumentRevisions = (revisions ?? []).map((
           { data, ...rest },
         ) => rest);
-        payload.partial.revisions = localDocumentRevisions as any;
+        payload.partial.revisions = localDocumentRevisions.map(rev => ({ ...rev, data: EMPTY_EDITOR_STATE }));
       }
 
       return thunkAPI.fulfillWithValue(payload);
@@ -1187,9 +1190,9 @@ export const appSlice = createSlice({
         const localDocument = userDocument.local;
         if (!localDocument) return;
         if (!localDocument.revisions) localDocument.revisions = [];
-        (localDocument.revisions as any).unshift({
+        localDocument.revisions?.unshift({
           ...revision,
-          data: {} as any,
+          data: EMPTY_EDITOR_STATE,
         });
       })
       .addCase(createCloudDocument.fulfilled, (state, action) => {
@@ -1219,7 +1222,7 @@ export const appSlice = createSlice({
           doc.id === revision.documentId
         );
         if (!document?.cloud) return;
-        (document.cloud.revisions as any).unshift(revision);
+        document.cloud.revisions.unshift(revision);
       })
       .addCase(createCloudRevision.rejected, (state, action) => {
         const message = action.payload as {
@@ -1277,12 +1280,12 @@ export const appSlice = createSlice({
         const localDocument = userDocument.local;
         if (!localDocument) return;
         if (!localDocument.revisions) return;
-        const revision = (localDocument.revisions as any).find((
-          revision: any,
+        const revision = localDocument.revisions.find((
+          revision: EditorDocumentRevision,
         ) => revision.id === id);
         if (!revision) return;
-        localDocument.revisions = (localDocument.revisions as any)
-          .filter((revision: any) => revision.id !== id);
+        localDocument.revisions = localDocument.revisions
+          .filter((revision: EditorDocumentRevision) => revision.id !== id);
       })
       .addCase(deleteCloudDocument.fulfilled, (state, action) => {
         const id = action.payload;
@@ -1307,12 +1310,12 @@ export const appSlice = createSlice({
         if (!userDocument) return;
         const cloudDocument = userDocument.cloud;
         if (!cloudDocument) return;
-        const revision = (cloudDocument.revisions as any).find((
-          revision: any,
+        const revision = cloudDocument.revisions.find((
+          revision: CloudDocumentRevision,
         ) => revision.id === id);
         if (!revision) return;
-        cloudDocument.revisions = (cloudDocument.revisions as any)
-          .filter((revision: any) => revision.id !== id);
+        cloudDocument.revisions = cloudDocument.revisions
+          .filter((revision) => revision.id !== id) as any;
       })
       .addCase(deleteCloudRevision.rejected, (state, action) => {
         const message = action.payload as {
@@ -1371,7 +1374,7 @@ export const appSlice = createSlice({
           id: post.id,
           cloud: post,
         }));
-        state.posts = userPosts as any; // Cast to maintain compatibility during transition
+        state.posts = userPosts;
       })
       .addCase(loadPosts.rejected, (state, action) => {
         const message = action.payload as {
@@ -1383,11 +1386,11 @@ export const appSlice = createSlice({
       .addCase(createPost.fulfilled, (state, action) => {
         const post = action.payload;
         if (post) {
-          const userPost = {
+          const userPost: UserPost = {
             id: post.id,
-            cloud: post as any, // Cast to maintain compatibility during transition
+            cloud: post as any, // Temporary cast until Post type alignment
           };
-          state.posts.unshift(userPost as any);
+          state.posts.unshift(userPost);
         }
       })
       .addCase(createPost.rejected, (state, action) => {
@@ -1402,7 +1405,7 @@ export const appSlice = createSlice({
         if (updatedPost) {
           const userPost = state.posts.find((p) => p.id === updatedPost.id);
           if (userPost) {
-            userPost.cloud = updatedPost as any; // Cast to maintain compatibility during transition
+            userPost.cloud = updatedPost as any; // Temporary cast until Post type alignment
           }
         }
       })
