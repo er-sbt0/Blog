@@ -87,16 +87,11 @@ const findPublishedPosts = async (limit?: number) => {
     return cloudPost;
   });
 
-  console.log("findPublishedPosts found", cloudPosts.length, "posts");
-  console.log("Post IDs:", cloudPosts.map((p) => p.id));
-
   return cloudPosts;
 };
 
 // Find all posts (published and unpublished)
 const findAllPosts = async (limit?: number) => {
-  console.log("findAllPosts called with limit:", limit);
-
   const posts = await prisma.document.findMany({
     where: {
       type: PrismaDocumentType.DOCUMENT, // Only regular documents, not directories
@@ -165,9 +160,6 @@ const findAllPosts = async (limit?: number) => {
     return cloudPost;
   });
 
-  console.log("findAllPosts found", cloudPosts.length, "posts");
-  console.log("Post IDs:", cloudPosts.map((p) => p.id));
-
   return cloudPosts;
 };
 
@@ -222,12 +214,7 @@ const findUserPost = async (
     },
   });
 
-  console.log(
-    "findUserPost query result:",
-    post ? "found document" : "no document found",
-  );
   if (!post) {
-    console.log("No post found for handle:", handle);
     return null;
   }
 

@@ -157,7 +157,7 @@ export const createSeriesChip = (
 /**
  * Render all post chips
  */
-export const renderPostChips = ({
+const renderPostChips = ({
   postState,
   author,
   series,

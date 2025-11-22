@@ -1,4 +1,4 @@
-// Main component
+// Main component - Re-export from parent directory
 export { default } from "../DocumentGrid";
 
 // Sub-components
@@ -12,12 +12,3 @@ export { useDocumentGridPerformance } from "./hooks/useDocumentGridPerformance";
 
 // Types
 export * from "./types";
-
-// Configuration
-export interface DocumentGridConfig {
-  virtualizationThreshold?: number;
-  enableVirtualization?: boolean;
-  showEmptyState?: boolean;
-  emptyMessage?: string;
-  emptyActionLabel?: string;
-}

@@ -38,11 +38,6 @@ export const usePostActions = () => {
   };
 };
 
-export const usePost = (id: string) => {
-  const posts = useSelector((state: RootState) => state.posts);
-  return posts.find((post) => post.id === id);
-};
-
 // ===== SERIES HOOKS =====
 
 export const useSeries = () => {
@@ -63,11 +58,6 @@ export const useSeriesActions = () => {
     ) => dispatch(updateSeries({ id, data })),
     deleteSeries: (id: string) => dispatch(deleteSeries(id)),
   };
-};
-
-export const useSeriesById = (id: string) => {
-  const series = useSelector((state: RootState) => state.series);
-  return series.find((s) => s.id === id);
 };
 
 // ===== COMBINED BLOG HOOKS =====

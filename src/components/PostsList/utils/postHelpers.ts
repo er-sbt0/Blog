@@ -1,22 +1,6 @@
 import { UserDocument } from "@/types";
 
 /**
- * Get the correct URL for a blog post
- * Posts should link to /view/{id} (same as browse route)
- */
-export const getPostUrl = (doc: UserDocument): string => {
-  return `/view/${doc.id}`;
-};
-
-/**
- * Check if a document is a published post
- */
-export const isPublishedPost = (doc: UserDocument): boolean => {
-  const docData = doc.local || doc.cloud;
-  return docData?.type === "DOCUMENT" && (doc.cloud?.published === true);
-};
-
-/**
  * Get the creation date from a UserDocument
  * Prioritizes cloud data over local data
  */

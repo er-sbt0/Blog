@@ -99,10 +99,6 @@ const getRevisionThumbnail = async (id: string) => {
     } catch (error: any) {
       // During build, the API might not be available
       // This is not a critical error during build time
-      console.log(
-        "Thumbnail fetch error (likely during build):",
-        error.message || String(error),
-      );
       return null;
     }
   } catch (error) {

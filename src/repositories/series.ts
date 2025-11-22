@@ -97,8 +97,3 @@ export async function addPostToSeries(
 ): Promise<void> {
   // TODO: Implement when Series model is available in Prisma client
 }
-
-// Remove post from series - temporarily do nothing
-export async function removePostFromSeries(postId: string): Promise<void> {
-  // TODO: Implement when Series model is available in Prisma client
-}

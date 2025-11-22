@@ -19,7 +19,7 @@ import {
 } from "@mui/icons-material";
 import { SxProps, Theme } from "@mui/material/styles";
 
-export const filterDocuments = (
+const filterDocuments = (
   documents: UserDocument[],
   user: User | undefined,
   value: number,
