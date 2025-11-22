@@ -1,5 +1,6 @@
 "use client";
 import { CloudDocument, User } from "@/types";
+import { extractCollaborators } from "@/utils/collaborators";
 import Grid from "@mui/material/Grid2";
 import {
   Avatar,
@@ -36,13 +37,10 @@ export default function ViewDocumentInfo(
   const isEditable = isAuthor || isCollab; // Remove coauthor check
   const showFork = isPublished || isEditable;
   const collaborators = isCollab
-    ? cloudDocument.revisions.reduce((acc, rev) => {
-      if (
-        (rev as any).author?.id !== cloudDocument.author.id &&
-        !acc.find((u) => u.id === (rev as any).author?.id)
-      ) acc.push((rev as any).author);
-      return acc;
-    }, [] as User[])
+    ? extractCollaborators(
+        cloudDocument.revisions,
+        cloudDocument.author.id
+      )
     : [];
 
   const searchParams = useSearchParams();

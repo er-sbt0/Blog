@@ -1,4 +1,5 @@
 import { LocalDocumentRevision, User, UserDocumentRevision } from "@/types";
+import { extractCollaborators } from "@/utils/collaborators";
 import RevisionCard from "./EditRevisionCard";
 import { actions, useDispatch, useSelector } from "@/store";
 import Grid from "@mui/material/Grid2";
@@ -54,16 +55,11 @@ export default function EditDocumentInfo(
   const isAuthor = isCloud ? cloudDocument.author.id === user?.id : true;
   const isCollab = isCloud && cloudDocument.collab;
   const collaborators = isCollab
-    ? cloudDocument.revisions.reduce((acc, rev) => {
-      if (
-        (rev as any).author?.id !== cloudDocument.author.id &&
-        !cloudDocument.coauthors.some((u) =>
-          u.id === (rev as any).author?.id
-        ) &&
-        !acc.find((u) => u.id === (rev as any).author?.id)
-      ) acc.push((rev as any).author);
-      return acc;
-    }, [] as User[])
+    ? extractCollaborators(
+        cloudDocument.revisions,
+        cloudDocument.author.id,
+        cloudDocument.coauthors.map(u => u.id)
+      )
     : [];
 
   const revisions: UserDocumentRevision[] = [...cloudDocumentRevisions];

@@ -5,6 +5,7 @@ import Autocomplete from "@mui/material/Autocomplete";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { CloudDocument, User } from "@/types";
+import { extractCollaborators } from "@/utils/collaborators";
 import { actions, useDispatch, useSelector } from "@/store";
 import {
   Avatar,
@@ -53,14 +54,11 @@ export default function UsersAutocomplete({
       ) users.push(coauthor);
     });
     const revisions = document.revisions;
-    const collaborators = revisions.reduce((acc, rev) => {
-      if (
-        (rev as any).author?.id !== author.id &&
-        !coauthors.some((u) => u.id === (rev as any).author?.id) &&
-        !acc.find((u) => u.id === (rev as any).author?.id)
-      ) acc.push((rev as any).author);
-      return acc;
-    }, [] as User[]);
+    const collaborators = extractCollaborators(
+      revisions,
+      author.id,
+      coauthors.map(u => u.id)
+    );
     collaborators.forEach((collaborator) => {
       if (
         !users.some((u) => u.id === collaborator.id) &&
