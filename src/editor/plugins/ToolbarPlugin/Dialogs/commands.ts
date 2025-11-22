@@ -29,6 +29,9 @@ export interface EditorDialogs {
   ai?: {
     open: boolean;
   };
+  attachment?: {
+    open: boolean;
+  };
 }
 
 export type SetDialogsPayload = Readonly<Partial<EditorDialogs>>;

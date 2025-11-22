@@ -43,6 +43,7 @@ import {
   OCRDialog,
   SketchDialog,
   TableDialog,
+  AttachmentDialog,
 } from "./Dialogs";
 import { $isStickyNode, StickyNode } from "@/editor/nodes/StickyNode";
 import {
@@ -519,6 +520,7 @@ function ToolbarPlugin() {
       {dialogs.layout?.open && <LayoutDialog editor={activeEditor} />}
       {dialogs.ocr?.open && <OCRDialog editor={activeEditor} />}
       {dialogs.ai?.open && <AIDialog editor={activeEditor} />}
+      {dialogs.attachment?.open && <AttachmentDialog editor={activeEditor} />}
     </>
   );
 }

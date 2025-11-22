@@ -8,9 +8,11 @@ import LinkDialog from "./LinkDialog";
 import LayoutDialog from "./LayoutDialog";
 import OCRDialog from "./OCRDialog";
 import AIDialog from "./AIDialog";
+import AttachmentDialog from "./AttachmentDialog";
 
 export {
   AIDialog,
+  AttachmentDialog,
   GraphDialog,
   IFrameDialog,
   ImageDialog,

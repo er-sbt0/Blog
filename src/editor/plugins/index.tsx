@@ -24,6 +24,7 @@ import SketchPlugin from "./SketchPlugin";
 import GraphPlugin from "./GraphPlugin";
 import StickyPlugin from "./StickyPlugin";
 import KanbanPlugin from "./KanbanPlugin";
+import AttachmentPlugin from "./AttachmentPlugin";
 import ComponentPickerMenuPlugin from "./ComponentPickerPlugin";
 import TabFocusPlugin from "./TabFocusPlugin";
 import DragDropPaste from "./DragDropPastePlugin";
@@ -33,6 +34,7 @@ import { SketchNode } from "../nodes/SketchNode";
 import { GraphNode } from "../nodes/GraphNode";
 import { StickyNode } from "../nodes/StickyNode";
 import { KanbanNode } from "../nodes/KanbanNode";
+import { AttachmentNode } from "../nodes/AttachmentNode";
 import { TableNode } from "../nodes/TableNode";
 import { PageBreakNode } from "../nodes/PageBreakNode";
 import PageBreakPlugin from "./PageBreakPlugin";
@@ -98,6 +100,7 @@ export const EditorPlugins: React.FC<{
       {editor.hasNode(TableNode) && <TablePlugin />}
       {editor.hasNode(TableNode) && <TableCellResizer />}
       {editor.hasNode(ImageNode) && <ImagePlugin />}
+      {editor.hasNode(AttachmentNode) && <AttachmentPlugin />}
       {editor.hasNode(SketchNode) && <SketchPlugin />}
       {editor.hasNode(GraphNode) && <GraphPlugin />}
       {editor.hasNode(StickyNode) && <StickyPlugin />}

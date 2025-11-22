@@ -27,6 +27,7 @@ import {
 } from "@mui/material";
 import {
   Add,
+  AttachFile,
   Brush,
   Expand,
   Functions,
@@ -43,6 +44,7 @@ import { IFrameNode } from "@/editor/nodes/IFrameNode";
 import { LayoutContainerNode } from "@/editor/nodes/LayoutNode";
 import { DetailsContainerNode } from "@/editor/nodes/DetailsNode";
 import { INSERT_DETAILS_COMMAND } from "@/editor/plugins/DetailsPlugin";
+import { AttachmentNode } from "@/editor/nodes/AttachmentNode";
 
 const Graph = () => (
   <SvgIcon viewBox="0 0 512 512" fontSize="small">
@@ -72,6 +74,8 @@ export default function InsertToolMenu({ editor }: { editor: LexicalEditor }) {
     editor.dispatchCommand(SET_DIALOGS_COMMAND, { iframe: { open: true } });
   const openLayoutDialog = () =>
     editor.dispatchCommand(SET_DIALOGS_COMMAND, { layout: { open: true } });
+  const openAttachmentDialog = () =>
+    editor.dispatchCommand(SET_DIALOGS_COMMAND, { attachment: { open: true } });
 
   return (
     <>
@@ -203,6 +207,22 @@ export default function InsertToolMenu({ editor }: { editor: LexicalEditor }) {
             <ListItemText>Image</ListItemText>
             <Typography variant="body2" color="text.secondary">
               /img
+            </Typography>
+          </MenuItem>
+        )}
+        {editor.hasNode(AttachmentNode) && (
+          <MenuItem
+            onClick={() => {
+              openAttachmentDialog();
+              handleClose();
+            }}
+          >
+            <ListItemIcon>
+              <AttachFile fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Attachment</ListItemText>
+            <Typography variant="body2" color="text.secondary">
+              /attach
             </Typography>
           </MenuItem>
         )}
