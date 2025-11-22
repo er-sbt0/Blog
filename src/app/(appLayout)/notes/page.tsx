@@ -1,6 +1,11 @@
-import { redirect } from "next/navigation";
+"use client";
+import NotesCanvas from "@/components/NotesCanvas";
+import { Box } from "@mui/material";
 
 export default function NotesPage() {
-  // Redirect to the edit page for the special "notes" document
-  redirect("/edit/notes");
+  return (
+    <Box sx={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
+      <NotesCanvas />
+    </Box>
+  );
 }

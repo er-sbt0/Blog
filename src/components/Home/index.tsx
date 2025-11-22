@@ -1,8 +1,10 @@
 "use client";
-import { Box, Container, Paper, Typography } from "@mui/material";
+import { Box, Container, Paper, Typography, Button } from "@mui/material";
 import { Series, User, UserDocument } from "@/types";
 import { DragProvider } from "../DragContext";
 import TrashBin from "../TrashBin";
+import { NoteAdd, ViewKanban } from "@mui/icons-material";
+import { useRouter } from "next/navigation";
 
 const Home: React.FC<{
   staticDocuments: UserDocument[];
@@ -13,6 +15,8 @@ const Home: React.FC<{
   series = [],
   user,
 }) => {
+  const router = useRouter();
+
   return (
     <DragProvider>
       <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -43,6 +47,7 @@ const Home: React.FC<{
             textAlign: "center",
             bgcolor: "grey.50",
             borderRadius: 2,
+            mb: 4,
           }}
         >
           <Typography variant="h5" color="text.secondary" gutterBottom>
@@ -52,6 +57,48 @@ const Home: React.FC<{
             Start creating and sharing your thoughts with the world.
           </Typography>
         </Paper>
+
+        {/* Quick Access Tools */}
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            justifyContent: "center",
+            mb: 4,
+          }}
+        >
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<NoteAdd />}
+            onClick={() => router.push("/notes")}
+            sx={{
+              px: 4,
+              py: 2,
+              borderRadius: 2,
+              textTransform: "none",
+              fontSize: "16px",
+            }}
+          >
+            2D Notes Canvas
+          </Button>
+          
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<ViewKanban />}
+            onClick={() => router.push("/new")}
+            sx={{
+              px: 4,
+              py: 2,
+              borderRadius: 2,
+              textTransform: "none",
+              fontSize: "16px",
+            }}
+          >
+            Create Document
+          </Button>
+        </Box>
 
         {/* Trash Bin for drag and drop */}
         <TrashBin />

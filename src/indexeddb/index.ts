@@ -23,7 +23,7 @@ export function getStore<T>(storeName: string) {
 
 const idbConfig = {
   databaseName: "matheditor",
-  version: 2,
+  version: 3,
   stores: [
     {
       name: "documents",
@@ -48,6 +48,15 @@ const idbConfig = {
       indices: [
         { name: "documentId", keyPath: "documentId" },
         { name: "createdAt", keyPath: "createdAt" },
+      ],
+    },
+    {
+      name: "notesCanvas",
+      id: { keyPath: "id" },
+      indices: [
+        { name: "name", keyPath: "name" },
+        { name: "createdAt", keyPath: "createdAt" },
+        { name: "updatedAt", keyPath: "updatedAt" },
       ],
     },
   ],
