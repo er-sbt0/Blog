@@ -124,10 +124,6 @@ export class KanbanNode extends DecoratorNode<JSX.Element> {
     const kanbanHTML = `
       <div style="
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        padding: 24px;
-        margin: 16px 0;
-        border-radius: 12px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
       ">
         <div style="
           display: grid;
