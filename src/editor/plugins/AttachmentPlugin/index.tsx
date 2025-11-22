@@ -8,10 +8,7 @@ import {
 
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $wrapNodeInElement } from "@lexical/utils";
-import {
-  COMMAND_PRIORITY_EDITOR,
-  createCommand,
-} from "lexical";
+import { COMMAND_PRIORITY_EDITOR, createCommand } from "lexical";
 import { useEffect } from "react";
 
 import {
@@ -22,8 +19,9 @@ import {
 
 export type InsertAttachmentPayload = Readonly<AttachmentPayload>;
 
-export const INSERT_ATTACHMENT_COMMAND: LexicalCommand<InsertAttachmentPayload> =
-  createCommand();
+export const INSERT_ATTACHMENT_COMMAND: LexicalCommand<
+  InsertAttachmentPayload
+> = createCommand();
 
 export default function AttachmentPlugin() {
   const [editor] = useLexicalComposerContext();

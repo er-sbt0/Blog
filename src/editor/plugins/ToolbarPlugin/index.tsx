@@ -35,6 +35,7 @@ import ImageTools from "./Tools/ImageTools";
 import { $isGraphNode } from "@/editor/nodes/GraphNode";
 import {
   AIDialog,
+  AttachmentDialog,
   GraphDialog,
   IFrameDialog,
   ImageDialog,
@@ -43,7 +44,6 @@ import {
   OCRDialog,
   SketchDialog,
   TableDialog,
-  AttachmentDialog,
 } from "./Dialogs";
 import { $isStickyNode, StickyNode } from "@/editor/nodes/StickyNode";
 import {

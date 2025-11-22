@@ -6,7 +6,8 @@ import NotesToolbar from "./NotesToolbar";
 import { useCallback } from "react";
 
 export default function NotesCanvas() {
-  const { canvas, loading, addNote, updateNote, deleteNote, bringToFront } = useNotesStore();
+  const { canvas, loading, addNote, updateNote, deleteNote, bringToFront } =
+    useNotesStore();
 
   const handleAddNote = useCallback(
     (color: string) => {
@@ -19,14 +20,18 @@ export default function NotesCanvas() {
         size: { width: 300, height: 250 },
         content: "",
         color,
-        zIndex: canvas ? Math.max(...canvas.notes.map((n) => n.zIndex), 0) + 1 : 1,
+        zIndex: canvas
+          ? Math.max(...canvas.notes.map((n) => n.zIndex), 0) + 1
+          : 1,
       });
     },
-    [addNote, canvas]
+    [addNote, canvas],
   );
 
   const handleClearAll = useCallback(() => {
-    if (canvas && window.confirm("Are you sure you want to delete all notes?")) {
+    if (
+      canvas && window.confirm("Are you sure you want to delete all notes?")
+    ) {
       canvas.notes.forEach((note) => deleteNote(note.id));
     }
   }, [canvas, deleteNote]);
@@ -50,7 +55,7 @@ export default function NotesCanvas() {
   return (
     <>
       <NotesToolbar onAddNote={handleAddNote} onClearAll={handleClearAll} />
-      
+
       <Box
         sx={{
           width: "100vw",

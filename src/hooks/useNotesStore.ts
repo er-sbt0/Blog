@@ -18,7 +18,7 @@ export function useNotesStore() {
     try {
       const store = getStore<NotesCanvas>(NOTES_STORE);
       let data = await store.getByID(DEFAULT_CANVAS_ID);
-      
+
       if (!data) {
         // Create default canvas
         data = {
@@ -30,7 +30,7 @@ export function useNotesStore() {
         };
         await store.add(data);
       }
-      
+
       setCanvas(data);
     } catch (error) {
       console.error("Failed to load notes canvas:", error);
@@ -52,7 +52,9 @@ export function useNotesStore() {
     }
   };
 
-  const addNote = async (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
+  const addNote = async (
+    note: Omit<Note, "id" | "createdAt" | "updatedAt">,
+  ) => {
     if (!canvas) return;
 
     const newNote: Note = {
@@ -98,7 +100,7 @@ export function useNotesStore() {
     if (!canvas) return;
 
     const maxZIndex = Math.max(...canvas.notes.map((n) => n.zIndex), 0);
-    
+
     const updatedCanvas = {
       ...canvas,
       notes: canvas.notes.map((note) =>

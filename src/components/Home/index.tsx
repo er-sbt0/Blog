@@ -1,5 +1,5 @@
 "use client";
-import { Box, Container, Paper, Typography, Button } from "@mui/material";
+import { Box, Button, Container, Paper, Typography } from "@mui/material";
 import { Series, User, UserDocument } from "@/types";
 import { DragProvider } from "../DragContext";
 import TrashBin from "../TrashBin";
@@ -82,7 +82,7 @@ const Home: React.FC<{
           >
             2D Notes Canvas
           </Button>
-          
+
           <Button
             variant="outlined"
             size="large"

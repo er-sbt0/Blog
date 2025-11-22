@@ -27,7 +27,8 @@ function convertAttachmentElement(domNode: Node): null | DOMConversionOutput {
     return null;
   }
   const url = element.dataset.url || (element as HTMLAnchorElement).href || "";
-  const filename = element.dataset.filename || (element as HTMLAnchorElement).download || "file";
+  const filename = element.dataset.filename ||
+    (element as HTMLAnchorElement).download || "file";
   const mimetype = element.dataset.mimetype || "application/octet-stream";
   const size = parseInt(element.dataset.size || "0", 10);
   const node = $createAttachmentNode({
@@ -92,7 +93,8 @@ export class AttachmentNode extends DecoratorNode<JSX.Element> {
     // Use javascript: void(0) to prevent navigation
     element.setAttribute("href", "javascript:void(0)");
     element.textContent = `📎 ${this.__filename}`;
-    element.style.cssText = "display: inline-block; padding: 8px 12px; background: #f5f5f5; border-radius: 4px; cursor: pointer; margin: 4px 0; user-select: none; text-decoration: none; color: inherit;";
+    element.style.cssText =
+      "display: inline-block; padding: 8px 12px; background: #f5f5f5; border-radius: 4px; cursor: pointer; margin: 4px 0; user-select: none; text-decoration: none; color: inherit;";
     return { element };
   }
 

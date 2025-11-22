@@ -38,7 +38,10 @@ export default function DraggableNote({
   const editorRef = useRef<LexicalEditor | null>(null);
   const [isFocused, setIsFocused] = useState(false);
 
-  const handleEditorChange = (editorState: EditorState, editor: LexicalEditor) => {
+  const handleEditorChange = (
+    editorState: EditorState,
+    editor: LexicalEditor,
+  ) => {
     const serialized = JSON.stringify(editorState);
     onUpdate(note.id, { content: serialized });
   };
@@ -57,7 +60,7 @@ export default function DraggableNote({
     _direction: any,
     ref: HTMLElement,
     _delta: any,
-    position: { x: number; y: number }
+    position: { x: number; y: number },
   ) => {
     onUpdate(note.id, {
       size: { width: ref.offsetWidth, height: ref.offsetHeight },
@@ -101,12 +104,15 @@ export default function DraggableNote({
         sx={{
           width: "100%",
           height: "100%",
-          background: NOTE_COLORS[note.color as keyof typeof NOTE_COLORS] || NOTE_COLORS.yellow,
+          background: NOTE_COLORS[note.color as keyof typeof NOTE_COLORS] ||
+            NOTE_COLORS.yellow,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
           borderRadius: "12px",
-          border: isFocused ? "2px solid rgba(25, 118, 210, 0.6)" : "1px solid rgba(0, 0, 0, 0.08)",
+          border: isFocused
+            ? "2px solid rgba(25, 118, 210, 0.6)"
+            : "1px solid rgba(0, 0, 0, 0.08)",
           boxShadow: isFocused
             ? "0 12px 40px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(25, 118, 210, 0.1)"
             : "0 4px 20px rgba(0, 0, 0, 0.08)",

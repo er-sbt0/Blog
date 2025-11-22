@@ -31,24 +31,26 @@ const ViewDocument: React.FC<
   useEffect(() => {
     const handleAttachmentClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      const attachment = target.closest('[data-attachment="true"]') as HTMLElement;
-      
+      const attachment = target.closest(
+        '[data-attachment="true"]',
+      ) as HTMLElement;
+
       if (attachment) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const url = attachment.dataset.url;
         const filename = attachment.dataset.filename;
-        
+
         if (url && filename) {
           const xhr = new XMLHttpRequest();
-          xhr.open('GET', url, true);
-          xhr.responseType = 'blob';
-          xhr.onload = function() {
+          xhr.open("GET", url, true);
+          xhr.responseType = "blob";
+          xhr.onload = function () {
             if (xhr.status === 200) {
               const blob = xhr.response;
               const downloadUrl = window.URL.createObjectURL(blob);
-              const link = document.createElement('a');
+              const link = document.createElement("a");
               link.href = downloadUrl;
               link.download = filename;
               document.body.appendChild(link);
@@ -62,9 +64,9 @@ const ViewDocument: React.FC<
       }
     };
 
-    document.addEventListener('click', handleAttachmentClick, true);
+    document.addEventListener("click", handleAttachmentClick, true);
     return () => {
-      document.removeEventListener('click', handleAttachmentClick, true);
+      document.removeEventListener("click", handleAttachmentClick, true);
     };
   }, []);
 

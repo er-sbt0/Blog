@@ -1,6 +1,6 @@
 "use client";
 import { Box, SpeedDial, SpeedDialAction, SpeedDialIcon } from "@mui/material";
-import { Palette, Add } from "@mui/icons-material";
+import { Add, Palette } from "@mui/icons-material";
 import { useState } from "react";
 
 interface NotesToolbarProps {
@@ -30,7 +30,9 @@ const COLOR_GRADIENTS = {
   peach: "linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%)",
 };
 
-export default function NotesToolbar({ onAddNote, onClearAll }: NotesToolbarProps) {
+export default function NotesToolbar(
+  { onAddNote, onClearAll }: NotesToolbarProps,
+) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -70,7 +72,9 @@ export default function NotesToolbar({ onAddNote, onClearAll }: NotesToolbarProp
                   width: 32,
                   height: 32,
                   borderRadius: "50%",
-                  background: COLOR_GRADIENTS[color.value as keyof typeof COLOR_GRADIENTS],
+                  background: COLOR_GRADIENTS[
+                    color.value as keyof typeof COLOR_GRADIENTS
+                  ],
                   border: "2px solid white",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
                 }}
