@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import withPWA from "./next-pwa";
 
+// Cache duration constants (in seconds)
+const ONE_DAY = 24 * 60 * 60;
+const ONE_WEEK = 7 * ONE_DAY;
+const ONE_YEAR = 365 * ONE_DAY;
+
 const IS_VERCEL = !!process.env.NEXT_PUBLIC_VERCEL_URL;
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
@@ -29,7 +34,7 @@ const withPWAConfig = {
         cacheName: "google-fonts",
         expiration: {
           maxEntries: 4,
-          maxAgeSeconds: 365 * 24 * 60 * 60,
+          maxAgeSeconds: ONE_YEAR,
         },
       },
     },
@@ -40,7 +45,7 @@ const withPWAConfig = {
         cacheName: "static-font-assets",
         expiration: {
           maxEntries: 4,
-          maxAgeSeconds: 7 * 24 * 60 * 60,
+          maxAgeSeconds: ONE_WEEK,
         },
       },
     },
@@ -51,7 +56,7 @@ const withPWAConfig = {
         cacheName: "static-image-assets",
         expiration: {
           maxEntries: 64,
-          maxAgeSeconds: 24 * 60 * 60,
+          maxAgeSeconds: ONE_DAY,
         },
       },
     },
@@ -62,7 +67,7 @@ const withPWAConfig = {
         cacheName: "next-image",
         expiration: {
           maxEntries: 64,
-          maxAgeSeconds: 24 * 60 * 60,
+          maxAgeSeconds: ONE_DAY,
         },
       },
     },
@@ -74,7 +79,7 @@ const withPWAConfig = {
         cacheName: "static-audio-assets",
         expiration: {
           maxEntries: 32,
-          maxAgeSeconds: 24 * 60 * 60,
+          maxAgeSeconds: ONE_DAY,
         },
       },
     },
@@ -85,7 +90,7 @@ const withPWAConfig = {
         cacheName: "static-js-assets",
         expiration: {
           maxEntries: 32,
-          maxAgeSeconds: 24 * 60 * 60,
+          maxAgeSeconds: ONE_DAY,
         },
       },
     },
@@ -96,7 +101,7 @@ const withPWAConfig = {
         cacheName: "static-style-assets",
         expiration: {
           maxEntries: 32,
-          maxAgeSeconds: 24 * 60 * 60,
+          maxAgeSeconds: ONE_DAY,
         },
       },
     },
@@ -107,7 +112,7 @@ const withPWAConfig = {
         cacheName: "next-data",
         expiration: {
           maxEntries: 32,
-          maxAgeSeconds: 24 * 60 * 60,
+          maxAgeSeconds: ONE_DAY,
         },
       },
     },
@@ -118,7 +123,7 @@ const withPWAConfig = {
         cacheName: "apis",
         expiration: {
           maxEntries: 16,
-          maxAgeSeconds: 24 * 60 * 60,
+          maxAgeSeconds: ONE_DAY,
         },
         networkTimeoutSeconds: 10,
       },
@@ -130,7 +135,7 @@ const withPWAConfig = {
         cacheName: "others",
         expiration: {
           maxEntries: 32,
-          maxAgeSeconds: 24 * 60 * 60,
+          maxAgeSeconds: ONE_DAY,
         },
         networkTimeoutSeconds: 10,
       },
@@ -140,7 +145,7 @@ const withPWAConfig = {
 
 const nextConfig: NextConfig = {
   devIndicators: false,
-  reactStrictMode: false,
+  reactStrictMode: true,
   distDir: process.env.BUILD_DIR || ".next",
   // Skip ESLint during build - run separately with `npm run lint`
   eslint: {
@@ -151,9 +156,6 @@ const nextConfig: NextConfig = {
   //   ignoreBuildErrors: true,
   // },
   experimental: {
-    turbo: {
-      rules: {},
-    },
     serverActions: {
       bodySizeLimit: '2mb',
     },
@@ -207,16 +209,10 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)\.woff2",
         headers: [
-          { key: "Access-Control-Allow-Credentials", value: "true" },
           { key: "Access-Control-Allow-Origin", value: "*" },
           {
             key: "Access-Control-Allow-Methods",
-            value: "GET,OPTIONS,PATCH,DELETE,POST,PUT",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value:
-              "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
+            value: "GET, OPTIONS",
           },
         ],
       },
