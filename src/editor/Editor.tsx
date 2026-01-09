@@ -23,7 +23,8 @@ export const Editor: React.FC<{
     tags: Set<string>,
   ) => void;
   ignoreHistoryMerge?: boolean;
-}> = ({ initialConfig, onChange, editorRef, ignoreHistoryMerge }) => {
+  onSave?: () => void;
+}> = ({ initialConfig, onChange, editorRef, ignoreHistoryMerge, onSave }) => {
   return (
     <LexicalComposer initialConfig={{ ...editorConfig, ...initialConfig }}>
       <SharedHistoryContext>
@@ -31,6 +32,7 @@ export const Editor: React.FC<{
         <EditorPlugins
           onChange={onChange}
           ignoreHistoryMerge={ignoreHistoryMerge}
+          onSave={onSave}
           contentEditable={
             <ContentEditable
               className="editor-input"

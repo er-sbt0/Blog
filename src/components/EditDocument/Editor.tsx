@@ -459,6 +459,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
         document={document}
         editorRef={editorRef}
         onChange={handleChange}
+        onSave={saveToCloud}
       />
       <EditDocumentInfo documentId={document.id} editorRef={editorRef} />
       <SaveDocumentButton onSave={handleSaveAndNavigate} />
