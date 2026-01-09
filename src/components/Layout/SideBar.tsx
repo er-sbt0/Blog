@@ -37,10 +37,9 @@ import { styles } from "./styles";
 import type { DocumentStatus, User } from "@/types";
 import { useSidebarState } from "./SideBar/hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./SideBar/hooks/useKeyboardShortcuts";
+import { useSidebarResize } from "./SideBar/hooks/useSidebarResize";
+import { useSidebarWidth } from "./SideBar/SidebarWidthContext";
 import type { UserDocument } from "@/types";
-
-// Constants
-const DRAWER_WIDTH = 240;
 
 // Accessibility and styling constants
 const SIDEBAR_CONSTANTS = {
@@ -78,6 +77,13 @@ const SideBar: React.FC = () => {
 
   // Custom hooks for state management
   const { open, toggleSidebar, isMobile } = useSidebarState();
+  const { width: sidebarWidth, isResizing, startResize, getWidth } = useSidebarResize();
+  const { setSidebarWidth } = useSidebarWidth();
+
+  // Update context with current width
+  useEffect(() => {
+    setSidebarWidth(getWidth(open));
+  }, [open, sidebarWidth, setSidebarWidth, getWidth]);
 
   // Keyboard shortcuts for accessibility
   const { shortcutHint } = useKeyboardShortcuts({
@@ -216,18 +222,17 @@ const SideBar: React.FC = () => {
       open={open}
       onClose={toggleSidebar}
       sx={{
-        width: open ? DRAWER_WIDTH : 72,
+        width: getWidth(open),
         flexShrink: 0,
         displayPrint: "none",
         "& .MuiDrawer-paper": {
-          width: open ? DRAWER_WIDTH : 72,
+          width: getWidth(open),
           boxSizing: "border-box",
-          transition: theme.transitions.create(["width"], {
+          transition: isResizing ? "none" : theme.transitions.create(["width"], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
           }),
           overflowX: "hidden",
-          overflowY: "hidden",
           display: "flex",
           flexDirection: "column",
           height: "100vh",
@@ -241,6 +246,7 @@ const SideBar: React.FC = () => {
           padding: theme.spacing(1, 1),
           justifyContent: open ? "space-between" : "center",
           flexShrink: 0,
+          minHeight: 64,
         }}
       >
         {open && (
@@ -523,6 +529,32 @@ const SideBar: React.FC = () => {
           </List>
         </Box>
       </Box>
+
+      {/* Resize handle - only visible when expanded and not on mobile */}
+      {open && !isMobile && (
+        <Box
+          onMouseDown={startResize}
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: getWidth(open) - 4,
+            bottom: 0,
+            width: 4,
+            cursor: "col-resize",
+            backgroundColor: isResizing ? "primary.main" : "transparent",
+            transition: isResizing ? "none" : "background-color 0.2s",
+            "&:hover": {
+              backgroundColor: "primary.main",
+              opacity: 0.5,
+            },
+            "&:active": {
+              backgroundColor: "primary.main",
+              opacity: 1,
+            },
+            zIndex: 1300,
+          }}
+        />
+      )}
     </Drawer>
   );
 };

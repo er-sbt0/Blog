@@ -11,37 +11,34 @@ import Breadcrumbs from "./Breadcrumbs";
 import { Box, Container, Toolbar, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Suspense } from "react";
+import { SidebarWidthProvider, useSidebarWidth } from "./SideBar/SidebarWidthContext";
 
-const AppLayout = ({ children }: { children: React.ReactNode }) => {
+const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const sidebarWidth = isMobile ? 0 : 72; // Collapsed sidebar width
+  const { sidebarWidth } = useSidebarWidth();
+  const actualSidebarWidth = isMobile ? 0 : sidebarWidth;
 
   return (
-    <>
-      <Suspense>
-        <ProgressBar />
-      </Suspense>
-      <StoreProvider>
-        <Box sx={{ display: "flex", minHeight: "100vh" }}>
-          <SideBar />
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              width: { sm: `calc(100% - ${sidebarWidth}px)` },
-              ml: { sm: `${sidebarWidth}px` },
-              overflow:
-                "auto", /* Allow scrolling but scrollbar is hidden by CSS */
-              transition: theme.transitions.create([
-                "margin",
-                "width",
-              ], {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.leavingScreen,
-              }),
-            }}
-          >
+    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+      <SideBar />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: { sm: `calc(100% - ${actualSidebarWidth}px)` },
+          ml: { sm: `${actualSidebarWidth}px` },
+          overflow:
+            "auto", /* Allow scrolling but scrollbar is hidden by CSS */
+          transition: theme.transitions.create([
+            "margin",
+            "width",
+          ], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+        }}
+      >
             <Toolbar
               id="back-to-top-anchor"
               sx={{
@@ -79,9 +76,22 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
           </Box>
           <ScrollTop />
         </Box>
-        <AlertDialog />
-        <Announcer />
-        <DocumentInfoDrawerArrow />
+  );
+};
+
+const AppLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <>
+      <Suspense>
+        <ProgressBar />
+      </Suspense>
+      <StoreProvider>
+        <SidebarWidthProvider>
+          <AppLayoutContent>{children}</AppLayoutContent>
+          <AlertDialog />
+          <Announcer />
+          <DocumentInfoDrawerArrow />
+        </SidebarWidthProvider>
       </StoreProvider>
     </>
   );
