@@ -71,7 +71,8 @@ const RevisionCard: React.FC<{
     ? user?.id === cloudDocument.author.id
     : true;
   const isRevisionAuthor = isCloudRevision
-    ? user?.id === (cloudRevision as unknown as CloudDocumentRevision).author?.id
+    ? user?.id ===
+      (cloudRevision as unknown as CloudDocumentRevision).author?.id
     : true;
   const diff = useSelector((state) => state.ui.diff);
   const showLocal = !diff.open && (isLocalRevision || isLocalHead);

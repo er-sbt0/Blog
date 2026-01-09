@@ -38,7 +38,7 @@ export default function MarkdownPlugin(): JSX.Element {
         const text = event.clipboardData.getData("text/plain");
         const selection = $getSelection();
         if (!$isRangeSelection(selection)) return false;
-        
+
         // Check if we're inside a code block - if so, skip markdown conversion
         const anchorNode = selection.anchor.getNode();
         const codeNode = $findMatchingParent(anchorNode, $isCodeNode);
@@ -46,7 +46,7 @@ export default function MarkdownPlugin(): JSX.Element {
           // We're inside a code block - let default paste behavior handle it
           return false;
         }
-        
+
         const parent = $createParagraphNode();
         $setSelection(null);
         $convertFromMarkdownString(text, transformers, parent);

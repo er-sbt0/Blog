@@ -1,4 +1,4 @@
-import { User, UserDocument, CloudDocumentRevision } from "@/types";
+import { CloudDocumentRevision, User, UserDocument } from "@/types";
 import { FC, useState } from "react";
 import { Tab, Tabs } from "@mui/material";
 import {
@@ -43,7 +43,8 @@ const filterDocuments = (
     );
     const isCollaborator = cloudDocument?.revisions.some((revision) => {
       // CloudDocument revisions should always have authors
-      return (revision as unknown as CloudDocumentRevision).author?.id === user?.id;
+      return (revision as unknown as CloudDocumentRevision).author?.id ===
+        user?.id;
     });
     const isOthers = !isLocalOnly && !isAuthor && !isCoauthor &&
       !isCollaborator;

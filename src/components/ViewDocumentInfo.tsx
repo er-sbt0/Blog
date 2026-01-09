@@ -1,5 +1,5 @@
 "use client";
-import { CloudDocument, User, CloudDocumentRevision } from "@/types";
+import { CloudDocument, CloudDocumentRevision, User } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import Grid from "@mui/material/Grid2";
 import {
@@ -38,9 +38,9 @@ export default function ViewDocumentInfo(
   const showFork = isPublished || isEditable;
   const collaborators = isCollab
     ? extractCollaborators(
-        cloudDocument.revisions,
-        cloudDocument.author.id
-      )
+      cloudDocument.revisions,
+      cloudDocument.author.id,
+    )
     : [];
 
   const searchParams = useSearchParams();

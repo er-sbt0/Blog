@@ -9,13 +9,12 @@ import {
   CloudDocument,
   CloudDocumentRevision,
   DeleteRevisionResponse,
-  EMPTY_EDITOR_STATE,
-  UserPost,
   DocumentCreateInput,
   DocumentStorageUsage,
   DocumentUpdateInput,
   EditorDocument,
   EditorDocumentRevision,
+  EMPTY_EDITOR_STATE,
   ForkDocumentResponse,
   GetDocumentStorageUsageResponse,
   GetDocumentThumbnailResponse,
@@ -25,6 +24,7 @@ import {
   PostRevisionResponse,
   User,
   UserDocument,
+  UserPost,
 } from "../types";
 import {
   DeleteDocumentResponse,
@@ -127,7 +127,10 @@ export const loadLocalDocuments = createAsyncThunk(
               ? rest.updatedAt.toISOString()
               : rest.updatedAt,
             data: EMPTY_EDITOR_STATE,
-            revisions: localRevisions.map(rev => ({ ...rev, data: EMPTY_EDITOR_STATE })),
+            revisions: localRevisions.map((rev) => ({
+              ...rev,
+              data: EMPTY_EDITOR_STATE,
+            })),
           };
           return localDocument;
         }),
@@ -484,7 +487,10 @@ export const createLocalDocument = createAsyncThunk(
       const localDocument: EditorDocument = {
         ...rest,
         data: EMPTY_EDITOR_STATE,
-        revisions: localDocumentRevisions.map(rev => ({ ...rev, data: EMPTY_EDITOR_STATE })),
+        revisions: localDocumentRevisions.map((rev) => ({
+          ...rev,
+          data: EMPTY_EDITOR_STATE,
+        })),
       };
       return thunkAPI.fulfillWithValue(localDocument);
     } catch (error: any) {
@@ -616,7 +622,10 @@ export const updateLocalDocument = createAsyncThunk(
         const localDocumentRevisions = (revisions ?? []).map((
           { data, ...rest },
         ) => rest);
-        payload.partial.revisions = localDocumentRevisions.map(rev => ({ ...rev, data: EMPTY_EDITOR_STATE }));
+        payload.partial.revisions = localDocumentRevisions.map((rev) => ({
+          ...rev,
+          data: EMPTY_EDITOR_STATE,
+        }));
       }
 
       return thunkAPI.fulfillWithValue(payload);

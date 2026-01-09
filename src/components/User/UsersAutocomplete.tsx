@@ -57,7 +57,7 @@ export default function UsersAutocomplete({
     const collaborators = extractCollaborators(
       revisions,
       author.id,
-      coauthors.map(u => u.id)
+      coauthors.map((u) => u.id),
     );
     collaborators.forEach((collaborator) => {
       if (

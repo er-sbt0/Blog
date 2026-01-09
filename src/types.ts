@@ -187,11 +187,11 @@ export const EMPTY_EDITOR_STATE: SerializedEditorState = {
   root: {
     children: [],
     direction: null,
-    format: '',
+    format: "",
     indent: 0,
-    type: 'root',
-    version: 1
-  }
+    type: "root",
+    version: 1,
+  },
 };
 
 export interface User {

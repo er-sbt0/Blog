@@ -1,4 +1,10 @@
-import { LocalDocumentRevision, User, UserDocumentRevision, EditorDocumentRevision, DocumentRevision } from "@/types";
+import {
+  DocumentRevision,
+  EditorDocumentRevision,
+  LocalDocumentRevision,
+  User,
+  UserDocumentRevision,
+} from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import RevisionCard from "./EditRevisionCard";
 import { actions, useDispatch, useSelector } from "@/store";
@@ -56,13 +62,15 @@ export default function EditDocumentInfo(
   const isCollab = isCloud && cloudDocument.collab;
   const collaborators = isCollab
     ? extractCollaborators(
-        cloudDocument.revisions,
-        cloudDocument.author.id,
-        cloudDocument.coauthors.map(u => u.id)
-      )
+      cloudDocument.revisions,
+      cloudDocument.author.id,
+      cloudDocument.coauthors.map((u) => u.id),
+    )
     : [];
 
-  const revisions: (UserDocumentRevision | EditorDocumentRevision)[] = [...cloudDocumentRevisions];
+  const revisions: (UserDocumentRevision | EditorDocumentRevision)[] = [
+    ...cloudDocumentRevisions,
+  ];
   localDocumentRevisions.forEach((revision) => {
     if (!cloudDocumentRevisions.some((r) => r.id === revision.id)) {
       revisions.push(revision);
