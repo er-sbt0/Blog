@@ -37,7 +37,6 @@ import { styles } from "./styles";
 import type { DocumentStatus, User } from "@/types";
 import { useSidebarState } from "./SideBar/hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./SideBar/hooks/useKeyboardShortcuts";
-import { useSidebarResize } from "./SideBar/hooks/useSidebarResize";
 import { useSidebarWidth } from "./SideBar/SidebarWidthContext";
 import type { UserDocument } from "@/types";
 
@@ -77,13 +76,11 @@ const SideBar: React.FC = () => {
 
   // Custom hooks for state management
   const { open, toggleSidebar, isMobile } = useSidebarState();
-  const { width: sidebarWidth, isResizing, startResize, getWidth } = useSidebarResize();
-  const { setSidebarWidth } = useSidebarWidth();
+  const { width: sidebarWidth, isResizing, startResize, getEffectiveWidth } =
+    useSidebarWidth();
 
-  // Update context with current width
-  useEffect(() => {
-    setSidebarWidth(getWidth(open));
-  }, [open, sidebarWidth, setSidebarWidth, getWidth]);
+  // Get the effective width based on open/closed state
+  const getWidth = (isOpen: boolean) => getEffectiveWidth(isOpen);
 
   // Keyboard shortcuts for accessibility
   const { shortcutHint } = useKeyboardShortcuts({
@@ -228,10 +225,12 @@ const SideBar: React.FC = () => {
         "& .MuiDrawer-paper": {
           width: getWidth(open),
           boxSizing: "border-box",
-          transition: isResizing ? "none" : theme.transitions.create(["width"], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
+          transition: isResizing
+            ? "none"
+            : theme.transitions.create(["width"], {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
           overflowX: "hidden",
           display: "flex",
           flexDirection: "column",

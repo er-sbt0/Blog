@@ -11,13 +11,18 @@ import Breadcrumbs from "./Breadcrumbs";
 import { Box, Container, Toolbar, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Suspense } from "react";
-import { SidebarWidthProvider, useSidebarWidth } from "./SideBar/SidebarWidthContext";
+import {
+  SidebarWidthProvider,
+  useSidebarWidth,
+} from "./SideBar/SidebarWidthContext";
+import { useSidebarState } from "./SideBar/hooks/useSidebarState";
 
 const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const { sidebarWidth } = useSidebarWidth();
-  const actualSidebarWidth = isMobile ? 0 : sidebarWidth;
+  const { open } = useSidebarState();
+  const { getEffectiveWidth } = useSidebarWidth();
+  const actualSidebarWidth = isMobile ? 0 : getEffectiveWidth(open);
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
@@ -28,8 +33,7 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
           flexGrow: 1,
           width: { sm: `calc(100% - ${actualSidebarWidth}px)` },
           ml: { sm: `${actualSidebarWidth}px` },
-          overflow:
-            "auto", /* Allow scrolling but scrollbar is hidden by CSS */
+          overflow: "auto", /* Allow scrolling but scrollbar is hidden by CSS */
           transition: theme.transitions.create([
             "margin",
             "width",
@@ -39,43 +43,43 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
           }),
         }}
       >
-            <Toolbar
-              id="back-to-top-anchor"
-              sx={{
-                displayPrint: "none",
-                minHeight: "0 !important",
-              }}
-            />
-            <Breadcrumbs />
-            <HydrationManager>
-              <Container
-                className="editor-container"
-                id="editor-main-container"
-                maxWidth={false}
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  mx: 0, /* Remove auto centering to allow full width */
-                  my: 2,
-                  flex: 1,
-                  position: "relative",
-                  overflow:
-                    "auto", /* Allow scrolling but scrollbar is hidden by CSS */
-                  width: "100%",
-                  maxWidth: "100%",
-                  px: {
-                    xs: 1,
-                    sm: 1,
-                    md: 1, /* Keep minimal padding */
-                  },
-                }}
-              >
-                {children}
-              </Container>
-            </HydrationManager>
-          </Box>
-          <ScrollTop />
-        </Box>
+        <Toolbar
+          id="back-to-top-anchor"
+          sx={{
+            displayPrint: "none",
+            minHeight: "0 !important",
+          }}
+        />
+        <Breadcrumbs />
+        <HydrationManager>
+          <Container
+            className="editor-container"
+            id="editor-main-container"
+            maxWidth={false}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              mx: 0, /* Remove auto centering to allow full width */
+              my: 2,
+              flex: 1,
+              position: "relative",
+              overflow:
+                "auto", /* Allow scrolling but scrollbar is hidden by CSS */
+              width: "100%",
+              maxWidth: "100%",
+              px: {
+                xs: 1,
+                sm: 1,
+                md: 1, /* Keep minimal padding */
+              },
+            }}
+          >
+            {children}
+          </Container>
+        </HydrationManager>
+      </Box>
+      <ScrollTop />
+    </Box>
   );
 };
 
