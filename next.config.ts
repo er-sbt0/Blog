@@ -142,8 +142,18 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   reactStrictMode: false,
   distDir: process.env.BUILD_DIR || ".next",
+  // Skip ESLint during build - run separately with `npm run lint`
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Skip TypeScript errors during build for faster builds (optional)
+  // typescript: {
+  //   ignoreBuildErrors: true,
+  // },
   experimental: {
-    turbo: { loaders: {} },
+    turbo: {
+      rules: {},
+    },
     serverActions: {
       bodySizeLimit: '2mb',
     },

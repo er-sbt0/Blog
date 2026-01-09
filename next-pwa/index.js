@@ -76,10 +76,6 @@ module.exports = (pluginOptions = {}) => (nextConfig = {}) =>
         );
       }
 
-      console.log(
-        `> [PWA] Compile ${options.isServer ? "server" : "client (static)"}`,
-      );
-
       let { runtimeCaching = defaultCache } = pluginOptions;
       const _scope = path.posix.join(scope, "/");
 
@@ -143,24 +139,7 @@ module.exports = (pluginOptions = {}) => (nextConfig = {}) =>
           importScripts.unshift(customWorkerScriptName);
         }
 
-        if (register) {
-          console.log(
-            `> [PWA] Auto register service worker with: ${
-              path.resolve(
-                registerJs,
-              )
-            }`,
-          );
-        } else {
-          console.log(
-            `> [PWA] Auto register service worker is disabled, please call following code in componentDidMount callback or useEffect hook`,
-          );
-          console.log(`> [PWA]   window.workbox.register()`);
-        }
-
-        console.log(`> [PWA] Service worker: ${path.join(_dest, sw)}`);
-        console.log(`> [PWA]   url: ${_sw}`);
-        console.log(`> [PWA]   scope: ${_scope}`);
+        // PWA logging removed to reduce build noise
 
         config.plugins.push(
           new CleanWebpackPlugin({
