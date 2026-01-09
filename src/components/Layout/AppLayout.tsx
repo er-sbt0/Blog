@@ -16,7 +16,10 @@ import {
   useSidebarWidth,
 } from "./SideBar/SidebarWidthContext";
 import { useSidebarState } from "./SideBar/hooks/useSidebarState";
-import { SIDEBAR_CONTENT_MARGIN, CONTENT_RIGHT_PADDING } from "./SideBar/constants";
+import {
+  CONTENT_RIGHT_PADDING,
+  SIDEBAR_CONTENT_MARGIN,
+} from "./SideBar/constants";
 
 const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   const theme = useTheme();

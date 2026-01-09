@@ -38,11 +38,16 @@ export default function DragDropPaste(): null {
           for (const { file, result } of filesResult) {
             if (isMimeType(file, ACCEPTABLE_IMAGE_TYPES)) {
               const dimensions = await getImageDimensions(result);
+              // Scale pasted images to 50% of their original size
+              const scaledDimensions = {
+                width: Math.round(dimensions.width * 0.35),
+                height: Math.round(dimensions.height * 0.5),
+              };
               editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
                 src: result,
                 altText: file.name.replace(/\.[^/.]+$/, ""),
                 showCaption: true,
-                ...dimensions,
+                ...scaledDimensions,
                 id: "",
                 style: "",
               });
