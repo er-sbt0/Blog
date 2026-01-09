@@ -16,6 +16,7 @@ import {
   useSidebarWidth,
 } from "./SideBar/SidebarWidthContext";
 import { useSidebarState } from "./SideBar/hooks/useSidebarState";
+import { SIDEBAR_CONTENT_MARGIN, CONTENT_RIGHT_PADDING } from "./SideBar/constants";
 
 const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   const theme = useTheme();
@@ -31,8 +32,11 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { sm: `calc(100% - ${actualSidebarWidth}px)` },
-          ml: { sm: `${actualSidebarWidth}px` },
+          width: {
+            sm: `calc(100% - ${SIDEBAR_CONTENT_MARGIN}px)`,
+          },
+          ml: { sm: `${SIDEBAR_CONTENT_MARGIN}px` },
+          pr: { sm: `${CONTENT_RIGHT_PADDING}px` },
           overflow: "auto", /* Allow scrolling but scrollbar is hidden by CSS */
           transition: theme.transitions.create([
             "margin",
