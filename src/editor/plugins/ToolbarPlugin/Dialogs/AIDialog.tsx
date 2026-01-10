@@ -35,13 +35,6 @@ const MODELS = [
     reason: false,
   },
   {
-    label: "Llama 3.1",
-    provider: "cloudflare",
-    model: "@cf/meta/llama-3.1-8b-instruct-fast",
-    fast: true,
-    reason: false,
-  },
-  {
     label: "GPT 4o Mini",
     provider: "azure",
     model: "gpt-4o-mini",
@@ -54,14 +47,6 @@ const MODELS = [
     model: "phi4",
     fast: false,
     reason: false,
-  },
-
-  {
-    label: "DeepScaleR",
-    provider: "ollama",
-    model: "deepscaler",
-    fast: false,
-    reason: true,
   },
 ];
 

@@ -10,13 +10,6 @@ const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
 });
 
-const cloudflare = createOpenAICompatible({
-  name: "cloudflare-workers-ai",
-  baseURL:
-    `https://gateway.ai.cloudflare.com/v1/${process.env.CLOUDFLARE_ACCOUNT_ID}/matheditor/workers-ai/v1/`,
-  headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_API_KEY}` },
-});
-
 const ollama = createOllama({ baseURL: process.env.OLLAMA_API_URL });
 
 const azure = createOpenAICompatible({
@@ -109,19 +102,12 @@ export async function POST(req: Request) {
 
     const model = match(body.provider)
       .with("ollama", () => ollama(body.model || "llama3.2"))
-      .with(
-        "cloudflare",
-        () => cloudflare(body.model || "@cf/meta/llama-3.1-8b-instruct-fast"),
-      )
-      .with("google", () => google(body.model || "gemini-2.5-flash"))
-      .with("azure", () => azure(body.model || "Phi-4"))
+
       .run();
 
     const maxTokens = match(body.provider)
       .with("ollama", () => undefined)
-      .with("cloudflare", () => 2048)
-      .with("google", () => undefined)
-      .with("azure", () => undefined)
+
       .run();
 
     const result = streamText({ model, messages, maxTokens });
