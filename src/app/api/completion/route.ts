@@ -1,4 +1,4 @@
-import { CoreMessage, streamText } from "ai";
+import { streamText } from "ai";
 import { match } from "ts-pattern";
 import { 
   getModelById, 
@@ -20,55 +20,55 @@ export async function POST(req: Request) {
     const messages = match(option)
       .with("continue", () => [
         {
-          role: "system",
+          role: "system" as const,
           content: systemPrompt,
         },
         {
-          role: "user",
+          role: "user" as const,
           content: prompt,
         },
       ])
       .with("improve", () => [
         {
-          role: "system",
+          role: "system" as const,
           content: systemPrompt,
         },
         {
-          role: "user",
+          role: "user" as const,
           content: prompt,
         },
       ])
       .with("shorter", () => [
         {
-          role: "system",
+          role: "system" as const,
           content: systemPrompt,
         },
         {
-          role: "user",
+          role: "user" as const,
           content: prompt,
         },
       ])
       .with("longer", () => [
         {
-          role: "system",
+          role: "system" as const,
           content: systemPrompt,
         },
         {
-          role: "user",
+          role: "user" as const,
           content: prompt,
         },
       ])
       .with("zap", () => [
         {
-          role: "system",
+          role: "system" as const,
           content: systemPrompt,
         },
         {
-          role: "user",
+          role: "user" as const,
           content: `${command}${prompt ? `\n${prompt}` : ""}`,
         },
       ])
-      .run() as CoreMessage[];
+      .run();
 
     const model = getModelById(modelId);
     if (!model) {

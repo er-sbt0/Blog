@@ -35,7 +35,6 @@ import {
   ImageSearch,
   PlayArrow,
   Send,
-  Settings,
   UnfoldLess,
   UnfoldMore,
 } from "@mui/icons-material";
@@ -51,17 +50,8 @@ import {
 } from "../../MarkdownPlugin";
 import { createHeadlessEditor } from "@lexical/headless";
 import { $generateNodesFromSerializedNodes } from "@lexical/clipboard";
-
-const getLlmConfig = () => {
-  const initialValue = { provider: "google", model: "gemini-2.5-flash" };
-  try {
-    const item = window.localStorage.getItem("llm");
-    return item ? JSON.parse(item) : initialValue;
-  } catch (error) {
-    console.log(error);
-    return initialValue;
-  }
-};
+import { AI_MODELS, getModelById } from "@/lib/ai";
+import useLocalStorage from "@/hooks/useLocalStorage";
 
 const serializedParagraph: SerializedParagraphNode = {
   children: [],
@@ -77,11 +67,36 @@ const serializedParagraph: SerializedParagraphNode = {
 export default function AITools(
   { editor, sx }: { editor: LexicalEditor; sx?: SxProps<Theme> },
 ) {
+  const [llmConfig, setLlmConfig] = useLocalStorage("llm", {
+    provider: "google",
+    model: "gemini-2.5-flash",
+  });
+  
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [modelMenuAnchor, setModelMenuAnchor] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  const modelMenuOpen = Boolean(modelMenuAnchor);
+  
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
+  
+  const handleModelMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setModelMenuAnchor(event.currentTarget);
+  };
+  
+  const handleModelMenuClose = () => {
+    setModelMenuAnchor(null);
+  };
+  
+  const handleModelSelect = (modelId: string) => {
+    const model = getModelById(modelId);
+    if (model) {
+      setLlmConfig({ provider: model.provider, model: model.id });
+    }
+    handleModelMenuClose();
+  };
+  
   const handleClose = useCallback(() => {
     setAnchorEl(null);
     setTimeout(() => {
@@ -153,7 +168,7 @@ export default function AITools(
         currentNode = currentNode.getPreviousSibling() ||
           currentNode.getParent()?.getPreviousSibling();
       }
-      const { provider, model } = getLlmConfig();
+      const { provider, model } = llmConfig;
       complete(textContent, {
         body: { option: "zap", command, provider, model },
       });
@@ -166,7 +181,7 @@ export default function AITools(
       const selection = $getSelection();
       if (!$isRangeSelection(selection)) return;
       const textContent = selection.getTextContent();
-      const { provider, model } = getLlmConfig();
+      const { provider, model } = llmConfig;
       complete(textContent, {
         body: { option: "improve", provider, model },
       });
@@ -179,7 +194,7 @@ export default function AITools(
       const selection = $getSelection();
       if (!$isRangeSelection(selection)) return;
       const textContent = selection.getTextContent();
-      const { provider, model } = getLlmConfig();
+      const { provider, model } = llmConfig;
       complete(textContent, {
         body: { option: "shorter", provider, model },
       });
@@ -192,7 +207,7 @@ export default function AITools(
       const selection = $getSelection();
       if (!$isRangeSelection(selection)) return;
       const textContent = selection.getTextContent();
-      const { provider, model } = getLlmConfig();
+      const { provider, model } = llmConfig;
       complete(textContent, {
         body: { option: "longer", provider, model },
       });
@@ -218,7 +233,7 @@ export default function AITools(
         (selection.isBackward() ? selection.anchor : selection.focus)
           .getNode().selectEnd();
       }
-      const { provider, model } = getLlmConfig();
+      const { provider, model } = llmConfig;
       complete(textContent, {
         body: { option: "continue", provider, model },
       });
@@ -325,9 +340,7 @@ export default function AITools(
     );
   }, [editor, isLoading, stop]);
 
-  const openAiSettings = () => {
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { ai: { open: true } });
-  };
+  const currentModel = getModelById(llmConfig.model);
 
   return (
     <>
@@ -365,6 +378,29 @@ export default function AITools(
           sx={{ display: { xs: "none", sm: "block" } }}
         >
           AI
+        </Typography>
+      </Button>
+      <Button
+        id="ai-model-button"
+        aria-controls={modelMenuOpen ? "ai-model-menu" : undefined}
+        aria-haspopup="true"
+        aria-expanded={modelMenuOpen ? "true" : undefined}
+        variant="outlined"
+        onClick={handleModelMenuClick}
+        endIcon={<ArrowDropDown fontSize="small" />}
+        sx={{
+          color: "text.secondary",
+          borderColor: "divider",
+          p: 1,
+          minWidth: 0,
+          height: 36,
+          ml: 0.5,
+          textTransform: "none",
+        }}
+        disabled={isLoading}
+      >
+        <Typography variant="caption" sx={{ fontSize: "0.75rem" }}>
+          {currentModel?.name || "Unknown"}
         </Typography>
       </Button>
       <Menu
@@ -444,13 +480,6 @@ export default function AITools(
             >
               <Send />
             </IconButton>
-            <IconButton
-              onClick={openAiSettings}
-              disabled={isLoading}
-              size="small"
-            >
-              <Settings />
-            </IconButton>
           </ListItemIcon>
         </MenuItem>
         <MenuItem disabled={isLoading} onClick={handleContinue}>
@@ -495,6 +524,32 @@ export default function AITools(
           </ListItemIcon>
           <ListItemText>Image to Text</ListItemText>
         </MenuItem>
+      </Menu>
+      <Menu
+        id="ai-model-menu"
+        anchorEl={modelMenuAnchor}
+        open={modelMenuOpen}
+        onClose={handleModelMenuClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+      >
+        {AI_MODELS.map((model) => (
+          <MenuItem
+            key={model.id}
+            selected={model.id === llmConfig.model}
+            onClick={() => handleModelSelect(model.id)}
+          >
+            <ListItemText>
+              {model.name}
+            </ListItemText>
+          </MenuItem>
+        ))}
       </Menu>
     </>
   );
