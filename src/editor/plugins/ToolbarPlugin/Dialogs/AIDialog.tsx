@@ -35,6 +35,13 @@ const MODELS = [
     reason: false,
   },
   {
+    label: "Claude 3.5 Sonnet",
+    provider: "anthropic",
+    model: "claude-3-5-sonnet-20241022",
+    fast: false,
+    reason: true,
+  },
+  {
     label: "GPT 4o Mini",
     provider: "azure",
     model: "gpt-4o-mini",

@@ -2,12 +2,17 @@ import { CoreMessage, streamText } from "ai";
 import { createOllama } from "ollama-ai-provider";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { match } from "ts-pattern";
 
 export const runtime = "edge";
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+});
+
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 const ollama = createOllama({ baseURL: process.env.OLLAMA_API_URL });
@@ -102,17 +107,22 @@ export async function POST(req: Request) {
 
     const model = match(body.provider)
       .with("ollama", () => ollama(body.model || "llama3.2"))
-
-      .run();
-
-    const maxTokens = match(body.provider)
+      .with("google", () => google(body.model || "gemini-2.5-flash"))
+      .with(
+        "anthropic",
+      () => anthropic(body.model || "claude-3-5-sonnet-20241022"),
       .with("ollama", () => undefined)
+      .with("google", () => undefined)
+      .with("anthropic", () => 8192)
+    .with("azure", () => undefined)
+    .run();
 
-      .run();
+  const result = streamText({ 
+    model: model as any, 
+    messages
+  });
 
-    const result = streamText({ model, messages, maxTokens });
-
-    return result.toTextStreamResponse();
+  return result.toTextStreamResponse();
   } catch (error) {
     console.error("AI Completion error:", error);
     return new Response(JSON.stringify({ error: String(error) }), {
