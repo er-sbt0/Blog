@@ -12,7 +12,7 @@
     "rebuild": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.9",
+    "@ai-sdk/anthropic": "2.0.57",
     "@ai-sdk/google": "^1.1.27",
     "@ai-sdk/openai-compatible": "^0.1.17",
     "@ai-sdk/react": "^3.0.29",

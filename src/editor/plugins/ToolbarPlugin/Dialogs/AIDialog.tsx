@@ -18,44 +18,7 @@ import {
 } from "@mui/material";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { ViewHeadline } from "@mui/icons-material";
-
-const MODELS = [
-  {
-    label: "Gemini 2.5 Flash",
-    provider: "google",
-    model: "gemini-2.5-flash",
-    fast: true,
-    reason: false,
-  },
-  {
-    label: "Gemini 2.5 Pro",
-    provider: "google",
-    model: "gemini-2.5-pro",
-    fast: false,
-    reason: false,
-  },
-  {
-    label: "Claude 3.5 Sonnet",
-    provider: "anthropic",
-    model: "claude-3-5-sonnet-20241022",
-    fast: false,
-    reason: true,
-  },
-  {
-    label: "GPT 4o Mini",
-    provider: "azure",
-    model: "gpt-4o-mini",
-    fast: true,
-    reason: false,
-  },
-  {
-    label: "Phi 4",
-    provider: "ollama",
-    model: "phi4",
-    fast: false,
-    reason: false,
-  },
-];
+import { AI_MODELS } from "@/lib/ai";
 
 function AIDialog({ editor }: { editor: LexicalEditor }) {
   const [llm, setLlm] = useLocalStorage("llm", {
@@ -144,19 +107,17 @@ function AIDialog({ editor }: { editor: LexicalEditor }) {
             }}
             inputProps={{ "aria-label": "Language Model" }}
           >
-            {MODELS.map((
-              { label, provider, model, fast, reason },
-            ) => (
+            {AI_MODELS.map((model) => (
               <MenuItem
-                key={model}
-                value={model}
-                onClick={() => setFormData({ provider, model })}
+                key={model.id}
+                value={model.id}
+                onClick={() => setFormData({ provider: model.provider, model: model.id })}
               >
                 <ListItemIcon>
                   <ViewHeadline fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>{label}</ListItemText>
-                {fast && (
+                <ListItemText>{model.name}</ListItemText>
+                {model.metadata?.fast && (
                   <Badge
                     color="success"
                     badgeContent="Fast"
@@ -169,7 +130,7 @@ function AIDialog({ editor }: { editor: LexicalEditor }) {
                     }}
                   />
                 )}
-                {reason && (
+                {model.metadata?.reason && (
                   <Badge
                     color="warning"
                     badgeContent="Reason"
