@@ -1,22 +1,23 @@
 import { streamText } from "ai";
 import { match } from "ts-pattern";
-import { 
-  getModelById, 
-  getSystemPrompt, 
-  createProvider,
+import {
   AIModelNotFoundError,
   type AIOptionType,
-  type AIProviderType 
+  type AIProviderType,
+  createProvider,
+  getModelById,
+  getSystemPrompt,
 } from "@/lib/ai";
 
 export const runtime = "edge";
 
 export async function POST(req: Request) {
   try {
-    const { prompt, option, command, provider, model: modelId } = await req.json();
+    const { prompt, option, command, provider, model: modelId } = await req
+      .json();
 
     const systemPrompt = getSystemPrompt(option as AIOptionType);
-    
+
     const messages = match(option)
       .with("continue", () => [
         {
@@ -78,9 +79,9 @@ export async function POST(req: Request) {
     const providerInstance = createProvider(provider as AIProviderType);
     const modelInstance = providerInstance(model.id);
 
-    const result = streamText({ 
-      model: modelInstance, 
-      messages
+    const result = streamText({
+      model: modelInstance,
+      messages,
     });
 
     return result.toTextStreamResponse();

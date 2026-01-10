@@ -111,7 +111,8 @@ function AIDialog({ editor }: { editor: LexicalEditor }) {
               <MenuItem
                 key={model.id}
                 value={model.id}
-                onClick={() => setFormData({ provider: model.provider, model: model.id })}
+                onClick={() =>
+                  setFormData({ provider: model.provider, model: model.id })}
               >
                 <ListItemIcon>
                   <ViewHeadline fontSize="small" />

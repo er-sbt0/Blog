@@ -2,8 +2,8 @@ import { createOllama } from "ollama-ai-provider";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import type { AIProviderType, AIModel } from './types';
-import { AIProviderError, AIConfigurationError } from './errors';
+import type { AIModel, AIProviderType } from "./types";
+import { AIConfigurationError, AIProviderError } from "./errors";
 
 /**
  * Use a flexible type that works with all provider versions.
@@ -17,7 +17,9 @@ export type ProviderInstance = (modelId: string) => any;
 const createGoogleProvider = (): ProviderInstance => {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) {
-    throw new AIConfigurationError('GOOGLE_GENERATIVE_AI_API_KEY not configured');
+    throw new AIConfigurationError(
+      "GOOGLE_GENERATIVE_AI_API_KEY not configured",
+    );
   }
   return createGoogleGenerativeAI({ apiKey });
 };
@@ -25,7 +27,7 @@ const createGoogleProvider = (): ProviderInstance => {
 const createAnthropicProvider = (): ProviderInstance => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new AIConfigurationError('ANTHROPIC_API_KEY not configured');
+    throw new AIConfigurationError("ANTHROPIC_API_KEY not configured");
   }
   return createAnthropic({ apiKey });
 };
@@ -33,7 +35,7 @@ const createAnthropicProvider = (): ProviderInstance => {
 const createAzureProvider = (): ProviderInstance => {
   const apiKey = process.env.AZURE_API_KEY;
   if (!apiKey) {
-    throw new AIConfigurationError('AZURE_API_KEY not configured');
+    throw new AIConfigurationError("AZURE_API_KEY not configured");
   }
   return createOpenAICompatible({
     name: "azure-openai",
@@ -47,31 +49,35 @@ const createOllamaProvider = (): ProviderInstance => {
   return createOllama({ baseURL });
 };
 
-export const createProvider = (providerType: AIProviderType): ProviderInstance => {
+export const createProvider = (
+  providerType: AIProviderType,
+): ProviderInstance => {
   try {
     switch (providerType) {
-      case 'google':
+      case "google":
         return createGoogleProvider();
-      case 'anthropic':
+      case "anthropic":
         return createAnthropicProvider();
-      case 'azure':
+      case "azure":
         return createAzureProvider();
-      case 'ollama':
+      case "ollama":
         return createOllamaProvider();
       default:
         throw new AIProviderError(
           providerType,
-          `Unknown provider type: ${providerType}`
+          `Unknown provider type: ${providerType}`,
         );
     }
   } catch (error) {
-    if (error instanceof AIConfigurationError || error instanceof AIProviderError) {
+    if (
+      error instanceof AIConfigurationError || error instanceof AIProviderError
+    ) {
       throw error;
     }
     throw new AIProviderError(
       providerType,
-      'Failed to create provider',
-      error
+      "Failed to create provider",
+      error,
     );
   }
 };

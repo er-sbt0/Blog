@@ -1,4 +1,4 @@
-export type AIProviderType = 'google' | 'anthropic' | 'azure' | 'ollama';
+export type AIProviderType = "google" | "anthropic" | "azure" | "ollama";
 
 export interface AIModel {
   id: string;
@@ -15,7 +15,12 @@ export interface AIModel {
   };
 }
 
-export type AIOptionType = 'improve' | 'continue' | 'shorter' | 'longer' | 'zap';
+export type AIOptionType =
+  | "improve"
+  | "continue"
+  | "shorter"
+  | "longer"
+  | "zap";
 
 export interface AIProviderConfig {
   google: {

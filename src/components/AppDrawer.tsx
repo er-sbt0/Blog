@@ -1,10 +1,5 @@
 "use client";
-import {
-  Box,
-  IconButton,
-  SwipeableDrawer,
-  Typography,
-} from "@mui/material";
+import { Box, IconButton, SwipeableDrawer, Typography } from "@mui/material";
 import { Article, Close } from "@mui/icons-material";
 import { actions, useDispatch, useSelector } from "@/store";
 import { useEffect, useRef, useState } from "react";

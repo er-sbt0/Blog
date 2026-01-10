@@ -72,24 +72,26 @@ export default function AITools(
     provider: "google",
     model: "gemini-2.5-flash",
   });
-  
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [modelMenuAnchor, setModelMenuAnchor] = useState<null | HTMLElement>(null);
+  const [modelMenuAnchor, setModelMenuAnchor] = useState<null | HTMLElement>(
+    null,
+  );
   const open = Boolean(anchorEl);
   const modelMenuOpen = Boolean(modelMenuAnchor);
-  
+
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
-  
+
   const handleModelMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setModelMenuAnchor(event.currentTarget);
   };
-  
+
   const handleModelMenuClose = () => {
     setModelMenuAnchor(null);
   };
-  
+
   const handleModelSelect = (modelId: string) => {
     const model = getModelById(modelId);
     if (model) {
@@ -97,7 +99,7 @@ export default function AITools(
     }
     handleModelMenuClose();
   };
-  
+
   const handleClose = useCallback(() => {
     setAnchorEl(null);
     setTimeout(() => {
@@ -344,34 +346,34 @@ export default function AITools(
   const currentModel = getModelById(llmConfig.model);
 
   const getProviderIcon = (provider: string) => {
-    const iconStyle = { width: 18, height: 18, display: 'block' };
-    
+    const iconStyle = { width: 18, height: 18, display: "block" };
+
     switch (provider) {
-      case 'google':
+      case "google":
         return (
-          <img 
-            src="/icons/google.svg" 
-            alt="Google" 
+          <img
+            src="/icons/google.svg"
+            alt="Google"
             style={iconStyle}
           />
         );
-      case 'anthropic':
+      case "anthropic":
         return (
-          <img 
-            src="/icons/anthropic.svg" 
-            alt="Anthropic" 
+          <img
+            src="/icons/anthropic.svg"
+            alt="Anthropic"
             style={iconStyle}
           />
         );
-      case 'azure':
+      case "azure":
         return (
-          <img 
-            src="/icons/azure.svg" 
-            alt="Azure" 
+          <img
+            src="/icons/azure.svg"
+            alt="Azure"
             style={iconStyle}
           />
         );
-      case 'ollama':
+      case "ollama":
         return <Computer fontSize="small" />;
       default:
         return <AutoAwesome fontSize="small" />;
