@@ -19,6 +19,7 @@ import ShareDocument from "./DocumentActions/Share";
 import DownloadDocument from "./DocumentActions/Download";
 import ForkDocument from "./DocumentActions/Fork";
 import AppDrawer from "./AppDrawer";
+import AttachmentDrawer from "./AttachmentDrawer";
 import ViewRevisionCard from "./ViewRevisionCard";
 import { useSearchParams } from "next/navigation";
 import { FloatingActionButton } from "./Layout/FloatingActionsContainer";
@@ -197,6 +198,7 @@ export default function ViewDocumentInfo(
           ))}
         </Grid>
       </AppDrawer>
+      <AttachmentDrawer />
       <EditDocumentButton handle={handle} />
     </>
   );

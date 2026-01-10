@@ -49,6 +49,8 @@ const initialState: AppState = {
     diff: {
       open: false,
     },
+    attachmentPreview: null,
+    attachmentModified: null,
   },
 };
 
@@ -1091,6 +1093,38 @@ export const appSlice = createSlice({
       action: PayloadAction<Partial<AppState["ui"]["diff"]>>,
     ) => {
       state.ui.diff = { ...state.ui.diff, ...action.payload };
+    },
+    openAttachmentPreview: (
+      state,
+      action: PayloadAction<{
+        nodeKey: string;
+        url: string;
+        filename: string;
+        mimetype: string;
+      }>,
+    ) => {
+      state.ui.attachmentPreview = {
+        open: true,
+        nodeKey: action.payload.nodeKey,
+        url: action.payload.url,
+        filename: action.payload.filename,
+        mimetype: action.payload.mimetype,
+      };
+    },
+    closeAttachmentPreview: (state) => {
+      state.ui.attachmentPreview = null;
+    },
+    notifyAttachmentModified: (
+      state,
+      action: PayloadAction<{ url: string }>,
+    ) => {
+      state.ui.attachmentModified = {
+        url: action.payload.url,
+        timestamp: Date.now(),
+      };
+    },
+    clearAttachmentModified: (state) => {
+      state.ui.attachmentModified = null;
     },
     // This is a placeholder action that will be intercepted by the middleware
     // It doesn't actually modify state but serves as a signal

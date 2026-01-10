@@ -35,6 +35,7 @@ import DownloadDocument from "../DocumentActions/Download";
 import ForkDocument from "../DocumentActions/Fork";
 import EditDocument from "../DocumentActions/Edit";
 import AppDrawer from "../AppDrawer";
+import AttachmentDrawer from "../AttachmentDrawer";
 
 export default function EditDocumentInfo(
   { editorRef, documentId }: {
@@ -492,6 +493,7 @@ export default function EditDocumentInfo(
           ))}
         </Grid>
       </AppDrawer>
+      <AttachmentDrawer />
       {/* Removed revision badge */}
     </>
   );

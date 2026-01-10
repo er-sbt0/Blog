@@ -15,6 +15,14 @@ export interface Announcement {
   };
   timeout?: number;
 }
+export interface AttachmentPreviewState {
+  open: boolean;
+  nodeKey: string | null;
+  url: string | null;
+  filename: string | null;
+  mimetype: string | null;
+}
+
 export interface AppState {
   user?: User;
   documents: UserDocument[];
@@ -27,6 +35,8 @@ export interface AppState {
     drawer: boolean;
     page: number;
     diff: { open: boolean; old?: string; new?: string };
+    attachmentPreview: AttachmentPreviewState | null;
+    attachmentModified: { url: string; timestamp: number } | null;
   };
 }
 

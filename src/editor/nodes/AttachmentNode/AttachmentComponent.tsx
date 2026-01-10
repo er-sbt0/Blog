@@ -7,6 +7,7 @@ import {
   COMMAND_PRIORITY_LOW,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
+  KEY_ENTER_COMMAND,
   NodeKey,
 } from "lexical";
 import { useCallback, useEffect, useState } from "react";
@@ -24,22 +25,20 @@ import {
 } from "@mui/material";
 import {
   Archive,
-  AttachFile,
   Code,
   Delete,
   Description,
   Download,
+  ExpandLess,
+  ExpandMore,
   InsertDriveFile,
+  OpenInNew,
   PictureAsPdf,
 } from "@mui/icons-material";
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
-}
+import { downloadFile } from "@/utils/downloadFile";
+import { formatSize } from "@/utils/formatSize";
+import AttachmentPreview from "./AttachmentPreview";
+import { actions, useDispatch } from "@/store";
 
 function getFileIcon(mimetype: string) {
   if (mimetype.startsWith("application/pdf")) return <PictureAsPdf />;
@@ -80,14 +79,19 @@ export default function AttachmentComponent({
   mimetype,
   size,
   nodeKey,
+  expanded,
+  editing,
 }: {
   url: string;
   filename: string;
   mimetype: string;
   size: number;
   nodeKey: NodeKey;
+  expanded: boolean;
+  editing: boolean;
 }) {
   const [editor] = useLexicalComposerContext();
+  const dispatch = useDispatch();
   const [isSelected, setSelected, clearSelection] = useLexicalNodeSelection(
     nodeKey,
   );
@@ -101,6 +105,21 @@ export default function AttachmentComponent({
         if ($isAttachmentNode(node)) {
           node.remove();
         }
+      }
+      return false;
+    },
+    [isSelected, nodeKey],
+  );
+
+  const $onEnter = useCallback(
+    (event: KeyboardEvent) => {
+      if (isSelected && $isNodeSelection($getSelection())) {
+        event.preventDefault();
+        const node = $getNodeByKey(nodeKey);
+        if ($isAttachmentNode(node)) {
+          node.toggleExpanded();
+        }
+        return true;
       }
       return false;
     },
@@ -135,8 +154,21 @@ export default function AttachmentComponent({
         $onDelete,
         COMMAND_PRIORITY_LOW,
       ),
+      editor.registerCommand(
+        KEY_ENTER_COMMAND,
+        $onEnter,
+        COMMAND_PRIORITY_LOW,
+      ),
     );
-  }, [clearSelection, editor, isSelected, nodeKey, $onDelete, onClick]);
+  }, [
+    clearSelection,
+    editor,
+    isSelected,
+    nodeKey,
+    $onDelete,
+    $onEnter,
+    onClick,
+  ]);
 
   const handleDelete = () => {
     editor.update(() => {
@@ -153,51 +185,46 @@ export default function AttachmentComponent({
     setIsDownloading(true);
 
     try {
-      // Use XMLHttpRequest instead of fetch to avoid Next.js router interception
-      const xhr = new XMLHttpRequest();
-      xhr.open("GET", url, true);
-      xhr.responseType = "blob";
-
-      xhr.onload = function () {
-        if (xhr.status === 200) {
-          const blob = xhr.response;
-          const downloadUrl = window.URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = downloadUrl;
-          link.download = filename;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(downloadUrl);
-          setIsDownloading(false);
-        } else {
-          console.error("Download failed:", xhr.status);
-          setIsDownloading(false);
-        }
-      };
-
-      xhr.onerror = function () {
-        console.error("Download error");
-        setIsDownloading(false);
-      };
-
-      xhr.send();
+      await downloadFile(url, filename);
     } catch (error) {
       console.error("Download error:", error);
+    } finally {
       setIsDownloading(false);
     }
   };
 
+  const handleToggleExpand = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    editor.update(() => {
+      const node = $getNodeByKey(nodeKey);
+      if ($isAttachmentNode(node)) {
+        node.toggleExpanded();
+      }
+    });
+  }, [editor, nodeKey]);
+
+  const handleOpenInSidebar = useCallback(() => {
+    dispatch(actions.openAttachmentPreview({
+      nodeKey,
+      url,
+      filename,
+      mimetype,
+    }));
+  }, [dispatch, nodeKey, url, filename, mimetype]);
+
   return (
     <Card
       sx={{
-        display: "inline-flex",
-        maxWidth: 400,
+        display: "flex",
+        flexDirection: "column",
+        maxWidth: expanded ? 600 : 400,
+        width: expanded ? "100%" : "auto",
         my: 1,
         border: isSelected ? 2 : 1,
         borderColor: isSelected ? "primary.main" : "divider",
         cursor: "pointer",
         userSelect: "none",
+        transition: "all 0.2s ease-in-out",
       }}
       onClick={(e) => {
         // Only select if clicking on the card itself, not buttons
@@ -215,7 +242,7 @@ export default function AttachmentComponent({
           alignItems: "center",
           gap: 2,
           p: 2,
-          "&:last-child": { pb: 2 },
+          "&:last-child": { pb: expanded ? 1 : 2 },
         }}
       >
         <Box
@@ -228,10 +255,17 @@ export default function AttachmentComponent({
             {filename}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {getFileType(mimetype, filename)} • {formatFileSize(size)}
+            {getFileType(mimetype, filename)} • {formatSize(size)}
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ display: "flex", gap: 0.5 }}>
+          <IconButton
+            size="small"
+            onClick={handleToggleExpand}
+            title={expanded ? "Collapse preview" : "Expand preview"}
+          >
+            {expanded ? <ExpandLess /> : <ExpandMore />}
+          </IconButton>
           <IconButton
             size="small"
             onClick={handleDownload}
@@ -240,6 +274,16 @@ export default function AttachmentComponent({
             disabled={isDownloading}
           >
             {isDownloading ? <CircularProgress size={20} /> : <Download />}
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenInSidebar();
+            }}
+            title="Open in sidebar"
+          >
+            <OpenInNew />
           </IconButton>
           {isSelected && (
             <IconButton
@@ -256,6 +300,17 @@ export default function AttachmentComponent({
           )}
         </Box>
       </CardContent>
+
+      {/* Preview section */}
+      <AttachmentPreview
+        url={url}
+        filename={filename}
+        mimetype={mimetype}
+        size={size}
+        expanded={expanded}
+        nodeKey={nodeKey}
+        onOpenInSidebar={handleOpenInSidebar}
+      />
     </Card>
   );
 }
