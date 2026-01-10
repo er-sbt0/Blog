@@ -10,11 +10,13 @@ import {
   Divider,
   Drawer,
   IconButton,
+  InputAdornment,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  TextField,
   Tooltip,
   Typography,
   useMediaQuery,
@@ -24,6 +26,7 @@ import {
   Article,
   ChevronLeft,
   ChevronRight,
+  Clear,
   Code,
   CollectionsBookmark,
   Create,
@@ -31,6 +34,7 @@ import {
   EditNote,
   Home,
   LibraryBooks,
+  Search,
   StickyNote2,
 } from "@mui/icons-material";
 import { styles } from "./styles";
@@ -78,6 +82,9 @@ const SideBar: React.FC = () => {
   const { open, toggleSidebar, isMobile } = useSidebarState();
   const { width: sidebarWidth, isResizing, startResize, getEffectiveWidth } =
     useSidebarWidth();
+
+  // Active posts search state
+  const [activePostsSearch, setActivePostsSearch] = useState("");
 
   // Get the effective width based on open/closed state
   const getWidth = (isOpen: boolean) => getEffectiveWidth(isOpen);
@@ -139,6 +146,19 @@ const SideBar: React.FC = () => {
         };
       });
   }, [user, documents]);
+
+  // Filter active documents based on search query
+  const filteredActiveDocuments = useMemo(() => {
+    if (!activePostsSearch.trim()) return activeDocuments;
+
+    const searchLower = activePostsSearch.toLowerCase();
+    return activeDocuments.filter((doc) =>
+      doc.name.toLowerCase().includes(searchLower)
+    );
+  }, [activeDocuments, activePostsSearch]);
+
+  // Show search bar when there are 5 or more posts
+  const showActivePostsSearch = activeDocuments.length >= 5;
 
   // Navigation items for blog structure
   const navigationItems = useMemo((): NavigationItem[] => {
@@ -391,7 +411,7 @@ const SideBar: React.FC = () => {
                 px: 2.5,
                 py: 1,
                 display: "flex",
-                alignItems: "center",
+                flexDirection: "column",
                 gap: 1,
               }}
             >
@@ -406,11 +426,68 @@ const SideBar: React.FC = () => {
               >
                 Active Posts
               </Box>
+              {showActivePostsSearch && (
+                <TextField
+                  size="small"
+                  placeholder="Search posts..."
+                  value={activePostsSearch}
+                  onChange={(e) => setActivePostsSearch(e.target.value)}
+                  variant="standard"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search
+                          sx={{ fontSize: "0.9rem", color: "text.disabled" }}
+                        />
+                      </InputAdornment>
+                    ),
+                    endAdornment: activePostsSearch && (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setActivePostsSearch("")}
+                          edge="end"
+                          sx={{
+                            padding: 0.25,
+                            opacity: 0.6,
+                            "&:hover": { opacity: 1 },
+                          }}
+                        >
+                          <Clear sx={{ fontSize: "0.9rem" }} />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                    disableUnderline: false,
+                  }}
+                  sx={{
+                    width: "100%",
+                    "& .MuiInput-root": {
+                      fontSize: "0.75rem",
+                      "&:before": {
+                        borderBottomColor: "divider",
+                      },
+                      "&:hover:not(.Mui-disabled):before": {
+                        borderBottomColor: "text.secondary",
+                      },
+                      "&:after": {
+                        borderBottomColor: "primary.main",
+                      },
+                    },
+                    "& .MuiInput-input": {
+                      padding: "4px 0 4px 0",
+                      "&::placeholder": {
+                        fontSize: "0.75rem",
+                        opacity: 0.5,
+                      },
+                    },
+                  }}
+                />
+              )}
             </Box>
           )}
           <Box sx={{ overflow: "auto", flex: "1 1 auto" }}>
             <List dense>
-              {activeDocuments.map((doc, index) => {
+              {filteredActiveDocuments.map((doc, index) => {
                 // Check if this document is currently being viewed or edited
                 const isViewing = pathname === `/view/${doc.id}`;
                 const isEditing = pathname === `/edit/${doc.id}`;
