@@ -21,17 +21,17 @@ import { ViewHeadline } from "@mui/icons-material";
 
 const MODELS = [
   {
-    label: "Gemini 2.0 Flash",
+    label: "Gemini 2.5 Flash",
     provider: "google",
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     fast: true,
     reason: false,
   },
   {
-    label: "Gemini 2.0 Flash Lite",
+    label: "Gemini 2.5 Pro",
     provider: "google",
-    model: "gemini-2.0-flash-lite",
-    fast: true,
+    model: "gemini-2.5-pro",
+    fast: false,
     reason: false,
   },
   {
@@ -55,13 +55,7 @@ const MODELS = [
     fast: false,
     reason: false,
   },
-  {
-    label: "Gemini 2.0 Flash Thinking",
-    provider: "google",
-    model: "gemini-2.0-flash-thinking-exp-01-21",
-    fast: false,
-    reason: true,
-  },
+
   {
     label: "DeepScaleR",
     provider: "ollama",
@@ -74,7 +68,7 @@ const MODELS = [
 function AIDialog({ editor }: { editor: LexicalEditor }) {
   const [llm, setLlm] = useLocalStorage("llm", {
     provider: "google",
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
   });
   const [formData, setFormData] = useState(llm);
 
