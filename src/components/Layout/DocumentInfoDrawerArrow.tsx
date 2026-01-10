@@ -91,7 +91,7 @@ const DocumentInfoDrawerArrow: React.FC = () => {
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onClick={toggleDrawer}
-      elevation={3}
+      elevation={0}
       sx={{
         position: "fixed",
         top: "50%",
@@ -99,9 +99,9 @@ const DocumentInfoDrawerArrow: React.FC = () => {
         transform: "translateY(-50%)",
         zIndex: 1200,
         cursor: "pointer",
-        height: 40, // Reduced height from 80 to 40
-        width: 22, // Increased from 12 to fix icon squashing
-        borderTopLeftRadius: 4, // Reduced radius from 8 to 4
+        height: 32,
+        width: 18,
+        borderTopLeftRadius: 4,
         borderBottomLeftRadius: 4,
         borderTopRightRadius: 0,
         borderBottomRightRadius: 0,
@@ -110,31 +110,35 @@ const DocumentInfoDrawerArrow: React.FC = () => {
         justifyContent: "center",
         backgroundColor: (theme) =>
           drawerOpen
-            ? alpha(theme.palette.primary.main, 0.7) // Reduced opacity from 0.9 to 0.7
-            : alpha(theme.palette.background.paper, 0.5), // Reduced opacity from 0.9 to 0.5
+            ? alpha(theme.palette.primary.main, 0.6)
+            : alpha(theme.palette.background.paper, 0.4),
         transition: (theme) =>
           theme.transitions.create(
-            ["background-color", "width"],
+            ["background-color", "width", "opacity"],
             { duration: theme.transitions.duration.shorter },
           ),
         "&:hover": {
-          width: 32, // Slightly wider on hover for better visibility
+          width: 24,
+          borderTopLeftRadius: 4,
+          borderBottomLeftRadius: 4,
+          borderTopRightRadius: 0,
+          borderBottomRightRadius: 0,
           backgroundColor: (theme) =>
             drawerOpen
-              ? alpha(theme.palette.primary.dark, 0.9)
-              : alpha(theme.palette.action.hover, 0.7),
+              ? alpha(theme.palette.primary.main, 0.8)
+              : alpha(theme.palette.action.hover, 0.6),
         },
         displayPrint: "none",
       }}
       aria-label="document info"
     >
       <ChevronLeft
-        fontSize="medium" // Changed from "small" to "medium" for better visibility
+        fontSize="small"
         sx={{
           color: (theme) =>
             drawerOpen
               ? theme.palette.primary.contrastText
-              : alpha(theme.palette.text.primary, 0.6), // Reduced opacity for text
+              : alpha(theme.palette.text.primary, 0.5),
           transform: drawerOpen ? "rotate(180deg)" : "none",
           transition: (theme) =>
             theme.transitions.create(

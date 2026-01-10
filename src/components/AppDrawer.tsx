@@ -2,11 +2,10 @@
 import {
   Box,
   IconButton,
-  Paper,
   SwipeableDrawer,
   Typography,
 } from "@mui/material";
-import { Article, ChevronRight, Close } from "@mui/icons-material";
+import { Article, Close } from "@mui/icons-material";
 import { actions, useDispatch, useSelector } from "@/store";
 import { useEffect, useRef, useState } from "react";
 import { alpha } from "@mui/material/styles";
@@ -107,55 +106,26 @@ const AppDrawer: React.FC<React.PropsWithChildren<{ title: string }>> = (
           </Box>
           {children}
 
-          {/* Drag handle */}
-          <Paper
+          {/* Invisible drag handle area at left edge */}
+          <Box
             ref={dragHandleRef}
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
-            onClick={toggleDrawer} // Added onClick handler to close the drawer when clicked
-            elevation={0}
             sx={{
-              position: "absolute", // Changed back to absolute
-              top: "50%",
+              position: "absolute",
+              top: 0,
               left: 0,
-              transform: "translate(-50%, -50%)",
+              bottom: 0,
+              width: 8,
+              cursor: "ew-resize",
               zIndex: 1300,
-              cursor: "grab",
-              height: 40, // Reduced height from 80 to 40
-              width: 12, // Reduced width from 24 to 12
-              borderTopRightRadius: 0,
-              borderBottomRightRadius: 0,
-              borderTopLeftRadius: 4, // Reduced radius from 8 to 4
-              borderBottomLeftRadius: 4,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: (theme) =>
-                alpha(theme.palette.primary.main, 0.7), // Reduced opacity from 0.9 to 0.7
-              transition: (theme) =>
-                theme.transitions.create(
-                  ["background-color", "width"],
-                  { duration: theme.transitions.duration.shortest }, // Changed from shorter to shortest
-                ),
-              "&:active": {
-                cursor: "grabbing",
-              },
               "&:hover": {
-                width: 16, // Slightly wider on hover for better visibility
                 backgroundColor: (theme) =>
-                  alpha(theme.palette.primary.dark, 0.9),
+                  alpha(theme.palette.action.hover, 0.1),
               },
-              // Added to ensure the element doesn't disappear
-              visibility: "visible",
-              pointerEvents: "auto",
             }}
             aria-label="drag to close document info"
-          >
-            <ChevronRight
-              fontSize="small"
-              sx={{ color: (theme) => theme.palette.primary.contrastText }}
-            />
-          </Paper>
+          />
         </Box>
       </SwipeableDrawer>
     </>
