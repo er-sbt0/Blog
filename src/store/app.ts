@@ -1097,7 +1097,7 @@ export const appSlice = createSlice({
     openAttachmentPreview: (
       state,
       action: PayloadAction<{
-        nodeKey: string;
+        nodeKey?: string | null;
         url: string;
         filename: string;
         mimetype: string;
@@ -1105,7 +1105,7 @@ export const appSlice = createSlice({
     ) => {
       state.ui.attachmentPreview = {
         open: true,
-        nodeKey: action.payload.nodeKey,
+        nodeKey: action.payload.nodeKey ?? null,
         url: action.payload.url,
         filename: action.payload.filename,
         mimetype: action.payload.mimetype,

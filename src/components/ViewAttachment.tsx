@@ -21,9 +21,11 @@ import { formatSize } from "@/utils/formatSize";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DownloadIcon from "@mui/icons-material/Download";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import { actions, useDispatch } from "@/store";
 
 interface ViewAttachmentProps {
   url: string;
@@ -48,6 +50,7 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [truncated, setTruncated] = useState(false);
+  const dispatch = useDispatch();
 
   const canPreview = isTextFile(mimetype) && size < 1024 * 1024; // 1MB max
   const language = detectLanguageFromFilename(filename);
@@ -108,6 +111,18 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
     });
   };
 
+  const handleOpenInSidebar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    dispatch(
+      actions.openAttachmentPreview({
+        url,
+        filename,
+        mimetype,
+        nodeKey: null,
+      })
+    );
+  };
+
   const highlightedContent = React.useMemo(() => {
     if (!content || !language) return content;
 
@@ -160,6 +175,13 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
             <DownloadIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+        {canPreview && (
+          <Tooltip title="Open in sidebar">
+            <IconButton size="small" onClick={handleOpenInSidebar}>
+              <OpenInNewIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
         {canPreview && (
           <Tooltip title={expanded ? "Collapse" : "Expand"}>
             <IconButton size="small">
