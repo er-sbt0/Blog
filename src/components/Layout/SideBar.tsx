@@ -410,57 +410,72 @@ const SideBar: React.FC = () => {
           )}
           <Box sx={{ overflow: "auto", flex: "1 1 auto" }}>
             <List dense>
-              {activeDocuments.map((doc, index) => (
-                <ListItem
-                  key={doc.id}
-                  disablePadding
-                  sx={{ display: "block" }}
-                >
-                  <Tooltip
-                    title={open ? "" : doc.name}
-                    placement="right"
+              {activeDocuments.map((doc, index) => {
+                // Check if this document is currently being viewed or edited
+                const isViewing = pathname === `/view/${doc.id}`;
+                const isEditing = pathname === `/edit/${doc.id}`;
+                const isSelected = isViewing || isEditing;
+
+                return (
+                  <ListItem
+                    key={doc.id}
+                    disablePadding
+                    sx={{ display: "block" }}
                   >
-                    <ListItemButton
-                      component={SafeNavigationLink}
-                      href={`/view/${doc.id}`}
-                      sx={{
-                        minHeight: 32,
-                        justifyContent: open ? "initial" : "center",
-                        px: open ? 3 : 2.5,
-                        py: 0.5,
-                      }}
+                    <Tooltip
+                      title={open ? "" : doc.name}
+                      placement="right"
                     >
-                      <ListItemIcon
+                      <ListItemButton
+                        component={SafeNavigationLink}
+                        href={`/view/${doc.id}`}
+                        selected={isSelected}
                         sx={{
-                          minWidth: 0,
-                          mr: open ? 1.5 : "auto",
-                          justifyContent: "center",
+                          minHeight: 32,
+                          justifyContent: open ? "initial" : "center",
+                          px: open ? 3 : 2.5,
+                          py: 0.5,
+                          "&.Mui-selected": {
+                            bgcolor: "action.selected",
+                            "&:hover": {
+                              bgcolor: "rgba(0, 0, 0, 0.15)",
+                            },
+                          },
                         }}
                       >
-                        <Article
+                        <ListItemIcon
                           sx={{
-                            fontSize: "1rem",
-                            color: "text.secondary",
+                            minWidth: 0,
+                            mr: open ? 1.5 : "auto",
+                            justifyContent: "center",
                           }}
-                        />
-                      </ListItemIcon>
-                      {open && (
-                        <ListItemText
-                          primary={doc.name}
-                          primaryTypographyProps={{
-                            fontSize: "0.8rem",
-                            sx: {
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            },
-                          }}
-                        />
-                      )}
-                    </ListItemButton>
-                  </Tooltip>
-                </ListItem>
-              ))}
+                        >
+                          <Article
+                            sx={{
+                              fontSize: "1rem",
+                              color: "text.secondary",
+                            }}
+                          />
+                        </ListItemIcon>
+                        {open && (
+                          <ListItemText
+                            primary={doc.name}
+                            primaryTypographyProps={{
+                              fontSize: "0.8rem",
+                              sx: {
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                fontWeight: isSelected ? 600 : 400,
+                              },
+                            }}
+                          />
+                        )}
+                      </ListItemButton>
+                    </Tooltip>
+                  </ListItem>
+                );
+              })}
             </List>
           </Box>
         </Box>

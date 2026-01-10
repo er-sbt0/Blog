@@ -56,9 +56,7 @@ export default function MarkdownShortcutEnhancementPlugin() {
           );
 
           // Convert paragraph to code block
-          $setBlocksType(selection, () =>
-            $createCodeNode(language)
-          );
+          $setBlocksType(selection, () => $createCodeNode(language));
 
           handled = true;
           return;
