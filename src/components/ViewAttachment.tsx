@@ -119,7 +119,7 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
         filename,
         mimetype,
         nodeKey: null,
-      })
+      }),
     );
   };
 

@@ -45,7 +45,9 @@ const ViewAttachmentEnhancer: React.FC<
           // Check if already processed
           if (element.dataset.enhanced === "true") {
             // Already has a portal container, find it
-            const portalContainer = element.nextElementSibling as HTMLElement | null;
+            const portalContainer = element.nextElementSibling as
+              | HTMLElement
+              | null;
             if (portalContainer?.classList.contains("attachment-portal")) {
               foundAttachments.push({
                 element: portalContainer,

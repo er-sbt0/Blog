@@ -180,8 +180,8 @@ const NewDocument: React.FC<{ cloudDocument?: CloudDocument }> = (
       if (saveToCloud && isOnline && user) {
         dispatch(actions.createCloudDocument(payload));
       }
-      // Document created successfully - stay on current page
-      // User can manually navigate to edit or view the document if needed
+      // Document created successfully - navigate back to posts page
+      router.push("/posts");
     }
   };
 
