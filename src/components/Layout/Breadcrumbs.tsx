@@ -8,10 +8,10 @@ import {
   Typography,
 } from "@mui/material";
 import {
+  CollectionsBookmark,
   Create,
   Dashboard,
   Edit,
-  FolderSpecial,
   Home,
   LibraryBooks,
 } from "@mui/icons-material";
@@ -28,13 +28,7 @@ const Breadcrumbs: React.FC = () => {
 
   const getBreadcrumbs = React.useCallback((): BreadcrumbItem[] => {
     const segments = pathname.split("/").filter(Boolean);
-    const breadcrumbs: BreadcrumbItem[] = [
-      {
-        label: "Home",
-        href: "/",
-        icon: <Home sx={{ fontSize: 16, mr: 0.5 }} />,
-      },
-    ];
+    const breadcrumbs: BreadcrumbItem[] = [];
 
     if (segments.length === 0) {
       return breadcrumbs;
@@ -62,7 +56,7 @@ const Breadcrumbs: React.FC = () => {
         breadcrumbs.push({
           label: "Series",
           href: "/series",
-          icon: <FolderSpecial sx={{ fontSize: 16, mr: 0.5 }} />,
+          icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         if (segments.length > 1) {
           if (segments[1] === "new") {
