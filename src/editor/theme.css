@@ -284,6 +284,7 @@
 
 .LexicalTheme__ul {
   padding: 0;
+  padding-inline-start: 16px;
   margin: 0;
   list-style-position: outside;
 }
