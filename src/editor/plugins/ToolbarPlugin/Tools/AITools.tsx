@@ -32,6 +32,7 @@ import {
   ArrowDropUp,
   AutoAwesome,
   Autorenew,
+  Computer,
   ImageSearch,
   PlayArrow,
   Send,
@@ -342,6 +343,41 @@ export default function AITools(
 
   const currentModel = getModelById(llmConfig.model);
 
+  const getProviderIcon = (provider: string) => {
+    const iconStyle = { width: 18, height: 18, display: 'block' };
+    
+    switch (provider) {
+      case 'google':
+        return (
+          <img 
+            src="/icons/google.svg" 
+            alt="Google" 
+            style={iconStyle}
+          />
+        );
+      case 'anthropic':
+        return (
+          <img 
+            src="/icons/anthropic.svg" 
+            alt="Anthropic" 
+            style={iconStyle}
+          />
+        );
+      case 'azure':
+        return (
+          <img 
+            src="/icons/azure.svg" 
+            alt="Azure" 
+            style={iconStyle}
+          />
+        );
+      case 'ollama':
+        return <Computer fontSize="small" />;
+      default:
+        return <AutoAwesome fontSize="small" />;
+    }
+  };
+
   return (
     <>
       <Button
@@ -545,6 +581,9 @@ export default function AITools(
             selected={model.id === llmConfig.model}
             onClick={() => handleModelSelect(model.id)}
           >
+            <ListItemIcon>
+              {getProviderIcon(model.provider)}
+            </ListItemIcon>
             <ListItemText>
               {model.name}
             </ListItemText>
