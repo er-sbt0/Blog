@@ -1,5 +1,9 @@
 import { authOptions } from "@/lib/auth";
-import { addPostToSeries, findSeriesById } from "@/repositories/series";
+import {
+  addPostToSeries,
+  findSeriesById,
+  removePostFromSeries,
+} from "@/repositories/series";
 import { findUserPost } from "@/repositories/post";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
@@ -124,6 +128,92 @@ export async function POST(
     await addPostToSeries(params.id, postId, order || 0);
 
     response.data = { seriesId: params.id, postId, order: order || 0 };
+    return NextResponse.json(response, { status: 200 });
+  } catch (error) {
+    console.log(error);
+    response.error = {
+      title: "Something went wrong",
+      subtitle: "Please try again later",
+    };
+    return NextResponse.json(response, { status: 500 });
+  }
+}
+
+// DELETE /api/series/[id]/posts → remove post from series
+export async function DELETE(
+  request: Request,
+  props: { params: Promise<{ id: string }> },
+) {
+  const params = await props.params;
+  const response: { data?: any; error?: { title: string; subtitle?: string } } =
+    {};
+
+  try {
+    if (!validate(params.id)) {
+      response.error = { title: "Bad Request", subtitle: "Invalid series id" };
+      return NextResponse.json(response, { status: 400 });
+    }
+
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      response.error = {
+        title: "Unauthorized",
+        subtitle: "Please sign in to remove posts from series",
+      };
+      return NextResponse.json(response, { status: 401 });
+    }
+
+    const { user } = session;
+    if (user.disabled) {
+      response.error = {
+        title: "Account Disabled",
+        subtitle: "Account is disabled for violating terms of service",
+      };
+      return NextResponse.json(response, { status: 403 });
+    }
+
+    const series = await findSeriesById(params.id);
+    if (!series) {
+      response.error = { title: "Series not found" };
+      return NextResponse.json(response, { status: 404 });
+    }
+
+    // Check if user is the author of the series
+    if (user.id !== series.authorId) {
+      response.error = {
+        title: "Unauthorized",
+        subtitle: "You can only remove posts from your own series",
+      };
+      return NextResponse.json(response, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { postId } = body;
+
+    if (!postId) {
+      response.error = {
+        title: "Bad Request",
+        subtitle: "Post ID is required",
+      };
+      return NextResponse.json(response, { status: 400 });
+    }
+
+    if (!validate(postId)) {
+      response.error = { title: "Bad Request", subtitle: "Invalid post id" };
+      return NextResponse.json(response, { status: 400 });
+    }
+
+    // Check if post exists and belongs to this series
+    const post = await findUserPost(postId);
+    if (!post) {
+      response.error = { title: "Post not found" };
+      return NextResponse.json(response, { status: 404 });
+    }
+
+    // Remove post from series
+    await removePostFromSeries(postId);
+
+    response.data = { postId };
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.log(error);

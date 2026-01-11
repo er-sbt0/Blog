@@ -1,20 +1,37 @@
+import { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { findAllSeries } from "@/repositories/series";
-import SeriesGrid from "@/components/SeriesGrid";
-import { NewSeriesButton } from "@/components/SeriesActions";
+import SeriesListWrapper from "@/components/SeriesListWrapper";
+
+export const metadata: Metadata = {
+  title: "All Series | Blog",
+  description:
+    "Browse all blog series. Discover curated collections of related posts organized by topic.",
+  keywords: ["blog series", "collections", "tutorials", "guides", "topics"],
+  openGraph: {
+    title: "All Series | Blog",
+    description: "Browse all blog series and curated collections",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "All Series | Blog",
+    description: "Browse all blog series and curated collections",
+  },
+  alternates: {
+    canonical: "/series",
+  },
+};
 
 export default async function SeriesPage() {
   const session = await getServerSession(authOptions);
   const series = await findAllSeries();
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">All Series</h1>
-        {session && <NewSeriesButton />}
-      </div>
-      <SeriesGrid series={series} />
-    </div>
+    <SeriesListWrapper
+      series={series}
+      user={session?.user}
+    />
   );
 }

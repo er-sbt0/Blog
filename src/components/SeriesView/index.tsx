@@ -1,24 +1,24 @@
 "use client";
 import * as React from "react";
+import { useState } from "react";
 import { DocumentType, Post, Series, User } from "@/types";
 import {
   Box,
-  Card,
-  CardContent,
+  Button,
   Chip,
-  Divider,
+  CircularProgress,
   IconButton,
   Typography,
 } from "@mui/material";
 import {
-  CalendarToday,
-  Edit,
-  LibraryBooks,
-  MoreVert,
+  Add,
+  CollectionsBookmark,
+  RemoveCircleOutline,
 } from "@mui/icons-material";
 import Grid from "@mui/material/Grid2";
-import Link from "next/link";
 import DocumentCard from "../DocumentCardNew";
+import AddPostsDialog from "./AddPostsDialog";
+import { useRouter } from "next/navigation";
 
 interface SeriesViewProps {
   series: Series;
@@ -26,157 +26,307 @@ interface SeriesViewProps {
 }
 
 /**
+ * Format date to readable string
+ */
+const formatDate = (dateString: string | Date): string => {
+  const date = typeof dateString === "string"
+    ? new Date(dateString)
+    : dateString;
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+};
+
+/**
  * Series detail view component
- * Shows series information and contained posts
+ * Shows series information and contained posts with management capabilities
  */
 const SeriesView: React.FC<SeriesViewProps> = ({
   series,
   user,
 }) => {
-  const isAuthor = series.authorId === user?.id;
+  const router = useRouter();
+  const canEdit = !!user; // Any logged-in user can edit for now
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [removingPostId, setRemovingPostId] = useState<string | null>(null);
+
   const sortedPosts = [...(series.posts || [])].sort((a, b) =>
     (a.seriesOrder || 0) - (b.seriesOrder || 0)
   );
 
+  const handlePostsAdded = () => {
+    router.refresh();
+  };
+
+  const handleRemovePost = async (postId: string) => {
+    if (!confirm("Remove this post from the series?")) return;
+
+    setRemovingPostId(postId);
+    try {
+      const response = await fetch(`/api/series/${series.id}/posts`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId }),
+      });
+
+      if (response.ok) {
+        router.refresh();
+      } else {
+        const { error } = await response.json();
+        alert(error?.title || "Failed to remove post");
+      }
+    } catch (err) {
+      alert("Failed to remove post");
+    } finally {
+      setRemovingPostId(null);
+    }
+  };
+
   return (
-    <Box>
+    <Box
+      component="main"
+      sx={{
+        py: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 1, sm: 2, md: 3, lg: 4 },
+        minHeight: "50vh",
+        maxWidth: "100%",
+        width: "100%",
+      }}
+    >
       {/* Series Header */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              mb: 2,
-            }}
-          >
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+      <Box sx={{ mb: { xs: 3, md: 4 } }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 2,
+            mb: 2,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <CollectionsBookmark
+              sx={{
+                fontSize: { xs: 28, md: 36 },
+                color: "primary.main",
+              }}
+            />
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{
+                fontWeight: 700,
+                fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2.125rem" },
+                color: "text.primary",
+              }}
+            >
               {series.title}
             </Typography>
-
-            {isAuthor && (
-              <IconButton
-                component={Link}
-                href={`/series/${series.id}/edit`}
-                aria-label="Edit series"
-              >
-                <Edit />
-              </IconButton>
-            )}
           </Box>
 
-          {series.description && (
-            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-              {series.description}
-            </Typography>
-          )}
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+            {canEdit && (
+              <Button
+                variant="outlined"
+                startIcon={<Add />}
+                onClick={() => setAddDialogOpen(true)}
+                sx={{
+                  borderRadius: 1.5,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  height: "40px",
+                }}
+              >
+                Add Posts
+              </Button>
+            )}
+          </Box>
+        </Box>
 
+        {/* Meta info */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            flexWrap: "wrap",
+            mb: 2,
+          }}
+        >
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: "0.875rem" }}
+          >
+            {formatDate(series.createdAt)}
+          </Typography>
           <Box
             sx={{
-              display: "flex",
-              gap: 2,
-              flexWrap: "wrap",
-              alignItems: "center",
+              width: 4,
+              height: 4,
+              bgcolor: "text.secondary",
+              borderRadius: "50%",
+            }}
+          />
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ fontSize: "0.875rem" }}
+          >
+            by {series.author?.name || "Unknown"}
+          </Typography>
+          <Box
+            sx={{
+              width: 4,
+              height: 4,
+              bgcolor: "text.secondary",
+              borderRadius: "50%",
+            }}
+          />
+          <Chip
+            label={`${sortedPosts.length} post${
+              sortedPosts.length !== 1 ? "s" : ""
+            }`}
+            size="small"
+            color="primary"
+            sx={{ fontWeight: 600, fontSize: "0.75rem" }}
+          />
+        </Box>
+
+        {series.description && (
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{
+              maxWidth: 800,
+              lineHeight: 1.6,
             }}
           >
-            <Chip
-              icon={<CalendarToday />}
-              label={`Created ${
-                new Date(series.createdAt).toLocaleDateString()
-              }`}
-              variant="outlined"
-              size="small"
-            />
+            {series.description}
+          </Typography>
+        )}
+      </Box>
 
-            <Chip
-              icon={<LibraryBooks />}
-              label={`${sortedPosts.length} ${
-                sortedPosts.length === 1 ? "post" : "posts"
-              }`}
-              variant="outlined"
-              size="small"
-            />
-
-            <Typography variant="body2" color="text.secondary">
-              by {series.author.name}
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* Posts in Series */}
+      {/* Posts Grid */}
       {sortedPosts.length > 0
         ? (
-          <Box>
-            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
-              Posts in this Series
-            </Typography>
+          <Grid container spacing={3}>
+            {sortedPosts.map((post, index) => {
+              const userDocument = {
+                id: post.id,
+                cloud: {
+                  ...post,
+                  name: post.name,
+                  head: post.id,
+                  type: "DOCUMENT" as DocumentType,
+                  coauthors: [],
+                  revisions: [],
+                  children: undefined,
+                },
+              };
 
-            <Grid container spacing={2}>
-              {sortedPosts.map((post, index) => {
-                // Convert Document to UserDocument format for DocumentCard compatibility
-                const userDocument = {
-                  id: post.id,
-                  cloud: {
-                    ...post,
-                    name: post.name, // Document uses 'name' not 'title'
-                    head: post.id, // Use post id as head for now
-                    type: "DOCUMENT" as DocumentType,
-                    coauthors: [],
-                    revisions: [],
-                    children: undefined,
-                  },
-                };
-
-                return (
-                  <Grid key={post.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                    <Box sx={{ position: "relative" }}>
-                      {/* Series order indicator */}
-                      <Box
+              return (
+                <Grid key={post.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                  <Box sx={{ position: "relative" }}>
+                    {/* Remove button for logged-in users */}
+                    {canEdit && (
+                      <IconButton
                         sx={{
                           position: "absolute",
-                          top: 8,
-                          left: 8,
+                          top: 12,
+                          right: 12,
                           zIndex: 1,
-                          backgroundColor: "primary.main",
-                          color: "white",
-                          borderRadius: "50%",
-                          width: 24,
-                          height: 24,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "0.75rem",
-                          fontWeight: 600,
+                          backgroundColor: "background.paper",
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                          "&:hover": {
+                            backgroundColor: "error.light",
+                            color: "error.contrastText",
+                          },
                         }}
+                        size="small"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleRemovePost(post.id);
+                        }}
+                        disabled={removingPostId === post.id}
+                        aria-label="Remove from series"
                       >
-                        {index + 1}
-                      </Box>
+                        {removingPostId === post.id
+                          ? <CircularProgress size={16} />
+                          : <RemoveCircleOutline fontSize="small" />}
+                      </IconButton>
+                    )}
 
-                      <DocumentCard
-                        userDocument={userDocument}
-                        user={user}
-                      />
-                    </Box>
-                  </Grid>
-                );
-              })}
-            </Grid>
-          </Box>
+                    <DocumentCard userDocument={userDocument} user={user} />
+                  </Box>
+                </Grid>
+              );
+            })}
+          </Grid>
         )
         : (
-          <Box sx={{ textAlign: "center", py: 6 }}>
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
+          <Box
+            sx={{
+              textAlign: "center",
+              py: { xs: 6, md: 10 },
+              px: { xs: 2, md: 4 },
+              color: "text.secondary",
+            }}
+          >
+            <Box
+              sx={{
+                mb: 3,
+                fontSize: { xs: 40, md: 56 },
+                filter: "grayscale(0.3)",
+              }}
+            >
+              📚
+            </Box>
+            <Box
+              sx={{
+                fontSize: { xs: "1.125rem", md: "1.375rem" },
+                mb: 1,
+                fontWeight: 600,
+                color: "text.primary",
+              }}
+            >
               No posts in this series yet
-            </Typography>
-            {isAuthor && (
-              <Typography variant="body2" color="text.secondary">
-                Start writing your first post and add it to this series
-              </Typography>
-            )}
+            </Box>
+            <Box
+              sx={{
+                fontSize: { xs: "0.875rem", md: "1rem" },
+                color: "text.secondary",
+                maxWidth: 400,
+                mx: "auto",
+              }}
+            >
+              {canEdit
+                ? "Add your existing posts to organize them in this series"
+                : "This series doesn't have any posts yet"}
+            </Box>
           </Box>
         )}
+
+      {/* Add Posts Dialog */}
+      <AddPostsDialog
+        open={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+        seriesId={series.id}
+        onPostsAdded={handlePostsAdded}
+      />
     </Box>
   );
 };

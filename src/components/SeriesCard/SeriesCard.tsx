@@ -1,12 +1,28 @@
 "use client";
 import * as React from "react";
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
 import { SxProps, Theme } from "@mui/material/styles";
-import { Box, Chip, IconButton, Skeleton } from "@mui/material";
-import { Article, Folder, MoreVert } from "@mui/icons-material";
+import {
+  Box,
+  Chip,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Skeleton,
+  Typography,
+} from "@mui/material";
+import {
+  CollectionsBookmark,
+  Delete,
+  Edit,
+  MoreVert,
+} from "@mui/icons-material";
 import { Series, User } from "@/types";
 import CardBase from "../DocumentCardNew/CardBase";
 import { cardTheme } from "../DocumentCardNew/theme";
+import { useRouter } from "next/navigation";
 
 // Define proper interface for component props
 interface SeriesCardProps {
@@ -32,8 +48,32 @@ interface SeriesCardProps {
 }
 
 /**
+ * Format date to readable string
+ */
+const formatDate = (dateString: string | Date): string => {
+  const date = typeof dateString === "string"
+    ? new Date(dateString)
+    : dateString;
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+};
+
+/**
  * Series card component representing a series in the system
- * Optimized for performance and accessibility
+ * Modern design matching PostCard style
  */
 const SeriesCard: React.FC<SeriesCardProps> = memo(({
   series,
@@ -41,6 +81,10 @@ const SeriesCard: React.FC<SeriesCardProps> = memo(({
   sx,
   cardConfig = {},
 }) => {
+  const router = useRouter();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const menuOpen = Boolean(anchorEl);
+
   // Apply default configuration with overrides
   const config = useMemo(() => ({
     minHeight: cardConfig.minHeight || cardTheme.minHeight.post,
@@ -52,125 +96,233 @@ const SeriesCard: React.FC<SeriesCardProps> = memo(({
 
   // Navigation and metadata
   const href = series ? `/series/${series.id}` : "/";
+  const isAuthor = series?.authorId === user?.id;
 
   // Rendering helpers
   const isLoading = !series;
 
-  // Memoize top content (series icon)
+  // Format date
+  const formattedDate = series?.createdAt ? formatDate(series.createdAt) : "";
+  const postCount = series?.posts?.length || 0;
+
+  // Menu handlers
+  const handleOpenMenu = (e: React.MouseEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setAnchorEl(e.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleEdit = () => {
+    handleCloseMenu();
+    if (series) {
+      router.push(`/series/${series.id}/edit`);
+    }
+  };
+
+  const handleDelete = async () => {
+    handleCloseMenu();
+    if (!series) return;
+    if (!confirm("Delete this series? Posts will not be deleted.")) return;
+
+    try {
+      const response = await fetch(`/api/series/${series.id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        router.refresh();
+      } else {
+        const { error } = await response.json();
+        alert(error?.title || "Failed to delete series");
+      }
+    } catch (err) {
+      alert("Failed to delete series");
+    }
+  };
+
+  // Memoize top content - blog-style with title and meta
   const topContent = useMemo(
     () => (
       <Box
         sx={{
+          p: { xs: 2, sm: 3 },
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "140px",
-          backgroundColor: "primary.light",
-          borderRadius: 1,
-          color: "white",
+          flexDirection: "column",
+          height: 200,
+          overflow: "hidden",
         }}
       >
-        <Folder sx={{ fontSize: 64 }} />
+        {/* Series title */}
+        <Typography
+          variant="h5"
+          component="h2"
+          sx={{
+            fontWeight: 700,
+            lineHeight: 1.2,
+            color: "text.primary",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            fontSize: { xs: "1.25rem", sm: "1.5rem" },
+            mb: 1,
+            flexShrink: 0,
+            "&:hover": {
+              color: "primary.main",
+            },
+          }}
+        >
+          {series?.title || <Skeleton variant="text" width="80%" />}
+        </Typography>
+
+        {/* Meta information */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            flexWrap: "wrap",
+            mb: 1,
+            flexShrink: 0,
+          }}
+        >
+          {formattedDate && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+            >
+              {formattedDate}
+            </Typography>
+          )}
+
+          {series?.author && (
+            <>
+              <Box
+                sx={{
+                  width: 4,
+                  height: 4,
+                  bgcolor: "text.secondary",
+                  borderRadius: "50%",
+                }}
+              />
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+              >
+                by {series.author.name || series.author.email}
+              </Typography>
+            </>
+          )}
+        </Box>
+
+        {/* Description */}
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            lineHeight: 1.6,
+            flex: 1,
+          }}
+        >
+          {series?.description ||
+            `A collection of ${postCount} post${postCount !== 1 ? "s" : ""}`}
+        </Typography>
       </Box>
     ),
-    [series],
+    [series, formattedDate, postCount],
   );
 
-  // Memoize chip content based on series data
+  // Memoize chip content - simple post count
   const chipContent = useMemo(() => {
     if (isLoading) {
       return (
-        <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-          <Skeleton
-            variant="rectangular"
-            width={60}
-            height={24}
-            sx={{ borderRadius: 1 }}
-          />
-          <Skeleton
-            variant="rectangular"
-            width={80}
-            height={24}
-            sx={{ borderRadius: 1 }}
-          />
-        </Box>
-      );
-    }
-
-    const chips = [];
-
-    // Post count chip
-    if (series) {
-      chips.push(
-        <Chip
-          key="post-count"
-          label={`${series.posts?.length || 0} posts`}
-          size="small"
-          variant="outlined"
-          icon={<Article />}
-          sx={{ fontSize: "0.7rem" }}
-        />,
-      );
-    }
-
-    // Author chip
-    if (config.showAuthor && series?.author) {
-      chips.push(
-        <Chip
-          key="author"
-          label={series.author.name}
-          size="small"
-          variant="outlined"
-          sx={{ fontSize: "0.7rem" }}
-        />,
+        <Skeleton
+          variant="rectangular"
+          width={70}
+          height={24}
+          sx={{ borderRadius: 1 }}
+        />
       );
     }
 
     return (
-      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-        {chips}
-      </Box>
+      <Chip
+        icon={<CollectionsBookmark sx={{ fontSize: 16 }} />}
+        label={`${postCount} post${postCount !== 1 ? "s" : ""}`}
+        size="small"
+        variant="outlined"
+        sx={{
+          fontSize: "0.75rem",
+          fontWeight: 500,
+          height: 24,
+          "& .MuiChip-icon": { ml: 0.5 },
+        }}
+      />
     );
-  }, [
-    isLoading,
-    series,
-    config.showAuthor,
-  ]);
+  }, [isLoading, postCount]);
 
-  // Memoize action content for better performance
-  const actionContent = useMemo(() => {
-    if (isLoading) {
-      return (
-        <IconButton
-          aria-label="Series Actions"
-          size="small"
-          disabled
-        >
-          <MoreVert />
-        </IconButton>
-      );
-    }
-
-    // For now, simple action menu - can be expanded later
-    return (
+  // Action content with menu
+  const actionContent = (
+    <>
       <IconButton
         aria-label="Series Actions"
+        aria-controls={menuOpen ? "series-menu" : undefined}
+        aria-haspopup="true"
+        aria-expanded={menuOpen ? "true" : undefined}
         size="small"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          // TODO: Implement series action menu
+        disabled={isLoading}
+        onClick={handleOpenMenu}
+        sx={{
+          opacity: isLoading ? 0.5 : 1,
         }}
       >
         <MoreVert />
       </IconButton>
-    );
-  }, [isLoading, series, user]);
-
-  // Memoize title content
-  const titleContent = useMemo(() => {
-    return series?.title || <Skeleton variant="text" width={190} />;
-  }, [series?.title]);
+      <Menu
+        id="series-menu"
+        anchorEl={anchorEl}
+        open={menuOpen}
+        onClose={handleCloseMenu}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {isAuthor && (
+          <MenuItem onClick={handleEdit}>
+            <ListItemIcon>
+              <Edit fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Edit</ListItemText>
+          </MenuItem>
+        )}
+        {isAuthor && (
+          <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
+            <ListItemIcon>
+              <Delete fontSize="small" sx={{ color: "error.main" }} />
+            </ListItemIcon>
+            <ListItemText>Delete</ListItemText>
+          </MenuItem>
+        )}
+      </Menu>
+    </>
+  );
 
   // Memoize aria label for better accessibility
   const ariaLabel = useMemo(() => {
@@ -179,17 +331,13 @@ const SeriesCard: React.FC<SeriesCardProps> = memo(({
 
   return (
     <CardBase
-      title={titleContent}
       href={href}
       isLoading={isLoading}
       topContent={topContent}
       chipContent={chipContent}
       actionContent={actionContent}
       ariaLabel={ariaLabel}
-      sx={{
-        minHeight: config.minHeight,
-        ...sx,
-      }}
+      sx={sx}
     />
   );
 });
