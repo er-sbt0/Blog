@@ -53,6 +53,7 @@ import {
   Typography,
 } from "@mui/material";
 import {
+  AttachFile,
   Brush,
   Code,
   Expand,
@@ -78,6 +79,7 @@ import {
 import { IFrameNode } from "@/editor/nodes/IFrameNode";
 import { LayoutContainerNode } from "@/editor/nodes/LayoutNode";
 import { DetailsContainerNode } from "@/editor/nodes/DetailsNode";
+import { AttachmentNode } from "@/editor/nodes/AttachmentNode";
 import { INSERT_DETAILS_COMMAND } from "../DetailsPlugin";
 
 const H1 = () => (
@@ -227,6 +229,8 @@ export default function ComponentPickerMenuPlugin() {
     editor.dispatchCommand(SET_DIALOGS_COMMAND, { iframe: { open: true } });
   const openLayoutDialog = () =>
     editor.dispatchCommand(SET_DIALOGS_COMMAND, { layout: { open: true } });
+  const openAttachmentDialog = () =>
+    editor.dispatchCommand(SET_DIALOGS_COMMAND, { attachment: { open: true } });
   const openOCRDialog = () =>
     editor.dispatchCommand(SET_DIALOGS_COMMAND, { ocr: { open: true } });
 
@@ -564,6 +568,17 @@ export default function ComponentPickerMenuPlugin() {
               INSERT_DETAILS_COMMAND,
               undefined,
             ),
+        }),
+      );
+    }
+
+    if (editor.hasNode(AttachmentNode)) {
+      baseOptions.push(
+        new ComponentPickerOption("Attachment", {
+          icon: <AttachFile />,
+          keywords: ["attachment", "attach", "file", "upload"],
+          keyboardShortcut: "/attach",
+          onSelect: openAttachmentDialog,
         }),
       );
     }
