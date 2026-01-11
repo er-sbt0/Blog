@@ -284,7 +284,8 @@ export default function AttachmentComponent({
           bgcolor: isSelected ? "primary.50" : "grey.50",
           border: 1,
           borderColor: isSelected ? "primary.main" : "grey.200",
-          borderRadius: 2,
+          borderBottom: expanded ? 0 : 1,
+          borderRadius: expanded ? "8px 8px 0 0" : 2,
           cursor: "pointer",
           transition: "all 0.15s ease",
           "&:hover": {
@@ -429,7 +430,7 @@ export default function AttachmentComponent({
 
       {/* Preview section */}
       {(expanded || editing) && (
-        <Box sx={{ mt: 0.5 }}>
+        <Box>
           <AttachmentPreview
             url={url}
             filename={filename}

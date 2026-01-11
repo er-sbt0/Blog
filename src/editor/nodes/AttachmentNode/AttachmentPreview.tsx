@@ -400,7 +400,7 @@ export default function AttachmentPreview({
         sx={{
           border: 1,
           borderColor: "grey.200",
-          borderRadius: 2,
+          borderRadius: "0 0 8px 8px",
           bgcolor: "background.paper",
           overflow: "hidden",
         }}
