@@ -240,8 +240,8 @@ const findDocumentsByAuthorId = async (authorId: string) => {
       background_image: true,
       parentId: true, // Ensure parentId is explicitly selected
       sort_order: true, // Ensure sort_order is explicitly selected
-      // seriesId: true, // Comment out until schema is updated
-      // seriesOrder: true, // Comment out until schema is updated
+      seriesId: true,
+      seriesOrder: true,
       revisions: {
         select: {
           id: true,

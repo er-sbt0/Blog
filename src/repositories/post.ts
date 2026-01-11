@@ -33,6 +33,8 @@ const findPublishedPosts = async (limit?: number) => {
       type: true,
       status: true,
       background_image: true,
+      seriesId: true,
+      seriesOrder: true,
       revisions: {
         select: {
           id: true,
@@ -110,6 +112,8 @@ const findAllPosts = async (limit?: number) => {
       type: true,
       status: true,
       background_image: true,
+      seriesId: true,
+      seriesOrder: true,
       revisions: {
         select: {
           id: true,
@@ -262,6 +266,8 @@ const findPostsByAuthorId = async (authorId: string) => {
       type: true,
       status: true,
       background_image: true,
+      seriesId: true,
+      seriesOrder: true,
       revisions: {
         select: {
           id: true,
@@ -340,6 +346,8 @@ const findPublishedPostsByAuthorId = async (authorId: string) => {
       type: true,
       status: true,
       background_image: true,
+      seriesId: true,
+      seriesOrder: true,
       revisions: {
         select: {
           id: true,

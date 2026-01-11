@@ -7,6 +7,7 @@ import { actions, type RootState, useDispatch, useSelector } from "@/store";
 import {
   Avatar,
   Box,
+  Collapse,
   Divider,
   Drawer,
   IconButton,
@@ -32,17 +33,24 @@ import {
   Create,
   Dashboard,
   EditNote,
+  ExpandLess,
+  ExpandMore,
   Home,
   LibraryBooks,
   Search,
   StickyNote2,
 } from "@mui/icons-material";
 import { styles } from "./styles";
-import type { DocumentStatus, User } from "@/types";
+import type { DocumentStatus, Series, User } from "@/types";
 import { useSidebarState } from "./SideBar/hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./SideBar/hooks/useKeyboardShortcuts";
 import { useSidebarWidth } from "./SideBar/SidebarWidthContext";
 import type { UserDocument } from "@/types";
+import {
+  buildSeriesMap,
+  groupPostsBySeries,
+  type SeriesGroupItem,
+} from "@/components/PostsList/utils/seriesGrouping";
 
 // Accessibility and styling constants
 const SIDEBAR_CONSTANTS = {
@@ -86,6 +94,9 @@ const SideBar: React.FC = () => {
   // Active posts search state
   const [activePostsSearch, setActivePostsSearch] = useState("");
 
+  // Track expanded state for series (default: all expanded)
+  const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
+
   // Get the effective width based on open/closed state
   const getWidth = (isOpen: boolean) => getEffectiveWidth(isOpen);
 
@@ -101,6 +112,7 @@ const SideBar: React.FC = () => {
   const initialized = useSelector((state: RootState) => state.ui.initialized);
   const user = useSelector((state: RootState) => state.user);
   const documents = useSelector((state: RootState) => state.documents);
+  const seriesList = useSelector((state: RootState) => state.series);
 
   // Memoized computed values
   const isInEditMode = useMemo(() => isEditMode(pathname), [pathname]);
@@ -108,57 +120,110 @@ const SideBar: React.FC = () => {
   const showFileBrowser = false;
 
   // Get active documents (only show for authenticated users)
-  const activeDocuments = useMemo(() => {
+  const activeDocuments = useMemo((): UserDocument[] => {
     if (!user || !documents) return [];
 
-    return documents
-      .filter((doc) => {
-        const cloudDocument = doc.cloud;
-        const localDocument = doc.local;
+    return documents.filter((doc) => {
+      const cloudDocument = doc.cloud;
+      const localDocument = doc.local;
 
-        // For cloud documents, check author and status
-        if (cloudDocument) {
-          return cloudDocument.status === "ACTIVE" &&
-            cloudDocument.author.id === user.id;
-        }
+      // For cloud documents, check author and status
+      if (cloudDocument) {
+        return cloudDocument.status === "ACTIVE" &&
+          cloudDocument.author.id === user.id;
+      }
 
-        // For local documents, assume they belong to the current user and check status
-        if (localDocument) {
-          return localDocument.status === "ACTIVE";
-        }
+      // For local documents, assume they belong to the current user and check status
+      if (localDocument) {
+        return localDocument.status === "ACTIVE";
+      }
 
-        return false;
-      })
-      .sort((a, b) => {
-        // Sort by creation time (newest first)
-        const aDoc = a.cloud || a.local;
-        const bDoc = b.cloud || b.local;
-        const aTime = aDoc?.createdAt ? new Date(aDoc.createdAt).getTime() : 0;
-        const bTime = bDoc?.createdAt ? new Date(bDoc.createdAt).getTime() : 0;
-        return bTime - aTime;
-      })
-      .map((doc) => {
-        const document = doc.cloud || doc.local;
-        return {
-          id: doc.id,
-          name: document?.name || "Untitled",
-          handle: document?.handle,
-        };
-      });
+      return false;
+    });
   }, [user, documents]);
 
-  // Filter active documents based on search query
-  const filteredActiveDocuments = useMemo(() => {
-    if (!activePostsSearch.trim()) return activeDocuments;
+  // Build series map for grouping
+  const seriesMap = useMemo(() => buildSeriesMap(seriesList || []), [
+    seriesList,
+  ]);
+
+  // Group active documents by series
+  const groupedActivePosts = useMemo((): SeriesGroupItem[] => {
+    return groupPostsBySeries(activeDocuments, seriesMap);
+  }, [activeDocuments, seriesMap]);
+
+  // Filter grouped posts based on search query
+  const filteredGroupedPosts = useMemo((): SeriesGroupItem[] => {
+    if (!activePostsSearch.trim()) return groupedActivePosts;
 
     const searchLower = activePostsSearch.toLowerCase();
-    return activeDocuments.filter((doc) =>
-      doc.name.toLowerCase().includes(searchLower)
-    );
-  }, [activeDocuments, activePostsSearch]);
+
+    return groupedActivePosts
+      .map((group) => {
+        if (group.type === "series") {
+          // For series, check if series title matches or filter posts
+          const seriesMatches = group.series?.title.toLowerCase().includes(
+            searchLower,
+          );
+          if (seriesMatches) return group; // Return whole series if title matches
+
+          // Otherwise filter posts within series
+          const filteredPosts = group.posts.filter((post) => {
+            const doc = post.cloud || post.local;
+            return doc?.name?.toLowerCase().includes(searchLower);
+          });
+
+          if (filteredPosts.length === 0) return null;
+          return { ...group, posts: filteredPosts };
+        } else {
+          // For standalone posts, filter by name
+          const doc = group.posts[0]?.cloud || group.posts[0]?.local;
+          if (doc?.name?.toLowerCase().includes(searchLower)) return group;
+          return null;
+        }
+      })
+      .filter((group): group is SeriesGroupItem => group !== null);
+  }, [groupedActivePosts, activePostsSearch]);
 
   // Show search bar when there are 5 or more posts
   const showActivePostsSearch = activeDocuments.length >= 5;
+
+  // Initialize expanded series when groupedPosts changes
+  useMemo(() => {
+    if (groupedActivePosts.length > 0) {
+      const seriesIds = groupedActivePosts
+        .filter((g) => g.type === "series" && g.series)
+        .map((g) => g.series!.id);
+      setExpandedSeries((prev) => {
+        // Only add new series, keep existing state for known series
+        const next = new Set(prev);
+        seriesIds.forEach((id) => {
+          if (!prev.has(id) && prev.size === 0) {
+            // First load: expand all
+            next.add(id);
+          }
+        });
+        // If this is first load, expand all
+        if (prev.size === 0 && seriesIds.length > 0) {
+          return new Set(seriesIds);
+        }
+        return prev;
+      });
+    }
+  }, [groupedActivePosts]);
+
+  // Toggle series expanded state
+  const toggleSeriesExpanded = useCallback((seriesId: string) => {
+    setExpandedSeries((prev) => {
+      const next = new Set(prev);
+      if (next.has(seriesId)) {
+        next.delete(seriesId);
+      } else {
+        next.add(seriesId);
+      }
+      return next;
+    });
+  }, []);
 
   // Navigation items for blog structure
   const navigationItems = useMemo((): NavigationItem[] => {
@@ -487,71 +552,240 @@ const SideBar: React.FC = () => {
           )}
           <Box sx={{ overflow: "auto", flex: "1 1 auto" }}>
             <List dense>
-              {filteredActiveDocuments.map((doc, index) => {
-                // Check if this document is currently being viewed or edited
-                const isViewing = pathname === `/view/${doc.id}`;
-                const isEditing = pathname === `/edit/${doc.id}`;
-                const isSelected = isViewing || isEditing;
-
-                return (
-                  <ListItem
-                    key={doc.id}
-                    disablePadding
-                    sx={{ display: "block" }}
-                  >
-                    <Tooltip
-                      title={open ? "" : doc.name}
-                      placement="right"
+              {filteredGroupedPosts.map((group, groupIndex) => {
+                if (group.type === "series" && group.series) {
+                  const isExpanded = expandedSeries.has(group.series.id);
+                  // Render series with minimal left border accent
+                  return (
+                    <Box
+                      key={`series-${group.series.id}`}
+                      sx={{
+                        mt: groupIndex > 0 ? 0.5 : 0,
+                        mb: 0.5,
+                      }}
                     >
-                      <ListItemButton
-                        component={SafeNavigationLink}
-                        href={`/view/${doc.id}`}
-                        selected={isSelected}
-                        sx={{
-                          minHeight: 32,
-                          justifyContent: open ? "initial" : "center",
-                          px: open ? 3 : 2.5,
-                          py: 0.5,
-                          "&.Mui-selected": {
-                            bgcolor: "action.selected",
-                            "&:hover": {
-                              bgcolor: "rgba(0, 0, 0, 0.15)",
-                            },
-                          },
-                        }}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            minWidth: 0,
-                            mr: open ? 1.5 : "auto",
-                            justifyContent: "center",
-                          }}
+                      {/* Series Header - Collapsible, minimal style */}
+                      <ListItem disablePadding sx={{ display: "block" }}>
+                        <Tooltip
+                          title={open ? "" : group.series.title}
+                          placement="right"
                         >
-                          <Article
-                            sx={{
-                              fontSize: "1rem",
-                              color: "text.secondary",
+                          <ListItemButton
+                            onClick={(e) => {
+                              e.preventDefault();
+                              toggleSeriesExpanded(group.series!.id);
                             }}
-                          />
-                        </ListItemIcon>
-                        {open && (
-                          <ListItemText
-                            primary={doc.name}
-                            primaryTypographyProps={{
-                              fontSize: "0.8rem",
-                              sx: {
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                fontWeight: isSelected ? 600 : 400,
+                            sx={{
+                              minHeight: 28,
+                              justifyContent: open ? "initial" : "center",
+                              px: 2.5,
+                              py: 0.25,
+                              "&:hover": {
+                                bgcolor: (theme) =>
+                                  theme.palette.mode === "dark"
+                                    ? "rgba(255, 255, 255, 0.05)"
+                                    : "rgba(0, 0, 0, 0.04)",
                               },
                             }}
-                          />
-                        )}
-                      </ListItemButton>
-                    </Tooltip>
-                  </ListItem>
-                );
+                          >
+                            <ListItemIcon
+                              sx={{
+                                minWidth: 0,
+                                mr: open ? 1 : "auto",
+                                justifyContent: "center",
+                              }}
+                            >
+                              {isExpanded
+                                ? (
+                                  <ExpandLess
+                                    sx={{
+                                      fontSize: "0.85rem",
+                                      color: "text.secondary",
+                                    }}
+                                  />
+                                )
+                                : (
+                                  <ExpandMore
+                                    sx={{
+                                      fontSize: "0.85rem",
+                                      color: "text.secondary",
+                                    }}
+                                  />
+                                )}
+                            </ListItemIcon>
+                            {open && (
+                              <ListItemText
+                                primary={`${group.series.title} (${group.posts.length})`}
+                                primaryTypographyProps={{
+                                  fontSize: "0.7rem",
+                                  fontWeight: 500,
+                                  color: "text.secondary",
+                                  sx: {
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  },
+                                }}
+                              />
+                            )}
+                          </ListItemButton>
+                        </Tooltip>
+                      </ListItem>
+                      {/* Series Posts - with left border accent */}
+                      <Collapse in={isExpanded} timeout="auto">
+                        <Box
+                          sx={{
+                            ml: open ? 2.5 : 0,
+                            borderLeft: open ? "2px solid" : "none",
+                            borderLeftColor: (theme) =>
+                              theme.palette.mode === "dark"
+                                ? "rgba(255, 255, 255, 0.2)"
+                                : "rgba(0, 0, 0, 0.15)",
+                          }}
+                        >
+                          {group.posts.map((post, postIndex) => {
+                            const doc = post.cloud || post.local;
+                            const docName = doc?.name || "Untitled";
+                            const isViewing = pathname === `/view/${post.id}`;
+                            const isEditing = pathname === `/edit/${post.id}`;
+                            const isSelected = isViewing || isEditing;
+
+                            return (
+                              <ListItem
+                                key={post.id}
+                                disablePadding
+                                sx={{ display: "block" }}
+                              >
+                                <Tooltip
+                                  title={open ? "" : docName}
+                                  placement="right"
+                                >
+                                  <ListItemButton
+                                    component={SafeNavigationLink}
+                                    href={`/view/${post.id}`}
+                                    selected={isSelected}
+                                    sx={{
+                                      minHeight: 30,
+                                      justifyContent: open
+                                        ? "initial"
+                                        : "center",
+                                      pl: open ? 2 : 2,
+                                      pr: 2.5,
+                                      py: 0.25,
+                                      "&.Mui-selected": {
+                                        bgcolor: "action.selected",
+                                        "&:hover": {
+                                          bgcolor: "rgba(0, 0, 0, 0.12)",
+                                        },
+                                      },
+                                    }}
+                                  >
+                                    <ListItemIcon
+                                      sx={{
+                                        minWidth: 0,
+                                        mr: open ? 1.5 : "auto",
+                                        justifyContent: "center",
+                                      }}
+                                    >
+                                      <Article
+                                        sx={{
+                                          fontSize: "0.85rem",
+                                          color: "text.secondary",
+                                        }}
+                                      />
+                                    </ListItemIcon>
+                                    {open && (
+                                      <ListItemText
+                                        primary={docName}
+                                        primaryTypographyProps={{
+                                          fontSize: "0.78rem",
+                                          sx: {
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                            fontWeight: isSelected ? 600 : 400,
+                                          },
+                                        }}
+                                      />
+                                    )}
+                                  </ListItemButton>
+                                </Tooltip>
+                              </ListItem>
+                            );
+                          })}
+                        </Box>
+                      </Collapse>
+                    </Box>
+                  );
+                } else {
+                  // Render standalone post
+                  const post = group.posts[0];
+                  const doc = post.cloud || post.local;
+                  const docName = doc?.name || "Untitled";
+                  const isViewing = pathname === `/view/${post.id}`;
+                  const isEditing = pathname === `/edit/${post.id}`;
+                  const isSelected = isViewing || isEditing;
+
+                  return (
+                    <ListItem
+                      key={post.id}
+                      disablePadding
+                      sx={{ display: "block" }}
+                    >
+                      <Tooltip
+                        title={open ? "" : docName}
+                        placement="right"
+                      >
+                        <ListItemButton
+                          component={SafeNavigationLink}
+                          href={`/view/${post.id}`}
+                          selected={isSelected}
+                          sx={{
+                            minHeight: 32,
+                            justifyContent: open ? "initial" : "center",
+                            px: open ? 3 : 2.5,
+                            py: 0.5,
+                            "&.Mui-selected": {
+                              bgcolor: "action.selected",
+                              "&:hover": {
+                                bgcolor: "rgba(0, 0, 0, 0.15)",
+                              },
+                            },
+                          }}
+                        >
+                          <ListItemIcon
+                            sx={{
+                              minWidth: 0,
+                              mr: open ? 1.5 : "auto",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <Article
+                              sx={{
+                                fontSize: "1rem",
+                                color: "text.secondary",
+                              }}
+                            />
+                          </ListItemIcon>
+                          {open && (
+                            <ListItemText
+                              primary={docName}
+                              primaryTypographyProps={{
+                                fontSize: "0.8rem",
+                                sx: {
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  fontWeight: isSelected ? 600 : 400,
+                                },
+                              }}
+                            />
+                          )}
+                        </ListItemButton>
+                      </Tooltip>
+                    </ListItem>
+                  );
+                }
               })}
             </List>
           </Box>
