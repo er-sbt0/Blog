@@ -254,7 +254,8 @@ export default function AttachmentPreview({
   // Fetch content when expanded
   useEffect(() => {
     if (
-      (expanded || editing) && contentState.content === null && !contentState.loading &&
+      (expanded || editing) && contentState.content === null &&
+      !contentState.loading &&
       !contentState.error
     ) {
       fetchContent();

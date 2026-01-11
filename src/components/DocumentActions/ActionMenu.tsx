@@ -1,7 +1,13 @@
 "use client";
 import * as React from "react";
-import { IconButton, Menu } from "@mui/material";
-import { MoreVert } from "@mui/icons-material";
+import {
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+} from "@mui/material";
+import { Edit, MoreVert } from "@mui/icons-material";
 import DownloadDocument from "./Download";
 import DeleteBothDocument from "./DeleteBoth";
 import UploadDocument from "./Upload";
@@ -9,10 +15,12 @@ import { User, UserDocument } from "@/types";
 import ShareDocument from "./Share";
 import EditDocument from "./Edit";
 import RestoreDocument from "./Restore";
+import { useRouter } from "next/navigation";
 
 function DocumentActionMenu(
   { userDocument, user }: { userDocument: UserDocument; user?: User },
 ) {
+  const router = useRouter();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const openMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -24,6 +32,7 @@ function DocumentActionMenu(
 
   const localDocument = userDocument?.local;
   const cloudDocument = userDocument?.cloud;
+  const document = localDocument || cloudDocument;
   const isLocal = !!localDocument;
   const isCloud = !!cloudDocument;
   const isUploaded = isLocal && isCloud;
@@ -33,13 +42,16 @@ function DocumentActionMenu(
     ? cloudDocument.coauthors.some((u) => u.id === user?.id)
     : false;
   const isCollab = isCloud ? cloudDocument.collab : false;
+  const canEditContent = isAuthor || isCollab;
   const id = userDocument.id;
+  const handle = document?.handle || document?.id || id;
 
   const options = ["share"];
   if (isAuthor || isCoauthor || isLocal || isCollab) options.push("download");
   if (isAuthor || isLocal) options.push("delete");
   if (isAuthor) options.push("edit", "upload");
   if (isUploaded && !isUpToDate) options.push("restore");
+  if (canEditContent) options.push("editContent");
 
   return (
     <>
@@ -70,6 +82,19 @@ function DocumentActionMenu(
           horizontal: "right",
         }}
       >
+        {options.includes("editContent") && (
+          <MenuItem
+            onClick={() => {
+              router.push(`/edit/${handle}`);
+              closeMenu();
+            }}
+          >
+            <ListItemIcon>
+              <Edit />
+            </ListItemIcon>
+            <ListItemText>Edit</ListItemText>
+          </MenuItem>
+        )}
         {options.includes("share") && (
           <ShareDocument
             userDocument={userDocument}

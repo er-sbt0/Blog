@@ -137,7 +137,7 @@ export class AttachmentNode extends DecoratorNode<JSX.Element> {
 
     const extUpper = ext.toUpperCase();
     const sizeKB = Math.round(this.__size / 1024);
-    const sizeMB = this.__size > 1024 * 1024 
+    const sizeMB = this.__size > 1024 * 1024
       ? (this.__size / (1024 * 1024)).toFixed(1) + "MB"
       : sizeKB + "KB";
     const info = document.createElement("span");
@@ -165,7 +165,7 @@ export class AttachmentNode extends DecoratorNode<JSX.Element> {
     toggleBtn.setAttribute("type", "button");
     toggleBtn.setAttribute("aria-label", "Toggle preview");
     toggleBtn.setAttribute("data-toggle", "true");
-    
+
     const toggleIcon = document.createElement("span");
     toggleIcon.setAttribute("class", "attachment-toggle-icon");
     toggleIcon.textContent = this.__expanded ? "−" : "+";

@@ -15,12 +15,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection";
 import { mergeRegister } from "@lexical/utils";
 import { $isAttachmentNode } from ".";
-import {
-  Box,
-  CircularProgress,
-  IconButton,
-  Typography,
-} from "@mui/material";
+import { Box, CircularProgress, IconButton, Typography } from "@mui/material";
 import {
   Archive,
   Code,
@@ -75,14 +70,30 @@ function getFileType(mimetype: string, filename: string): string {
 
 function isTextFile(mimetype: string, filename: string): boolean {
   if (mimetype.startsWith("text/")) return true;
-  if (mimetype.includes("json") || mimetype.includes("javascript") ||
-      mimetype.includes("typescript") || mimetype.includes("xml")) {
+  if (
+    mimetype.includes("json") || mimetype.includes("javascript") ||
+    mimetype.includes("typescript") || mimetype.includes("xml")
+  ) {
     return true;
   }
   const ext = filename.split(".").pop()?.toLowerCase() || "";
   const textExtensions = new Set([
-    "txt", "md", "markdown", "js", "jsx", "ts", "tsx", "json",
-    "html", "css", "scss", "py", "sh", "bash", "yaml", "yml"
+    "txt",
+    "md",
+    "markdown",
+    "js",
+    "jsx",
+    "ts",
+    "tsx",
+    "json",
+    "html",
+    "css",
+    "scss",
+    "py",
+    "sh",
+    "bash",
+    "yaml",
+    "yml",
   ]);
   return textExtensions.has(ext);
 }
@@ -340,19 +351,6 @@ export default function AttachmentComponent({
             transition: "opacity 0.15s ease",
           }}
         >
-          <IconButton
-            size="small"
-            onClick={handleDownload}
-            title="Download file"
-            disabled={isDownloading}
-            sx={{ p: 0.5 }}
-          >
-            {isDownloading ? (
-              <CircularProgress size={16} />
-            ) : (
-              <Download fontSize="small" />
-            )}
-          </IconButton>
           {isTextFile(mimetype, filename) && (
             <IconButton
               size="small"
@@ -363,6 +361,17 @@ export default function AttachmentComponent({
               <ContentCopy fontSize="small" />
             </IconButton>
           )}
+          <IconButton
+            size="small"
+            onClick={handleDownload}
+            title="Download file"
+            disabled={isDownloading}
+            sx={{ p: 0.5 }}
+          >
+            {isDownloading
+              ? <CircularProgress size={16} />
+              : <Download fontSize="small" />}
+          </IconButton>
           <IconButton
             size="small"
             onClick={(e) => {
@@ -382,10 +391,10 @@ export default function AttachmentComponent({
                 handleEdit();
               }}
               title="Edit file"
-              sx={{ 
+              sx={{
                 p: 0.5,
                 opacity: 1,
-                '&:hover': { bgcolor: 'action.hover' }
+                "&:hover": { bgcolor: "action.hover" },
               }}
             >
               <Edit fontSize="small" />
@@ -411,9 +420,9 @@ export default function AttachmentComponent({
             title={expanded ? "Collapse preview" : "Expand preview"}
             sx={{ p: 0.5 }}
           >
-            {expanded ? <ExpandLess fontSize="small" /> : (
-              <ExpandMore fontSize="small" />
-            )}
+            {expanded
+              ? <ExpandLess fontSize="small" />
+              : <ExpandMore fontSize="small" />}
           </IconButton>
         </Box>
       </Box>

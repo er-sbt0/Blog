@@ -280,9 +280,7 @@ function AttachmentDialog({ editor }: { editor: LexicalEditor }) {
             <Button
               variant="outlined"
               sx={{ minWidth: 120 }}
-              startIcon={isUploading
-                ? <CircularProgress size={20} />
-                : <Add />}
+              startIcon={isUploading ? <CircularProgress size={20} /> : <Add />}
               onClick={handleCreateBlank}
               disabled={!blankFilename.trim() || isUploading}
             >

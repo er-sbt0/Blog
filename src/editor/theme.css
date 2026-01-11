@@ -1118,13 +1118,25 @@ iframe {
   background: #f6f8fa;
   overflow-x: auto;
   font-size: 0.85rem;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
+  font-family:
+    "SF Mono",
+    "Monaco",
+    "Inconsolata",
+    "Fira Code",
+    "Consolas",
+    monospace;
   line-height: 1.6;
   border-radius: 0;
 }
 
 .attachment-preview code {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
+  font-family:
+    "SF Mono",
+    "Monaco",
+    "Inconsolata",
+    "Fira Code",
+    "Consolas",
+    monospace;
 }
 
 .attachment-preview-loading {

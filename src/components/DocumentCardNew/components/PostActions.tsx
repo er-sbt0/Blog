@@ -1,10 +1,10 @@
 "use client";
 import React from "react";
 import { Box, IconButton } from "@mui/material";
-import { Edit, MoreVert, Share } from "@mui/icons-material";
+import { MoreVert, Share } from "@mui/icons-material";
+import { useRouter } from "next/navigation";
 import { User, UserDocument } from "@/types";
 import PostActionMenu from "../PostActionMenu";
-import { useRouter } from "next/navigation";
 
 /**
  * Props for PostActions component
@@ -20,9 +20,6 @@ interface PostActionsProps {
  */
 const ActionsSkeleton: React.FC = () => (
   <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
-    <IconButton aria-label="Edit Post" size="small" disabled>
-      <Edit />
-    </IconButton>
     <IconButton aria-label="Share Post" size="small" disabled>
       <Share />
     </IconButton>
@@ -48,32 +45,8 @@ const PostActions: React.FC<PostActionsProps> = ({
     return <ActionsSkeleton />;
   }
 
-  // Determine if user can edit this document
-  const document = userDocument.local || userDocument.cloud;
-  const cloudDocument = userDocument.cloud;
-  const isAuthor = cloudDocument ? cloudDocument.author.id === user?.id : true; // Local documents can always be edited
-  const isCollab = cloudDocument ? cloudDocument.collab : false;
-  const canEdit = isAuthor || isCollab;
-
-  // Get the edit URL
-  const handle = document?.handle || document?.id || userDocument.id;
-  const editHref = `/edit/${handle}`;
-
-  const handleEditClick = () => {
-    router.push(editHref);
-  };
-
   return (
     <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
-      {canEdit && (
-        <IconButton
-          onClick={handleEditClick}
-          aria-label="Edit Post"
-          size="small"
-        >
-          <Edit />
-        </IconButton>
-      )}
       <PostActionMenu userDocument={userDocument} user={user} />
     </Box>
   );
