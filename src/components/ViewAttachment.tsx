@@ -145,7 +145,7 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
         margin: "8px 0",
         overflow: "hidden",
         backgroundColor: "#fafafa",
-        maxWidth: "50%",
+        maxWidth: "40%",
       }}
     >
       {/* Header */}

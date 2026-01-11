@@ -101,6 +101,8 @@
   position: relative;
   tab-size: 2;
   white-space: pre;
+  width: 40%;
+  min-width: 400px;
 }
 
 .LexicalTheme__code:before {
@@ -917,5 +919,382 @@ iframe {
 @media print {
   .details__container .details__container li img {
     filter: invert(1) !important;
+  }
+}
+
+/* Attachment Styles - Modern Design */
+/* Hide the static HTML attachments immediately - React will replace them with ViewAttachment component */
+/* This prevents the flash of unstyled content on page load */
+.document-container .attachment-wrapper {
+  display: none;
+}
+
+/* Show attachments in non-JS environments (print, etc.) or when not inside document-container */
+@media print {
+  .attachment-wrapper {
+    display: block !important;
+  }
+}
+
+.attachment-wrapper {
+  display: block;
+  width: 40%;
+  min-width: 400px;
+  max-width: 100%;
+  margin: 12px 0;
+}
+
+.attachment-container {
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid #e1e4e8;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.attachment-container:hover {
+  border-color: #c8cdd2;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.attachment-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.attachment-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.15s ease;
+}
+
+.attachment-link:hover {
+  opacity: 0.85;
+}
+
+.attachment-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.25);
+}
+
+.attachment-icon[data-ext="pdf"] {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.attachment-icon[data-ext="zip"],
+.attachment-icon[data-ext="rar"],
+.attachment-icon[data-ext="tar"] {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.attachment-icon[data-ext="js"],
+.attachment-icon[data-ext="ts"],
+.attachment-icon[data-ext="jsx"],
+.attachment-icon[data-ext="tsx"] {
+  background: linear-gradient(135deg, #ffa751 0%, #ffe259 100%);
+}
+
+.attachment-icon[data-ext="py"],
+.attachment-icon[data-ext="sh"],
+.attachment-icon[data-ext="bash"] {
+  background: linear-gradient(135deg, #48c6ef 0%, #6f86d6 100%);
+}
+
+.attachment-icon[data-ext="txt"],
+.attachment-icon[data-ext="md"],
+.attachment-icon[data-ext="markdown"] {
+  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+}
+
+.attachment-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.attachment-filename {
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  color: #24292e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-info {
+  font-size: 0.75rem;
+  color: #6a737d;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.attachment-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 6px;
+  font-size: 14px;
+  color: #667eea;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.attachment-download:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: scale(1.05);
+}
+
+.attachment-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.02);
+  border: none;
+  border-left: 1px solid #e1e4e8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #6a737d;
+}
+
+.attachment-toggle:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #24292e;
+}
+
+.attachment-toggle:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.attachment-toggle-icon {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.attachment-preview {
+  margin-top: 8px;
+  border: 1px solid #e1e4e8;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.attachment-preview pre {
+  margin: 0;
+  padding: 16px;
+  background: #f6f8fa;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
+  line-height: 1.6;
+  border-radius: 0;
+}
+
+.attachment-preview code {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Consolas', monospace;
+}
+
+.attachment-preview-loading {
+  padding: 20px;
+  text-align: center;
+  color: #6a737d;
+  font-size: 0.875rem;
+  background: #f6f8fa;
+}
+
+.attachment-preview-error {
+  padding: 12px 16px;
+  background: #fff3cd;
+  color: #856404;
+  border-left: 4px solid #ffc107;
+  font-size: 0.875rem;
+}
+
+.attachment-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, #fafbfc 0%, #f6f8fa 100%);
+  border-bottom: 1px solid #e1e4e8;
+  font-size: 0.75rem;
+  color: #6a737d;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.attachment-preview-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.attachment-preview-btn {
+  padding: 4px 10px;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  color: #6a737d;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.attachment-preview-btn:hover {
+  background: #f6f8fa;
+  border-color: #c8cdd2;
+  color: #24292e;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Syntax highlighting tokens */
+.attachment-preview .token.comment,
+.attachment-preview .token.prolog,
+.attachment-preview .token.doctype,
+.attachment-preview .token.cdata {
+  color: #6a737d;
+}
+
+.attachment-preview .token.property,
+.attachment-preview .token.tag,
+.attachment-preview .token.boolean,
+.attachment-preview .token.number,
+.attachment-preview .token.constant,
+.attachment-preview .token.symbol,
+.attachment-preview .token.deleted {
+  color: #005cc5;
+}
+
+.attachment-preview .token.selector,
+.attachment-preview .token.attr-name,
+.attachment-preview .token.string,
+.attachment-preview .token.char,
+.attachment-preview .token.builtin,
+.attachment-preview .token.inserted {
+  color: #22863a;
+}
+
+.attachment-preview .token.operator,
+.attachment-preview .token.entity,
+.attachment-preview .token.url {
+  color: #d73a49;
+}
+
+.attachment-preview .token.atrule,
+.attachment-preview .token.attr-value,
+.attachment-preview .token.keyword {
+  color: #d73a49;
+}
+
+.attachment-preview .token.function,
+.attachment-preview .token.class-name {
+  color: #6f42c1;
+}
+
+.attachment-preview .token.regex,
+.attachment-preview .token.important,
+.attachment-preview .token.variable {
+  color: #e36209;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .attachment-link {
+    background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .attachment-link:hover {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    border-color: #718096;
+  }
+
+  .attachment-info {
+    color: #a0aec0;
+  }
+
+  .attachment-toggle {
+    border-color: #4a5568;
+    color: #a0aec0;
+  }
+
+  .attachment-toggle:hover {
+    background: #2d3748;
+    border-color: #718096;
+    color: #e2e8f0;
+  }
+
+  .attachment-preview {
+    background: #1a202c;
+    border-color: #4a5568;
+  }
+
+  .attachment-preview pre {
+    background: #2d3748;
+  }
+
+  .attachment-preview-header {
+    background: #2d3748;
+    border-color: #4a5568;
+    color: #a0aec0;
+  }
+
+  .attachment-preview-btn {
+    border-color: #4a5568;
+    color: #a0aec0;
+  }
+
+  .attachment-preview-btn:hover {
+    background: #1a202c;
+    border-color: #718096;
+    color: #e2e8f0;
+  }
+}
+
+/* Print styles */
+@media print {
+  .attachment-link {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    box-shadow: none;
+  }
+
+  .attachment-link:hover {
+    background: #f8f9fa;
+    transform: none;
   }
 }

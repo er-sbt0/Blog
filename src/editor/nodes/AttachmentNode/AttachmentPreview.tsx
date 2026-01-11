@@ -3,18 +3,21 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   Collapse,
   IconButton,
   Skeleton,
+  TextField,
   Typography,
 } from "@mui/material";
 import {
-  ContentCopy,
+  Cancel,
   ExpandLess,
   ExpandMore,
   OpenInNew,
   Refresh,
+  Save,
 } from "@mui/icons-material";
 import { NodeKey } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -47,6 +50,7 @@ interface AttachmentPreviewProps {
   mimetype: string;
   size: number;
   expanded: boolean;
+  editing: boolean;
   nodeKey: NodeKey;
   onOpenInSidebar?: () => void;
 }
@@ -157,6 +161,7 @@ export default function AttachmentPreview({
   mimetype,
   size,
   expanded,
+  editing,
   nodeKey,
   onOpenInSidebar,
 }: AttachmentPreviewProps) {
@@ -169,7 +174,9 @@ export default function AttachmentPreview({
   const [highlightedContent, setHighlightedContent] = useState<string | null>(
     null,
   );
-  const [copied, setCopied] = useState(false);
+  const [editContent, setEditContent] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Listen for attachment modifications from the drawer
   const attachmentModified = useSelector((state: RootState) =>
@@ -247,12 +254,19 @@ export default function AttachmentPreview({
   // Fetch content when expanded
   useEffect(() => {
     if (
-      expanded && contentState.content === null && !contentState.loading &&
+      (expanded || editing) && contentState.content === null && !contentState.loading &&
       !contentState.error
     ) {
       fetchContent();
     }
-  }, [expanded, contentState, fetchContent]);
+  }, [expanded, editing, contentState, fetchContent]);
+
+  // Initialize edit content when entering edit mode
+  useEffect(() => {
+    if (editing && contentState.content !== null) {
+      setEditContent(contentState.content);
+    }
+  }, [editing, contentState.content]);
 
   // Refresh content when attachment is modified in the drawer
   useEffect(() => {
@@ -294,13 +308,49 @@ export default function AttachmentPreview({
     });
   }, [editor, nodeKey]);
 
-  const handleCopy = useCallback(async () => {
-    if (contentState.content) {
-      await navigator.clipboard.writeText(contentState.content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const handleSave = useCallback(async () => {
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const response = await fetch(`${url}/content`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editContent }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save");
+      }
+
+      // Update cache and state
+      await attachmentContentDB.deleteByID(cacheKey).catch(() => {});
+      setContentState({ content: editContent, loading: false, error: null });
+
+      // Exit editing mode
+      editor.update(() => {
+        const node = $getNodeByKey(nodeKey);
+        if ($isAttachmentNode(node)) {
+          node.setEditing(false);
+        }
+      });
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to save changes",
+      );
+    } finally {
+      setIsSaving(false);
     }
-  }, [contentState.content]);
+  }, [editContent, url, cacheKey, editor, nodeKey]);
+
+  const handleCancelEdit = useCallback(() => {
+    editor.update(() => {
+      const node = $getNodeByKey(nodeKey);
+      if ($isAttachmentNode(node)) {
+        node.setEditing(false);
+      }
+    });
+  }, [editor, nodeKey]);
 
   const handleRefresh = useCallback(async () => {
     // Clear cache and refetch
@@ -344,34 +394,18 @@ export default function AttachmentPreview({
   }
 
   return (
-    <Box sx={{ width: "100%" }}>
-      {/* Expand/Collapse header */}
+    <Collapse in={expanded} timeout="auto" unmountOnExit>
       <Box
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          cursor: "pointer",
-          "&:hover": { bgcolor: "action.hover" },
-          borderRadius: 1,
-          px: 1,
-          py: 0.5,
+          border: 1,
+          borderColor: "grey.200",
+          borderRadius: 2,
+          bgcolor: "background.paper",
+          overflow: "hidden",
         }}
-        onClick={handleToggleExpand}
       >
-        <Typography variant="caption" color="text.secondary">
-          {languageDisplayName} • Preview
-        </Typography>
-        <IconButton size="small">
-          {expanded
-            ? <ExpandLess fontSize="small" />
-            : <ExpandMore fontSize="small" />}
-        </IconButton>
-      </Box>
-
-      {/* Content preview */}
-      <Collapse in={expanded}>
-        <Box sx={{ mt: 1 }}>
+        {/* Content preview */}
+        <Box>
           {/* Loading state */}
           {contentState.loading && (
             <Box sx={{ p: 2 }}>
@@ -399,39 +433,6 @@ export default function AttachmentPreview({
           {/* Content */}
           {displayContent && (
             <Box sx={{ position: "relative" }}>
-              {/* Toolbar */}
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 4,
-                  right: 4,
-                  display: "flex",
-                  gap: 0.5,
-                  zIndex: 1,
-                  opacity: 0.7,
-                  "&:hover": { opacity: 1 },
-                }}
-              >
-                <IconButton
-                  size="small"
-                  onClick={handleCopy}
-                  title={copied ? "Copied!" : "Copy to clipboard"}
-                  sx={{ bgcolor: "background.paper" }}
-                >
-                  <ContentCopy fontSize="small" />
-                </IconButton>
-                {onOpenInSidebar && (
-                  <IconButton
-                    size="small"
-                    onClick={onOpenInSidebar}
-                    title="Open in sidebar"
-                    sx={{ bgcolor: "background.paper" }}
-                  >
-                    <OpenInNew fontSize="small" />
-                  </IconButton>
-                )}
-              </Box>
-
               {/* Code block */}
               <Box
                 component="pre"
@@ -514,7 +515,7 @@ export default function AttachmentPreview({
             </Box>
           )}
         </Box>
-      </Collapse>
-    </Box>
+      </Box>
+    </Collapse>
   );
 }

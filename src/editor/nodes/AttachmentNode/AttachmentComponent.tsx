@@ -17,8 +17,6 @@ import { mergeRegister } from "@lexical/utils";
 import { $isAttachmentNode } from ".";
 import {
   Box,
-  Card,
-  CardContent,
   CircularProgress,
   IconButton,
   Typography,
@@ -26,9 +24,11 @@ import {
 import {
   Archive,
   Code,
+  ContentCopy,
   Delete,
   Description,
   Download,
+  Edit,
   ExpandLess,
   ExpandMore,
   InsertDriveFile,
@@ -73,6 +73,20 @@ function getFileType(mimetype: string, filename: string): string {
   return "File";
 }
 
+function isTextFile(mimetype: string, filename: string): boolean {
+  if (mimetype.startsWith("text/")) return true;
+  if (mimetype.includes("json") || mimetype.includes("javascript") ||
+      mimetype.includes("typescript") || mimetype.includes("xml")) {
+    return true;
+  }
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  const textExtensions = new Set([
+    "txt", "md", "markdown", "js", "jsx", "ts", "tsx", "json",
+    "html", "css", "scss", "py", "sh", "bash", "yaml", "yml"
+  ]);
+  return textExtensions.has(ext);
+}
+
 export default function AttachmentComponent({
   url,
   filename,
@@ -96,6 +110,7 @@ export default function AttachmentComponent({
     nodeKey,
   );
   const [isDownloading, setIsDownloading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const $onDelete = useCallback(
     (event: KeyboardEvent) => {
@@ -212,69 +227,142 @@ export default function AttachmentComponent({
     }));
   }, [dispatch, nodeKey, url, filename, mimetype]);
 
+  const handleCopy = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const response = await fetch(`${url}/content`);
+      if (response.ok) {
+        const data = await response.json();
+        await navigator.clipboard.writeText(data.content);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (error) {
+      console.error("Copy error:", error);
+    }
+  }, [url]);
+
+  const handleEdit = useCallback(() => {
+    editor.update(() => {
+      const node = $getNodeByKey(nodeKey);
+      if ($isAttachmentNode(node)) {
+        node.setEditing(true);
+        node.setExpanded(true);
+      }
+    });
+  }, [editor, nodeKey]);
+
   return (
-    <Card
+    <Box
       sx={{
         display: "flex",
         flexDirection: "column",
-        maxWidth: expanded ? 600 : 400,
-        width: expanded ? "100%" : "auto",
-        my: 1,
-        border: isSelected ? 2 : 1,
-        borderColor: isSelected ? "primary.main" : "divider",
-        cursor: "pointer",
+        width: "40%",
+        minWidth: 400,
+        my: 0.5,
         userSelect: "none",
-        transition: "all 0.2s ease-in-out",
-      }}
-      onClick={(e) => {
-        // Only select if clicking on the card itself, not buttons
-        if ((e.target as HTMLElement).closest("button")) {
-          return;
-        }
-        if (!isSelected) {
-          setSelected(true);
-        }
       }}
     >
-      <CardContent
+      <Box
         sx={{
-          display: "flex",
+          display: "inline-flex",
           alignItems: "center",
-          gap: 2,
-          p: 2,
-          "&:last-child": { pb: expanded ? 1 : 2 },
+          gap: 1,
+          px: 1.5,
+          py: 0.75,
+          bgcolor: isSelected ? "primary.50" : "grey.50",
+          border: 1,
+          borderColor: isSelected ? "primary.main" : "grey.200",
+          borderRadius: 2,
+          cursor: "pointer",
+          transition: "all 0.15s ease",
+          "&:hover": {
+            bgcolor: isSelected ? "primary.100" : "grey.100",
+            borderColor: isSelected ? "primary.dark" : "grey.300",
+            "& .attachment-actions": {
+              opacity: 1,
+            },
+          },
+        }}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest("button")) {
+            return;
+          }
+          if (!isSelected) {
+            setSelected(true);
+          }
         }}
       >
+        {/* File Icon */}
         <Box
-          sx={{ color: "primary.main", display: "flex", alignItems: "center" }}
+          sx={{
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            fontSize: 20,
+          }}
         >
           {getFileIcon(mimetype)}
         </Box>
+
+        {/* File Info */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="body1" noWrap sx={{ fontWeight: 500 }}>
+          <Typography
+            variant="body2"
+            noWrap
+            sx={{
+              fontWeight: 500,
+              fontSize: "0.875rem",
+              lineHeight: 1.3,
+            }}
+          >
             {filename}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              fontSize: "0.75rem",
+              lineHeight: 1.2,
+            }}
+          >
             {getFileType(mimetype, filename)} • {formatSize(size)}
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", gap: 0.5 }}>
-          <IconButton
-            size="small"
-            onClick={handleToggleExpand}
-            title={expanded ? "Collapse preview" : "Expand preview"}
-          >
-            {expanded ? <ExpandLess /> : <ExpandMore />}
-          </IconButton>
+
+        {/* Actions */}
+        <Box
+          className="attachment-actions"
+          sx={{
+            display: "flex",
+            gap: 0.25,
+            opacity: isSelected ? 1 : 0.3,
+            transition: "opacity 0.15s ease",
+          }}
+        >
           <IconButton
             size="small"
             onClick={handleDownload}
-            color="primary"
             title="Download file"
             disabled={isDownloading}
+            sx={{ p: 0.5 }}
           >
-            {isDownloading ? <CircularProgress size={20} /> : <Download />}
+            {isDownloading ? (
+              <CircularProgress size={16} />
+            ) : (
+              <Download fontSize="small" />
+            )}
           </IconButton>
+          {isTextFile(mimetype, filename) && (
+            <IconButton
+              size="small"
+              onClick={handleCopy}
+              title={copied ? "Copied!" : "Copy to clipboard"}
+              sx={{ p: 0.5 }}
+            >
+              <ContentCopy fontSize="small" />
+            </IconButton>
+          )}
           <IconButton
             size="small"
             onClick={(e) => {
@@ -282,9 +370,27 @@ export default function AttachmentComponent({
               handleOpenInSidebar();
             }}
             title="Open in sidebar"
+            sx={{ p: 0.5 }}
           >
-            <OpenInNew />
+            <OpenInNew fontSize="small" />
           </IconButton>
+          {!editing && isTextFile(mimetype, filename) && (
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit();
+              }}
+              title="Edit file"
+              sx={{ 
+                p: 0.5,
+                opacity: 1,
+                '&:hover': { bgcolor: 'action.hover' }
+              }}
+            >
+              <Edit fontSize="small" />
+            </IconButton>
+          )}
           {isSelected && (
             <IconButton
               size="small"
@@ -294,23 +400,39 @@ export default function AttachmentComponent({
               }}
               color="error"
               title="Delete attachment"
+              sx={{ p: 0.5 }}
             >
-              <Delete />
+              <Delete fontSize="small" />
             </IconButton>
           )}
+          <IconButton
+            size="small"
+            onClick={handleToggleExpand}
+            title={expanded ? "Collapse preview" : "Expand preview"}
+            sx={{ p: 0.5 }}
+          >
+            {expanded ? <ExpandLess fontSize="small" /> : (
+              <ExpandMore fontSize="small" />
+            )}
+          </IconButton>
         </Box>
-      </CardContent>
+      </Box>
 
       {/* Preview section */}
-      <AttachmentPreview
-        url={url}
-        filename={filename}
-        mimetype={mimetype}
-        size={size}
-        expanded={expanded}
-        nodeKey={nodeKey}
-        onOpenInSidebar={handleOpenInSidebar}
-      />
-    </Card>
+      {(expanded || editing) && (
+        <Box sx={{ mt: 0.5 }}>
+          <AttachmentPreview
+            url={url}
+            filename={filename}
+            mimetype={mimetype}
+            size={size}
+            expanded={expanded}
+            editing={editing}
+            nodeKey={nodeKey}
+            onOpenInSidebar={handleOpenInSidebar}
+          />
+        </Box>
+      )}
+    </Box>
   );
 }

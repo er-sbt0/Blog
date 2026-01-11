@@ -95,23 +95,94 @@ export class AttachmentNode extends DecoratorNode<JSX.Element> {
   }
 
   exportDOM(): DOMExportOutput {
-    // Export as a button-like anchor without href to avoid Next.js router interception
-    const element = document.createElement("a");
-    element.setAttribute("data-attachment", "true");
-    element.setAttribute("data-url", this.__url);
-    element.setAttribute("data-filename", this.__filename);
-    element.setAttribute("data-mimetype", this.__mimetype);
-    element.setAttribute("data-size", this.__size.toString());
-    element.setAttribute("data-expanded", this.__expanded.toString());
-    element.setAttribute("data-editing", this.__editing.toString());
-    element.setAttribute("role", "button");
-    element.setAttribute("tabindex", "0");
-    // Use javascript: void(0) to prevent navigation
-    element.setAttribute("href", "javascript:void(0)");
-    element.textContent = `📎 ${this.__filename}`;
-    element.style.cssText =
-      "display: inline-block; padding: 8px 12px; background: #f5f5f5; border-radius: 4px; cursor: pointer; margin: 4px 0; user-select: none; text-decoration: none; color: inherit;";
-    return { element };
+    // Create a modern, semantic attachment with preview support
+    const wrapper = document.createElement("div");
+    wrapper.setAttribute("class", "attachment-wrapper");
+    wrapper.setAttribute("data-attachment", "true");
+    wrapper.setAttribute("data-url", this.__url);
+    wrapper.setAttribute("data-filename", this.__filename);
+    wrapper.setAttribute("data-mimetype", this.__mimetype);
+    wrapper.setAttribute("data-size", this.__size.toString());
+    wrapper.setAttribute("data-expanded", this.__expanded.toString());
+
+    const container = document.createElement("div");
+    container.setAttribute("class", "attachment-container");
+
+    // Main content area with link
+    const content = document.createElement("div");
+    content.setAttribute("class", "attachment-content");
+
+    const link = document.createElement("a");
+    link.setAttribute("href", this.__url);
+    link.setAttribute("download", this.__filename);
+    link.setAttribute("class", "attachment-link");
+    link.setAttribute("rel", "noopener noreferrer");
+    link.setAttribute("title", `Download ${this.__filename}`);
+
+    // Icon with file type
+    const icon = document.createElement("span");
+    icon.setAttribute("class", "attachment-icon");
+    const ext = this.__filename.split(".").pop()?.toLowerCase() || "file";
+    icon.setAttribute("data-ext", ext);
+    icon.textContent = "📄";
+    icon.setAttribute("aria-hidden", "true");
+
+    // Text content
+    const textContent = document.createElement("div");
+    textContent.setAttribute("class", "attachment-text");
+
+    const filename = document.createElement("span");
+    filename.setAttribute("class", "attachment-filename");
+    filename.textContent = this.__filename;
+
+    const extUpper = ext.toUpperCase();
+    const sizeKB = Math.round(this.__size / 1024);
+    const sizeMB = this.__size > 1024 * 1024 
+      ? (this.__size / (1024 * 1024)).toFixed(1) + "MB"
+      : sizeKB + "KB";
+    const info = document.createElement("span");
+    info.setAttribute("class", "attachment-info");
+    info.textContent = `${extUpper} • ${sizeMB}`;
+
+    textContent.appendChild(filename);
+    textContent.appendChild(info);
+
+    link.appendChild(icon);
+    link.appendChild(textContent);
+
+    // Download indicator
+    const downloadIcon = document.createElement("span");
+    downloadIcon.setAttribute("class", "attachment-download");
+    downloadIcon.setAttribute("aria-label", "Download");
+    downloadIcon.textContent = "⬇";
+
+    content.appendChild(link);
+    content.appendChild(downloadIcon);
+
+    // Toggle button for preview
+    const toggleBtn = document.createElement("button");
+    toggleBtn.setAttribute("class", "attachment-toggle");
+    toggleBtn.setAttribute("type", "button");
+    toggleBtn.setAttribute("aria-label", "Toggle preview");
+    toggleBtn.setAttribute("data-toggle", "true");
+    
+    const toggleIcon = document.createElement("span");
+    toggleIcon.setAttribute("class", "attachment-toggle-icon");
+    toggleIcon.textContent = this.__expanded ? "−" : "+";
+    toggleBtn.appendChild(toggleIcon);
+
+    container.appendChild(content);
+    container.appendChild(toggleBtn);
+
+    // Preview container (will be populated by client-side JS)
+    const preview = document.createElement("div");
+    preview.setAttribute("class", "attachment-preview");
+    preview.setAttribute("style", this.__expanded ? "" : "display: none;");
+
+    wrapper.appendChild(container);
+    wrapper.appendChild(preview);
+
+    return { element: wrapper };
   }
 
   static importDOM(): DOMConversionMap | null {

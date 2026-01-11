@@ -410,7 +410,7 @@ export default function AttachmentDrawer() {
             <IconButton
               size="small"
               onClick={handleEdit}
-              disabled={!contentState.content || isEditing}
+              disabled={contentState.content === null || isEditing}
               title="Edit file"
               color={isEditing ? "primary" : "default"}
             >
