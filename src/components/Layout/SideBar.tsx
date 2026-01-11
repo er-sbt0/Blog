@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import {
+  Add,
   Article,
   ChevronLeft,
   ChevronRight,
@@ -37,6 +38,7 @@ import {
   ExpandMore,
   Home,
   LibraryBooks,
+  Remove,
   Search,
   StickyNote2,
 } from "@mui/icons-material";
@@ -96,6 +98,35 @@ const SideBar: React.FC = () => {
 
   // Track expanded state for series (default: all expanded)
   const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
+
+  // Sidebar font size control (in pixels, persisted to localStorage)
+  const [sidebarFontSize, setSidebarFontSize] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sidebarFontSize");
+      return saved ? parseInt(saved, 10) : 16;
+    }
+    return 16;
+  });
+
+  // Save to localStorage when font size changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sidebarFontSize", sidebarFontSize.toString());
+    }
+  }, [sidebarFontSize]);
+
+  // Handlers for font size adjustment
+  const increaseFontSize = useCallback(() => {
+    setSidebarFontSize((prev) => Math.min(prev + 1, 24)); // Max 24px
+  }, []);
+
+  const decreaseFontSize = useCallback(() => {
+    setSidebarFontSize((prev) => Math.max(prev - 1, 10)); // Min 10px
+  }, []);
+
+  const resetFontSize = useCallback(() => {
+    setSidebarFontSize(16); // Reset to default
+  }, []);
 
   // Get the effective width based on open/closed state
   const getWidth = (isOpen: boolean) => getEffectiveWidth(isOpen);
@@ -320,6 +351,7 @@ const SideBar: React.FC = () => {
           display: "flex",
           flexDirection: "column",
           height: "100vh",
+          fontSize: `${sidebarFontSize}px`,
         },
       }}
     >
@@ -354,7 +386,7 @@ const SideBar: React.FC = () => {
               sx={{
                 ml: 1,
                 fontWeight: "bold",
-                fontSize: "1.2rem",
+                fontSize: "1.2em",
               }}
             >
               Blog
@@ -377,14 +409,58 @@ const SideBar: React.FC = () => {
             </Box>
           </Tooltip>
         )}
-        <Tooltip title={`${open ? "Collapse" : "Expand"} sidebar (Ctrl+Alt+S)`}>
-          <IconButton
-            onClick={toggleSidebar}
-            aria-label={`${open ? "Collapse" : "Expand"} sidebar`}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          {open && (
+            <>
+              <Tooltip title="Decrease font size">
+                <IconButton
+                  size="small"
+                  onClick={decreaseFontSize}
+                  disabled={sidebarFontSize <= 10}
+                  aria-label="Decrease sidebar font size"
+                >
+                  <Remove fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip
+                title={`Font size: ${sidebarFontSize}px (click to reset)`}
+              >
+                <IconButton
+                  size="small"
+                  onClick={resetFontSize}
+                  aria-label="Reset sidebar font size"
+                  sx={{
+                    fontSize: "0.7em",
+                    minWidth: "32px",
+                    fontWeight: sidebarFontSize !== 16 ? "bold" : "normal",
+                  }}
+                >
+                  {sidebarFontSize}
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Increase font size">
+                <IconButton
+                  size="small"
+                  onClick={increaseFontSize}
+                  disabled={sidebarFontSize >= 24}
+                  aria-label="Increase sidebar font size"
+                >
+                  <Add fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+          <Tooltip
+            title={`${open ? "Collapse" : "Expand"} sidebar (Ctrl+Alt+S)`}
           >
-            {open ? <ChevronLeft /> : <ChevronRight />}
-          </IconButton>
-        </Tooltip>
+            <IconButton
+              onClick={toggleSidebar}
+              aria-label={`${open ? "Collapse" : "Expand"} sidebar`}
+            >
+              {open ? <ChevronLeft /> : <ChevronRight />}
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       <Divider sx={styles.divider} />
@@ -435,7 +511,7 @@ const SideBar: React.FC = () => {
                       mr: open ? 2 : "auto",
                       justifyContent: "center",
                       "& .MuiSvgIcon-root": {
-                        fontSize: "1.2rem",
+                        fontSize: "1.2em",
                       },
                     }}
                   >
@@ -445,7 +521,7 @@ const SideBar: React.FC = () => {
                     <ListItemText
                       primary={item.text}
                       primaryTypographyProps={{
-                        fontSize: "0.9rem",
+                        fontSize: "0.9em",
                       }}
                     />
                   )}
@@ -482,7 +558,7 @@ const SideBar: React.FC = () => {
             >
               <Box
                 sx={{
-                  fontSize: "0.75rem",
+                  fontSize: "0.75em",
                   fontWeight: 600,
                   color: "text.secondary",
                   textTransform: "uppercase",
@@ -502,7 +578,7 @@ const SideBar: React.FC = () => {
                     startAdornment: (
                       <InputAdornment position="start">
                         <Search
-                          sx={{ fontSize: "0.9rem", color: "text.disabled" }}
+                          sx={{ fontSize: "0.9em", color: "text.disabled" }}
                         />
                       </InputAdornment>
                     ),
@@ -518,7 +594,7 @@ const SideBar: React.FC = () => {
                             "&:hover": { opacity: 1 },
                           }}
                         >
-                          <Clear sx={{ fontSize: "0.9rem" }} />
+                          <Clear sx={{ fontSize: "0.9em" }} />
                         </IconButton>
                       </InputAdornment>
                     ),
@@ -527,7 +603,7 @@ const SideBar: React.FC = () => {
                   sx={{
                     width: "100%",
                     "& .MuiInput-root": {
-                      fontSize: "0.75rem",
+                      fontSize: "0.75em",
                       "&:before": {
                         borderBottomColor: "divider",
                       },
@@ -541,7 +617,7 @@ const SideBar: React.FC = () => {
                     "& .MuiInput-input": {
                       padding: "4px 0 4px 0",
                       "&::placeholder": {
-                        fontSize: "0.75rem",
+                        fontSize: "0.75em",
                         opacity: 0.5,
                       },
                     },
@@ -599,7 +675,7 @@ const SideBar: React.FC = () => {
                                 ? (
                                   <ExpandLess
                                     sx={{
-                                      fontSize: "0.85rem",
+                                      fontSize: "0.85em",
                                       color: "text.secondary",
                                     }}
                                   />
@@ -607,7 +683,7 @@ const SideBar: React.FC = () => {
                                 : (
                                   <ExpandMore
                                     sx={{
-                                      fontSize: "0.85rem",
+                                      fontSize: "0.85em",
                                       color: "text.secondary",
                                     }}
                                   />
@@ -617,7 +693,7 @@ const SideBar: React.FC = () => {
                               <ListItemText
                                 primary={`${group.series.title} (${group.posts.length})`}
                                 primaryTypographyProps={{
-                                  fontSize: "0.7rem",
+                                  fontSize: "0.7em",
                                   fontWeight: 500,
                                   color: "text.secondary",
                                   sx: {
@@ -689,7 +765,7 @@ const SideBar: React.FC = () => {
                                     >
                                       <Article
                                         sx={{
-                                          fontSize: "0.85rem",
+                                          fontSize: "0.85em",
                                           color: "text.secondary",
                                         }}
                                       />
@@ -698,7 +774,7 @@ const SideBar: React.FC = () => {
                                       <ListItemText
                                         primary={docName}
                                         primaryTypographyProps={{
-                                          fontSize: "0.78rem",
+                                          fontSize: "0.78em",
                                           sx: {
                                             overflow: "hidden",
                                             textOverflow: "ellipsis",
@@ -762,7 +838,7 @@ const SideBar: React.FC = () => {
                           >
                             <Article
                               sx={{
-                                fontSize: "1rem",
+                                fontSize: "1em",
                                 color: "text.secondary",
                               }}
                             />
@@ -771,7 +847,7 @@ const SideBar: React.FC = () => {
                             <ListItemText
                               primary={docName}
                               primaryTypographyProps={{
-                                fontSize: "0.8rem",
+                                fontSize: "0.8em",
                                 sx: {
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
