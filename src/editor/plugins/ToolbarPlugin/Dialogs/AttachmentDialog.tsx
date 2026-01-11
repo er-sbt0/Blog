@@ -11,10 +11,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  TextField,
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import { AttachFile, UploadFile } from "@mui/icons-material";
+import { Add, AttachFile, UploadFile } from "@mui/icons-material";
 import { ANNOUNCE_COMMAND } from "@/editor/commands";
 import { INSERT_ATTACHMENT_COMMAND } from "@/editor/plugins/AttachmentPlugin";
 
@@ -23,6 +25,7 @@ function AttachmentDialog({ editor }: { editor: LexicalEditor }) {
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [blankFilename, setBlankFilename] = useState("untitled.txt");
 
   // Get document ID from URL (assumes format like /edit/:id, /new/:id, /view/:id, etc.)
   const getDocumentIdFromUrl = (): string | null => {
@@ -127,6 +130,72 @@ function AttachmentDialog({ editor }: { editor: LexicalEditor }) {
     }
   };
 
+  const handleCreateBlank = async () => {
+    setIsUploading(true);
+
+    try {
+      // Get document ID from URL
+      const documentId = getDocumentIdFromUrl();
+      if (!documentId) {
+        throw new Error("Document ID not found");
+      }
+
+      // Create a blank file
+      const blankContent = "";
+      const blob = new Blob([blankContent], { type: "text/plain" });
+      const file = new File([blob], blankFilename, { type: "text/plain" });
+
+      // Upload the blank file
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`/api/documents/${documentId}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        const errorMessage = responseData.error?.subtitle ||
+          responseData.error?.title || "Upload failed";
+        throw new Error(errorMessage);
+      }
+
+      // Insert attachment node with editing enabled
+      const { url, filename, mimetype, size } = responseData.data;
+      editor.dispatchCommand(INSERT_ATTACHMENT_COMMAND, {
+        url,
+        filename,
+        mimetype,
+        size,
+        editing: true,
+        expanded: true,
+      });
+
+      editor.dispatchCommand(ANNOUNCE_COMMAND, {
+        message: {
+          title: "Blank Attachment Created",
+          subtitle: `${filename} has been created. You can now edit it.`,
+        },
+      });
+
+      closeDialog();
+    } catch (error) {
+      console.error("Create blank error:", error);
+      editor.dispatchCommand(ANNOUNCE_COMMAND, {
+        message: {
+          title: "Creation Failed",
+          subtitle: error instanceof Error
+            ? error.message
+            : "Please try again later.",
+        },
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleClose = () => {
     if (!isUploading) {
       closeDialog();
@@ -187,6 +256,39 @@ function AttachmentDialog({ editor }: { editor: LexicalEditor }) {
               </Typography>
             </Box>
           )}
+
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="body2" color="text.secondary">
+              OR
+            </Typography>
+          </Divider>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            Create a blank file to edit inline
+          </Typography>
+
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <TextField
+              size="small"
+              fullWidth
+              value={blankFilename}
+              onChange={(e) => setBlankFilename(e.target.value)}
+              placeholder="filename.txt"
+              disabled={isUploading}
+              label="Filename"
+            />
+            <Button
+              variant="outlined"
+              sx={{ minWidth: 120 }}
+              startIcon={isUploading
+                ? <CircularProgress size={20} />
+                : <Add />}
+              onClick={handleCreateBlank}
+              disabled={!blankFilename.trim() || isUploading}
+            >
+              Create
+            </Button>
+          </Box>
         </Box>
       </DialogContent>
       <DialogActions>
