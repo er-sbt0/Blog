@@ -13,7 +13,7 @@ export const SIDEBAR_DEFAULT_WIDTH = 130;
 export const SIDEBAR_MIN_WIDTH = 130;
 
 /** Maximum width when resizing */
-export const SIDEBAR_MAX_WIDTH = 300;
+export const SIDEBAR_MAX_WIDTH = 450;
 
 /** Fixed margin-left for content area (constant, not dependent on sidebar width) */
 export const SIDEBAR_CONTENT_MARGIN = 105;
