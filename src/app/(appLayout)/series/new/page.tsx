@@ -3,6 +3,9 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { NewSeriesForm } from "@/components/SeriesActions";
 
+// Force dynamic rendering to ensure session is checked on every request
+export const dynamic = "force-dynamic";
+
 export default async function NewSeriesPage() {
   const session = await getServerSession(authOptions);
 

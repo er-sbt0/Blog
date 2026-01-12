@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { findAllSeries } from "@/repositories/series";
 import SeriesListWrapper from "@/components/SeriesListWrapper";
 
+// Force dynamic rendering to check session on every request
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "All Series | Blog",
   description:
