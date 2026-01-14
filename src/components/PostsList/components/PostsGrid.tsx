@@ -5,7 +5,7 @@ import Grid from "@mui/material/Grid2";
 import { UserDocument } from "@/types";
 import { useSelector } from "@/store";
 import DocumentCard from "@/components/DocumentCardNew";
-import SeriesGroupCard from "./SeriesGroupCard";
+import SeriesCard from "@/components/SeriesCard/SeriesCardUnified";
 import { buildSeriesMap, groupPostsBySeries } from "../utils/seriesGrouping";
 
 interface PostsGridProps {
@@ -129,13 +129,16 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
                 animation: `fadeInUp 0.6s ease ${currentIndex * 0.1}s both`,
               }}
             >
-              <SeriesGroupCard
+              <SeriesCard
+                variant="compact"
                 series={group.series}
                 posts={group.posts}
-                isCollapsed={isCollapsed}
-                onToggle={() => toggleSeriesCollapsed(group.series!.id)}
+                user={user}
+                collapsible={true}
+                defaultExpanded={!isCollapsed}
+                onExpand={() => toggleSeriesCollapsed(group.series!.id)}
+                onCollapse={() => toggleSeriesCollapsed(group.series!.id)}
                 animationIndex={currentIndex}
-                isMobile={isMobile}
               />
             </Grid>
           );

@@ -1,68 +1,125 @@
 "use client";
-import React from "react";
+import React, { memo, useState } from "react";
 import { Box, Typography } from "@mui/material";
-import { Series, UserDocument } from "@/types";
-
-interface SeriesGroupCardProps {
-  series: Series;
-  posts: UserDocument[];
-  isCollapsed: boolean;
-  onToggle: () => void;
-  animationIndex: number;
-  isMobile?: boolean;
-}
+import { CompactVariantProps } from "../types";
+import { UserDocument } from "@/types";
+import { cardTheme } from "../../DocumentCardNew/theme";
 
 /**
- * Card component for displaying a series with collapsible post list
- * Collapsed: Shows centered title + count with toggle icon
- * Expanded: Shows horizontal scrollable list of bordered doc items
+ * Individual document item within an expanded series card
  */
-const SeriesGroupCard: React.FC<SeriesGroupCardProps> = ({
+interface DocItemProps {
+  document: UserDocument;
+}
+
+const DocItem: React.FC<DocItemProps> = ({ document }) => {
+  // Get document name from local or cloud version
+  const doc = document.local || document.cloud;
+  const title = doc?.name || "Untitled";
+  const docId = document.id;
+
+  return (
+    <Box
+      component="a"
+      href={`/view/${docId}`}
+      sx={{
+        width: "100%",
+        flexShrink: 0,
+        border: "1px solid",
+        borderColor: cardTheme.colors.border,
+        borderRadius: "4px",
+        p: 1.5,
+        bgcolor: "background.paper",
+        textDecoration: "none",
+        transition: "box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease",
+        "&:hover": {
+          bgcolor: "action.hover",
+          borderColor: "primary.light",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+        },
+      }}
+    >
+      {/* Post title */}
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.primary",
+          fontWeight: 500,
+          lineHeight: 1.3,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {title}
+      </Typography>
+    </Box>
+  );
+};
+
+/**
+ * Compact variant of SeriesCard
+ *
+ * Collapsible card showing:
+ * - Collapsed: Series title centered with post count
+ * - Expanded: Scrollable list of posts with series title in footer
+ *
+ * Used in posts timeline (/posts route) to group series posts
+ */
+const CompactVariant: React.FC<CompactVariantProps> = memo(({
   series,
   posts,
-  isCollapsed,
-  onToggle,
-  animationIndex,
+  collapsible = true,
+  defaultExpanded = false,
+  onExpand,
+  onCollapse,
+  animationIndex = 0,
+  sx,
 }) => {
+  const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
   const postCount = posts.length;
+
+  const handleToggle = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+
+    if (newState) {
+      onCollapse?.();
+    } else {
+      onExpand?.();
+    }
+  };
 
   return (
     <Box
       sx={{
         width: "100%",
         height: "100%",
-        borderRadius: "6px",
+        borderRadius: 2,
         border: "2px solid",
-        borderColor: (t) =>
-          t.palette.mode === "dark"
-            ? "rgba(144, 202, 249, 0.2)"
-            : "rgba(25, 118, 210, 0.15)",
-        bgcolor: (t) =>
-          t.palette.mode === "dark"
-            ? "rgba(144, 202, 249, 0.03)"
-            : "rgba(25, 118, 210, 0.02)",
-        transition: "all 0.3s ease",
+        borderColor: cardTheme.colors.border,
+        bgcolor: cardTheme.colors.cardBackground,
+        transition: "box-shadow 0.2s ease, border-color 0.2s ease",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
         animation: `fadeInUp 0.6s ease ${animationIndex * 0.1}s both`,
         "&:hover": {
-          bgcolor: (t) =>
-            t.palette.mode === "dark"
-              ? "rgba(144, 202, 249, 0.08)"
-              : "rgba(25, 118, 210, 0.05)",
-          borderColor: (t) =>
-            t.palette.mode === "dark"
-              ? "rgba(144, 202, 249, 0.35)"
-              : "rgba(25, 118, 210, 0.25)",
+          boxShadow: cardTheme.colors.shadow.hover,
+          borderColor: "primary.light",
         },
+        "&:focus-within": {
+          boxShadow: "0 0 0 2px rgba(25, 118, 210, 0.2)",
+          borderColor: "primary.main",
+        },
+        ...sx,
       }}
     >
-      {isCollapsed
+      {isCollapsed && collapsible
         ? (
           // Collapsed State: Click anywhere to expand
           <Box
-            onClick={onToggle}
+            onClick={handleToggle}
             sx={{
               display: "flex",
               flexDirection: "column",
@@ -84,6 +141,7 @@ const SeriesGroupCard: React.FC<SeriesGroupCardProps> = ({
               {/* Series title */}
               <Typography
                 variant="h5"
+                component="h2"
                 sx={{
                   fontWeight: 700,
                   fontSize: { xs: "1.25rem", sm: "1.5rem" },
@@ -172,7 +230,7 @@ const SeriesGroupCard: React.FC<SeriesGroupCardProps> = ({
 
             {/* Bottom bar with series title and collapse action */}
             <Box
-              onClick={onToggle}
+              onClick={collapsible ? handleToggle : undefined}
               sx={{
                 px: 2,
                 py: 1,
@@ -183,14 +241,16 @@ const SeriesGroupCard: React.FC<SeriesGroupCardProps> = ({
                 borderColor: "divider",
                 backgroundColor: "background.default",
                 minHeight: 48,
-                cursor: "pointer",
+                cursor: collapsible ? "pointer" : "default",
                 transition: "background-color 0.2s ease",
-                "&:hover": {
-                  bgcolor: (t) =>
-                    t.palette.mode === "dark"
-                      ? "rgba(144, 202, 249, 0.08)"
-                      : "rgba(25, 118, 210, 0.05)",
-                },
+                ...(collapsible && {
+                  "&:hover": {
+                    bgcolor: (t) =>
+                      t.palette.mode === "dark"
+                        ? "rgba(144, 202, 249, 0.08)"
+                        : "rgba(25, 118, 210, 0.05)",
+                  },
+                }),
               }}
             >
               <Typography
@@ -202,84 +262,25 @@ const SeriesGroupCard: React.FC<SeriesGroupCardProps> = ({
               >
                 {series.title}
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{
-                  color: "primary.main",
-                  fontWeight: 500,
-                  fontSize: "0.8rem",
-                }}
-              >
-                Collapse
-              </Typography>
+              {collapsible && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "primary.main",
+                    fontWeight: 500,
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  Collapse
+                </Typography>
+              )}
             </Box>
           </>
         )}
     </Box>
   );
-};
+});
 
-/**
- * Individual document item within an expanded series card
- */
-interface DocItemProps {
-  document: UserDocument;
-}
+CompactVariant.displayName = "CompactVariant";
 
-const DocItem: React.FC<DocItemProps> = ({ document }) => {
-  // Get document name from local or cloud version
-  const doc = document.local || document.cloud;
-  const title = doc?.name || "Untitled";
-  const docId = document.id;
-
-  return (
-    <Box
-      component="a"
-      href={`/view/${docId}`}
-      sx={{
-        width: "100%",
-        flexShrink: 0,
-        border: "1px solid",
-        borderColor: (t) =>
-          t.palette.mode === "dark"
-            ? "rgba(144, 202, 249, 0.15)"
-            : "rgba(25, 118, 210, 0.12)",
-        borderRadius: "4px",
-        p: 1.5,
-        bgcolor: (t) =>
-          t.palette.mode === "dark"
-            ? "rgba(0, 0, 0, 0.2)"
-            : "rgba(255, 255, 255, 0.5)",
-        textDecoration: "none",
-        transition: "all 0.2s ease",
-        "&:hover": {
-          bgcolor: (t) =>
-            t.palette.mode === "dark"
-              ? "rgba(144, 202, 249, 0.1)"
-              : "rgba(25, 118, 210, 0.08)",
-          borderColor: (t) =>
-            t.palette.mode === "dark"
-              ? "rgba(144, 202, 249, 0.4)"
-              : "rgba(25, 118, 210, 0.3)",
-        },
-      }}
-    >
-      {/* Post title */}
-      <Typography
-        variant="body2"
-        sx={{
-          color: "text.primary",
-          fontWeight: 500,
-          lineHeight: 1.3,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {title}
-      </Typography>
-    </Box>
-  );
-};
-
-export default SeriesGroupCard;
+export default CompactVariant;

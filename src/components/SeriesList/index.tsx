@@ -3,7 +3,7 @@ import * as React from "react";
 import { Series, User } from "@/types";
 import { Box } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import SeriesCardSelector from "../SeriesCard";
+import SeriesCard from "../SeriesCard/SeriesCardUnified";
 import SeriesHeader from "./SeriesHeader";
 import SkeletonCard from "@/components/DocumentCardNew/components/LoadingCard";
 
@@ -125,14 +125,12 @@ const SeriesList: React.FC<SeriesListProps> = ({
                 key={seriesItem.id}
                 size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
               >
-                <SeriesCardSelector
-                  seriesData={seriesItem}
+                <SeriesCard
+                  variant="detailed"
+                  series={seriesItem}
                   user={user}
-                  cardConfig={{
-                    showAuthor: true,
-                    showPermissionChips: false,
-                    showSortOrder: false,
-                  }}
+                  showMetadata={true}
+                  showActions={true}
                 />
               </Grid>
             ))}

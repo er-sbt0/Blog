@@ -4,7 +4,7 @@ import { memo } from "react";
 import Grid from "@mui/material/Grid2";
 import { Box, Typography } from "@mui/material";
 import { Series, User } from "@/types";
-import SeriesCardSelector from "../SeriesCard";
+import SeriesCard from "../SeriesCard/SeriesCardUnified";
 
 interface SeriesGridProps {
   /** List of series to display */
@@ -111,10 +111,12 @@ const SeriesGrid: React.FC<SeriesGridProps> = memo(({
             flexDirection: "column",
           }}
         >
-          <SeriesCardSelector
-            seriesData={seriesItem}
+          <SeriesCard
+            variant="detailed"
+            series={seriesItem}
             user={user}
-            cardConfig={cardConfig}
+            showMetadata={true}
+            showActions={true}
           />
         </Grid>
       ))}
