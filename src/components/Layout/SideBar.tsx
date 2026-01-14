@@ -99,8 +99,6 @@ const SideBar: React.FC = () => {
   // Track collapsed series in sidebar (series NOT in this set are expanded)
   // This way new series default to expanded automatically
   const [collapsedSeries, setCollapsedSeries] = useState<Set<string>>(() => {
-    console.log("[Sidebar] Initializing collapsed series state");
-
     // Try to load saved state from localStorage
     if (typeof window !== "undefined") {
       const savedState = localStorage.getItem("sidebarSeriesCollapsedState");
@@ -120,7 +118,6 @@ const SideBar: React.FC = () => {
       }
     }
     // Default: empty set (no series collapsed = all expanded by default)
-    console.log("[Sidebar] No saved state, all series will be expanded");
     return new Set();
   });
 

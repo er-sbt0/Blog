@@ -4,12 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { findSeriesById } from "@/repositories/series";
 import SeriesView from "@/components/SeriesView";
 import { Metadata } from "next";
-import { cache } from "react";
 
 // Mark this page as dynamic since it depends on session
 export const dynamic = "force-dynamic";
-
-const getCachedSession = cache(async () => await getServerSession(authOptions));
 
 interface SeriesDetailPageProps {
   params: Promise<{ id: string }>;
@@ -38,7 +35,7 @@ export default async function SeriesDetailPage(
   { params }: SeriesDetailPageProps,
 ) {
   const { id } = await params;
-  const session = await getCachedSession();
+  const session = await getServerSession(authOptions);
   const series = await findSeriesById(id);
 
   if (!series) {

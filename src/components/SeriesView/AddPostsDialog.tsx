@@ -26,6 +26,7 @@ interface AddPostsDialogProps {
   open: boolean;
   onClose: () => void;
   seriesId: string;
+  existingPosts?: Document[];
   onPostsAdded: () => void;
 }
 
@@ -37,6 +38,7 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
   open,
   onClose,
   seriesId,
+  existingPosts = [],
   onPostsAdded,
 }) => {
   const [availablePosts, setAvailablePosts] = useState<Document[]>([]);
@@ -49,8 +51,10 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
   useEffect(() => {
     if (open) {
       fetchAvailablePosts();
+      // Initialize selected posts with existing posts
+      setSelectedPosts(new Set(existingPosts.map((p) => p.id)));
     }
-  }, [open]);
+  }, [open, existingPosts]);
 
   const fetchAvailablePosts = async () => {
     setLoading(true);
@@ -91,20 +95,44 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
   };
 
   const handleAddPosts = async () => {
-    if (selectedPosts.size === 0) return;
-
     setSubmitting(true);
     setError(null);
 
     try {
-      // Add posts one by one with order
-      const postIds = Array.from(selectedPosts);
-      for (let i = 0; i < postIds.length; i++) {
+      const existingPostIds = new Set(existingPosts.map((p) => p.id));
+      const currentlySelected = Array.from(selectedPosts);
+
+      // Find posts to add (selected but not in existing)
+      const postsToAdd = currentlySelected.filter(
+        (id) => !existingPostIds.has(id),
+      );
+
+      // Find posts to remove (in existing but not selected)
+      const postsToRemove = existingPosts
+        .map((p) => p.id)
+        .filter((id) => !selectedPosts.has(id));
+
+      // Remove posts
+      for (const postId of postsToRemove) {
+        const response = await fetch(`/api/series/${seriesId}/posts`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ postId }),
+        });
+
+        if (!response.ok) {
+          const { error } = await response.json();
+          throw new Error(error?.title || "Failed to remove post");
+        }
+      }
+
+      // Add new posts
+      for (let i = 0; i < postsToAdd.length; i++) {
         const response = await fetch(`/api/series/${seriesId}/posts`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            postId: postIds[i],
+            postId: postsToAdd[i],
             order: i + 1000, // Start from 1000 to append at end
           }),
         });
@@ -118,7 +146,7 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
       onPostsAdded();
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add posts");
+      setError(err instanceof Error ? err.message : "Failed to update posts");
     } finally {
       setSubmitting(false);
     }
@@ -150,7 +178,7 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Add color="primary" />
-          <Typography variant="h6">Add Posts to Series</Typography>
+          <Typography variant="h6">Edit Posts in Series</Typography>
         </Box>
         <IconButton onClick={handleClose} size="small">
           <Close />
@@ -179,84 +207,184 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
               <CircularProgress />
             </Box>
           )
-          : availablePosts.length === 0
-          ? (
-            <Box sx={{ textAlign: "center", py: 6, px: 2 }}>
-              <Search
-                sx={{ fontSize: 48, color: "text.secondary", mb: 2 }}
-              />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                No available posts
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                All your posts are already in a series, or you haven&apos;t
-                created any posts yet.
-              </Typography>
-            </Box>
-          )
-          : (
-            <>
-              {/* Select all header */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  px: 2,
-                  py: 1,
-                  backgroundColor: "action.hover",
-                }}
-              >
-                <Typography variant="body2" color="text.secondary">
-                  {availablePosts.length} post
-                  {availablePosts.length !== 1 ? "s" : ""} available
-                </Typography>
-                <Button size="small" onClick={handleSelectAll}>
-                  {selectedPosts.size === availablePosts.length
-                    ? "Deselect All"
-                    : "Select All"}
-                </Button>
-              </Box>
+          : (() => {
+            // Combine available posts and existing posts for display
+            const allPosts = [
+              ...existingPosts.map((p) => ({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                updatedAt: p.updatedAt,
+                inSeries: true,
+              })),
+              ...availablePosts.map((p) => ({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                updatedAt: p.updatedAt,
+                inSeries: false,
+              })),
+            ];
 
-              <List sx={{ maxHeight: 400, overflow: "auto" }}>
-                {availablePosts.map((post) => (
-                  <ListItem key={post.id} disablePadding>
-                    <ListItemButton
-                      onClick={() =>
-                        handleTogglePost(post.id)}
-                      dense
+            if (allPosts.length === 0) {
+              return (
+                <Box sx={{ textAlign: "center", py: 6, px: 2 }}>
+                  <Search
+                    sx={{ fontSize: 48, color: "text.secondary", mb: 2 }}
+                  />
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    No posts available
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    You haven&apos;t created any posts yet.
+                  </Typography>
+                </Box>
+              );
+            }
+
+            return (
+              <>
+                {/* Info header */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    px: 2,
+                    py: 1,
+                    backgroundColor: "action.hover",
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary">
+                    {existingPosts.length} in series · {availablePosts.length}
+                    {" "}
+                    available
+                  </Typography>
+                  <Button size="small" onClick={handleSelectAll}>
+                    {selectedPosts.size === allPosts.length
+                      ? "Deselect All"
+                      : "Select All"}
+                  </Button>
+                </Box>
+
+                {/* Existing posts section */}
+                {existingPosts.length > 0 && (
+                  <>
+                    <Box
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        backgroundColor: "background.default",
+                      }}
                     >
-                      <ListItemIcon sx={{ minWidth: 40 }}>
-                        <Checkbox
-                          edge="start"
-                          checked={selectedPosts.has(post.id)}
-                          tabIndex={-1}
-                          disableRipple
-                        />
-                      </ListItemIcon>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <Article color="action" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={post.name}
-                        secondary={post.description ||
-                          `Updated ${
-                            new Date(post.updatedAt).toLocaleDateString()
-                          }`}
-                        primaryTypographyProps={{
-                          fontWeight: 500,
-                          noWrap: true,
-                        }}
-                        secondaryTypographyProps={{
-                          noWrap: true,
-                        }}
-                      />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
-            </>
-          )}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        fontWeight={600}
+                      >
+                        IN SERIES
+                      </Typography>
+                    </Box>
+                    <List sx={{ pt: 0 }}>
+                      {existingPosts.map((post) => (
+                        <ListItem key={post.id} disablePadding>
+                          <ListItemButton
+                            onClick={() =>
+                              handleTogglePost(post.id)}
+                            dense
+                          >
+                            <ListItemIcon sx={{ minWidth: 40 }}>
+                              <Checkbox
+                                edge="start"
+                                checked={selectedPosts.has(post.id)}
+                                tabIndex={-1}
+                                disableRipple
+                              />
+                            </ListItemIcon>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                              <Article color="primary" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={post.name}
+                              secondary={post.description ||
+                                `Updated ${
+                                  new Date(post.updatedAt).toLocaleDateString()
+                                }`}
+                              primaryTypographyProps={{
+                                fontWeight: 500,
+                                noWrap: true,
+                              }}
+                              secondaryTypographyProps={{
+                                noWrap: true,
+                              }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </>
+                )}
+
+                {/* Available posts section */}
+                {availablePosts.length > 0 && (
+                  <>
+                    <Box
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        backgroundColor: "background.default",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        fontWeight={600}
+                      >
+                        AVAILABLE TO ADD
+                      </Typography>
+                    </Box>
+                    <List sx={{ pt: 0, maxHeight: 300, overflow: "auto" }}>
+                      {availablePosts.map((post) => (
+                        <ListItem key={post.id} disablePadding>
+                          <ListItemButton
+                            onClick={() =>
+                              handleTogglePost(post.id)}
+                            dense
+                          >
+                            <ListItemIcon sx={{ minWidth: 40 }}>
+                              <Checkbox
+                                edge="start"
+                                checked={selectedPosts.has(post.id)}
+                                tabIndex={-1}
+                                disableRipple
+                              />
+                            </ListItemIcon>
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                              <Article color="action" />
+                            </ListItemIcon>
+                            <ListItemText
+                              primary={post.name}
+                              secondary={post.description ||
+                                `Updated ${
+                                  new Date(post.updatedAt).toLocaleDateString()
+                                }`}
+                              primaryTypographyProps={{
+                                fontWeight: 500,
+                                noWrap: true,
+                              }}
+                              secondaryTypographyProps={{
+                                noWrap: true,
+                              }}
+                            />
+                          </ListItemButton>
+                        </ListItem>
+                      ))}
+                    </List>
+                  </>
+                )}
+              </>
+            );
+          })()}
       </DialogContent>
 
       <Divider />
@@ -268,14 +396,10 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
         <Button
           variant="contained"
           onClick={handleAddPosts}
-          disabled={selectedPosts.size === 0 || submitting}
+          disabled={submitting}
           startIcon={submitting ? <CircularProgress size={16} /> : <Add />}
         >
-          {submitting
-            ? "Adding..."
-            : `Add ${selectedPosts.size || ""} Post${
-              selectedPosts.size !== 1 ? "s" : ""
-            }`}
+          {submitting ? "Saving..." : "Save Changes"}
         </Button>
       </DialogActions>
     </Dialog>

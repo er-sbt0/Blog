@@ -47,7 +47,7 @@ const SeriesView: React.FC<SeriesViewProps> = ({
   user,
 }) => {
   const router = useRouter();
-  const canEdit = !!user; // Any logged-in user can edit for now
+  const canEdit = !!user && user.id === series.authorId;
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const sortedPosts = [...(series.posts || [])].sort((a, b) =>
@@ -113,7 +113,7 @@ const SeriesView: React.FC<SeriesViewProps> = ({
                   height: "40px",
                 }}
               >
-                Add Posts
+                Edit Posts
               </Button>
             )}
           </Box>
@@ -267,6 +267,7 @@ const SeriesView: React.FC<SeriesViewProps> = ({
         open={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}
         seriesId={series.id}
+        existingPosts={sortedPosts}
         onPostsAdded={handlePostsAdded}
       />
     </Box>
