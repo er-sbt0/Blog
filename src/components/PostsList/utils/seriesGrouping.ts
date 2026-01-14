@@ -133,3 +133,113 @@ export const flattenGroupedPosts = (
 ): UserDocument[] => {
   return groups.flatMap((group) => group.posts);
 };
+
+/**
+ * Deduplicate series across time partitions by consolidating all posts
+ * of a series into the first partition where the series appears.
+ *
+ * This solves the problem where a series with posts spanning multiple time periods
+ * would appear in each period with only the posts from that period, creating
+ * multiple fragmented series cards instead of one unified card.
+ *
+ * Example scenario:
+ * - Series "Web Dev Basics" has 4 posts:
+ *   - Post 1 (Jan 2025, Q1)
+ *   - Post 2 (Feb 2025, Q1)
+ *   - Post 3 (May 2025, Q2)
+ *   - Post 4 (Aug 2025, Q3)
+ *
+ * Without deduplication (current behavior):
+ * - Q1 2025: Series card with Posts 1, 2
+ * - Q2 2025: Series card with Post 3
+ * - Q3 2025: Series card with Post 4
+ *
+ * With deduplication (desired behavior):
+ * - Q1 2025: Series card with ALL Posts 1, 2, 3, 4
+ * - Q2 2025: (no series card)
+ * - Q3 2025: (no series card)
+ *
+ * This ensures that:
+ * 1. Each series appears only once across all partitions
+ * 2. The series card contains ALL posts from that series (not just from that time period)
+ * 3. Individual posts from the series don't appear in later partitions
+ * 4. Standalone posts (not in a series) continue to appear in their respective partitions
+ *
+ * @param timeGroups - Array of time groups with posts (sorted by time, newest first)
+ * @param allPosts - All available posts to get complete series data
+ * @returns Modified time groups with deduplicated series
+ */
+export const deduplicateSeriesAcrossPartitions = <
+  T extends { posts: UserDocument[] },
+>(
+  timeGroups: T[],
+  allPosts: UserDocument[],
+): T[] => {
+  // Track which series IDs we've already placed in a partition
+  const placedSeries = new Set<string>();
+
+  // Build a map of seriesId -> all posts in that series (from allPosts)
+  const seriesAllPostsMap = new Map<string, UserDocument[]>();
+  allPosts.forEach((post) => {
+    const seriesId = getPostSeriesId(post);
+    if (seriesId) {
+      if (!seriesAllPostsMap.has(seriesId)) {
+        seriesAllPostsMap.set(seriesId, []);
+      }
+      seriesAllPostsMap.get(seriesId)!.push(post);
+    }
+  });
+
+  // Sort posts within each series by seriesOrder and deduplicate by ID
+  seriesAllPostsMap.forEach((posts, seriesId) => {
+    // Remove duplicates by post ID
+    const uniquePosts = Array.from(
+      new Map(posts.map((post) => [post.id, post])).values(),
+    );
+
+    // Sort by series order
+    uniquePosts.sort((a, b) => {
+      const orderA = getPostSeriesOrder(a) ?? Infinity;
+      const orderB = getPostSeriesOrder(b) ?? Infinity;
+      return orderA - orderB;
+    });
+
+    seriesAllPostsMap.set(seriesId, uniquePosts);
+  });
+
+  // Process each time group
+  return timeGroups.map((group) => {
+    const newPosts: UserDocument[] = [];
+    const addedPostIds = new Set<string>(); // Track added post IDs to avoid duplicates
+
+    // For each post in this partition
+    group.posts.forEach((post) => {
+      const seriesId = getPostSeriesId(post);
+
+      if (!seriesId) {
+        // Standalone post - include if not already added
+        if (!addedPostIds.has(post.id)) {
+          newPosts.push(post);
+          addedPostIds.add(post.id);
+        }
+      } else if (!placedSeries.has(seriesId)) {
+        // First occurrence of this series - include ALL posts from this series
+        const allSeriesPosts = seriesAllPostsMap.get(seriesId) || [];
+        allSeriesPosts.forEach((seriesPost) => {
+          if (!addedPostIds.has(seriesPost.id)) {
+            newPosts.push(seriesPost);
+            addedPostIds.add(seriesPost.id);
+          }
+        });
+        placedSeries.add(seriesId);
+      }
+      // If series was already placed, skip this post
+    });
+
+    return {
+      ...group,
+      posts: newPosts,
+      count: newPosts.length,
+    };
+  });
+};

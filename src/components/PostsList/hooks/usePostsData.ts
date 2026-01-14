@@ -66,6 +66,7 @@ export const usePostsData = (): UsePostsDataReturn => {
   // Use flexible grouping hook with granularity support
   const { monthGroups, timeGroups } = usePostsGrouping({
     posts: searchFilteredPosts,
+    allPosts, // Pass all posts for series deduplication
     granularity,
   });
 

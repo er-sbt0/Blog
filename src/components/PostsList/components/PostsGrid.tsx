@@ -40,7 +40,7 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
     return new Set(
       groupedPosts
         .filter((group) => group.type === "series" && group.series)
-        .map((group) => group.series!.id)
+        .map((group) => group.series!.id),
     );
   });
 

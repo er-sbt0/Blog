@@ -3,10 +3,12 @@ import { UserDocument } from "@/types";
 import { PartitionGranularity, TimeGroup } from "@/types/partitioning";
 import { groupPostsByMonth } from "../utils/monthGrouping";
 import { getGroupingFunction } from "../utils/timeGrouping";
+import { deduplicateSeriesAcrossPartitions } from "../utils/seriesGrouping";
 import type { MonthGroup } from "../components/MonthSection";
 
 interface UsePostsGroupingProps {
   posts: UserDocument[];
+  allPosts?: UserDocument[]; // All posts for series deduplication
   granularity?: PartitionGranularity;
 }
 
@@ -24,6 +26,7 @@ interface UsePostsGroupingReturn {
  */
 export const usePostsGrouping = ({
   posts,
+  allPosts,
   granularity = "month",
 }: UsePostsGroupingProps): UsePostsGroupingReturn => {
   const { monthGroups, timeGroups, totalCount } = useMemo(() => {
@@ -32,12 +35,17 @@ export const usePostsGrouping = ({
 
     // Provide flexible time groups based on granularity
     const groupingFunction = getGroupingFunction(granularity);
-    const timeGroups = groupingFunction(posts);
+    let timeGroups = groupingFunction(posts);
+
+    // Deduplicate series across partitions if allPosts is provided
+    if (allPosts) {
+      timeGroups = deduplicateSeriesAcrossPartitions(timeGroups, allPosts);
+    }
 
     const totalCount = posts.length;
 
     return { monthGroups, timeGroups, totalCount };
-  }, [posts, granularity]);
+  }, [posts, allPosts, granularity]);
 
   return {
     monthGroups,
