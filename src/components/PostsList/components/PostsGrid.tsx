@@ -1,12 +1,7 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { Box, useMediaQuery } from "@mui/material";
+import React, { useCallback, useMemo, useState } from "react";
+import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import Grid from "@mui/material/Grid2";
 import { UserDocument } from "@/types";
 import { useSelector } from "@/store";
 import DocumentCard from "@/components/DocumentCardNew";
@@ -114,32 +109,24 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
   // Track animation index across all posts
   let animationIndex = 0;
 
-  const gap = isMobile ? 16 : 24;
-  const cardWidth = isMobile ? "100%" : 300;
-
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: `${gap}px`,
-        alignItems: "flex-end", // Align items to bottom so cards line up
-        mb: 4,
-      }}
+    <Grid
+      container
+      spacing={3}
+      sx={{ mb: 4 }}
     >
-      {groupedPosts.map((group, groupIndex) => {
+      {groupedPosts.map((group) => {
         if (group.type === "series" && group.series) {
-          const startIndex = animationIndex;
-          animationIndex += 1; // Series card counts as one item
+          const currentIndex = animationIndex;
+          animationIndex += 1;
           const isCollapsed = !expandedSeries.has(group.series.id);
 
           return (
-            <Box
+            <Grid
               key={`series-${group.series.id}`}
+              size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
               sx={{
-                width: cardWidth,
-                mb: { xs: 1.5, sm: 2 }, // Match DocumentCard wrapper margin for alignment
-                animation: `fadeInUp 0.6s ease ${startIndex * 0.1}s both`,
+                animation: `fadeInUp 0.6s ease ${currentIndex * 0.1}s both`,
               }}
             >
               <SeriesGroupCard
@@ -147,10 +134,10 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
                 posts={group.posts}
                 isCollapsed={isCollapsed}
                 onToggle={() => toggleSeriesCollapsed(group.series!.id)}
-                animationIndex={startIndex}
+                animationIndex={currentIndex}
                 isMobile={isMobile}
               />
-            </Box>
+            </Grid>
           );
         } else {
           // Standalone post
@@ -159,11 +146,10 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
           animationIndex += 1;
 
           return (
-            <Box
+            <Grid
               key={document.id}
+              size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
               sx={{
-                width: cardWidth,
-                mb: { xs: 1.5, sm: 2 }, // Match container padding for alignment
                 animation: `fadeInUp 0.6s ease ${currentIndex * 0.1}s both`,
               }}
             >
@@ -179,11 +165,11 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
                   },
                 }}
               />
-            </Box>
+            </Grid>
           );
         }
       })}
-    </Box>
+    </Grid>
   );
 };
 

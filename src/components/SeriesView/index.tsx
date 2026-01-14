@@ -2,19 +2,8 @@
 import * as React from "react";
 import { useState } from "react";
 import { DocumentType, Post, Series, User } from "@/types";
-import {
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  IconButton,
-  Typography,
-} from "@mui/material";
-import {
-  Add,
-  CollectionsBookmark,
-  RemoveCircleOutline,
-} from "@mui/icons-material";
+import { Box, Button, Chip, Typography } from "@mui/material";
+import { Add, CollectionsBookmark } from "@mui/icons-material";
 import Grid from "@mui/material/Grid2";
 import DocumentCard from "../DocumentCardNew";
 import AddPostsDialog from "./AddPostsDialog";
@@ -60,7 +49,6 @@ const SeriesView: React.FC<SeriesViewProps> = ({
   const router = useRouter();
   const canEdit = !!user; // Any logged-in user can edit for now
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [removingPostId, setRemovingPostId] = useState<string | null>(null);
 
   const sortedPosts = [...(series.posts || [])].sort((a, b) =>
     (a.seriesOrder || 0) - (b.seriesOrder || 0)
@@ -68,30 +56,6 @@ const SeriesView: React.FC<SeriesViewProps> = ({
 
   const handlePostsAdded = () => {
     router.refresh();
-  };
-
-  const handleRemovePost = async (postId: string) => {
-    if (!confirm("Remove this post from the series?")) return;
-
-    setRemovingPostId(postId);
-    try {
-      const response = await fetch(`/api/series/${series.id}/posts`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId }),
-      });
-
-      if (response.ok) {
-        router.refresh();
-      } else {
-        const { error } = await response.json();
-        alert(error?.title || "Failed to remove post");
-      }
-    } catch (err) {
-      alert("Failed to remove post");
-    } finally {
-      setRemovingPostId(null);
-    }
   };
 
   return (
@@ -222,7 +186,11 @@ const SeriesView: React.FC<SeriesViewProps> = ({
       {/* Posts Grid */}
       {sortedPosts.length > 0
         ? (
-          <Grid container spacing={3}>
+          <Grid
+            container
+            spacing={3}
+            sx={{ mb: 4 }}
+          >
             {sortedPosts.map((post, index) => {
               const userDocument = {
                 id: post.id,
@@ -238,40 +206,14 @@ const SeriesView: React.FC<SeriesViewProps> = ({
               };
 
               return (
-                <Grid key={post.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                  <Box sx={{ position: "relative" }}>
-                    {/* Remove button for logged-in users */}
-                    {canEdit && (
-                      <IconButton
-                        sx={{
-                          position: "absolute",
-                          top: 12,
-                          right: 12,
-                          zIndex: 1,
-                          backgroundColor: "background.paper",
-                          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                          "&:hover": {
-                            backgroundColor: "error.light",
-                            color: "error.contrastText",
-                          },
-                        }}
-                        size="small"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleRemovePost(post.id);
-                        }}
-                        disabled={removingPostId === post.id}
-                        aria-label="Remove from series"
-                      >
-                        {removingPostId === post.id
-                          ? <CircularProgress size={16} />
-                          : <RemoveCircleOutline fontSize="small" />}
-                      </IconButton>
-                    )}
-
-                    <DocumentCard userDocument={userDocument} user={user} />
-                  </Box>
+                <Grid
+                  key={post.id}
+                  size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
+                  sx={{
+                    animation: `fadeInUp 0.6s ease ${index * 0.1}s both`,
+                  }}
+                >
+                  <DocumentCard userDocument={userDocument} user={user} />
                 </Grid>
               );
             })}
