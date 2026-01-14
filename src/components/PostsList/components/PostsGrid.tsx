@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Box, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { UserDocument } from "@/types";
@@ -34,27 +40,76 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
     [posts, seriesMap],
   );
 
-  // Track collapsed state for each series (default: collapsed)
-  const [collapsedSeries, setCollapsedSeries] = useState<Set<string>>(() => {
-    // Initialize with all series IDs to start collapsed
-    return new Set(
-      groupedPosts
-        .filter((group) => group.type === "series" && group.series)
-        .map((group) => group.series!.id),
+  // Track expanded series (series NOT in this set are collapsed)
+  // This way new series default to collapsed automatically
+  const [expandedSeries, setExpandedSeries] = useState<Set<string>>(() => {
+    console.log("[PostsGrid] Initializing expanded series state");
+
+    // Try to load saved state from localStorage
+    const savedState = typeof window !== "undefined"
+      ? localStorage.getItem("seriesExpandedState")
+      : null;
+
+    console.log("[PostsGrid] Saved state from localStorage:", savedState);
+
+    if (savedState) {
+      try {
+        const parsed: string[] = JSON.parse(savedState);
+        const savedSet = new Set<string>(parsed);
+        console.log("[PostsGrid] Loaded expanded series from localStorage:", [
+          ...savedSet,
+        ]);
+        return savedSet;
+      } catch (e) {
+        console.error("Failed to parse series expanded state:", e);
+      }
+    }
+
+    // Default: no series are expanded (all start collapsed)
+    console.log(
+      "[PostsGrid] No saved state, defaulting all series to collapsed (empty expanded set)",
     );
+    return new Set<string>();
   });
 
   const toggleSeriesCollapsed = useCallback((seriesId: string) => {
-    setCollapsedSeries((prev) => {
+    console.log("[PostsGrid] Toggling series:", seriesId);
+    setExpandedSeries((prev) => {
       const next = new Set(prev);
       if (next.has(seriesId)) {
         next.delete(seriesId);
+        console.log(
+          "[PostsGrid] Collapsed series (removed from expanded):",
+          seriesId,
+        );
       } else {
         next.add(seriesId);
+        console.log(
+          "[PostsGrid] Expanded series (added to expanded):",
+          seriesId,
+        );
       }
+
+      const stateArray = [...next];
+      console.log("[PostsGrid] New expanded state:", stateArray);
+
+      // Save to localStorage
+      if (typeof window !== "undefined") {
+        const jsonState = JSON.stringify(stateArray);
+        localStorage.setItem("seriesExpandedState", jsonState);
+        console.log("[PostsGrid] Saved to localStorage:", jsonState);
+
+        // Verify it was saved
+        const verification = localStorage.getItem("seriesExpandedState");
+        console.log("[PostsGrid] Verification read:", verification);
+      }
+
       return next;
     });
   }, []);
+
+  // No useEffect needed! New series automatically default to collapsed
+  // since they're not in the expandedSeries set
 
   // Track animation index across all posts
   let animationIndex = 0;
@@ -76,7 +131,7 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
         if (group.type === "series" && group.series) {
           const startIndex = animationIndex;
           animationIndex += 1; // Series card counts as one item
-          const isCollapsed = collapsedSeries.has(group.series.id);
+          const isCollapsed = !expandedSeries.has(group.series.id);
 
           return (
             <Box

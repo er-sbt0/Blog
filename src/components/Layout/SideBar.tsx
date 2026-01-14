@@ -1,7 +1,7 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import RouterLink from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { actions, type RootState, useDispatch, useSelector } from "@/store";
 import {
@@ -96,8 +96,33 @@ const SideBar: React.FC = () => {
   // Active posts search state
   const [activePostsSearch, setActivePostsSearch] = useState("");
 
-  // Track expanded state for series (default: all expanded)
-  const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
+  // Track collapsed series in sidebar (series NOT in this set are expanded)
+  // This way new series default to expanded automatically
+  const [collapsedSeries, setCollapsedSeries] = useState<Set<string>>(() => {
+    console.log("[Sidebar] Initializing collapsed series state");
+
+    // Try to load saved state from localStorage
+    if (typeof window !== "undefined") {
+      const savedState = localStorage.getItem("sidebarSeriesCollapsedState");
+      console.log("[Sidebar] Saved state from localStorage:", savedState);
+
+      if (savedState) {
+        try {
+          const parsed: string[] = JSON.parse(savedState);
+          const savedSet = new Set<string>(parsed);
+          console.log("[Sidebar] Loaded collapsed series from localStorage:", [
+            ...savedSet,
+          ]);
+          return savedSet;
+        } catch (e) {
+          console.error("Failed to parse sidebar series collapsed state:", e);
+        }
+      }
+    }
+    // Default: empty set (no series collapsed = all expanded by default)
+    console.log("[Sidebar] No saved state, all series will be expanded");
+    return new Set();
+  });
 
   // Sidebar font size control (in pixels, persisted to localStorage)
   const [sidebarFontSize, setSidebarFontSize] = useState<number>(() => {
@@ -219,39 +244,44 @@ const SideBar: React.FC = () => {
   // Show search bar when there are 5 or more posts
   const showActivePostsSearch = activeDocuments.length >= 5;
 
-  // Initialize expanded series when groupedPosts changes
-  useMemo(() => {
-    if (groupedActivePosts.length > 0) {
-      const seriesIds = groupedActivePosts
-        .filter((g) => g.type === "series" && g.series)
-        .map((g) => g.series!.id);
-      setExpandedSeries((prev) => {
-        // Only add new series, keep existing state for known series
-        const next = new Set(prev);
-        seriesIds.forEach((id) => {
-          if (!prev.has(id) && prev.size === 0) {
-            // First load: expand all
-            next.add(id);
-          }
-        });
-        // If this is first load, expand all
-        if (prev.size === 0 && seriesIds.length > 0) {
-          return new Set(seriesIds);
-        }
-        return prev;
-      });
-    }
-  }, [groupedActivePosts]);
+  // No useEffect needed! New series automatically default to expanded
+  // since they're not in the collapsedSeries set
 
-  // Toggle series expanded state
+  // Toggle series expanded/collapsed state
   const toggleSeriesExpanded = useCallback((seriesId: string) => {
-    setExpandedSeries((prev) => {
+    console.log("[Sidebar] Toggling series:", seriesId);
+    setCollapsedSeries((prev) => {
       const next = new Set(prev);
       if (next.has(seriesId)) {
         next.delete(seriesId);
+        console.log(
+          "[Sidebar] Expanded series (removed from collapsed):",
+          seriesId,
+        );
       } else {
         next.add(seriesId);
+        console.log(
+          "[Sidebar] Collapsed series (added to collapsed):",
+          seriesId,
+        );
       }
+
+      const stateArray = [...next];
+      console.log("[Sidebar] New collapsed state:", stateArray);
+
+      // Save to localStorage
+      if (typeof window !== "undefined") {
+        const jsonState = JSON.stringify(stateArray);
+        localStorage.setItem("sidebarSeriesCollapsedState", jsonState);
+        console.log("[Sidebar] Saved to localStorage:", jsonState);
+
+        // Verify it was saved
+        const verification = localStorage.getItem(
+          "sidebarSeriesCollapsedState",
+        );
+        console.log("[Sidebar] Verification read:", verification);
+      }
+
       return next;
     });
   }, []);
@@ -630,7 +660,7 @@ const SideBar: React.FC = () => {
             <List dense>
               {filteredGroupedPosts.map((group, groupIndex) => {
                 if (group.type === "series" && group.series) {
-                  const isExpanded = expandedSeries.has(group.series.id);
+                  const isExpanded = !collapsedSeries.has(group.series.id);
                   // Render series with minimal left border accent
                   return (
                     <Box
