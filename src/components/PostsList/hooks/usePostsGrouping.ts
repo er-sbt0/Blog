@@ -42,6 +42,9 @@ export const usePostsGrouping = ({
       timeGroups = deduplicateSeriesAcrossPartitions(timeGroups, allPosts);
     }
 
+    // Filter out time groups with zero posts/series
+    timeGroups = timeGroups.filter((group) => group.posts.length > 0);
+
     const totalCount = posts.length;
 
     return { monthGroups, timeGroups, totalCount };
