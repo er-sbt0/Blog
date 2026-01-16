@@ -3,113 +3,141 @@ import React from "react";
 import {
   Box,
   Button,
-  Chip,
-  Skeleton,
+  IconButton,
+  InputAdornment,
+  TextField,
   Typography,
-  useMediaQuery,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import { Add, CollectionsBookmark } from "@mui/icons-material";
+import { Add, Clear, Search } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 
 interface SeriesHeaderProps {
   totalCount: number;
   loading?: boolean;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 /**
  * Header component for series list page
- * Displays title, count, and new series button
+ * Layout matches PostsHeader: Search bar on top, action buttons below
  */
 const SeriesHeader: React.FC<SeriesHeaderProps> = ({
   totalCount,
   loading = false,
+  searchQuery = "",
+  onSearchChange,
 }) => {
-  const theme = useTheme();
   const router = useRouter();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleNewSeries = () => {
     router.push("/series/new");
   };
 
+  const clearSearch = () => {
+    onSearchChange?.("");
+  };
+
   return (
     <Box
+      component="header"
       sx={{
-        mb: { xs: 3, md: 4 },
-        display: "flex",
-        flexDirection: "column",
-        gap: { xs: 2, md: 3 },
+        mb: 4,
+        pt: 2,
+        pb: 3,
       }}
     >
-      {/* Title Row */}
+      {/* Search Section - Full width search bar */}
+      <Box sx={{ mb: 2.5 }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search series by title..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange?.(e.target.value)}
+          sx={{
+            maxWidth: { xs: "100%", md: 600 },
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2,
+              backgroundColor: "background.paper",
+              transition: "box-shadow 0.2s ease-in-out",
+              "&:hover": {
+                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              },
+              "&.Mui-focused": {
+                boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+              },
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search sx={{ color: "text.secondary", fontSize: 22 }} />
+              </InputAdornment>
+            ),
+            endAdornment: searchQuery && (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={clearSearch}
+                  aria-label="Clear search"
+                  sx={{
+                    "&:hover": {
+                      backgroundColor: "action.hover",
+                    },
+                  }}
+                >
+                  <Clear sx={{ fontSize: 18 }} />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          aria-label="Search series"
+        />
+      </Box>
+
+      {/* Actions Toolbar - Below search */}
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
           gap: 2,
+          flexWrap: "wrap",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <CollectionsBookmark
-            sx={{
-              fontSize: { xs: 28, md: 36 },
-              color: "primary.main",
-            }}
-          />
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              fontWeight: 700,
-              fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2.125rem" },
-              color: "text.primary",
-            }}
-          >
-            Series
-          </Typography>
-          {loading
-            ? (
-              <Skeleton
-                variant="rounded"
-                width={60}
-                height={28}
-                sx={{ borderRadius: 3 }}
-              />
-            )
-            : (
-              <Chip
-                label={`${totalCount} ${
-                  totalCount === 1 ? "series" : "series"
-                }`}
-                size="small"
-                color="primary"
-                sx={{
-                  fontWeight: 600,
-                  fontSize: { xs: "0.75rem", md: "0.8125rem" },
-                }}
-              />
-            )}
-        </Box>
-
-        {/* New Series Button - styled like New Post */}
+        {/* Primary Action: New Series */}
         <Button
           variant="outlined"
           startIcon={<Add />}
           onClick={handleNewSeries}
           sx={{
-            borderRadius: 1.5,
+            borderRadius: 2,
             textTransform: "none",
-            fontWeight: 600,
-            height: "40px",
-            px: { xs: 2, md: 3 },
-            fontSize: { xs: "0.875rem", md: "1rem" },
+            fontWeight: 500,
+            height: 36,
+            px: 2,
+            borderColor: "divider",
+            "&:hover": {
+              borderColor: "text.secondary",
+            },
           }}
         >
-          {isMobile ? "New" : "New Series"}
+          New Series
         </Button>
+
+        {/* Series count */}
+        {!loading && totalCount > 0 && (
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.disabled",
+              whiteSpace: "nowrap",
+              fontSize: "0.8125rem",
+            }}
+          >
+            {totalCount} series
+          </Typography>
+        )}
       </Box>
     </Box>
   );

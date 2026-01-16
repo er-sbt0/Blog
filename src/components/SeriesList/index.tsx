@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { useMemo, useState } from "react";
 import { Series, User } from "@/types";
 import { Box } from "@mui/material";
 import Grid from "@mui/material/Grid2";
@@ -43,6 +44,21 @@ const SeriesList: React.FC<SeriesListProps> = ({
   loading = false,
   showHeader = true,
 }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter series based on search query
+  const filteredSeries = useMemo(() => {
+    if (!searchQuery.trim()) return series;
+    const query = searchQuery.toLowerCase();
+    return series.filter((s) =>
+      s.title?.toLowerCase().includes(query) ||
+      s.description?.toLowerCase().includes(query)
+    );
+  }, [series, searchQuery]);
+
+  const displayedSeries = filteredSeries;
+  const hasActiveSearch = searchQuery.trim().length > 0;
+
   return (
     <Box
       component="main"
@@ -56,11 +72,13 @@ const SeriesList: React.FC<SeriesListProps> = ({
       role="main"
       aria-label="Series collection"
     >
-      {/* Header with new button */}
+      {/* Header with search and new button */}
       {showHeader && (
         <SeriesHeader
-          totalCount={series.length}
+          totalCount={hasActiveSearch ? filteredSeries.length : series.length}
           loading={loading}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
       )}
 
@@ -71,11 +89,13 @@ const SeriesList: React.FC<SeriesListProps> = ({
             <SeriesLoadingState />
           </section>
         )
-        : series.length === 0
+        : displayedSeries.length === 0
         ? (
           <section
             role="region"
-            aria-label="No series"
+            aria-label={hasActiveSearch
+              ? "No series match search"
+              : "No series"}
             aria-live="polite"
           >
             <Box
@@ -93,7 +113,7 @@ const SeriesList: React.FC<SeriesListProps> = ({
                   filter: "grayscale(0.3)",
                 }}
               >
-                📚
+                {hasActiveSearch ? "🔍" : "📚"}
               </Box>
               <Box
                 sx={{
@@ -103,7 +123,9 @@ const SeriesList: React.FC<SeriesListProps> = ({
                   color: "text.primary",
                 }}
               >
-                {emptyMessage}
+                {hasActiveSearch
+                  ? `No series found for "${searchQuery}"`
+                  : emptyMessage}
               </Box>
               <Box
                 sx={{
@@ -113,14 +135,16 @@ const SeriesList: React.FC<SeriesListProps> = ({
                   mx: "auto",
                 }}
               >
-                Create your first series to organize your posts
+                {hasActiveSearch
+                  ? "Try adjusting your search term"
+                  : "Create your first series to organize your posts"}
               </Box>
             </Box>
           </section>
         )
         : (
           <Grid container spacing={3}>
-            {series.map((seriesItem) => (
+            {displayedSeries.map((seriesItem) => (
               <Grid
                 key={seriesItem.id}
                 size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
