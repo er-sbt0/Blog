@@ -2,7 +2,6 @@
 import StoreProvider from "@/store/StoreProvider";
 import SideBar from "./SideBar";
 import DocumentInfoDrawerArrow from "./DocumentInfoDrawerArrow";
-import ScrollTop from "./ScrollTop";
 import AlertDialog from "./Alert";
 import Announcer from "./Announcer";
 import ProgressBar from "./ProgressBar";
@@ -85,7 +84,6 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
           </Container>
         </HydrationManager>
       </Box>
-      <ScrollTop />
     </Box>
   );
 };

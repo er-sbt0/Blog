@@ -22,7 +22,10 @@ const Container: React.FC<{
   ) => void;
   ignoreHistoryMerge?: boolean;
   onSave?: () => void;
-}> = ({ document, editorRef, onChange, ignoreHistoryMerge, onSave }) => {
+  onDiscard?: () => void;
+}> = (
+  { document, editorRef, onChange, ignoreHistoryMerge, onSave, onDiscard },
+) => {
   const dispatch = useDispatch();
   const editorRefCallback = (editor: LexicalEditor) => {
     if (typeof editorRef === "function") {
@@ -102,6 +105,7 @@ const Container: React.FC<{
       editorRef={editorRefCallback}
       ignoreHistoryMerge={ignoreHistoryMerge}
       onSave={onSave}
+      onDiscard={onDiscard}
     />
   );
 };

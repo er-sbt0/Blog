@@ -23,7 +23,6 @@ import AttachmentDrawer from "./AttachmentDrawer";
 import ViewRevisionCard from "./ViewRevisionCard";
 import { useSearchParams } from "next/navigation";
 import { FloatingActionButton } from "./Layout/FloatingActionsContainer";
-import EditDocumentButton from "./Layout/EditDocumentButton";
 
 export default function ViewDocumentInfo(
   { cloudDocument, user }: { cloudDocument: CloudDocument; user?: User },
@@ -199,7 +198,6 @@ export default function ViewDocumentInfo(
         </Grid>
       </AppDrawer>
       <AttachmentDrawer />
-      <EditDocumentButton handle={handle} />
     </>
   );
 }

@@ -84,7 +84,12 @@ const blockTypeToBlockName = {
   paragraph: "Normal",
 };
 
-function ToolbarPlugin() {
+interface ToolbarPluginProps {
+  onSave?: () => void;
+  onDiscard?: () => void;
+}
+
+function ToolbarPlugin({ onSave, onDiscard }: ToolbarPluginProps) {
   const [editor] = useLexicalComposerContext();
   const [activeEditor, setActiveEditor] = useState(editor);
   const [blockType, setBlockType] = useState<
@@ -101,6 +106,7 @@ function ToolbarPlugin() {
   const [dialogs, setDialogs] = useState<EditorDialogs>({});
   const isTouched = useRef<boolean>(false);
   const [hash] = useHash();
+  const [containerBounds, setContainerBounds] = useState<{ left: number; width: number } | null>(null);
 
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -314,6 +320,27 @@ function ToolbarPlugin() {
   const showNoteTools = !!selectedSticky;
   const isDialogOpen = Object.values(dialogs).some((dialog) => dialog?.open);
 
+  // Track the editor container bounds for floating toolbar positioning
+  useEffect(() => {
+    const container = document.getElementById("editor-main-container");
+    if (!container) return;
+
+    const updateBounds = () => {
+      const rect = container.getBoundingClientRect();
+      setContainerBounds({ left: rect.left, width: rect.width });
+    };
+
+    updateBounds();
+    const resizeObserver = new ResizeObserver(updateBounds);
+    resizeObserver.observe(container);
+    window.addEventListener("resize", updateBounds);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateBounds);
+    };
+  }, []);
+
   useEffect(() => {
     if (isDialogOpen) return;
     const selection = activeEditor.getEditorState().read($getSelection);
@@ -329,10 +356,25 @@ function ToolbarPlugin() {
   return (
     <>
       <AppBar
-        elevation={toolbarTrigger ? 4 : 0}
+        elevation={toolbarTrigger ? 0 : 0}
         position={toolbarTrigger ? "fixed" : "static"}
         sx={{
-          background: "var(--mui-palette-background-default) !important",
+          ...(toolbarTrigger && containerBounds && {
+            // Center relative to the editor container
+            left: containerBounds.left + containerBounds.width / 2,
+            transform: "translateX(-50%)",
+            width: Math.min(containerBounds.width - 24, 1400),
+            maxWidth: 1400,
+            top: 12,
+            borderRadius: 2,
+            boxShadow: 4,
+          }),
+          background: toolbarTrigger
+            ? "rgba(var(--mui-palette-background-defaultChannel) / 0.92) !important"
+            : "var(--mui-palette-background-default) !important",
+          backdropFilter: toolbarTrigger ? "blur(12px)" : "none",
+          border: toolbarTrigger ? 1 : 0,
+          borderColor: "divider",
           transition: "none",
         }}
       >
@@ -347,18 +389,20 @@ function ToolbarPlugin() {
           }}
         >
           <Container
+            maxWidth={false}
             sx={{
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
-              px: toolbarTrigger ? "" : "0 !important",
+              gap: 2,
+              px: toolbarTrigger ? 2 : "0 !important",
+              minWidth: 0,
             }}
           >
             <Box
               sx={{
                 display: "flex",
-                alignSelf: "start",
-                my: { xs: 0, sm: 0.5 },
+                alignItems: "center",
+                flexShrink: 0,
               }}
             >
               <IconButton
@@ -392,9 +436,13 @@ function ToolbarPlugin() {
               sx={{
                 display: "flex",
                 gap: 0.5,
-                mx: "auto",
-                flexWrap: "wrap",
+                overflow: "auto",
+                alignItems: "center",
                 justifyContent: "center",
+                flex: 1,
+                minWidth: 0,
+                "&::-webkit-scrollbar": { display: "none" },
+                scrollbarWidth: "none",
               }}
             >
               {showMathTools && (
@@ -442,20 +490,10 @@ function ToolbarPlugin() {
                       editor={activeEditor}
                       sx={{
                         display: {
-                          xs: "flex",
-                          sm: "none",
-                          md: "none",
-                          lg: "flex",
+                          xs: "none",
+                          md: "flex",
                         },
-                        position: ["fixed", "static"],
-                        justifyContent: [
-                          "center",
-                          "start",
-                        ],
-                        inset:
-                          "auto auto calc(var(--keyboard-inset-height) + 4px)",
-                        zIndex: 1000,
-                        bgcolor: "background.default",
+                        flexShrink: 0,
                       }}
                     />
                   )}
@@ -465,8 +503,9 @@ function ToolbarPlugin() {
             <Box
               sx={{
                 display: "flex",
-                alignSelf: "start",
-                my: { xs: 0, sm: 0.5 },
+                alignItems: "center",
+                gap: 0.5,
+                flexShrink: 0,
               }}
             >
               <InsertToolMenu editor={activeEditor} />
@@ -525,6 +564,4 @@ function ToolbarPlugin() {
   );
 }
 
-export default function useToolbarPlugin() {
-  return <ToolbarPlugin />;
-}
+export default ToolbarPlugin;

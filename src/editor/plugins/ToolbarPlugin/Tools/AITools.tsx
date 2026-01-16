@@ -430,7 +430,7 @@ export default function AITools(
           color: "text.secondary",
           borderColor: "divider",
           p: 1,
-          minWidth: 0,
+          minWidth: 140,
           height: 36,
           ml: 0.5,
           textTransform: "none",

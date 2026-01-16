@@ -24,11 +24,14 @@ export const Editor: React.FC<{
   ) => void;
   ignoreHistoryMerge?: boolean;
   onSave?: () => void;
-}> = ({ initialConfig, onChange, editorRef, ignoreHistoryMerge, onSave }) => {
+  onDiscard?: () => void;
+}> = (
+  { initialConfig, onChange, editorRef, ignoreHistoryMerge, onSave, onDiscard },
+) => {
   return (
     <LexicalComposer initialConfig={{ ...editorConfig, ...initialConfig }}>
       <SharedHistoryContext>
-        <ToolbarPlugin />
+        <ToolbarPlugin onSave={onSave} onDiscard={onDiscard} />
         <EditorPlugins
           onChange={onChange}
           ignoreHistoryMerge={ignoreHistoryMerge}

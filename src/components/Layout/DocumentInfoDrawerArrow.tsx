@@ -114,31 +114,28 @@ const DocumentInfoDrawerArrow: React.FC = () => {
             : alpha(theme.palette.background.paper, 0.4),
         transition: (theme) =>
           theme.transitions.create(
-            ["background-color", "width", "opacity"],
+            ["background-color", "opacity"],
             { duration: theme.transitions.duration.shorter },
           ),
+        opacity: 0.5,
         "&:hover": {
-          width: 24,
-          borderTopLeftRadius: 4,
-          borderBottomLeftRadius: 4,
-          borderTopRightRadius: 0,
-          borderBottomRightRadius: 0,
+          opacity: 1,
           backgroundColor: (theme) =>
             drawerOpen
               ? alpha(theme.palette.primary.main, 0.8)
-              : alpha(theme.palette.action.hover, 0.6),
+              : alpha(theme.palette.background.paper, 0.95),
         },
         displayPrint: "none",
       }}
       aria-label="document info"
     >
       <ChevronLeft
-        fontSize="small"
+        fontSize="medium"
         sx={{
           color: (theme) =>
             drawerOpen
               ? theme.palette.primary.contrastText
-              : alpha(theme.palette.text.primary, 0.5),
+              : alpha(theme.palette.text.primary, 0.6),
           transform: drawerOpen ? "rotate(180deg)" : "none",
           transition: (theme) =>
             theme.transitions.create(

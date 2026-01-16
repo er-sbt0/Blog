@@ -14,9 +14,7 @@ import dynamic from "next/dynamic";
 import DiffView from "../Diff";
 import { debounce } from "@mui/material/utils";
 import Editor from "../Editor";
-import { Fab } from "@mui/material";
-import { Save } from "@mui/icons-material";
-import SaveDocumentButton from "../Layout/SaveDocumentButton";
+import SaveDiscardActions from "./SaveDiscardActions";
 
 const EditDocumentInfo = dynamic(
   () => import("@/components/EditDocument/EditDocumentInfo"),
@@ -446,6 +444,14 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
     return success;
   }, [saveToCloud, document, router]);
 
+  const handleDiscard = useCallback(() => {
+    if (document) {
+      // Navigate back to the view route without saving
+      const handle = document.handle || document.id;
+      router.push(`/view/${handle}`);
+    }
+  }, [document, router]);
+
   if (error) {
     return <SplashScreen title={error.title} subtitle={error.subtitle} />;
   }
@@ -459,10 +465,14 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
         document={document}
         editorRef={editorRef}
         onChange={handleChange}
-        onSave={saveToCloud}
+        onSave={handleSaveAndNavigate}
+        onDiscard={handleDiscard}
       />
       <EditDocumentInfo documentId={document.id} editorRef={editorRef} />
-      <SaveDocumentButton onSave={handleSaveAndNavigate} />
+      <SaveDiscardActions
+        onSave={handleSaveAndNavigate}
+        onDiscard={handleDiscard}
+      />
     </>
   );
 };

@@ -36,6 +36,7 @@ const ViewDocument: React.FC<
         minHeight: "100vh",
         paddingLeft: "5px",
         paddingRight: "80px",
+        cursor: isEditable ? "pointer" : undefined,
       }}
       title={isEditable ? "Double-click to edit document" : undefined}
     >
