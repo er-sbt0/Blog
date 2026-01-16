@@ -46,6 +46,7 @@ import { LayoutContainerNode } from "../nodes/LayoutNode";
 import DetailsPlugin from "./DetailsPlugin";
 import { DetailsContainerNode } from "../nodes/DetailsNode";
 import SavePlugin from "./SavePlugin";
+import NodeSelectionPlugin from "./NodeSelectionPlugin";
 
 export const EditorPlugins: React.FC<{
   contentEditable: React.ReactElement;
@@ -114,6 +115,7 @@ export const EditorPlugins: React.FC<{
       {editor.hasNode(IFrameNode) && <IFramePlugin />}
       {editor.hasNode(LayoutContainerNode) && <LayoutPlugin />}
       {editor.hasNode(DetailsContainerNode) && <DetailsPlugin />}
+      <NodeSelectionPlugin />
       <SavePlugin onSave={onSave} />
     </>
   );

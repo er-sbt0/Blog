@@ -103,6 +103,7 @@
   white-space: pre;
   width: 40%;
   min-width: 400px;
+  --code-gutter-width: 32px;
 }
 
 .LexicalTheme__code:before {
@@ -855,6 +856,24 @@ iframe {
 
 [theme="dark"] .LexicalTheme__image.LexicalTheme__darkModeFilter :is(img, svg) {
   filter: invert(93%) hue-rotate(180deg);
+}
+
+/* Node Selection Styles */
+.LexicalTheme__nodeSelected {
+  outline: 2px solid rgb(60, 132, 244);
+  outline-offset: 2px;
+  caret-color: transparent;
+}
+
+.LexicalTheme__nodeSelected *,
+.LexicalTheme__nodeSelected::selection,
+.LexicalTheme__nodeSelected *::selection {
+  caret-color: transparent;
+  background-color: transparent;
+}
+
+[theme="dark"] .LexicalTheme__nodeSelected {
+  outline-color: #90caf9;
 }
 
 @media screen and (prefers-color-scheme: light) {

@@ -106,7 +106,9 @@ function ToolbarPlugin({ onSave, onDiscard }: ToolbarPluginProps) {
   const [dialogs, setDialogs] = useState<EditorDialogs>({});
   const isTouched = useRef<boolean>(false);
   const [hash] = useHash();
-  const [containerBounds, setContainerBounds] = useState<{ left: number; width: number } | null>(null);
+  const [containerBounds, setContainerBounds] = useState<
+    { left: number; width: number } | null
+  >(null);
 
   const $updateToolbar = useCallback(() => {
     const selection = $getSelection();
