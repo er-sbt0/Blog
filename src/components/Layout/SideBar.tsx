@@ -290,12 +290,12 @@ const SideBar: React.FC = () => {
       // { text: "Browse Posts", icon: <LibraryBooks />, path: "/browse" },
       { text: "Posts", icon: <LibraryBooks />, path: "/posts" },
       { text: "Series", icon: <CollectionsBookmark />, path: "/series" },
+      { text: "Notes", icon: <StickyNote2 />, path: "/notes" },
     ];
 
     // Add user-specific navigation items if authenticated
     if (user) {
       items.push(
-        // { text: "Notes", icon: <StickyNote2 />, path: "/notes" },
         // { text: "Dashboard", icon: <Dashboard />, path: "/dashboard" },
         // { text: "New Post", icon: <Create />, path: "/new" },
       );

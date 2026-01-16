@@ -14,6 +14,7 @@ import {
   Edit,
   Home,
   LibraryBooks,
+  StickyNote2,
 } from "@mui/icons-material";
 import RouterLink from "next/link";
 
@@ -110,6 +111,13 @@ const Breadcrumbs: React.FC = () => {
 
       case "user":
         breadcrumbs.push({ label: "User Profile" });
+        break;
+
+      case "notes":
+        breadcrumbs.push({
+          label: "Notes",
+          icon: <StickyNote2 sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
         break;
 
       default:
