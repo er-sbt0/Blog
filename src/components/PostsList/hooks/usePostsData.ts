@@ -48,6 +48,9 @@ export const usePostsData = (): UsePostsDataReturn => {
     "quarter",
   );
 
+  // Get loading state from Redux
+  const documentsLoading = useSelector((state) => state.ui.documentsLoading);
+
   // Use custom filtering hook to get all posts
   const { allPosts, totalCount } = usePostsFiltering();
 
@@ -77,7 +80,7 @@ export const usePostsData = (): UsePostsDataReturn => {
   return {
     monthGroups,
     timeGroups,
-    loading: false, // TODO: Add actual loading state in future steps
+    loading: documentsLoading,
     totalCount,
     filteredCount,
     allPosts,

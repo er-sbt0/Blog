@@ -44,6 +44,7 @@ const initialState: AppState = {
     announcements: [],
     alerts: [],
     initialized: false,
+    documentsLoading: false,
     drawer: false,
     page: 1,
     diff: {
@@ -1168,7 +1169,11 @@ export const appSlice = createSlice({
           } else userDocument.local = document;
         });
       })
+      .addCase(loadCloudDocuments.pending, (state) => {
+        state.ui.documentsLoading = true;
+      })
       .addCase(loadCloudDocuments.fulfilled, (state, action) => {
+        state.ui.documentsLoading = false;
         const documents = action.payload;
         documents.forEach((document) => {
           const userDocument = state.documents.find((doc) =>
@@ -1183,6 +1188,9 @@ export const appSlice = createSlice({
             userDocument.cloud = document;
           }
         });
+      })
+      .addCase(loadCloudDocuments.rejected, (state) => {
+        state.ui.documentsLoading = false;
       })
       .addCase(getCloudDocument.fulfilled, (state, action) => {
         const { cloudDocument } = action.payload;

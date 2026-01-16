@@ -32,6 +32,7 @@ export interface AppState {
     announcements: Announcement[];
     alerts: Alert[];
     initialized: boolean;
+    documentsLoading: boolean;
     drawer: boolean;
     page: number;
     diff: { open: boolean; old?: string; new?: string };
