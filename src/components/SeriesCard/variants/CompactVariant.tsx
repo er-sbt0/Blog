@@ -31,7 +31,8 @@ const DocItem: React.FC<DocItemProps> = ({ document }) => {
         p: 1.5,
         bgcolor: "background.paper",
         textDecoration: "none",
-        transition: "box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease",
+        transition:
+          "box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease",
         "&:hover": {
           bgcolor: "action.hover",
           borderColor: "primary.light",
@@ -103,7 +104,6 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        animation: `fadeInUp 0.6s ease ${animationIndex * 0.1}s both`,
         "&:hover": {
           boxShadow: cardTheme.colors.shadow.hover,
           borderColor: "primary.light",

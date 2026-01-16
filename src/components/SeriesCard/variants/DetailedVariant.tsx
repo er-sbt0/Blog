@@ -3,7 +3,6 @@ import * as React from "react";
 import { memo, useMemo, useState } from "react";
 import {
   Box,
-  Chip,
   IconButton,
   ListItemIcon,
   ListItemText,
@@ -12,12 +11,7 @@ import {
   Skeleton,
   Typography,
 } from "@mui/material";
-import {
-  CollectionsBookmark,
-  Delete,
-  Edit,
-  MoreVert,
-} from "@mui/icons-material";
+import { Delete, Edit, MoreVert } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import CardBase from "../../DocumentCardNew/CardBase";
 import { DetailedVariantProps } from "../types";
@@ -152,8 +146,8 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
           {series?.title || <Skeleton variant="text" width="80%" />}
         </Typography>
 
-        {/* Meta information */}
-        {showMetadata && (
+        {/* Meta information - just the date */}
+        {showMetadata && formattedDate && (
           <Box
             sx={{
               display: "flex",
@@ -164,35 +158,13 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
               flexShrink: 0,
             }}
           >
-            {formattedDate && (
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ fontSize: "0.875rem", fontWeight: 500 }}
-              >
-                {formattedDate}
-              </Typography>
-            )}
-
-            {series?.author && (
-              <>
-                <Box
-                  sx={{
-                    width: 4,
-                    height: 4,
-                    bgcolor: "text.secondary",
-                    borderRadius: "50%",
-                  }}
-                />
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ fontSize: "0.875rem", fontWeight: 500 }}
-                >
-                  by {series.author.name || series.author.email}
-                </Typography>
-              </>
-            )}
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+            >
+              {formattedDate}
+            </Typography>
           </Box>
         )}
 
@@ -211,8 +183,7 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
               flex: 1,
             }}
           >
-            {series?.description ||
-              `A collection of ${postCount} post${postCount !== 1 ? "s" : ""}`}
+            {series?.description}
           </Typography>
         )}
       </Box>
@@ -220,7 +191,7 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
     [series, formattedDate, postCount, showMetadata],
   );
 
-  // Memoize chip content - simple post count
+  // Memoize chip content - simple post count (aligned with CompactVariant styling)
   const chipContent = useMemo(() => {
     if (isLoading) {
       return (
@@ -234,18 +205,28 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
     }
 
     return (
-      <Chip
-        icon={<CollectionsBookmark sx={{ fontSize: 16 }} />}
-        label={`${postCount} post${postCount !== 1 ? "s" : ""}`}
-        size="small"
-        variant="outlined"
+      <Box
         sx={{
-          fontSize: "0.75rem",
-          fontWeight: 500,
-          height: 24,
-          "& .MuiChip-icon": { ml: 0.5 },
+          px: 1.5,
+          py: 0.5,
+          borderRadius: "12px",
+          bgcolor: (t) =>
+            t.palette.mode === "dark"
+              ? "rgba(144, 202, 249, 0.15)"
+              : "rgba(25, 118, 210, 0.1)",
         }}
-      />
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: 500,
+            color: "text.secondary",
+            fontSize: "0.8rem",
+          }}
+        >
+          {postCount} post{postCount !== 1 ? "s" : ""}
+        </Typography>
+      </Box>
     );
   }, [isLoading, postCount]);
 

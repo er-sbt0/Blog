@@ -64,6 +64,10 @@ export const createAuthorChip = (author?: User | null, showAuthor = true) => {
       key="author-chip"
       size="small"
       variant="filled"
+      component="a"
+      href="http://localhost:3000/dashboard"
+      clickable
+      onClick={(e: React.MouseEvent) => e.stopPropagation()}
       avatar={
         <Avatar
           alt={author.name ?? "User"}
@@ -87,6 +91,8 @@ export const createAuthorChip = (author?: User | null, showAuthor = true) => {
         fontWeight: 500,
         fontSize: cardTheme.typography.authorSize,
         height: 32,
+        textDecoration: "none",
+        cursor: "pointer",
 
         "& .MuiChip-label": {
           padding: "0 8px",
@@ -99,6 +105,7 @@ export const createAuthorChip = (author?: User | null, showAuthor = true) => {
 
         "&:hover": {
           background: cardTheme.colors.author.bg,
+          opacity: 0.9,
         },
       }}
     />

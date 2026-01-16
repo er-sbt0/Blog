@@ -93,6 +93,45 @@ export const PostContent: React.FC<PostContentProps> = ({
           flexShrink: 0, // Don't shrink the meta info
         }}
       >
+        {author && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              fontSize: "0.875rem",
+              fontWeight: 500,
+            }}
+          >
+            by{" "}
+            <Box
+              component="a"
+              href="http://localhost:3000/dashboard"
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              sx={{
+                color: "text.secondary",
+                textDecoration: "none",
+                "&:hover": {
+                  color: "primary.main",
+                  textDecoration: "underline",
+                },
+              }}
+            >
+              {author.name || author.email}
+            </Box>
+          </Typography>
+        )}
+
+        {author && formattedDate && (
+          <Box
+            sx={{
+              width: 4,
+              height: 4,
+              bgcolor: "text.secondary",
+              borderRadius: "50%",
+            }}
+          />
+        )}
+
         {formattedDate && (
           <Typography
             variant="body2"
@@ -104,29 +143,6 @@ export const PostContent: React.FC<PostContentProps> = ({
           >
             {formattedDate}
           </Typography>
-        )}
-
-        {author && (
-          <>
-            <Box
-              sx={{
-                width: 4,
-                height: 4,
-                bgcolor: "text.secondary",
-                borderRadius: "50%",
-              }}
-            />
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                fontSize: "0.875rem",
-                fontWeight: 500,
-              }}
-            >
-              by {author.name || author.email}
-            </Typography>
-          </>
         )}
 
         {

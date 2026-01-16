@@ -106,9 +106,6 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
   // No useEffect needed! New series automatically default to collapsed
   // since they're not in the expandedSeries set
 
-  // Track animation index across all posts
-  let animationIndex = 0;
-
   return (
     <Grid
       container
@@ -117,17 +114,12 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
     >
       {groupedPosts.map((group) => {
         if (group.type === "series" && group.series) {
-          const currentIndex = animationIndex;
-          animationIndex += 1;
           const isCollapsed = !expandedSeries.has(group.series.id);
 
           return (
             <Grid
               key={`series-${group.series.id}`}
               size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
-              sx={{
-                animation: `fadeInUp 0.6s ease ${currentIndex * 0.1}s both`,
-              }}
             >
               <SeriesCard
                 variant="compact"
@@ -138,23 +130,17 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
                 defaultExpanded={!isCollapsed}
                 onExpand={() => toggleSeriesCollapsed(group.series!.id)}
                 onCollapse={() => toggleSeriesCollapsed(group.series!.id)}
-                animationIndex={currentIndex}
               />
             </Grid>
           );
         } else {
           // Standalone post
           const document = group.posts[0];
-          const currentIndex = animationIndex;
-          animationIndex += 1;
 
           return (
             <Grid
               key={document.id}
               size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
-              sx={{
-                animation: `fadeInUp 0.6s ease ${currentIndex * 0.1}s both`,
-              }}
             >
               <DocumentCard
                 userDocument={document}

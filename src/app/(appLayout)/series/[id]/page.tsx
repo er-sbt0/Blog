@@ -26,8 +26,7 @@ export async function generateMetadata(
 
   return {
     title: `${series.title} | Series`,
-    description: series.description ||
-      `A collection of posts in the "${series.title}" series`,
+    description: series.description,
   };
 }
 
