@@ -65,23 +65,27 @@ export const PartitionControl: React.FC<PartitionControlProps> = ({
   };
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-      <FormControl size="small" sx={{ minWidth: 120 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+      <FormControl size="small" sx={{ minWidth: 110 }}>
         <Select
           value={granularity}
           onChange={handleChange}
           disabled={disabled}
           sx={{
-            borderRadius: 1.5,
-            height: "40px", // Consistent height with other buttons
+            borderRadius: 2,
+            height: 36,
+            fontSize: "0.875rem",
             "& .MuiSelect-select": {
               display: "flex",
               alignItems: "center",
-              gap: 1,
-              px: 2,
+              py: 0,
+              px: 1.5,
             },
             "& .MuiOutlinedInput-notchedOutline": {
-              borderRadius: 1.5,
+              borderColor: "divider",
+            },
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: "text.secondary",
             },
           }}
         >
@@ -103,13 +107,14 @@ export const PartitionControl: React.FC<PartitionControlProps> = ({
 
       {postCount > 0 && (
         <Typography
-          variant="caption"
+          variant="body2"
           sx={{
-            color: "text.secondary",
+            color: "text.disabled",
             whiteSpace: "nowrap",
+            fontSize: "0.8125rem",
           }}
         >
-          {postCount} post{postCount === 1 ? "" : "s"}
+          {postCount} posts
         </Typography>
       )}
     </Box>

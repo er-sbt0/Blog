@@ -7,15 +7,11 @@ import {
   InputAdornment,
   Menu,
   MenuItem,
-  Skeleton,
   TextField,
   Typography,
-  useMediaQuery,
 } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import {
   Add,
-  Article,
   CalendarMonth,
   Clear,
   FilterList,
@@ -41,8 +37,8 @@ interface PostsHeaderProps {
 }
 
 /**
- * Header component displaying page title, posts count, search, filters, and new post button
- * Enhanced for content management workflow
+ * Header component displaying search, filters, and actions for posts management
+ * Layout: Search bar on top, action buttons below (following standard content management patterns)
  */
 const PostsHeader: React.FC<PostsHeaderProps> = ({
   totalCount,
@@ -55,9 +51,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
   onGranularityChange,
   onNewPost,
 }) => {
-  const theme = useTheme();
   const router = useRouter();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   // Filter menu state
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(
@@ -106,13 +100,63 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
 
   return (
     <Box
+      component="header"
       sx={{
         mb: 4,
         pt: 2,
         pb: 3,
       }}
     >
-      {/* Simple, clean toolbar */}
+      {/* Search Section - Full width search bar */}
+      <Box sx={{ mb: 2.5 }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search posts by title, content, or tags..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange?.(e.target.value)}
+          sx={{
+            maxWidth: { xs: "100%", md: 600 },
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2,
+              backgroundColor: "background.paper",
+              transition: "box-shadow 0.2s ease-in-out",
+              "&:hover": {
+                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              },
+              "&.Mui-focused": {
+                boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+              },
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search sx={{ color: "text.secondary", fontSize: 22 }} />
+              </InputAdornment>
+            ),
+            endAdornment: searchQuery && (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={clearSearch}
+                  aria-label="Clear search"
+                  sx={{
+                    "&:hover": {
+                      backgroundColor: "action.hover",
+                    },
+                  }}
+                >
+                  <Clear sx={{ fontSize: 18 }} />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          aria-label="Search posts"
+        />
+      </Box>
+
+      {/* Actions Toolbar - Below search */}
       <Box
         sx={{
           display: "flex",
@@ -121,68 +165,42 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
           flexWrap: "wrap",
         }}
       >
-        {/* Search Field - takes most space */}
-        <TextField
-          size="small"
-          placeholder="Search posts..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange?.(e.target.value)}
-          sx={{
-            flex: "1 1 300px",
-            minWidth: 250,
-            maxWidth: 500,
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 1.5,
-              height: "40px", // Consistent height with buttons
-            },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ color: "text.secondary", fontSize: 20 }} />
-              </InputAdornment>
-            ),
-            endAdornment: searchQuery && (
-              <InputAdornment position="end">
-                <IconButton size="small" onClick={clearSearch}>
-                  <Clear sx={{ fontSize: 18 }} />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
-
-        {/* New Post Button */}
+        {/* Primary Action: New Post */}
         <Button
           variant="outlined"
           startIcon={<Add />}
           onClick={handleNewPost}
-          size="small"
           sx={{
-            borderRadius: 1.5,
+            borderRadius: 2,
             textTransform: "none",
+            fontWeight: 500,
+            height: 36,
             px: 2,
-            minWidth: "auto",
-            whiteSpace: "nowrap",
-            height: "40px", // Consistent height
+            borderColor: "divider",
+            "&:hover": {
+              borderColor: "text.secondary",
+            },
           }}
         >
           New Post
         </Button>
 
-        {/* Filter Button */}
+        {/* Time Filter Button */}
         <Button
           variant="outlined"
           startIcon={<FilterList />}
           onClick={handleFilterClick}
-          size="small"
           sx={{
-            borderRadius: 1.5,
+            borderRadius: 2,
             textTransform: "none",
+            fontWeight: 400,
+            height: 36,
             px: 2,
-            minWidth: "auto",
-            whiteSpace: "nowrap",
-            height: "40px", // Consistent height
+            color: timeFilter !== "all" ? "primary.main" : "text.secondary",
+            borderColor: "divider",
+            "&:hover": {
+              borderColor: "text.secondary",
+            },
           }}
         >
           {activeTimeFilter?.label || "All Time"}
@@ -198,7 +216,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
         )}
       </Box>
 
-      {/* Active Filters - Only show when needed */}
+      {/* Active Filters Chips - Show when filters are active */}
       {(searchQuery || timeFilter !== "all") && (
         <Box
           sx={{
@@ -206,27 +224,32 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
             alignItems: "center",
             gap: 1,
             mt: 2,
-            pt: 2,
-            borderTop: "1px solid",
-            borderColor: "divider",
+            flexWrap: "wrap",
           }}
         >
           <Typography
-            variant="caption"
+            variant="body2"
             color="text.secondary"
             sx={{
               fontWeight: 500,
-              mr: 1,
+              fontSize: "0.8125rem",
             }}
           >
-            Filters:
+            Active filters:
           </Typography>
           {searchQuery && (
             <Chip
-              label={searchQuery}
+              label={`"${searchQuery}"`}
               onDelete={clearSearch}
               size="small"
+              color="primary"
               variant="outlined"
+              sx={{
+                borderRadius: 1.5,
+                "& .MuiChip-label": {
+                  px: 1,
+                },
+              }}
             />
           )}
           {timeFilter !== "all" && (
@@ -234,7 +257,14 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
               label={activeTimeFilter?.label}
               onDelete={() => onTimeFilterChange?.("all")}
               size="small"
+              color="primary"
               variant="outlined"
+              sx={{
+                borderRadius: 1.5,
+                "& .MuiChip-label": {
+                  px: 1,
+                },
+              }}
             />
           )}
         </Box>
