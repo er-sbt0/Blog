@@ -75,7 +75,7 @@ export const PostContent: React.FC<PostContentProps> = ({
           mb: 1,
           flexShrink: 0, // Don't shrink the title
           "&:hover": {
-            color: "primary.main",
+            color: "primary.main", // Unified hover blue
           },
         }}
       >
@@ -111,7 +111,7 @@ export const PostContent: React.FC<PostContentProps> = ({
                 color: "text.secondary",
                 textDecoration: "none",
                 "&:hover": {
-                  color: "primary.main",
+                  color: "primary.main", // Unified hover blue
                   textDecoration: "underline",
                 },
               }}
@@ -195,7 +195,7 @@ export const PostContent: React.FC<PostContentProps> = ({
           "&:hover": {
             fontWeight: 700,
             textDecoration: "underline",
-            color: "primary.dark",
+            color: "primary.main", // Unified hover blue
           },
         }}
       >

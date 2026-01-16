@@ -54,7 +54,8 @@ export const createStatusChip = (postState: PostState) => {
 };
 
 /**
- * Create modern author chip with enhanced design
+ * Modern author chip - Pill Capsule with Soft Shadow
+ * Clean, tactile design with micro-shadows and hover lift effect
  */
 export const createAuthorChip = (author?: User | null, showAuthor = true) => {
   if (!showAuthor || !author) return null;
@@ -63,21 +64,22 @@ export const createAuthorChip = (author?: User | null, showAuthor = true) => {
     <Chip
       key="author-chip"
       size="small"
-      variant="filled"
       component="a"
       href="http://localhost:3000/dashboard"
       clickable
       onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      aria-label={`View ${author.name ?? "author"}'s profile`}
       avatar={
         <Avatar
           alt={author.name ?? "User"}
           src={author.image ?? undefined}
           sx={{
-            width: 22,
-            height: 22,
+            width: 24,
+            height: 24,
             fontSize: "0.75rem",
-            border: "2px solid white",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+            fontWeight: 500,
+            border: (theme) => `2px solid ${theme.palette.background.paper}`,
+            boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
           }}
         >
           {!author.image && <Person sx={{ fontSize: 14 }} />}
@@ -85,27 +87,96 @@ export const createAuthorChip = (author?: User | null, showAuthor = true) => {
       }
       label={author.name ?? "User"}
       sx={{
-        background: cardTheme.colors.author.bg,
-        borderColor: cardTheme.colors.author.border,
-        color: cardTheme.colors.author.text,
-        fontWeight: 500,
-        fontSize: cardTheme.typography.authorSize,
         height: 32,
+        borderRadius: "9999px",
+        border: "1px solid transparent",
+        overflow: "hidden",
+        position: "relative",
+        background: (theme) =>
+          theme.palette.mode === "dark"
+            ? "rgba(255, 255, 255, 0.06)"
+            : "rgba(0, 0, 0, 0.03)",
+        boxShadow: (theme) =>
+          theme.palette.mode === "dark"
+            ? "0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)"
+            : "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
+        color: "text.secondary",
+        fontWeight: 500,
+        fontSize: "0.8125rem",
+        letterSpacing: "0.01em",
         textDecoration: "none",
         cursor: "pointer",
+        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+        outline: "none",
+        WebkitTapHighlightColor: "transparent",
+
+        // Disable MUI's internal hover overlay (the cause of square corners)
+        "&::before": {
+          display: "none",
+        },
+        "&::after": {
+          display: "none",
+        },
 
         "& .MuiChip-label": {
-          padding: "0 8px",
-          marginLeft: "6px",
+          padding: "0 12px 0 6px",
+          lineHeight: 1.2,
         },
         "& .MuiChip-avatar": {
-          marginLeft: "6px",
+          marginLeft: "4px",
           marginRight: 0,
+          width: 24,
+          height: 24,
+        },
+        // Completely hide touch ripple to prevent any rectangular effects
+        "& .MuiTouchRipple-root": {
+          display: "none",
+        },
+        // Fix for MUI's internal hover overlay (focusVisible and clickable hover)
+        "& .MuiChip-action": {
+          borderRadius: "inherit",
+        },
+        // Override MUI's clickable chip hover background
+        "&.MuiChip-clickable": {
+          "&:hover": {
+            background: (theme) =>
+              theme.palette.mode === "dark"
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.05)",
+          },
+        },
+        // Override any ButtonBase focus styling
+        "&.MuiButtonBase-root": {
+          "&:focus": {
+            outline: "none",
+          },
         },
 
         "&:hover": {
-          background: cardTheme.colors.author.bg,
-          opacity: 0.9,
+          background: (theme) =>
+            theme.palette.mode === "dark"
+              ? "rgba(255, 255, 255, 0.1)"
+              : "rgba(0, 0, 0, 0.05)",
+          borderColor: "rgba(25, 118, 210, 0.5)", // Unified hover blue border
+          color: "text.primary",
+        },
+
+        "&:active": {
+          borderColor: "rgba(25, 118, 210, 0.7)", // Unified hover blue border (active)
+        },
+
+        "&:focus-visible": {
+          outline: "none",
+          boxShadow: (theme) =>
+            `0 0 0 2px ${theme.palette.background.paper}, 0 0 0 4px ${theme.palette.primary.main}`,
+        },
+
+        "&:focus:not(:focus-visible)": {
+          outline: "none",
+          boxShadow: (theme) =>
+            theme.palette.mode === "dark"
+              ? "0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)"
+              : "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
         },
       }}
     />

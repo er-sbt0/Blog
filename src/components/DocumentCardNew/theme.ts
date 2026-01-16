@@ -48,6 +48,14 @@ export const cardTheme = {
     textPrimary: "text.primary",
     textSecondary: "text.secondary",
 
+    // Unified hover blue - consistent across all interactive elements
+    // Using MUI's primary.main equivalent for consistency
+    hoverBlue: {
+      text: "primary.main", // #1976d2 - for text color on hover
+      border: "rgba(25, 118, 210, 0.5)", // primary.main with 50% opacity for borders
+      borderActive: "rgba(25, 118, 210, 0.7)", // primary.main with 70% opacity for active state
+    },
+
     // Enhanced shadows with subtle depth
     shadow: {
       default: "0 4px 12px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04)",
