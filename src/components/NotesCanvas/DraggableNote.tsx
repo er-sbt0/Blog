@@ -73,8 +73,8 @@ export default function DraggableNote({
       position={{ x: note.position.x, y: note.position.y }}
       onDragStop={handleDragStop}
       onResizeStop={handleResizeStop}
-      minWidth={200}
-      minHeight={150}
+      minWidth={160}
+      minHeight={120}
       bounds="parent"
       dragHandleClassName="drag-handle"
       style={{ zIndex: note.zIndex }}
@@ -120,7 +120,7 @@ export default function DraggableNote({
           sx={{
             display: "flex",
             alignItems: "center",
-            padding: "8px 12px",
+            padding: "4px 8px",
             backgroundColor: "rgba(255, 255, 255, 0.4)",
             cursor: "move",
             borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
@@ -131,10 +131,10 @@ export default function DraggableNote({
           }}
         >
           <DragIndicator
-            fontSize="small"
             sx={{
               mr: "auto",
               opacity: 0.5,
+              fontSize: "18px",
               transition: "opacity 0.2s ease",
               ".drag-handle:hover &": { opacity: 0.8 },
             }}
@@ -147,7 +147,7 @@ export default function DraggableNote({
             }}
             sx={{
               ml: "auto",
-              padding: "4px",
+              padding: "2px",
               transition: "all 0.2s",
               "&:hover": {
                 backgroundColor: "rgba(244, 67, 54, 0.1)",
@@ -156,7 +156,7 @@ export default function DraggableNote({
               },
             }}
           >
-            <Close fontSize="small" />
+            <Close sx={{ fontSize: "18px" }} />
           </IconButton>
         </Box>
 
@@ -165,7 +165,7 @@ export default function DraggableNote({
           sx={{
             flex: 1,
             overflow: "auto",
-            padding: "16px",
+            padding: "12px",
             backgroundColor: "rgba(255, 255, 255, 0.3)",
             "& .editor-input": {
               minHeight: "100%",

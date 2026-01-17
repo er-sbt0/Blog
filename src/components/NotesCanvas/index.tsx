@@ -17,7 +17,7 @@ export default function NotesCanvas() {
 
       addNote({
         position: { x: centerX, y: centerY },
-        size: { width: 300, height: 250 },
+        size: { width: 240, height: 200 },
         content: "",
         color,
         zIndex: canvas
