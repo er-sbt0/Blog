@@ -3,6 +3,7 @@ import { alpha, Box, Typography } from "@mui/material";
 import { StickyNote2Outlined } from "@mui/icons-material";
 import { useNotesStore } from "@/hooks/useNotesStore";
 import { useEffect } from "react";
+import { NOTE_COLORS, NoteColorKey } from "@/components/NotesCanvas/noteColors";
 
 interface NotesPreviewCardProps {
   onViewFull: () => void;
@@ -160,24 +161,25 @@ export default function NotesPreviewCard({
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gridTemplateRows: "repeat(2, 1fr)",
-                gap: 2,
+                gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                gap: 1.5,
                 p: 2,
                 height: "100%",
+                maxWidth: 600,
+                mx: "auto",
               }}
             >
               {previewNotes.map((note, index) => (
                 <Box
                   key={note.id}
                   sx={{
-                    bgcolor: note.color || "#fff9c4",
-                    borderRadius: 2,
+                    background: NOTE_COLORS[note.color as NoteColorKey] || NOTE_COLORS.yellow,
+                    borderRadius: 1.5,
                     boxShadow: (theme) =>
                       theme.palette.mode === "dark"
-                        ? "0 2px 8px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)"
-                        : "0 2px 8px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)",
-                    p: 2,
+                        ? "0 2px 8px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)"
+                        : "0 2px 8px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.5)",
+                    p: 1.5,
                     overflow: "hidden",
                     position: "relative",
                     transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -205,24 +207,24 @@ export default function NotesPreviewCard({
                       top: 0,
                       left: 0,
                       right: 0,
-                      height: "3px",
+                      height: "2px",
                       bgcolor: (theme) =>
-                        alpha(theme.palette.common.black, 0.1),
-                      borderTopLeftRadius: 2,
-                      borderTopRightRadius: 2,
+                        alpha(theme.palette.common.black, 0.08),
+                      borderTopLeftRadius: 1.5,
+                      borderTopRightRadius: 1.5,
                     },
                   }}
                 >
                   <Typography
                     sx={{
                       color: "rgba(0,0,0,0.85)",
-                      fontSize: "12px",
-                      lineHeight: 1.5,
+                      fontSize: "11px",
+                      lineHeight: 1.4,
                       fontWeight: 400,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       display: "-webkit-box",
-                      WebkitLineClamp: 6,
+                      WebkitLineClamp: 5,
                       WebkitBoxOrient: "vertical",
                       wordBreak: "break-word",
                       whiteSpace: "pre-wrap",
