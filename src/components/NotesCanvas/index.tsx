@@ -134,7 +134,9 @@ export default function NotesCanvas(
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <StickyNote2Outlined sx={{ fontSize: 20, color: "text.secondary" }} />
+            <StickyNote2Outlined
+              sx={{ fontSize: 20, color: "text.secondary" }}
+            />
             <Typography
               variant="subtitle1"
               sx={{
@@ -281,7 +283,7 @@ export default function NotesCanvas(
       sx={{
         display: "flex",
         flexDirection: "column",
-        height: "calc(100vh - 120px)",
+        height: "100%",
         minHeight: 0,
         bgcolor: "background.paper",
         border: "1px solid",

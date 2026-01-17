@@ -15,6 +15,7 @@ import NotesCanvas from "../NotesCanvas";
 import KanbanBoard from "./KanbanBoard";
 import ReadmeViewer from "./ReadmeViewer";
 import ErrorBoundaryCard from "./ErrorBoundaryCard";
+import { StickyNote2 } from "@mui/icons-material";
 
 type ViewType = "notes" | "kanban" | "readme" | "posts" | null;
 
@@ -41,10 +42,35 @@ const Home: React.FC<{
     <DragProvider>
       <Box sx={{ py: 2, px: { xs: 1, sm: 2, md: 3 }, width: "100%" }}>
         <Grid container spacing={2}>
-          {/* Notes Preview Card - Full width at top */}
+          {/* Notes Canvas - Full width at top */}
           <Grid size={{ xs: 12 }}>
             <ErrorBoundaryCard cardName="Notes">
-              <NotesCanvas preview onViewFull={() => handleOpenView("notes")} />
+              {/* Header */}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 1.5,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <StickyNote2 sx={{ fontSize: 20, color: "text.secondary" }} />
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: 500,
+                      color: "text.primary",
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    Notes
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ height: "50vh", minHeight: 400, overflow: "hidden" }}>
+                <NotesCanvas />
+              </Box>
             </ErrorBoundaryCard>
           </Grid>
 
@@ -94,11 +120,6 @@ const Home: React.FC<{
           onClose={handleCloseView}
           viewType={activeView}
         >
-          {activeView === "notes" && (
-            <Box sx={{ height: "100%", minHeight: 600 }}>
-              <NotesCanvas />
-            </Box>
-          )}
           {activeView === "kanban" && (
             <KanbanBoard documents={documents} onRefresh={refresh} />
           )}

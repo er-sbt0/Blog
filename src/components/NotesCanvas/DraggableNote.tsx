@@ -4,8 +4,8 @@ import { Rnd } from "react-rnd";
 import { EditorState, LexicalEditor } from "lexical";
 import { editorConfig } from "@/editor/config";
 import { useRef, useState } from "react";
-import { Box, IconButton, Paper } from "@mui/material";
-import { Close, DragIndicator } from "@mui/icons-material";
+import { Box, IconButton, Paper, TextField } from "@mui/material";
+import { Close } from "@mui/icons-material";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { EditorPlugins } from "@/editor/plugins";
@@ -27,6 +27,7 @@ export default function DraggableNote({
 }: DraggableNoteProps) {
   const editorRef = useRef<LexicalEditor | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [title, setTitle] = useState(note.title || "");
 
   const handleEditorChange = (
     editorState: EditorState,
@@ -65,6 +66,12 @@ export default function DraggableNote({
 
   const handleBlur = () => {
     setIsFocused(false);
+  };
+
+  const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = event.target.value;
+    setTitle(newTitle);
+    onUpdate(note.id, { title: newTitle });
   };
 
   return (
@@ -120,23 +127,41 @@ export default function DraggableNote({
           sx={{
             display: "flex",
             alignItems: "center",
-            padding: "4px 8px",
-            backgroundColor: "rgba(255, 255, 255, 0.4)",
+            gap: 1,
+            padding: "8px 10px",
+            backgroundColor: "rgba(255, 255, 255, 0.25)",
             cursor: "move",
-            borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+            borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+            minHeight: "36px",
             transition: "background-color 0.2s ease",
             "&:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.5)",
+              backgroundColor: "rgba(255, 255, 255, 0.35)",
             },
           }}
         >
-          <DragIndicator
-            sx={{
-              mr: "auto",
-              opacity: 0.5,
-              fontSize: "18px",
-              transition: "opacity 0.2s ease",
-              ".drag-handle:hover &": { opacity: 0.8 },
+          <TextField
+            value={title}
+            onChange={handleTitleChange}
+            placeholder="Untitled"
+            variant="standard"
+            fullWidth
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            InputProps={{
+              disableUnderline: true,
+              sx: {
+                fontSize: "13px",
+                fontWeight: 500,
+                color: "rgba(0, 0, 0, 0.75)",
+                "& input": {
+                  padding: 0,
+                  cursor: "text",
+                  "&::placeholder": {
+                    color: "rgba(0, 0, 0, 0.3)",
+                    opacity: 1,
+                  },
+                },
+              },
             }}
           />
           <IconButton
@@ -146,17 +171,17 @@ export default function DraggableNote({
               onDelete(note.id);
             }}
             sx={{
-              ml: "auto",
-              padding: "2px",
-              transition: "all 0.2s",
+              padding: "3px",
+              opacity: 0.5,
+              transition: "all 0.2s ease",
               "&:hover": {
-                backgroundColor: "rgba(244, 67, 54, 0.1)",
+                opacity: 1,
+                backgroundColor: "rgba(244, 67, 54, 0.08)",
                 color: "error.main",
-                transform: "scale(1.1)",
               },
             }}
           >
-            <Close sx={{ fontSize: "18px" }} />
+            <Close sx={{ fontSize: "16px" }} />
           </IconButton>
         </Box>
 

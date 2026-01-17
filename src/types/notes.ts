@@ -8,6 +8,7 @@ export interface Note {
     width: number;
     height: number;
   };
+  title?: string; // Optional note title
   content: string; // Serialized Lexical editor state
   color: string;
   zIndex: number;
