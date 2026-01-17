@@ -134,6 +134,7 @@ export default function NotesCanvas(
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <StickyNote2Outlined sx={{ fontSize: 20, color: "text.secondary" }} />
             <Typography
               variant="subtitle1"
               sx={{
