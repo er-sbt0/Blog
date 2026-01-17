@@ -1,5 +1,5 @@
 "use client";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useNotesStore } from "@/hooks/useNotesStore";
 import DraggableNote from "./DraggableNote";
 import NotesToolbar from "./NotesToolbar";
@@ -45,9 +45,10 @@ export default function NotesCanvas() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          bgcolor: "#fafafa",
         }}
       >
-        Loading notes...
+        <Typography color="text.secondary">Loading notes...</Typography>
       </Box>
     );
   }
@@ -62,23 +63,16 @@ export default function NotesCanvas() {
           height: "100vh",
           overflow: "auto",
           position: "relative",
-          background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-          backgroundAttachment: "fixed",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: `
-              linear-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255, 255, 255, 0.4) 1px, transparent 1px)
-            `,
-            backgroundSize: "30px 30px",
-            pointerEvents: "none",
-            opacity: 0.6,
-          },
+          bgcolor: "#fafafa",
+          // Paper grid pattern: major lines every 120px, minor lines every 30px
+          backgroundImage: `
+            linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+            linear-gradient(rgba(0, 0, 0, 0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.025) 1px, transparent 1px)
+          `,
+          backgroundSize: "120px 120px, 120px 120px, 30px 30px, 30px 30px",
+          backgroundPosition: "-1px -1px, -1px -1px, -1px -1px, -1px -1px",
         }}
       >
         {canvas?.notes.map((note) => (
@@ -90,25 +84,6 @@ export default function NotesCanvas() {
             onFocus={bringToFront}
           />
         ))}
-
-        {canvas?.notes.length === 0 && (
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              textAlign: "center",
-              color: "rgba(0, 0, 0, 0.4)",
-              fontSize: "20px",
-              fontWeight: 500,
-              letterSpacing: "0.5px",
-              pointerEvents: "none",
-            }}
-          >
-            Click the + button to create your first note ✨
-          </Box>
-        )}
       </Box>
     </>
   );

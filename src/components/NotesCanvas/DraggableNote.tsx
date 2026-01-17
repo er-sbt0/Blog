@@ -10,6 +10,7 @@ import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { EditorPlugins } from "@/editor/plugins";
 import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin";
+import { NOTE_COLORS, NoteColorKey } from "./noteColors";
 
 interface DraggableNoteProps {
   note: Note;
@@ -17,17 +18,6 @@ interface DraggableNoteProps {
   onDelete: (id: string) => void;
   onFocus: (id: string) => void;
 }
-
-const NOTE_COLORS = {
-  yellow: "linear-gradient(135deg, #FFF9C4 0%, #FFF59D 100%)",
-  pink: "linear-gradient(135deg, #FCE4EC 0%, #F8BBD0 100%)",
-  blue: "linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%)",
-  green: "linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)",
-  orange: "linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)",
-  purple: "linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%)",
-  mint: "linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%)",
-  peach: "linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%)",
-};
 
 export default function DraggableNote({
   note,
@@ -104,23 +94,22 @@ export default function DraggableNote({
         sx={{
           width: "100%",
           height: "100%",
-          background: NOTE_COLORS[note.color as keyof typeof NOTE_COLORS] ||
+          background: NOTE_COLORS[note.color as NoteColorKey] ||
             NOTE_COLORS.yellow,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
           borderRadius: "12px",
           border: isFocused
-            ? "2px solid rgba(25, 118, 210, 0.6)"
-            : "1px solid rgba(0, 0, 0, 0.08)",
+            ? "2px solid rgba(25, 118, 210, 0.5)"
+            : "1px solid rgba(0, 0, 0, 0.1)",
           boxShadow: isFocused
-            ? "0 12px 40px rgba(0, 0, 0, 0.15), 0 0 0 3px rgba(25, 118, 210, 0.1)"
-            : "0 4px 20px rgba(0, 0, 0, 0.08)",
-          backdropFilter: "blur(10px)",
-          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          transform: isFocused ? "scale(1.02)" : "scale(1)",
+            ? "0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 3px rgba(25, 118, 210, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5)"
+            : "0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
+          transition: "box-shadow 0.2s ease, border-color 0.2s ease",
           "&:hover": {
-            boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
+            boxShadow:
+              "0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
           },
         }}
         onMouseDown={handleFocus}
@@ -133,12 +122,11 @@ export default function DraggableNote({
             alignItems: "center",
             padding: "8px 12px",
             backgroundColor: "rgba(255, 255, 255, 0.4)",
-            backdropFilter: "blur(10px)",
             cursor: "move",
-            borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
-            transition: "background-color 0.2s",
+            borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+            transition: "background-color 0.2s ease",
             "&:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.6)",
+              backgroundColor: "rgba(255, 255, 255, 0.5)",
             },
           }}
         >
@@ -146,9 +134,9 @@ export default function DraggableNote({
             fontSize="small"
             sx={{
               mr: "auto",
-              opacity: 0.4,
-              transition: "opacity 0.2s",
-              "&:hover": { opacity: 0.7 },
+              opacity: 0.5,
+              transition: "opacity 0.2s ease",
+              ".drag-handle:hover &": { opacity: 0.8 },
             }}
           />
           <IconButton

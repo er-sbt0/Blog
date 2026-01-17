@@ -1,6 +1,5 @@
 "use client";
 import { Box, Typography } from "@mui/material";
-import { StickyNote2Outlined } from "@mui/icons-material";
 import { useNotesStore } from "@/hooks/useNotesStore";
 import { useEffect } from "react";
 
@@ -79,7 +78,6 @@ export default function NotesPreviewCard({
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <StickyNote2Outlined sx={{ fontSize: 20, color: "text.secondary" }} />
           <Typography
             variant="subtitle1"
             sx={{
@@ -133,23 +131,7 @@ export default function NotesPreviewCard({
             </Box>
           )
           : previewNotes.length === 0
-          ? (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                height: "100%",
-                color: "text.secondary",
-                textAlign: "center",
-                px: 2,
-              }}
-            >
-              <Typography variant="body2">
-                No notes yet - click to add your first note
-              </Typography>
-            </Box>
-          )
+          ? null
           : (
             <>
               {previewNotes.map((note, index) => (
