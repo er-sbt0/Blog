@@ -18,8 +18,8 @@ export default function NotesToolbar(
     <Box
       sx={{
         position: "fixed",
-        bottom: 24,
-        right: 80,
+        bottom: 16,
+        right: 16,
         zIndex: 1000,
       }}
     >
