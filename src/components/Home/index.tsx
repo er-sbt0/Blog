@@ -7,7 +7,6 @@ import { DragProvider } from "../DragContext";
 import TrashBin from "../TrashBin";
 import { useState } from "react";
 import { useDocuments } from "@/hooks/useDocuments";
-import NotesPreviewCard from "./NotesPreviewCard";
 import KanbanPreviewCard from "./KanbanPreviewCard";
 import ReadmePreviewCard from "./ReadmePreviewCard";
 import RecentPostsPreviewCard from "./RecentPostsPreviewCard";
@@ -45,7 +44,7 @@ const Home: React.FC<{
           {/* Notes Preview Card - Full width at top */}
           <Grid size={{ xs: 12 }}>
             <ErrorBoundaryCard cardName="Notes">
-              <NotesPreviewCard onViewFull={() => handleOpenView("notes")} />
+              <NotesCanvas preview onViewFull={() => handleOpenView("notes")} />
             </ErrorBoundaryCard>
           </Grid>
 
