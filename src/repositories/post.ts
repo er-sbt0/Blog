@@ -17,6 +17,12 @@ const findPublishedPosts = async (limit?: number) => {
     where: {
       published: true,
       type: PrismaDocumentType.DOCUMENT, // Only regular documents, not directories
+      NOT: {
+        name: {
+          equals: "readme",
+          mode: "insensitive",
+        },
+      },
     },
     select: {
       id: true,
@@ -97,6 +103,12 @@ const findAllPosts = async (limit?: number) => {
   const posts = await prisma.document.findMany({
     where: {
       type: PrismaDocumentType.DOCUMENT, // Only regular documents, not directories
+      NOT: {
+        name: {
+          equals: "readme",
+          mode: "insensitive",
+        },
+      },
     },
     select: {
       id: true,
@@ -331,6 +343,12 @@ const findPublishedPostsByAuthorId = async (authorId: string) => {
       authorId,
       published: true,
       type: PrismaDocumentType.DOCUMENT, // Only regular documents, not directories
+      NOT: {
+        name: {
+          equals: "readme",
+          mode: "insensitive",
+        },
+      },
     },
     select: {
       id: true,

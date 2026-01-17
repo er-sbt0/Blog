@@ -1,234 +1,85 @@
 "use client";
-import {
-  Box,
-  Button,
-  Card,
-  CardActionArea,
-  Container,
-  Stack,
-  Typography,
-} from "@mui/material";
-import { ArrowForward } from "@mui/icons-material";
+import { Box, Typography } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import { useRouter } from "next/navigation";
 import { Series, User, UserDocument } from "@/types";
 import { DragProvider } from "../DragContext";
 import TrashBin from "../TrashBin";
+import { useState } from "react";
+import { useDocuments } from "@/hooks/useDocuments";
+import NotesPreviewCard from "./NotesPreviewCard";
+import KanbanPreviewCard from "./KanbanPreviewCard";
+import ReadmePreviewCard from "./ReadmePreviewCard";
+import RecentPostsPreviewCard from "./RecentPostsPreviewCard";
+import FullViewDialog from "./FullViewDialog";
+import NotesCanvas from "../NotesCanvas";
+import KanbanBoard from "./KanbanBoard";
+import ReadmeViewer from "./ReadmeViewer";
+import ErrorBoundaryCard from "./ErrorBoundaryCard";
+
+type ViewType = "notes" | "kanban" | "readme" | "posts" | null;
 
 const Home: React.FC<{
   staticDocuments: UserDocument[];
   series?: Series[];
   user?: User;
-}> = ({ staticDocuments, series = [], user }) => {
+}> = ({ staticDocuments }) => {
   const router = useRouter();
+  const [activeView, setActiveView] = useState<ViewType>(null);
+  const { documents, refresh } = useDocuments(staticDocuments);
 
-  const recentPosts = staticDocuments.slice(0, 6);
-  const recentSeries = series.slice(0, 3);
+  const recentPosts = documents.slice(0, 8);
+
+  const handleOpenView = (viewType: ViewType) => {
+    setActiveView(viewType);
+  };
+
+  const handleCloseView = () => {
+    setActiveView(null);
+  };
 
   return (
     <DragProvider>
-      <Container maxWidth="md" sx={{ py: 6 }}>
-        {/* Recent Posts */}
-        {recentPosts.length > 0 && (
-          <Box sx={{ mb: 6 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 3,
-              }}
-            >
-              <Typography
-                variant="h6"
-                component="h2"
-                sx={{ fontWeight: 600, color: "text.primary" }}
-              >
-                Recent Posts
-              </Typography>
-              <Button
-                size="small"
-                endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
-                onClick={() => router.push("/posts")}
-                sx={{ textTransform: "none", color: "text.secondary" }}
-              >
-                All posts
-              </Button>
-            </Box>
+      <Box sx={{ py: 2, px: { xs: 1, sm: 2, md: 3 }, width: "100%" }}>
+        <Grid container spacing={2}>
+          {/* Notes Preview Card - Full width at top */}
+          <Grid size={{ xs: 12 }}>
+            <ErrorBoundaryCard cardName="Notes">
+              <NotesPreviewCard onViewFull={() => handleOpenView("notes")} />
+            </ErrorBoundaryCard>
+          </Grid>
 
-            <Stack spacing={1}>
-              {recentPosts.map((doc) => {
-                const post = doc.cloud || doc.local;
-                if (!post) return null;
+          {/* Bottom row: Board, README, Recent Posts */}
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+            <ErrorBoundaryCard cardName="Board">
+              <KanbanPreviewCard
+                documents={documents}
+                onViewFull={() => handleOpenView("kanban")}
+              />
+            </ErrorBoundaryCard>
+          </Grid>
 
-                return (
-                  <Card
-                    key={doc.id}
-                    variant="outlined"
-                    sx={{
-                      border: "none",
-                      borderBottom: "1px solid",
-                      borderColor: "divider",
-                      borderRadius: 0,
-                      "&:last-child": { borderBottom: "none" },
-                    }}
-                  >
-                    <CardActionArea
-                      onClick={() => router.push(`/doc/${doc.id}`)}
-                      sx={{ py: 2, px: 0 }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "baseline",
-                          gap: 2,
-                        }}
-                      >
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            fontWeight: 500,
-                            color: "text.primary",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {post.name}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "text.secondary",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {new Date(post.updatedAt).toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "short",
-                              day: "numeric",
-                            },
-                          )}
-                        </Typography>
-                      </Box>
-                      {post.description && (
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            color: "text.secondary",
-                            mt: 0.5,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {post.description}
-                        </Typography>
-                      )}
-                    </CardActionArea>
-                  </Card>
-                );
-              })}
-            </Stack>
-          </Box>
-        )}
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+            <ErrorBoundaryCard cardName="README">
+              <ReadmePreviewCard
+                documents={documents}
+                onViewFull={() => handleOpenView("readme")}
+              />
+            </ErrorBoundaryCard>
+          </Grid>
 
-        {/* Series */}
-        {recentSeries.length > 0 && (
-          <Box sx={{ mb: 6 }}>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 3,
-              }}
-            >
-              <Typography
-                variant="h6"
-                component="h2"
-                sx={{ fontWeight: 600, color: "text.primary" }}
-              >
-                Series
-              </Typography>
-              <Button
-                size="small"
-                endIcon={<ArrowForward sx={{ fontSize: 16 }} />}
-                onClick={() => router.push("/series")}
-                sx={{ textTransform: "none", color: "text.secondary" }}
-              >
-                All series
-              </Button>
-            </Box>
-
-            <Stack spacing={1}>
-              {recentSeries.map((s) => (
-                <Card
-                  key={s.id}
-                  variant="outlined"
-                  sx={{
-                    border: "none",
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 0,
-                    "&:last-child": { borderBottom: "none" },
-                  }}
-                >
-                  <CardActionArea
-                    onClick={() => router.push(`/series/${s.id}`)}
-                    sx={{ py: 2, px: 0 }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "baseline",
-                        gap: 2,
-                      }}
-                    >
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          fontWeight: 500,
-                          color: "text.primary",
-                        }}
-                      >
-                        {s.title}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: "text.secondary",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {s.posts?.length || 0} posts
-                      </Typography>
-                    </Box>
-                    {s.description && (
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: "text.secondary",
-                          mt: 0.5,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {s.description}
-                      </Typography>
-                    )}
-                  </CardActionArea>
-                </Card>
-              ))}
-            </Stack>
-          </Box>
-        )}
+          <Grid size={{ xs: 12, md: 12, lg: 4 }}>
+            <ErrorBoundaryCard cardName="Recent Posts">
+              <RecentPostsPreviewCard
+                documents={recentPosts}
+                onViewFull={() => router.push("/posts")}
+              />
+            </ErrorBoundaryCard>
+          </Grid>
+        </Grid>
 
         {/* Empty State */}
-        {staticDocuments.length === 0 && series.length === 0 && (
+        {documents.length === 0 && (
           <Box sx={{ textAlign: "center", py: 8 }}>
             <Typography variant="body1" color="text.secondary">
               No posts yet
@@ -237,7 +88,24 @@ const Home: React.FC<{
         )}
 
         <TrashBin />
-      </Container>
+
+        {/* Full View Dialog */}
+        <FullViewDialog
+          open={activeView !== null}
+          onClose={handleCloseView}
+          viewType={activeView}
+        >
+          {activeView === "notes" && (
+            <Box sx={{ height: "100%", minHeight: 600 }}>
+              <NotesCanvas />
+            </Box>
+          )}
+          {activeView === "kanban" && (
+            <KanbanBoard documents={documents} onRefresh={refresh} />
+          )}
+          {activeView === "readme" && <ReadmeViewer documents={documents} />}
+        </FullViewDialog>
+      </Box>
     </DragProvider>
   );
 };

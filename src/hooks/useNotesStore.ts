@@ -118,5 +118,6 @@ export function useNotesStore() {
     updateNote,
     deleteNote,
     bringToFront,
+    refresh: loadCanvas,
   };
 }
