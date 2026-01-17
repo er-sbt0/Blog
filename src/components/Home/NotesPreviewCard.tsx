@@ -1,5 +1,6 @@
 "use client";
-import { Box, Typography } from "@mui/material";
+import { alpha, Box, Typography } from "@mui/material";
+import { StickyNote2Outlined } from "@mui/icons-material";
 import { useNotesStore } from "@/hooks/useNotesStore";
 import { useEffect } from "react";
 
@@ -97,7 +98,9 @@ export default function NotesPreviewCard({
           position: "relative",
           overflow: "hidden",
           borderRadius: 2,
-          bgcolor: "action.hover",
+          bgcolor: "background.paper",
+          border: "1px solid",
+          borderColor: "divider",
           "&::before": {
             content: '""',
             position: "absolute",
@@ -107,12 +110,13 @@ export default function NotesPreviewCard({
             bottom: 0,
             backgroundImage: (theme) =>
               theme.palette.mode === "dark"
-                ? `linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                   linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)`
-                : `linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
-                   linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px)`,
-            backgroundSize: "24px 24px",
+                ? `linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                   linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)`
+                : `linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                   linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px)`,
+            backgroundSize: "20px 20px",
             pointerEvents: "none",
+            opacity: 0.5,
           },
         }}
       >
@@ -127,61 +131,144 @@ export default function NotesPreviewCard({
                 color: "text.secondary",
               }}
             >
-              Loading...
+              <Typography variant="body2">Loading notes...</Typography>
             </Box>
           )
           : previewNotes.length === 0
-          ? null
+          ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                gap: 1.5,
+                color: "text.secondary",
+              }}
+            >
+              <StickyNote2Outlined sx={{ fontSize: 48, opacity: 0.3 }} />
+              <Typography variant="body2" sx={{ opacity: 0.7 }}>
+                No notes yet
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.5 }}>
+                Click to create your first note
+              </Typography>
+            </Box>
+          )
           : (
-            <>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gridTemplateRows: "repeat(2, 1fr)",
+                gap: 2,
+                p: 2,
+                height: "100%",
+              }}
+            >
               {previewNotes.map((note, index) => (
                 <Box
                   key={note.id}
                   sx={{
-                    position: "absolute",
-                    left: 16 + index * 20,
-                    top: 16 + index * 18,
-                    width: 140,
-                    height: 90,
                     bgcolor: note.color || "#fff9c4",
-                    borderRadius: 1.5,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                    p: 1.5,
+                    borderRadius: 2,
+                    boxShadow: (theme) =>
+                      theme.palette.mode === "dark"
+                        ? "0 2px 8px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)"
+                        : "0 2px 8px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)",
+                    p: 2,
                     overflow: "hidden",
-                    transition: "transform 0.2s",
+                    position: "relative",
+                    transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                    animation: `fadeInUp 0.4s ease-out ${index * 0.1}s both`,
+                    "@keyframes fadeInUp": {
+                      from: {
+                        opacity: 0,
+                        transform: "translateY(10px)",
+                      },
+                      to: {
+                        opacity: 1,
+                        transform: "translateY(0)",
+                      },
+                    },
+                    "&:hover": {
+                      transform: "translateY(-2px)",
+                      boxShadow: (theme) =>
+                        theme.palette.mode === "dark"
+                          ? "0 4px 12px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3)"
+                          : "0 4px 12px rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.1)",
+                    },
+                    "&::before": {
+                      content: '""',
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: "3px",
+                      bgcolor: (theme) =>
+                        alpha(theme.palette.common.black, 0.1),
+                      borderTopLeftRadius: 2,
+                      borderTopRightRadius: 2,
+                    },
                   }}
                 >
                   <Typography
                     sx={{
-                      color: "rgba(0,0,0,0.7)",
-                      fontSize: "11px",
-                      lineHeight: 1.4,
+                      color: "rgba(0,0,0,0.85)",
+                      fontSize: "12px",
+                      lineHeight: 1.5,
+                      fontWeight: 400,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       display: "-webkit-box",
-                      WebkitLineClamp: 4,
+                      WebkitLineClamp: 6,
                       WebkitBoxOrient: "vertical",
+                      wordBreak: "break-word",
+                      whiteSpace: "pre-wrap",
                     }}
                   >
-                    {extractTextFromLexicalState(note.content).substring(0, 80)}
+                    {extractTextFromLexicalState(note.content).substring(
+                      0,
+                      150,
+                    )}
                   </Typography>
                 </Box>
               ))}
               {remainingCount > 0 && (
-                <Typography
+                <Box
                   sx={{
                     position: "absolute",
-                    bottom: 12,
-                    right: 12,
-                    fontSize: "12px",
-                    fontWeight: 500,
-                    color: "text.secondary",
+                    bottom: 16,
+                    right: 16,
+                    bgcolor: (theme) =>
+                      alpha(
+                        theme.palette.background.paper,
+                        theme.palette.mode === "dark" ? 0.9 : 0.95,
+                      ),
+                    backdropFilter: "blur(8px)",
+                    px: 1.5,
+                    py: 0.75,
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                   }}
                 >
-                  +{remainingCount} more
-                </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: "text.secondary",
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    +{remainingCount} more
+                  </Typography>
+                </Box>
               )}
-            </>
+            </Box>
           )}
       </Box>
     </Box>

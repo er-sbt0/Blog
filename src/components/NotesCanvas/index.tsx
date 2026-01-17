@@ -54,25 +54,35 @@ export default function NotesCanvas() {
   }
 
   return (
-    <>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "calc(100vh - 120px)",
+        minHeight: 0,
+        bgcolor: "background.paper",
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 2,
+        overflow: "hidden",
+      }}
+    >
       <NotesToolbar onAddNote={handleAddNote} onClearAll={handleClearAll} />
 
       <Box
         sx={{
-          width: "100vw",
-          height: "100vh",
-          overflow: "auto",
+          flex: 1,
+          minHeight: 0,
+          overflow: "hidden",
           position: "relative",
-          bgcolor: "#fafafa",
-          // Paper grid pattern: major lines every 120px, minor lines every 30px
-          backgroundImage: `
-            linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px),
-            linear-gradient(rgba(0, 0, 0, 0.025) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 0, 0, 0.025) 1px, transparent 1px)
-          `,
-          backgroundSize: "120px 120px, 120px 120px, 30px 30px, 30px 30px",
-          backgroundPosition: "-1px -1px, -1px -1px, -1px -1px, -1px -1px",
+          backgroundImage: (theme) =>
+            theme.palette.mode === "dark"
+              ? `linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                 linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)`
+              : `linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                 linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px)`,
+          backgroundSize: "20px 20px",
+          backgroundPosition: "0 0",
         }}
       >
         {canvas?.notes.map((note) => (
@@ -85,6 +95,6 @@ export default function NotesCanvas() {
           />
         ))}
       </Box>
-    </>
+    </Box>
   );
 }

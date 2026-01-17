@@ -4,7 +4,14 @@ import { Box } from "@mui/material";
 
 export default function NotesPage() {
   return (
-    <Box sx={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: 0,
+      }}
+    >
       <NotesCanvas />
     </Box>
   );
