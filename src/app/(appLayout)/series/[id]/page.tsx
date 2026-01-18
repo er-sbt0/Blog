@@ -41,5 +41,17 @@ export default async function SeriesDetailPage(
     notFound();
   }
 
-  return <SeriesView series={series} user={session?.user} />;
+  // Serialize user object to ensure it can be passed from server to client
+  const user = session?.user
+    ? {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      image: session.user.image,
+      handle: session.user.handle,
+      role: session.user.role,
+    }
+    : undefined;
+
+  return <SeriesView series={series} user={user} />;
 }

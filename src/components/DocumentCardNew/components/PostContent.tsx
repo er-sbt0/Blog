@@ -104,12 +104,16 @@ export const PostContent: React.FC<PostContentProps> = ({
           >
             by{" "}
             <Box
-              component="a"
-              href="http://localhost:3000/dashboard"
-              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              component="span"
+              onClick={(e: React.MouseEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.href = "http://localhost:3000/dashboard";
+              }}
               sx={{
                 color: "text.secondary",
                 textDecoration: "none",
+                cursor: "pointer",
                 "&:hover": {
                   color: "primary.main", // Unified hover blue
                   textDecoration: "underline",

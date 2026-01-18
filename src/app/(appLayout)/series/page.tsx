@@ -31,10 +31,23 @@ export default async function SeriesPage() {
   const session = await getServerSession(authOptions);
   const series = await findAllSeries();
 
+  // Serialize user object to ensure it can be passed from server to client
+  // Note: Server session may not work during SSR, client-side session is used as fallback
+  const user = session?.user
+    ? {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      image: session.user.image,
+      handle: session.user.handle,
+      role: session.user.role,
+    }
+    : undefined;
+
   return (
     <SeriesListWrapper
       series={series}
-      user={session?.user}
+      user={user}
     />
   );
 }

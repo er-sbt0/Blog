@@ -10,7 +10,6 @@ import dynamic from "next/dynamic";
 const PostActionMenu = dynamic(
   () => import("@/components/DocumentActions/ActionMenu"),
   {
-    ssr: false,
     loading: () => (
       <>
         <IconButton

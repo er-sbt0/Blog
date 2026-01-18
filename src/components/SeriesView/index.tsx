@@ -2,6 +2,7 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
 import { DocumentType, Post, Series, User } from "@/types";
+import { useSession } from "next-auth/react";
 import { PartitionGranularity } from "@/types/partitioning";
 import {
   Box,
@@ -62,9 +63,17 @@ const formatDate = (dateString: string | Date): string => {
  */
 const SeriesView: React.FC<SeriesViewProps> = ({
   series,
-  user,
+  user: serverUser,
 }) => {
   const router = useRouter();
+
+  // Fetch session on client-side since SSR session doesn't work reliably
+  const { data: session } = useSession();
+  const clientUser = session?.user as User | undefined;
+
+  // Use client session if server session is not available
+  const user = serverUser || clientUser;
+
   const canEdit = !!user && user.id === series.authorId;
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
