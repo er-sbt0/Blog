@@ -28,14 +28,6 @@ const SeriesTimeHeader: React.FC<{
         gap: 2,
       }}
     >
-      <Box
-        sx={{
-          fontSize: "1.25rem",
-        }}
-      >
-        🗓️
-      </Box>
-
       <Typography
         variant="h5"
         component="h2"
