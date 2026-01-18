@@ -1,12 +1,12 @@
 "use client";
 import * as React from "react";
-import { useMemo, useState } from "react";
 import { Series, User } from "@/types";
 import { Box } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import SeriesCard from "../SeriesCard/SeriesCardUnified";
 import SeriesHeader from "./SeriesHeader";
 import SkeletonCard from "@/components/DocumentCardNew/components/LoadingCard";
+import { useSeriesData } from "./hooks/useSeriesData";
+import SeriesTimeSection from "./components/SeriesTimeSection";
 
 interface SeriesListProps {
   series: Series[];
@@ -33,8 +33,9 @@ const SeriesLoadingState: React.FC = () => {
 };
 
 /**
- * Series list component for displaying a list of series
- * Improved UI aligned with PostsList design
+ * Series list component for displaying series with time-based partitioning
+ * Supports flexible time grouping (day, week, month, quarter, halfyear, year)
+ * Features: Search, partitioning control, responsive design, accessibility
  */
 const SeriesList: React.FC<SeriesListProps> = ({
   series,
@@ -44,19 +45,20 @@ const SeriesList: React.FC<SeriesListProps> = ({
   loading = false,
   showHeader = true,
 }) => {
-  const [searchQuery, setSearchQuery] = useState("");
+  // Use custom hook to get series data with search, filtering, and partitioning
+  const {
+    timeGroups,
+    totalCount,
+    filteredCount,
+    searchQuery,
+    setSearchQuery,
+    granularity,
+    setGranularity,
+    hasActiveFilters,
+  } = useSeriesData({ series });
 
-  // Filter series based on search query
-  const filteredSeries = useMemo(() => {
-    if (!searchQuery.trim()) return series;
-    const query = searchQuery.toLowerCase();
-    return series.filter((s) =>
-      s.title?.toLowerCase().includes(query) ||
-      s.description?.toLowerCase().includes(query)
-    );
-  }, [series, searchQuery]);
-
-  const displayedSeries = filteredSeries;
+  // Use timeGroups for display to support flexible partitioning
+  const displayGroups = timeGroups;
   const hasActiveSearch = searchQuery.trim().length > 0;
 
   return (
@@ -75,21 +77,23 @@ const SeriesList: React.FC<SeriesListProps> = ({
       {/* Header with search and new button */}
       {showHeader && (
         <SeriesHeader
-          totalCount={hasActiveSearch ? filteredSeries.length : series.length}
+          totalCount={filteredCount}
           loading={loading}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          granularity={granularity}
+          onGranularityChange={setGranularity}
         />
       )}
 
-      {/* Series Grid */}
+      {/* Series Grid with Time Partitioning */}
       {loading
         ? (
           <section aria-label="Loading series" aria-live="polite">
             <SeriesLoadingState />
           </section>
         )
-        : displayedSeries.length === 0
+        : displayGroups.length === 0 || filteredCount === 0
         ? (
           <section
             role="region"
@@ -143,22 +147,23 @@ const SeriesList: React.FC<SeriesListProps> = ({
           </section>
         )
         : (
-          <Grid container spacing={3}>
-            {displayedSeries.map((seriesItem) => (
-              <Grid
-                key={seriesItem.id}
-                size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
-              >
-                <SeriesCard
-                  variant="detailed"
-                  series={seriesItem}
-                  user={user}
-                  showMetadata={true}
-                  showActions={true}
-                />
-              </Grid>
-            ))}
-          </Grid>
+          <section
+            role="region"
+            aria-label={`${filteredCount} series organized by ${granularity}`}
+            aria-live="polite"
+          >
+            <Box>
+              {displayGroups.map((timeGroup, index) => (
+                <Box key={timeGroup.timeKey}>
+                  <SeriesTimeSection
+                    timeGroup={timeGroup}
+                    user={user}
+                    isLatest={index === 0} // First period is the latest
+                  />
+                </Box>
+              ))}
+            </Box>
+          </section>
         )}
     </Box>
   );

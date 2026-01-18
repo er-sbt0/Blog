@@ -2,6 +2,7 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
 import { DocumentType, Post, Series, User } from "@/types";
+import { PartitionGranularity } from "@/types/partitioning";
 import {
   Box,
   Button,
@@ -22,6 +23,9 @@ import Grid from "@mui/material/Grid2";
 import DocumentCard from "../DocumentCardNew";
 import AddPostsDialog from "./AddPostsDialog";
 import { useRouter } from "next/navigation";
+import { usePostsGrouping } from "./hooks/usePostsGrouping";
+import { PostsPartitionControl } from "./components/PostsPartitionControl";
+import PostsTimeSection from "./components/PostsTimeSection";
 
 interface SeriesViewProps {
   series: Series;
@@ -64,12 +68,17 @@ const SeriesView: React.FC<SeriesViewProps> = ({
   const canEdit = !!user && user.id === series.authorId;
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [granularity, setGranularity] = useState<PartitionGranularity>(
+    "quarter",
+  );
 
   const sortedPosts = useMemo(
     () =>
-      [...(series.posts || [])].sort((a, b) =>
-        (a.seriesOrder || 0) - (b.seriesOrder || 0)
-      ),
+      [...(series.posts || [])].sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        return dateB - dateA; // Newest first
+      }),
     [series.posts],
   );
 
@@ -99,6 +108,12 @@ const SeriesView: React.FC<SeriesViewProps> = ({
       return false;
     });
   }, [sortedPosts, searchQuery]);
+
+  // Apply time grouping to filtered posts
+  const { timeGroups } = usePostsGrouping({
+    posts: filteredPosts,
+    granularity,
+  });
 
   const handlePostsAdded = () => {
     router.refresh();
@@ -239,15 +254,16 @@ const SeriesView: React.FC<SeriesViewProps> = ({
         )}
       </Box>
 
-      {/* Search Box */}
+      {/* Search Box and Partition Control */}
       {sortedPosts.length > 0 && (
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 3, display: "flex", flexDirection: "column", gap: 2 }}>
           <TextField
             fullWidth
             size="small"
             placeholder="Search posts by title, handle, or author..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) =>
+              setSearchQuery(e.target.value)}
             sx={{
               maxWidth: { xs: "100%", md: 600 },
               "& .MuiOutlinedInput-root": {
@@ -286,44 +302,29 @@ const SeriesView: React.FC<SeriesViewProps> = ({
               ),
             }}
           />
+          <PostsPartitionControl
+            granularity={granularity}
+            onGranularityChange={setGranularity}
+            postCount={filteredPosts.length}
+            disabled={filteredPosts.length === 0}
+          />
         </Box>
       )}
 
-      {/* Posts Grid */}
+      {/* Posts Grid with Time Partitioning */}
       {filteredPosts.length > 0
         ? (
-          <Grid
-            container
-            spacing={3}
-            sx={{ mb: 4 }}
-          >
-            {filteredPosts.map((post, index) => {
-              const userDocument = {
-                id: post.id,
-                cloud: {
-                  ...post,
-                  name: post.name,
-                  head: post.id,
-                  type: "DOCUMENT" as DocumentType,
-                  coauthors: [],
-                  revisions: [],
-                  children: undefined,
-                },
-              };
-
-              return (
-                <Grid
-                  key={post.id}
-                  size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
-                  sx={{
-                    animation: `fadeInUp 0.6s ease ${index * 0.1}s both`,
-                  }}
-                >
-                  <DocumentCard userDocument={userDocument} user={user} />
-                </Grid>
-              );
-            })}
-          </Grid>
+          <Box>
+            {timeGroups.map((timeGroup, index) => (
+              <Box key={timeGroup.timeKey}>
+                <PostsTimeSection
+                  timeGroup={timeGroup}
+                  user={user}
+                  isLatest={index === 0}
+                />
+              </Box>
+            ))}
+          </Box>
         )
         : (
           <Box

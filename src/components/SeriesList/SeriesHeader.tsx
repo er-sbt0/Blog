@@ -10,12 +10,16 @@ import {
 } from "@mui/material";
 import { Add, Clear, Search } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
+import { PartitionGranularity } from "@/types/partitioning";
+import { SeriesPartitionControl } from "./components/SeriesPartitionControl";
 
 interface SeriesHeaderProps {
   totalCount: number;
   loading?: boolean;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  granularity?: PartitionGranularity;
+  onGranularityChange?: (granularity: PartitionGranularity) => void;
 }
 
 /**
@@ -27,6 +31,8 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
   loading = false,
   searchQuery = "",
   onSearchChange,
+  granularity = "quarter",
+  onGranularityChange,
 }) => {
   const router = useRouter();
 
@@ -125,19 +131,13 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
           New Series
         </Button>
 
-        {/* Series count */}
-        {!loading && totalCount > 0 && (
-          <Typography
-            variant="body2"
-            sx={{
-              color: "text.disabled",
-              whiteSpace: "nowrap",
-              fontSize: "0.8125rem",
-            }}
-          >
-            {totalCount} series
-          </Typography>
-        )}
+        {/* Partition Control - Group By */}
+        <SeriesPartitionControl
+          granularity={granularity}
+          onGranularityChange={onGranularityChange || (() => {})}
+          seriesCount={totalCount}
+          disabled={loading || totalCount === 0}
+        />
       </Box>
     </Box>
   );

@@ -83,11 +83,11 @@ export const groupPostsBySeries = (
   seriesGroups.forEach((groupPosts, seriesId) => {
     const series = seriesMap.get(seriesId)!;
 
-    // Sort posts within series by seriesOrder (ascending)
+    // Sort posts within series by creation time (newest first)
     const sortedPosts = [...groupPosts].sort((a, b) => {
-      const orderA = getPostSeriesOrder(a) ?? Infinity;
-      const orderB = getPostSeriesOrder(b) ?? Infinity;
-      return orderA - orderB;
+      const timeA = getPostCreatedAtTime(a);
+      const timeB = getPostCreatedAtTime(b);
+      return timeB - timeA; // Newest first
     });
 
     result.push({

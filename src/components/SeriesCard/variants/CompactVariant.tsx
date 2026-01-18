@@ -1,5 +1,5 @@
 "use client";
-import React, { memo, useState } from "react";
+import React, { memo, useMemo, useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { CompactVariantProps } from "../types";
 import { UserDocument } from "@/types";
@@ -78,7 +78,19 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   sx,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
-  const postCount = posts.length;
+
+  // Sort posts by creation date (newest first)
+  const sortedPosts = useMemo(() => {
+    return [...posts].sort((a, b) => {
+      const dateA = new Date(a.cloud?.createdAt || a.local?.createdAt || 0)
+        .getTime();
+      const dateB = new Date(b.cloud?.createdAt || b.local?.createdAt || 0)
+        .getTime();
+      return dateB - dateA; // Newest first
+    });
+  }, [posts]);
+
+  const postCount = sortedPosts.length;
 
   const handleToggle = () => {
     const newState = !isCollapsed;
@@ -224,7 +236,9 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
                   },
                 }}
               >
-                {posts.map((doc) => <DocItem key={doc.id} document={doc} />)}
+                {sortedPosts.map((doc) => (
+                  <DocItem key={doc.id} document={doc} />
+                ))}
               </Box>
             </Box>
 

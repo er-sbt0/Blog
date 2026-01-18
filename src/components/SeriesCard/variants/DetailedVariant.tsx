@@ -70,7 +70,18 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
 
   // Format date
   const formattedDate = series?.createdAt ? formatDate(series.createdAt) : "";
-  const postCount = series?.posts?.length || 0;
+
+  // Sort posts by creation date (newest first) instead of seriesOrder
+  const sortedPosts = useMemo(() => {
+    if (!series?.posts) return [];
+    return [...series.posts].sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA; // Newest first
+    });
+  }, [series?.posts]);
+
+  const postCount = sortedPosts.length;
 
   // Menu handlers
   const handleOpenMenu = (e: React.MouseEvent<HTMLElement>) => {
