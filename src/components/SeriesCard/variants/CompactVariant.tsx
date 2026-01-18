@@ -247,29 +247,66 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
                   lineHeight: 1.2,
                   color: "text.primary",
                   textAlign: "center",
+                  transition: "color 0.2s ease",
+                  "&:hover": {
+                    color: "primary.main",
+                  },
                 }}
               >
                 {series.title}
               </Typography>
-              
-              {/* Creation date
-              // {series.createdAt && (
-              //   <Box
-              //     sx={{
-              //       display: "flex",
-              //       alignItems: "center",
-              //       gap: 0.5,
-              //     }}
-              //   >
-              //     <Typography
-              //       variant="body2"
-              //       color="text.secondary"
-              //       sx={{ fontSize: "0.875rem", fontWeight: 600 }}
-              //     >
-              //       {formatDate(series.createdAt)}
-              //     </Typography>
-              //   </Box>
-              // )} */}
+
+              {/* Creation date and post count */}
+              {series.createdAt && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontSize: "0.875rem", fontWeight: 600 }}
+                  >
+                    {formatDate(series.createdAt)}
+                  </Typography>
+
+                  {/* <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontSize: "0.875rem", fontWeight: 400 }}
+                  >
+                    •
+                  </Typography>
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                    }}
+                  >
+                    <Article
+                      sx={{
+                        fontSize: "0.9rem",
+                        color: "text.secondary",
+                      }}
+                    />
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {postCount}
+                    </Typography>
+                  </Box> */}
+                </Box>
+              )}
             </Box>
 
             {/* Bottom bar - matches CardBase action bar */}
@@ -278,7 +315,7 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
                 px: 2,
                 py: 1,
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent: "flex-end",
                 alignItems: "center",
                 borderTop: "1px solid",
                 borderColor: "divider",
@@ -286,39 +323,6 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
                 minHeight: 48,
               }}
             >
-              <Box
-                sx={{
-                  px: 1.5,
-                  py: 0.5,
-                  borderRadius: "16px",
-                  bgcolor: (t) =>
-                    t.palette.mode === "dark"
-                      ? "rgba(144, 202, 249, 0.15)"
-                      : "rgba(25, 118, 210, 0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                }}
-              >
-                <Article 
-                  sx={{ 
-                    fontSize: "1rem", 
-                    color: "primary.main",
-                    opacity: 0.8,
-                  }} 
-                />
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 600,
-                    color: "primary.main",
-                    fontSize: "0.875rem",
-                  }}
-                >
-                  {postCount}
-                </Typography>
-              </Box>
-
               {/* Actions menu */}
               {showActions && isAuthor && (
                 <IconButton

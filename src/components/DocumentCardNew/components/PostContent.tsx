@@ -93,6 +93,30 @@ export const PostContent: React.FC<PostContentProps> = ({
           flexShrink: 0, // Don't shrink the meta info
         }}
       >
+        {formattedDate && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              fontSize: "0.875rem",
+              fontWeight: 500,
+            }}
+          >
+            {formattedDate}
+          </Typography>
+        )}
+
+        {author && formattedDate && (
+          <Box
+            sx={{
+              width: 4,
+              height: 4,
+              bgcolor: "text.secondary",
+              borderRadius: "50%",
+            }}
+          />
+        )}
+
         {author && (
           <Typography
             variant="body2"
@@ -125,30 +149,6 @@ export const PostContent: React.FC<PostContentProps> = ({
           </Typography>
         )}
 
-        {author && formattedDate && (
-          <Box
-            sx={{
-              width: 4,
-              height: 4,
-              bgcolor: "text.secondary",
-              borderRadius: "50%",
-            }}
-          />
-        )}
-
-        {formattedDate && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              fontSize: "0.875rem",
-              fontWeight: 500,
-            }}
-          >
-            {formattedDate}
-          </Typography>
-        )}
-
         {
           /* <Chip
           label="Article"
@@ -173,37 +173,16 @@ export const PostContent: React.FC<PostContentProps> = ({
         sx={{
           lineHeight: 1.6,
           display: "-webkit-box",
-          WebkitLineClamp: 3,
+          WebkitLineClamp: 4,
           WebkitBoxOrient: "vertical",
           overflow: "hidden",
           textOverflow: "ellipsis",
           fontSize: "1rem",
-          flex: 1, // Take up remaining space
-          minHeight: 0, // Allow shrinking
+          flex: 1,
+          minHeight: 0,
         }}
       >
         {document?.description}
-      </Typography>
-
-      {/* Read more indicator */}
-      <Typography
-        variant="body2"
-        color="primary.main"
-        sx={{
-          fontWeight: 600,
-          fontSize: "0.875rem",
-          mt: 1,
-          alignSelf: "flex-start",
-          flexShrink: 0, // Don't shrink the read more indicator
-          cursor: "pointer",
-          "&:hover": {
-            fontWeight: 700,
-            textDecoration: "underline",
-            color: "primary.main", // Unified hover blue
-          },
-        }}
-      >
-        Read more →
       </Typography>
     </Box>
   );

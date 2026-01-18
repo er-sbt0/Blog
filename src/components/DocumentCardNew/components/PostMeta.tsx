@@ -1,5 +1,5 @@
 import React from "react";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { User } from "@/types";
 import { PostState } from "../PostChips";
 import { PostMetaOptions, usePostMeta } from "../hooks/usePostMeta";
@@ -46,11 +46,30 @@ export const PostMeta: React.FC<PostMetaProps> = ({
     <Box
       sx={{
         display: "flex",
-        gap: 0.75,
+        gap: 1.5,
         overflow: "hidden",
         flexWrap: "wrap",
+        alignItems: "center",
       }}
     >
+      {/* Read more link */}
+      <Typography
+        variant="body2"
+        color="primary.secondary"
+        sx={{
+          fontWeight: 600,
+          fontSize: "0.875rem",
+          cursor: "pointer",
+          "&:hover": {
+            fontWeight: 700,
+            textDecoration: "underline",
+            color: "primary.main",
+          },
+        }}
+      >
+        Read more →
+      </Typography>
+
       {chips}
     </Box>
   );

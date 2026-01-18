@@ -168,17 +168,17 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
               flexShrink: 0,
             }}
           >
-            <Typography
+            {/* <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ 
-                fontSize: "0.75rem", 
+              sx={{
+                fontSize: "0.75rem",
                 fontWeight: 400,
                 letterSpacing: "0.01em",
               }}
             >
               Created
-            </Typography>
+            </Typography> */}
             <Typography
               variant="body2"
               color="text.secondary"
@@ -240,12 +240,12 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
           gap: 0.5,
         }}
       >
-        <Article 
-          sx={{ 
-            fontSize: "1rem", 
+        <Article
+          sx={{
+            fontSize: "1rem",
             color: "primary.main",
             opacity: 0.8,
-          }} 
+          }}
         />
         <Typography
           variant="body2"
