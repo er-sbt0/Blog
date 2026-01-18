@@ -1048,7 +1048,7 @@ const SideBar: React.FC = () => {
                           >
                             <Article
                               sx={{
-                                fontSize: "1em",
+                                fontSize: "0.85em",
                                 color: "text.secondary",
                               }}
                             />

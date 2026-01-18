@@ -273,7 +273,8 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
                     {formatDate(series.createdAt)}
                   </Typography>
 
-                  {/* <Typography
+                  {
+                    /* <Typography
                     variant="body2"
                     color="text.secondary"
                     sx={{ fontSize: "0.875rem", fontWeight: 400 }}
@@ -304,7 +305,8 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
                     >
                       {postCount}
                     </Typography>
-                  </Box> */}
+                  </Box> */
+                  }
                 </Box>
               )}
             </Box>

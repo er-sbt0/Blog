@@ -89,34 +89,10 @@ export const PostContent: React.FC<PostContentProps> = ({
           alignItems: "center",
           gap: 1.5,
           flexWrap: "wrap",
-          mb: 1,
+          mb: 3,
           flexShrink: 0, // Don't shrink the meta info
         }}
       >
-        {formattedDate && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              fontSize: "0.875rem",
-              fontWeight: 500,
-            }}
-          >
-            {formattedDate}
-          </Typography>
-        )}
-
-        {author && formattedDate && (
-          <Box
-            sx={{
-              width: 4,
-              height: 4,
-              bgcolor: "text.secondary",
-              borderRadius: "50%",
-            }}
-          />
-        )}
-
         {author && (
           <Typography
             variant="body2"
@@ -146,6 +122,30 @@ export const PostContent: React.FC<PostContentProps> = ({
             >
               {author.name || author.email}
             </Box>
+          </Typography>
+        )}
+
+        {author && formattedDate && (
+          <Box
+            sx={{
+              width: 4,
+              height: 4,
+              bgcolor: "text.secondary",
+              borderRadius: "50%",
+            }}
+          />
+        )}
+
+        {formattedDate && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              fontSize: "0.875rem",
+              fontWeight: 500,
+            }}
+          >
+            {formattedDate}
           </Typography>
         )}
 
