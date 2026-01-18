@@ -74,50 +74,47 @@ const SeriesView: React.FC<SeriesViewProps> = ({
         <Box
           sx={{
             display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
+            alignItems: "center",
             gap: 2,
             mb: 2,
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <CollectionsBookmark
+          <CollectionsBookmark
+            sx={{
+              fontSize: { xs: 28, md: 36 },
+              color: "primary.main",
+            }}
+          />
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              fontWeight: 700,
+              fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2.125rem" },
+              color: "text.primary",
+            }}
+          >
+            {series.title}
+          </Typography>
+        </Box>
+
+        {canEdit && (
+          <Box sx={{ mb: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<Add />}
+              onClick={() => setAddDialogOpen(true)}
               sx={{
-                fontSize: { xs: 28, md: 36 },
-                color: "primary.main",
-              }}
-            />
-            <Typography
-              variant="h4"
-              component="h1"
-              sx={{
-                fontWeight: 700,
-                fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2.125rem" },
-                color: "text.primary",
+                borderRadius: 1.5,
+                textTransform: "none",
+                fontWeight: 600,
+                height: "40px",
               }}
             >
-              {series.title}
-            </Typography>
+              Edit Posts
+            </Button>
           </Box>
-
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            {canEdit && (
-              <Button
-                variant="outlined"
-                startIcon={<Add />}
-                onClick={() => setAddDialogOpen(true)}
-                sx={{
-                  borderRadius: 1.5,
-                  textTransform: "none",
-                  fontWeight: 600,
-                  height: "40px",
-                }}
-              >
-                Edit Posts
-              </Button>
-            )}
-          </Box>
-        </Box>
+        )}
 
         {/* Meta info */}
         <Box
