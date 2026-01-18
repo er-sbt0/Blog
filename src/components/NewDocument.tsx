@@ -102,10 +102,41 @@ const NewDocument: React.FC<{ cloudDocument?: CloudDocument }> = (
   const searchParams = useSearchParams();
   const revisionId = searchParams.get("v");
   const parentId = searchParams.get("parentId");
+  const seriesId = searchParams.get("seriesId");
 
   const [base, setBase] = useState<UserDocument | undefined>(
     cloudDocument ? { id: cloudDocument.id, cloud: cloudDocument } : undefined,
   );
+  const [nextSeriesOrder, setNextSeriesOrder] = useState<number | null>(null);
+
+  // Effect to fetch series and calculate next order if seriesId is provided
+  useEffect(() => {
+    const fetchSeriesOrder = async () => {
+      if (!seriesId) return;
+
+      try {
+        const response = await fetch(`/api/series/${seriesId}`);
+        if (response.ok) {
+          const { data: series } = await response.json();
+          if (series && series.posts) {
+            // Calculate next order based on existing posts
+            const maxOrder = series.posts.reduce(
+              (max: number, post: any) => Math.max(max, post.seriesOrder || 0),
+              0,
+            );
+            setNextSeriesOrder(maxOrder + 1);
+          } else {
+            setNextSeriesOrder(1); // First post in series
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch series:", error);
+        setNextSeriesOrder(1); // Default to first post
+      }
+    };
+
+    fetchSeriesOrder();
+  }, [seriesId]);
 
   // Effect to handle changes in online status or authentication
   useEffect(() => {
@@ -171,6 +202,10 @@ const NewDocument: React.FC<{ cloudDocument?: CloudDocument }> = (
       data,
       type: "DOCUMENT" as DocumentType,
       parentId: parentId || null,
+      seriesId: seriesId || null,
+      seriesOrder: seriesId && nextSeriesOrder !== null
+        ? nextSeriesOrder
+        : null,
       createdAt,
       updatedAt: createdAt,
     };
@@ -180,8 +215,12 @@ const NewDocument: React.FC<{ cloudDocument?: CloudDocument }> = (
       if (saveToCloud && isOnline && user) {
         dispatch(actions.createCloudDocument(payload));
       }
-      // Document created successfully - navigate back to posts page
-      router.push("/posts");
+      // Document created successfully - navigate back to series or posts page
+      if (seriesId) {
+        router.push(`/series/${seriesId}`);
+      } else {
+        router.push("/posts");
+      }
     }
   };
 

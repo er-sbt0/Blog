@@ -2,8 +2,22 @@
 import * as React from "react";
 import { useMemo, useState } from "react";
 import { DocumentType, Post, Series, User } from "@/types";
-import { Box, Button, Chip, IconButton, InputAdornment, TextField, Typography } from "@mui/material";
-import { Add, Clear, CollectionsBookmark, Search } from "@mui/icons-material";
+import {
+  Box,
+  Button,
+  Chip,
+  IconButton,
+  InputAdornment,
+  TextField,
+  Typography,
+} from "@mui/material";
+import {
+  Add,
+  Clear,
+  CollectionsBookmark,
+  NoteAdd,
+  Search,
+} from "@mui/icons-material";
 import Grid from "@mui/material/Grid2";
 import DocumentCard from "../DocumentCardNew";
 import AddPostsDialog from "./AddPostsDialog";
@@ -51,9 +65,13 @@ const SeriesView: React.FC<SeriesViewProps> = ({
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const sortedPosts = useMemo(() => [...(series.posts || [])].sort((a, b) =>
-    (a.seriesOrder || 0) - (b.seriesOrder || 0)
-  ), [series.posts]);
+  const sortedPosts = useMemo(
+    () =>
+      [...(series.posts || [])].sort((a, b) =>
+        (a.seriesOrder || 0) - (b.seriesOrder || 0)
+      ),
+    [series.posts],
+  );
 
   // Filter posts by search query
   const filteredPosts = useMemo(() => {
@@ -127,7 +145,20 @@ const SeriesView: React.FC<SeriesViewProps> = ({
         </Box>
 
         {canEdit && (
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 2, display: "flex", gap: 1.5 }}>
+            <Button
+              variant="contained"
+              startIcon={<NoteAdd />}
+              onClick={() => router.push(`/new?seriesId=${series.id}`)}
+              sx={{
+                borderRadius: 1.5,
+                textTransform: "none",
+                fontWeight: 600,
+                height: "40px",
+              }}
+            >
+              New Post
+            </Button>
             <Button
               variant="outlined"
               startIcon={<Add />}
@@ -139,7 +170,7 @@ const SeriesView: React.FC<SeriesViewProps> = ({
                 height: "40px",
               }}
             >
-              Edit Posts
+              Add/Remove Posts
             </Button>
           </Box>
         )}
