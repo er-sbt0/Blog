@@ -20,27 +20,31 @@ const TimeHeader: React.FC<{
     <Box
       id={`time-header-${timeKey}`}
       sx={{
-        mb: { xs: 2, md: 3 },
         display: "flex",
-        alignItems: "center",
-        gap: 2,
+        flexDirection: "column",
+        alignItems: { xs: "flex-start", md: "flex-start" },
+        justifyContent: "center",
+        pl: { xs: 0, md: 0 },
+        pr: { xs: 0, md: 5 },
+        height: "100%",
+        minHeight: { md: "200px" },
       }}
     >
-      <Box
-        sx={{
-          fontSize: "1.25rem",
-        }}
-      >
-        🗓️
-      </Box>
-
       <Typography
         variant="h5"
         component="h2"
         sx={{
-          fontWeight: 600,
+          fontWeight: 700,
           color: "text.primary",
           fontSize: { xs: "1.25rem", md: "1.5rem" },
+          lineHeight: 1.2,
+          letterSpacing: "-0.01em",
+          textAlign: "left",
+          cursor: "pointer",
+          transition: "color 0.2s ease",
+          "&:hover": {
+            color: "primary.main",
+          },
         }}
       >
         {timeLabel}
@@ -51,7 +55,8 @@ const TimeHeader: React.FC<{
 
 /**
  * Generic section component for displaying posts grouped by any time period
- * Replaces MonthSection with flexible time period support (without boxing)
+ * Uses CSS Grid for horizontal layout (header on left, posts on right)
+ * Mobile: stacks vertically, Desktop: side-by-side
  */
 const TimeSection: React.FC<TimeSectionProps> = (
   { timeGroup, isLatest = false },
@@ -63,6 +68,13 @@ const TimeSection: React.FC<TimeSectionProps> = (
       aria-labelledby={`time-header-${timeGroup.timeKey}`}
       sx={{
         mb: { xs: 4, md: 6 },
+        display: "grid",
+        gridTemplateColumns: {
+          xs: "1fr", // Mobile: single column (stacked)
+          md: "160px 1fr", // Desktop: date column | posts column
+        },
+        gap: { xs: 3, md: 4 },
+        alignItems: "stretch",
       }}
     >
       <TimeHeader
