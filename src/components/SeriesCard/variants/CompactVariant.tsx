@@ -1,5 +1,6 @@
 "use client";
 import React, { memo, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Box, Typography } from "@mui/material";
 import { CompactVariantProps } from "../types";
 import { UserDocument } from "@/types";
@@ -22,6 +23,7 @@ const DocItem: React.FC<DocItemProps> = ({ document }) => {
     <Box
       component="a"
       href={`/view/${docId}`}
+      onClick={(e) => e.stopPropagation()}
       sx={{
         width: "100%",
         flexShrink: 0,
@@ -77,6 +79,7 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   animationIndex = 0,
   sx,
 }) => {
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
 
   // Sort posts by creation date (newest first)
@@ -100,6 +103,17 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
       onCollapse?.();
     } else {
       onExpand?.();
+    }
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Check if the click is on a link or inside a link
+    const target = e.target as HTMLElement;
+    const isLinkClick = target.closest("a");
+
+    // Only navigate if not clicking on a link (post item)
+    if (!isLinkClick) {
+      router.push(`/series/${series.id}`);
     }
   };
 
@@ -210,12 +224,14 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
           <>
             {/* Content area with post list */}
             <Box
+              onClick={handleCardClick}
               sx={{
                 display: "flex",
                 flexDirection: "column",
                 p: { xs: 2, sm: 3 },
                 height: 200,
                 overflow: "hidden",
+                cursor: "pointer",
               }}
             >
               {/* Scrollable post list */}
