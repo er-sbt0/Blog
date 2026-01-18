@@ -1,9 +1,9 @@
 "use client";
 import * as React from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DocumentType, Post, Series, User } from "@/types";
-import { Box, Button, Chip, Typography } from "@mui/material";
-import { Add, CollectionsBookmark } from "@mui/icons-material";
+import { Box, Button, Chip, IconButton, InputAdornment, TextField, Typography } from "@mui/material";
+import { Add, Clear, CollectionsBookmark, Search } from "@mui/icons-material";
 import Grid from "@mui/material/Grid2";
 import DocumentCard from "../DocumentCardNew";
 import AddPostsDialog from "./AddPostsDialog";
@@ -49,10 +49,38 @@ const SeriesView: React.FC<SeriesViewProps> = ({
   const router = useRouter();
   const canEdit = !!user && user.id === series.authorId;
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const sortedPosts = [...(series.posts || [])].sort((a, b) =>
+  const sortedPosts = useMemo(() => [...(series.posts || [])].sort((a, b) =>
     (a.seriesOrder || 0) - (b.seriesOrder || 0)
-  );
+  ), [series.posts]);
+
+  // Filter posts by search query
+  const filteredPosts = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return sortedPosts;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    return sortedPosts.filter((post) => {
+      // Search in post title
+      if (post.name?.toLowerCase().includes(query)) {
+        return true;
+      }
+
+      // Search in post handle
+      if (post.handle?.toLowerCase().includes(query)) {
+        return true;
+      }
+
+      // Search in author name
+      if (post.author?.name?.toLowerCase().includes(query)) {
+        return true;
+      }
+
+      return false;
+    });
+  }, [sortedPosts, searchQuery]);
 
   const handlePostsAdded = () => {
     router.refresh();
@@ -180,15 +208,65 @@ const SeriesView: React.FC<SeriesViewProps> = ({
         )}
       </Box>
 
+      {/* Search Box */}
+      {sortedPosts.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search posts by title, handle, or author..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{
+              maxWidth: { xs: "100%", md: 600 },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                backgroundColor: "background.paper",
+                transition: "box-shadow 0.2s ease-in-out",
+                "&:hover": {
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                },
+                "&.Mui-focused": {
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+                },
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search sx={{ color: "text.secondary", fontSize: 22 }} />
+                </InputAdornment>
+              ),
+              endAdornment: searchQuery && (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => setSearchQuery("")}
+                    aria-label="Clear search"
+                    sx={{
+                      "&:hover": {
+                        backgroundColor: "action.hover",
+                      },
+                    }}
+                  >
+                    <Clear sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
+      )}
+
       {/* Posts Grid */}
-      {sortedPosts.length > 0
+      {filteredPosts.length > 0
         ? (
           <Grid
             container
             spacing={3}
             sx={{ mb: 4 }}
           >
-            {sortedPosts.map((post, index) => {
+            {filteredPosts.map((post, index) => {
               const userDocument = {
                 id: post.id,
                 cloud: {
@@ -232,7 +310,7 @@ const SeriesView: React.FC<SeriesViewProps> = ({
                 filter: "grayscale(0.3)",
               }}
             >
-              📚
+              {searchQuery ? "🔍" : "📚"}
             </Box>
             <Box
               sx={{
@@ -242,7 +320,7 @@ const SeriesView: React.FC<SeriesViewProps> = ({
                 color: "text.primary",
               }}
             >
-              No posts in this series yet
+              {searchQuery ? "No posts found" : "No posts in this series yet"}
             </Box>
             <Box
               sx={{
@@ -252,7 +330,9 @@ const SeriesView: React.FC<SeriesViewProps> = ({
                 mx: "auto",
               }}
             >
-              {canEdit
+              {searchQuery
+                ? `No posts match "${searchQuery}". Try a different search term.`
+                : canEdit
                 ? "Add your existing posts to organize them in this series"
                 : "This series doesn't have any posts yet"}
             </Box>
