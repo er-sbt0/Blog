@@ -21,36 +21,6 @@ const TimeHeader: React.FC<TimeHeaderProps> = ({
   granularity,
   isLatest = false,
 }) => {
-  const getGranularityIcon = () => {
-    switch (granularity) {
-      case "day":
-        return "📅";
-      case "week":
-        return "📊";
-      case "month":
-        return "🗓️";
-      case "year":
-        return "📆";
-      default:
-        return "🗓️";
-    }
-  };
-
-  const getGranularityLabel = () => {
-    switch (granularity) {
-      case "day":
-        return "Day";
-      case "week":
-        return "Week";
-      case "month":
-        return "Month";
-      case "year":
-        return "Year";
-      default:
-        return "Month";
-    }
-  };
-
   return (
     <Box
       id={`time-header-${timeKey}`}
@@ -69,23 +39,6 @@ const TimeHeader: React.FC<TimeHeaderProps> = ({
           gap: 2,
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 28,
-            height: 28,
-            borderRadius: "50%",
-            backgroundColor: isLatest ? "primary.main" : "grey.300",
-            fontSize: "0.875rem",
-            transition: "all 0.2s ease-in-out",
-          }}
-          aria-label={`${getGranularityLabel()} icon`}
-        >
-          {getGranularityIcon()}
-        </Box>
-
         <Typography
           variant="h5"
           component="h2"
