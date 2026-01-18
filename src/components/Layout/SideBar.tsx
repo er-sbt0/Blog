@@ -17,6 +17,8 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   TextField,
   Tooltip,
   Typography,
@@ -33,6 +35,9 @@ import {
   CollectionsBookmark,
   Create,
   Dashboard,
+  Delete,
+  DriveFileRenameOutline,
+  Edit,
   EditNote,
   ExpandLess,
   ExpandMore,
@@ -95,6 +100,20 @@ const SideBar: React.FC = () => {
 
   // Active posts search state
   const [activePostsSearch, setActivePostsSearch] = useState("");
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<
+    {
+      mouseX: number;
+      mouseY: number;
+      postId: string;
+    } | null
+  >(null);
+
+  // Rename state
+  const [renamingPostId, setRenamingPostId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const renameInputRef = useRef<HTMLInputElement>(null);
 
   // Track collapsed series in sidebar (series NOT in this set are expanded)
   // This way new series default to expanded automatically
@@ -282,6 +301,124 @@ const SideBar: React.FC = () => {
       return next;
     });
   }, []);
+
+  // Context menu handlers
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent, postId: string) => {
+      event.preventDefault();
+      setContextMenu(
+        contextMenu === null
+          ? {
+            mouseX: event.clientX + 2,
+            mouseY: event.clientY - 6,
+            postId,
+          }
+          : null,
+      );
+    },
+    [contextMenu],
+  );
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const handleEditPost = useCallback(
+    (postId: string) => {
+      handleCloseContextMenu();
+      router.push(`/edit/${postId}`);
+    },
+    [router, handleCloseContextMenu],
+  );
+
+  const handleRenameFromMenu = useCallback(
+    (postId: string) => {
+      handleCloseContextMenu();
+      const doc = documents?.find((d) => d.id === postId);
+      if (doc) {
+        const docName = (doc.cloud || doc.local)?.name || "Untitled";
+        setRenamingPostId(postId);
+        setRenameValue(docName);
+      }
+    },
+    [handleCloseContextMenu, documents],
+  );
+
+  const handleDeletePost = useCallback(
+    (postId: string) => {
+      handleCloseContextMenu();
+      if (confirm("Are you sure you want to delete this post?")) {
+        // Find the document to determine if it's cloud or local
+        const doc = documents?.find((d) => d.id === postId);
+        if (doc) {
+          if (doc.cloud) {
+            dispatch(actions.deleteCloudDocument(postId));
+          } else if (doc.local) {
+            dispatch(actions.deleteLocalDocument(postId));
+          }
+        }
+      }
+    },
+    [dispatch, handleCloseContextMenu, documents],
+  );
+
+  // Rename handlers
+  const handleDoubleClick = useCallback(
+    (event: React.MouseEvent, postId: string, currentName: string) => {
+      event.preventDefault();
+      setRenamingPostId(postId);
+      setRenameValue(currentName);
+    },
+    [],
+  );
+
+  const handleRenameBlur = useCallback(() => {
+    if (renamingPostId && renameValue.trim()) {
+      // Find the document to determine if it's cloud or local
+      const doc = documents?.find((d) => d.id === renamingPostId);
+      if (doc) {
+        if (doc.cloud) {
+          dispatch(
+            actions.updateCloudDocument({
+              id: renamingPostId,
+              partial: { name: renameValue.trim() },
+            }),
+          );
+        } else if (doc.local) {
+          dispatch(
+            actions.updateLocalDocument({
+              id: renamingPostId,
+              partial: { name: renameValue.trim() },
+            }),
+          );
+        }
+      }
+    }
+    setRenamingPostId(null);
+    setRenameValue("");
+  }, [dispatch, renamingPostId, renameValue, documents]);
+
+  const handleRenameKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleRenameBlur();
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        setRenamingPostId(null);
+        setRenameValue("");
+      }
+    },
+    [handleRenameBlur],
+  );
+
+  // Auto-focus rename input
+  useEffect(() => {
+    if (renamingPostId && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renamingPostId]);
 
   // Navigation items for blog structure
   const navigationItems = useMemo((): NavigationItem[] => {
@@ -752,6 +889,7 @@ const SideBar: React.FC = () => {
                             const isViewing = pathname === `/view/${post.id}`;
                             const isEditing = pathname === `/edit/${post.id}`;
                             const isSelected = isViewing || isEditing;
+                            const isRenaming = renamingPostId === post.id;
 
                             return (
                               <ListItem
@@ -764,9 +902,20 @@ const SideBar: React.FC = () => {
                                   placement="right"
                                 >
                                   <ListItemButton
-                                    component={SafeNavigationLink}
-                                    href={`/view/${post.id}`}
+                                    component={isRenaming
+                                      ? "div"
+                                      : SafeNavigationLink}
+                                    href={isRenaming
+                                      ? undefined
+                                      : `/view/${post.id}`}
                                     selected={isSelected}
+                                    onContextMenu={(e) =>
+                                      handleContextMenu(e, post.id)}
+                                    onDoubleClick={(e) => {
+                                      if (open) {
+                                        handleDoubleClick(e, post.id, docName);
+                                      }
+                                    }}
                                     sx={{
                                       minHeight: 30,
                                       justifyContent: open
@@ -798,18 +947,45 @@ const SideBar: React.FC = () => {
                                       />
                                     </ListItemIcon>
                                     {open && (
-                                      <ListItemText
-                                        primary={docName}
-                                        primaryTypographyProps={{
-                                          fontSize: "0.78em",
-                                          sx: {
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            whiteSpace: "nowrap",
-                                            fontWeight: isSelected ? 600 : 400,
-                                          },
-                                        }}
-                                      />
+                                      isRenaming
+                                        ? (
+                                          <TextField
+                                            inputRef={renameInputRef}
+                                            value={renameValue}
+                                            onChange={(e) =>
+                                              setRenameValue(e.target.value)}
+                                            onBlur={handleRenameBlur}
+                                            onKeyDown={handleRenameKeyDown}
+                                            size="small"
+                                            variant="standard"
+                                            fullWidth
+                                            sx={{
+                                              "& .MuiInput-input": {
+                                                fontSize: "0.78em",
+                                                fontWeight: isSelected
+                                                  ? 600
+                                                  : 400,
+                                                py: 0,
+                                              },
+                                            }}
+                                          />
+                                        )
+                                        : (
+                                          <ListItemText
+                                            primary={docName}
+                                            primaryTypographyProps={{
+                                              fontSize: "0.78em",
+                                              sx: {
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                                fontWeight: isSelected
+                                                  ? 600
+                                                  : 400,
+                                              },
+                                            }}
+                                          />
+                                        )
                                     )}
                                   </ListItemButton>
                                 </Tooltip>
@@ -828,6 +1004,7 @@ const SideBar: React.FC = () => {
                   const isViewing = pathname === `/view/${post.id}`;
                   const isEditing = pathname === `/edit/${post.id}`;
                   const isSelected = isViewing || isEditing;
+                  const isRenaming = renamingPostId === post.id;
 
                   return (
                     <ListItem
@@ -840,9 +1017,15 @@ const SideBar: React.FC = () => {
                         placement="right"
                       >
                         <ListItemButton
-                          component={SafeNavigationLink}
-                          href={`/view/${post.id}`}
+                          component={isRenaming ? "div" : SafeNavigationLink}
+                          href={isRenaming ? undefined : `/view/${post.id}`}
                           selected={isSelected}
+                          onContextMenu={(e) => handleContextMenu(e, post.id)}
+                          onDoubleClick={(e) => {
+                            if (open) {
+                              handleDoubleClick(e, post.id, docName);
+                            }
+                          }}
                           sx={{
                             minHeight: 32,
                             justifyContent: open ? "initial" : "center",
@@ -871,18 +1054,41 @@ const SideBar: React.FC = () => {
                             />
                           </ListItemIcon>
                           {open && (
-                            <ListItemText
-                              primary={docName}
-                              primaryTypographyProps={{
-                                fontSize: "0.8em",
-                                sx: {
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  fontWeight: isSelected ? 600 : 400,
-                                },
-                              }}
-                            />
+                            isRenaming
+                              ? (
+                                <TextField
+                                  inputRef={renameInputRef}
+                                  value={renameValue}
+                                  onChange={(e) =>
+                                    setRenameValue(e.target.value)}
+                                  onBlur={handleRenameBlur}
+                                  onKeyDown={handleRenameKeyDown}
+                                  size="small"
+                                  variant="standard"
+                                  fullWidth
+                                  sx={{
+                                    "& .MuiInput-input": {
+                                      fontSize: "0.8em",
+                                      fontWeight: isSelected ? 600 : 400,
+                                      py: 0,
+                                    },
+                                  }}
+                                />
+                              )
+                              : (
+                                <ListItemText
+                                  primary={docName}
+                                  primaryTypographyProps={{
+                                    fontSize: "0.8em",
+                                    sx: {
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      whiteSpace: "nowrap",
+                                      fontWeight: isSelected ? 600 : 400,
+                                    },
+                                  }}
+                                />
+                              )
                           )}
                         </ListItemButton>
                       </Tooltip>
@@ -983,6 +1189,107 @@ const SideBar: React.FC = () => {
           }}
         />
       )}
+
+      {/* Context menu for Active Posts */}
+      <Menu
+        open={contextMenu !== null}
+        onClose={handleCloseContextMenu}
+        anchorReference="anchorPosition"
+        anchorPosition={contextMenu !== null
+          ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+          : undefined}
+        slotProps={{
+          paper: {
+            elevation: 2,
+            sx: {
+              minWidth: 130,
+              borderRadius: 1,
+              mt: 0.5,
+              bgcolor: (theme) => theme.palette.mode === "dark"
+                ? "rgba(30, 30, 30, 0.95)"
+                : "rgba(250, 250, 250, 0.95)",
+              backdropFilter: "blur(8px)",
+            },
+          },
+        }}
+      >
+        <MenuItem
+          onClick={() => contextMenu && handleEditPost(contextMenu.postId)}
+          sx={{
+            py: 0.75,
+            px: 1.75,
+            gap: 1.25,
+            fontSize: "0.875rem",
+            borderBottom: (theme) => theme.palette.mode === "dark"
+              ? "1px solid rgba(255, 255, 255, 0.06)"
+              : "1px solid rgba(0, 0, 0, 0.04)",
+            "&:hover": {
+              backgroundColor: "action.hover",
+            },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: "auto !important" }}>
+            <Edit fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primaryTypographyProps={{
+              fontSize: "0.875rem",
+            }}
+          >
+            Edit
+          </ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() =>
+            contextMenu && handleRenameFromMenu(contextMenu.postId)}
+          sx={{
+            py: 0.75,
+            px: 1.75,
+            gap: 1.25,
+            fontSize: "0.875rem",
+            borderBottom: (theme) => theme.palette.mode === "dark"
+              ? "1px solid rgba(255, 255, 255, 0.06)"
+              : "1px solid rgba(0, 0, 0, 0.04)",
+            "&:hover": {
+              backgroundColor: "action.hover",
+            },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: "auto !important" }}>
+            <DriveFileRenameOutline fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primaryTypographyProps={{
+              fontSize: "0.875rem",
+            }}
+          >
+            Rename
+          </ListItemText>
+        </MenuItem>
+        <MenuItem
+          onClick={() => contextMenu && handleDeletePost(contextMenu.postId)}
+          sx={{
+            py: 0.75,
+            px: 1.75,
+            gap: 1.25,
+            fontSize: "0.875rem",
+            "&:hover": {
+              backgroundColor: "action.hover",
+            },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: "auto !important" }}>
+            <Delete fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primaryTypographyProps={{
+              fontSize: "0.875rem",
+            }}
+          >
+            Delete
+          </ListItemText>
+        </MenuItem>
+      </Menu>
     </Drawer>
   );
 };
