@@ -28,6 +28,7 @@ interface DeleteSeriesResponse {
 interface SeriesUpdateInput {
   title?: string;
   description?: string;
+  createdAt?: string;
 }
 
 export async function GET(

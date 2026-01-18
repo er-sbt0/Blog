@@ -127,6 +127,7 @@ export interface SeriesCreateInput {
 export interface SeriesUpdateInput {
   title?: string;
   description?: string;
+  createdAt?: string;
 }
 
 // Transform existing types for compatibility during migration

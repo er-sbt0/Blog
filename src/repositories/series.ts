@@ -309,6 +309,7 @@ export async function updateSeries(
     data: {
       title: data.title,
       description: data.description,
+      createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
     },
   });
 

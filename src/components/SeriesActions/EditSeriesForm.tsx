@@ -21,6 +21,13 @@ export default function EditSeriesForm(
 ) {
   const [title, setTitle] = useState(series.title);
   const [description, setDescription] = useState(series.description || "");
+  const [createdAt, setCreatedAt] = useState(() => {
+    const date = typeof series.createdAt === "string"
+      ? new Date(series.createdAt)
+      : series.createdAt;
+    // Format to datetime-local format (YYYY-MM-DDTHH:MM)
+    return date.toISOString().slice(0, 16);
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -44,6 +51,7 @@ export default function EditSeriesForm(
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || undefined,
+          createdAt: new Date(createdAt).toISOString(),
         }),
       });
 
@@ -129,7 +137,20 @@ export default function EditSeriesForm(
         multiline
         rows={4}
         disabled={loading}
+        sx={{ mb: 3 }}
+      />
+
+      <TextField
+        fullWidth
+        label="Creation Date"
+        type="datetime-local"
+        value={createdAt}
+        onChange={(e) => setCreatedAt(e.target.value)}
+        disabled={loading}
         sx={{ mb: 4 }}
+        InputLabelProps={{
+          shrink: true,
+        }}
       />
 
       <Box sx={{ display: "flex", gap: 2, justifyContent: "space-between" }}>
