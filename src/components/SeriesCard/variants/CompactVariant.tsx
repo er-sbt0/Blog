@@ -1,7 +1,16 @@
 "use client";
 import React, { memo, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Typography } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
+} from "@mui/material";
+import { Delete, Edit, MoreVert } from "@mui/icons-material";
 import { CompactVariantProps } from "../types";
 import { UserDocument } from "@/types";
 import { cardTheme } from "../../DocumentCardNew/theme";
@@ -72,6 +81,8 @@ const DocItem: React.FC<DocItemProps> = ({ document }) => {
 const CompactVariant: React.FC<CompactVariantProps> = memo(({
   series,
   posts,
+  user,
+  showActions = true,
   collapsible = true,
   defaultExpanded = false,
   onExpand,
@@ -81,6 +92,45 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
 }) => {
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const menuOpen = Boolean(anchorEl);
+
+  // Check if current user is the author
+  const isAuthor = !!user && user.id === series.authorId;
+
+  const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation(); // Prevent card click
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseMenu = () => {
+    setAnchorEl(null);
+  };
+
+  const handleEdit = () => {
+    handleCloseMenu();
+    router.push(`/series/${series.id}/edit`);
+  };
+
+  const handleDelete = async () => {
+    handleCloseMenu();
+    if (!confirm("Delete this series? Posts will not be deleted.")) return;
+
+    try {
+      const response = await fetch(`/api/series/${series.id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        router.refresh();
+      } else {
+        const { error } = await response.json();
+        alert(error?.title || "Failed to delete series");
+      }
+    } catch (err) {
+      alert("Failed to delete series");
+    }
+  };
 
   // Sort posts by creation date (newest first)
   const sortedPosts = useMemo(() => {
@@ -216,6 +266,20 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
                   {postCount} post{postCount !== 1 ? "s" : ""}
                 </Typography>
               </Box>
+
+              {/* Actions menu */}
+              {showActions && isAuthor && (
+                <IconButton
+                  aria-label="Series Actions"
+                  aria-controls={menuOpen ? "series-menu" : undefined}
+                  aria-haspopup="true"
+                  aria-expanded={menuOpen ? "true" : undefined}
+                  size="small"
+                  onClick={handleOpenMenu}
+                >
+                  <MoreVert />
+                </IconButton>
+              )}
             </Box>
           </Box>
         )
@@ -292,21 +356,67 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
               >
                 {series.title}
               </Typography>
-              {collapsible && (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "primary.main",
-                    fontWeight: 500,
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  Collapse
-                </Typography>
-              )}
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                {collapsible && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "primary.main",
+                      fontWeight: 500,
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    Collapse
+                  </Typography>
+                )}
+
+                {/* Actions menu */}
+                {showActions && isAuthor && (
+                  <IconButton
+                    aria-label="Series Actions"
+                    aria-controls={menuOpen ? "series-menu" : undefined}
+                    aria-haspopup="true"
+                    aria-expanded={menuOpen ? "true" : undefined}
+                    size="small"
+                    onClick={handleOpenMenu}
+                  >
+                    <MoreVert />
+                  </IconButton>
+                )}
+              </Box>
             </Box>
           </>
         )}
+
+      {/* Actions Menu */}
+      <Menu
+        id="series-menu"
+        anchorEl={anchorEl}
+        open={menuOpen}
+        onClose={handleCloseMenu}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+      >
+        <MenuItem onClick={handleEdit}>
+          <ListItemIcon>
+            <Edit fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Edit</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
+          <ListItemIcon>
+            <Delete fontSize="small" sx={{ color: "error.main" }} />
+          </ListItemIcon>
+          <ListItemText>Delete</ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 });

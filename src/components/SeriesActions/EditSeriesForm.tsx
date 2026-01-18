@@ -108,7 +108,7 @@ export default function EditSeriesForm(
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 600 }}>
       <Typography variant="h4" component="h1" gutterBottom>
-        Edit Series
+        Edit
       </Typography>
 
       {error && (

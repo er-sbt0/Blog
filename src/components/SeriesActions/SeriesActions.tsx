@@ -64,13 +64,13 @@ export default function SeriesActions(
           <ListItemIcon>
             <Edit fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Edit Series</ListItemText>
+          <ListItemText>Edit</ListItemText>
         </MenuItem>
         <MenuItem onClick={handleDelete}>
           <ListItemIcon>
             <Delete fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Delete Series</ListItemText>
+          <ListItemText>Delete</ListItemText>
         </MenuItem>
       </Menu>
     </>
