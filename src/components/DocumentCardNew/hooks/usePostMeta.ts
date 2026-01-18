@@ -54,7 +54,7 @@ export const usePostMeta = ({
     const chips = [
       createStatusChip(postState),
       createSeriesChip(series, seriesOrder, showSeries),
-      createAuthorChip(author, showAuthor),
+      // createAuthorChip(author, showAuthor),
     ].filter(Boolean); // Remove null/undefined chips
 
     return chips;

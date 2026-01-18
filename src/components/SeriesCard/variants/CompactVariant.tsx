@@ -10,13 +10,35 @@ import {
   MenuItem,
   Typography,
 } from "@mui/material";
-import { Delete, Edit, MoreVert } from "@mui/icons-material";
+import { Article, Delete, Edit, MoreVert } from "@mui/icons-material";
 import { CompactVariantProps } from "../types";
 import { UserDocument } from "@/types";
 import { cardTheme } from "../../DocumentCardNew/theme";
 
-/**
- * Individual document item within an expanded series card
+/** * Format date to readable string
+ */
+const formatDate = (dateString: string | Date): string => {
+  const date = typeof dateString === "string"
+    ? new Date(dateString)
+    : dateString;
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+};
+
+/** * Individual document item within an expanded series card
  */
 interface DocItemProps {
   document: UserDocument;
@@ -212,6 +234,7 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
                 justifyContent: "center",
                 height: 200,
                 p: { xs: 2, sm: 3 },
+                gap: 1.5,
               }}
             >
               {/* Series title */}
@@ -228,6 +251,25 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
               >
                 {series.title}
               </Typography>
+              
+              {/* Creation date
+              // {series.createdAt && (
+              //   <Box
+              //     sx={{
+              //       display: "flex",
+              //       alignItems: "center",
+              //       gap: 0.5,
+              //     }}
+              //   >
+              //     <Typography
+              //       variant="body2"
+              //       color="text.secondary"
+              //       sx={{ fontSize: "0.875rem", fontWeight: 600 }}
+              //     >
+              //       {formatDate(series.createdAt)}
+              //     </Typography>
+              //   </Box>
+              // )} */}
             </Box>
 
             {/* Bottom bar - matches CardBase action bar */}
@@ -248,22 +290,32 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
                 sx={{
                   px: 1.5,
                   py: 0.5,
-                  borderRadius: "12px",
+                  borderRadius: "16px",
                   bgcolor: (t) =>
                     t.palette.mode === "dark"
                       ? "rgba(144, 202, 249, 0.15)"
                       : "rgba(25, 118, 210, 0.1)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
                 }}
               >
+                <Article 
+                  sx={{ 
+                    fontSize: "1rem", 
+                    color: "primary.main",
+                    opacity: 0.8,
+                  }} 
+                />
                 <Typography
                   variant="body2"
                   sx={{
-                    fontWeight: 500,
-                    color: "text.secondary",
-                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    color: "primary.main",
+                    fontSize: "0.875rem",
                   }}
                 >
-                  {postCount} post{postCount !== 1 ? "s" : ""}
+                  {postCount}
                 </Typography>
               </Box>
 

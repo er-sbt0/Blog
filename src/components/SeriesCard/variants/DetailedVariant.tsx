@@ -11,7 +11,7 @@ import {
   Skeleton,
   Typography,
 } from "@mui/material";
-import { Delete, Edit, MoreVert } from "@mui/icons-material";
+import { Article, Delete, Edit, MoreVert } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import CardBase from "../../DocumentCardNew/CardBase";
 import { DetailedVariantProps } from "../types";
@@ -157,22 +157,32 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
           {series?.title || <Skeleton variant="text" width="80%" />}
         </Typography>
 
-        {/* Meta information - just the date */}
+        {/* Meta information - creation date */}
         {showMetadata && formattedDate && (
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 1.5,
-              flexWrap: "wrap",
-              mb: 1,
+              gap: 0.5,
+              mb: 1.5,
               flexShrink: 0,
             }}
           >
             <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ 
+                fontSize: "0.75rem", 
+                fontWeight: 400,
+                letterSpacing: "0.01em",
+              }}
+            >
+              Created
+            </Typography>
+            <Typography
               variant="body2"
               color="text.secondary"
-              sx={{ fontSize: "0.875rem", fontWeight: 500 }}
+              sx={{ fontSize: "0.875rem", fontWeight: 600 }}
             >
               {formattedDate}
             </Typography>
@@ -202,15 +212,15 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
     [series, formattedDate, postCount, showMetadata],
   );
 
-  // Memoize chip content - simple post count (aligned with CompactVariant styling)
+  // Memoize chip content - post count with icon
   const chipContent = useMemo(() => {
     if (isLoading) {
       return (
         <Skeleton
           variant="rectangular"
-          width={70}
-          height={24}
-          sx={{ borderRadius: 1 }}
+          width={80}
+          height={28}
+          sx={{ borderRadius: 1.5 }}
         />
       );
     }
@@ -220,22 +230,32 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
         sx={{
           px: 1.5,
           py: 0.5,
-          borderRadius: "12px",
+          borderRadius: "16px",
           bgcolor: (t) =>
             t.palette.mode === "dark"
               ? "rgba(144, 202, 249, 0.15)"
               : "rgba(25, 118, 210, 0.1)",
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
         }}
       >
+        <Article 
+          sx={{ 
+            fontSize: "1rem", 
+            color: "primary.main",
+            opacity: 0.8,
+          }} 
+        />
         <Typography
           variant="body2"
           sx={{
-            fontWeight: 500,
-            color: "text.secondary",
-            fontSize: "0.8rem",
+            fontWeight: 600,
+            color: "primary.main",
+            fontSize: "0.875rem",
           }}
         >
-          {postCount} post{postCount !== 1 ? "s" : ""}
+          {postCount}
         </Typography>
       </Box>
     );

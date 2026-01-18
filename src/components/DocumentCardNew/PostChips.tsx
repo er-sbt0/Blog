@@ -257,7 +257,7 @@ const renderPostChips = ({
   const chips = [
     createStatusChip(postState),
     createSeriesChip(series, seriesOrder, showSeries),
-    createAuthorChip(author, showAuthor),
+    // createAuthorChip(author, showAuthor),
   ].filter(Boolean);
 
   return <>{chips}</>;
