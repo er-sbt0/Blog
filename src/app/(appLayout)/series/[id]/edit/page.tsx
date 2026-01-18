@@ -4,25 +4,29 @@ import { notFound, redirect } from "next/navigation";
 import { findSeriesById } from "@/repositories/series";
 import { EditSeriesForm } from "@/components/SeriesActions";
 
+// Force dynamic rendering to check session on every request
+export const dynamic = "force-dynamic";
+
 interface EditSeriesPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function EditSeriesPage({ params }: EditSeriesPageProps) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
 
   if (!session) {
     redirect("/api/auth/signin");
   }
 
-  const series = await findSeriesById(params.id);
+  const series = await findSeriesById(id);
 
   if (!series) {
     notFound();
   }
 
   if (session.user?.id !== series.authorId) {
-    redirect(`/series/${params.id}`);
+    redirect(`/series/${id}`);
   }
 
   return (
