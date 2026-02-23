@@ -1,10 +1,10 @@
 import { authOptions } from "@/lib/auth";
 import {
-  getOrCreateDefaultCanvas,
-  findCanvasByAuthorId,
   createCanvas,
-  updateCanvas,
   deleteCanvas,
+  findCanvasByAuthorId,
+  getOrCreateDefaultCanvas,
+  updateCanvas,
 } from "@/repositories/notes";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
@@ -17,15 +17,25 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
-        { error: { title: "Unauthorized", subtitle: "Please sign in to access notes" } },
-        { status: 401 }
+        {
+          error: {
+            title: "Unauthorized",
+            subtitle: "Please sign in to access notes",
+          },
+        },
+        { status: 401 },
       );
     }
 
     if (session.user.disabled) {
       return NextResponse.json(
-        { error: { title: "Account Disabled", subtitle: "Account is disabled for violating terms of service" } },
-        { status: 403 }
+        {
+          error: {
+            title: "Account Disabled",
+            subtitle: "Account is disabled for violating terms of service",
+          },
+        },
+        { status: 403 },
       );
     }
 
@@ -34,8 +44,13 @@ export async function GET() {
   } catch (error) {
     console.error("Error fetching canvas:", error);
     return NextResponse.json(
-      { error: { title: "Server Error", subtitle: "Failed to fetch notes canvas" } },
-      { status: 500 }
+      {
+        error: {
+          title: "Server Error",
+          subtitle: "Failed to fetch notes canvas",
+        },
+      },
+      { status: 500 },
     );
   }
 }
@@ -46,15 +61,25 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
-        { error: { title: "Unauthorized", subtitle: "Please sign in to create a canvas" } },
-        { status: 401 }
+        {
+          error: {
+            title: "Unauthorized",
+            subtitle: "Please sign in to create a canvas",
+          },
+        },
+        { status: 401 },
       );
     }
 
     if (session.user.disabled) {
       return NextResponse.json(
-        { error: { title: "Account Disabled", subtitle: "Account is disabled for violating terms of service" } },
-        { status: 403 }
+        {
+          error: {
+            title: "Account Disabled",
+            subtitle: "Account is disabled for violating terms of service",
+          },
+        },
+        { status: 403 },
       );
     }
 
@@ -67,7 +92,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating canvas:", error);
     return NextResponse.json(
       { error: { title: "Server Error", subtitle: "Failed to create canvas" } },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

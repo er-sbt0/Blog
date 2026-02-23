@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     };
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "Something went wrong",
       subtitle: "Please try again later",

@@ -38,65 +38,36 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
   // Track expanded series (series NOT in this set are collapsed)
   // This way new series default to collapsed automatically
   const [expandedSeries, setExpandedSeries] = useState<Set<string>>(() => {
-    console.log("[PostsGrid] Initializing expanded series state");
-
     // Try to load saved state from localStorage
     const savedState = typeof window !== "undefined"
       ? localStorage.getItem("seriesExpandedState")
       : null;
 
-    console.log("[PostsGrid] Saved state from localStorage:", savedState);
-
     if (savedState) {
       try {
         const parsed: string[] = JSON.parse(savedState);
-        const savedSet = new Set<string>(parsed);
-        console.log("[PostsGrid] Loaded expanded series from localStorage:", [
-          ...savedSet,
-        ]);
-        return savedSet;
+        return new Set<string>(parsed);
       } catch (e) {
         console.error("Failed to parse series expanded state:", e);
       }
     }
 
     // Default: no series are expanded (all start collapsed)
-    console.log(
-      "[PostsGrid] No saved state, defaulting all series to collapsed (empty expanded set)",
-    );
     return new Set<string>();
   });
 
   const toggleSeriesCollapsed = useCallback((seriesId: string) => {
-    console.log("[PostsGrid] Toggling series:", seriesId);
     setExpandedSeries((prev) => {
       const next = new Set(prev);
       if (next.has(seriesId)) {
         next.delete(seriesId);
-        console.log(
-          "[PostsGrid] Collapsed series (removed from expanded):",
-          seriesId,
-        );
       } else {
         next.add(seriesId);
-        console.log(
-          "[PostsGrid] Expanded series (added to expanded):",
-          seriesId,
-        );
       }
-
-      const stateArray = [...next];
-      console.log("[PostsGrid] New expanded state:", stateArray);
 
       // Save to localStorage
       if (typeof window !== "undefined") {
-        const jsonState = JSON.stringify(stateArray);
-        localStorage.setItem("seriesExpandedState", jsonState);
-        console.log("[PostsGrid] Saved to localStorage:", jsonState);
-
-        // Verify it was saved
-        const verification = localStorage.getItem("seriesExpandedState");
-        console.log("[PostsGrid] Verification read:", verification);
+        localStorage.setItem("seriesExpandedState", JSON.stringify([...next]));
       }
 
       return next;

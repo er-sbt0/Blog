@@ -8,7 +8,7 @@ const API_BASE = "/api/notes";
 // Debounce helper for frequent updates
 function debounce<T extends (...args: any[]) => void>(
   func: T,
-  wait: number
+  wait: number,
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout | null = null;
   return (...args: Parameters<T>) => {
@@ -125,7 +125,7 @@ export function useNotesStore() {
         setError(err instanceof Error ? err.message : "Failed to create note");
       }
     },
-    [canvas]
+    [canvas],
   );
 
   // Debounced update for frequent changes (drag, resize)
@@ -150,7 +150,7 @@ export function useNotesStore() {
         refresh();
       }
     }, 500),
-    [refresh]
+    [refresh],
   );
 
   const updateNote = useCallback(
@@ -163,7 +163,9 @@ export function useNotesStore() {
         return {
           ...prev,
           notes: prev.notes.map((note) =>
-            note.id === id ? { ...note, ...updates, updatedAt: Date.now() } : note
+            note.id === id
+              ? { ...note, ...updates, updatedAt: Date.now() }
+              : note
           ),
         };
       });
@@ -211,13 +213,15 @@ export function useNotesStore() {
           });
         } catch (err) {
           console.error("Error updating note:", err);
-          setError(err instanceof Error ? err.message : "Failed to update note");
+          setError(
+            err instanceof Error ? err.message : "Failed to update note",
+          );
           // Refresh to get latest state from server
           refresh();
         }
       }
     },
-    [canvas, debouncedApiUpdate, refresh]
+    [canvas, debouncedApiUpdate, refresh],
   );
 
   const deleteNote = useCallback(
@@ -259,7 +263,7 @@ export function useNotesStore() {
         setError(err instanceof Error ? err.message : "Failed to delete note");
       }
     },
-    [canvas]
+    [canvas],
   );
 
   const bringToFront = useCallback(
@@ -304,7 +308,7 @@ export function useNotesStore() {
         refresh();
       }
     },
-    [canvas, refresh]
+    [canvas, refresh],
   );
 
   return {

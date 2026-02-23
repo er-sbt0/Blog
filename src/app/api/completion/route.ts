@@ -98,7 +98,12 @@ export async function POST(req: Request) {
     console.error("AI Completion error:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-    console.error("Error details:", { errorMessage, errorStack, provider, modelId });
+    console.error("Error details:", {
+      errorMessage,
+      errorStack,
+      provider,
+      modelId,
+    });
     return new Response(
       JSON.stringify({
         error: errorMessage,
@@ -107,7 +112,7 @@ export async function POST(req: Request) {
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 }

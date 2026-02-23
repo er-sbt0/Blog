@@ -2,7 +2,7 @@ import type { OgMetadata } from "@/app/api/og/route";
 import EditDocument from "@/components/EditDocument";
 import { findUserPost } from "@/repositories/post";
 import type { Metadata } from "next";
-import { format } from 'date-fns';
+import { format } from "date-fns";
 
 export async function generateMetadata(
   props: { params: Promise<{ id?: string[] }> },
@@ -22,7 +22,10 @@ export async function generateMetadata(
       metadata.subtitle = "if you have access, please sign in to edit it";
     } else {
       metadata.title = document.name;
-      const formattedDate = format(new Date(document.updatedAt), 'MMMM d, yyyy, h:mm a');
+      const formattedDate = format(
+        new Date(document.updatedAt),
+        "MMMM d, yyyy, h:mm a",
+      );
       metadata.subtitle = `Last updated: ${formattedDate} (UTC)`;
       metadata.user = {
         name: document.author.name,

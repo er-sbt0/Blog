@@ -15,15 +15,25 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
-        { error: { title: "Unauthorized", subtitle: "Please sign in to access notes" } },
-        { status: 401 }
+        {
+          error: {
+            title: "Unauthorized",
+            subtitle: "Please sign in to access notes",
+          },
+        },
+        { status: 401 },
       );
     }
 
     if (session.user.disabled) {
       return NextResponse.json(
-        { error: { title: "Account Disabled", subtitle: "Account is disabled for violating terms of service" } },
-        { status: 403 }
+        {
+          error: {
+            title: "Account Disabled",
+            subtitle: "Account is disabled for violating terms of service",
+          },
+        },
+        { status: 403 },
       );
     }
 
@@ -34,7 +44,7 @@ export async function GET() {
     console.error("Error fetching notes:", error);
     return NextResponse.json(
       { error: { title: "Server Error", subtitle: "Failed to fetch notes" } },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -45,20 +55,39 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
-        { error: { title: "Unauthorized", subtitle: "Please sign in to create a note" } },
-        { status: 401 }
+        {
+          error: {
+            title: "Unauthorized",
+            subtitle: "Please sign in to create a note",
+          },
+        },
+        { status: 401 },
       );
     }
 
     if (session.user.disabled) {
       return NextResponse.json(
-        { error: { title: "Account Disabled", subtitle: "Account is disabled for violating terms of service" } },
-        { status: 403 }
+        {
+          error: {
+            title: "Account Disabled",
+            subtitle: "Account is disabled for violating terms of service",
+          },
+        },
+        { status: 403 },
       );
     }
 
     const body = await request.json();
-    const { positionX, positionY, width, height, title, content, color, zIndex } = body;
+    const {
+      positionX,
+      positionY,
+      width,
+      height,
+      title,
+      content,
+      color,
+      zIndex,
+    } = body;
 
     // Validate required fields
     if (
@@ -69,8 +98,13 @@ export async function POST(request: NextRequest) {
       typeof content !== "string"
     ) {
       return NextResponse.json(
-        { error: { title: "Invalid Input", subtitle: "Missing or invalid required fields" } },
-        { status: 400 }
+        {
+          error: {
+            title: "Invalid Input",
+            subtitle: "Missing or invalid required fields",
+          },
+        },
+        { status: 400 },
       );
     }
 
@@ -94,7 +128,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating note:", error);
     return NextResponse.json(
       { error: { title: "Server Error", subtitle: "Failed to create note" } },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

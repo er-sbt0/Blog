@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     response.data = true;
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "something went wrong",
       subtitle: "Please try again later",

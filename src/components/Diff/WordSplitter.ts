@@ -14,37 +14,8 @@ function convertHtmlToListOfWords(text: string, blockExpressions: RegExp[]) {
     words: [],
   };
 
-  let blockLocations = findBlocks(text, blockExpressions);
-
-  let isBlockCheckRequired = !!blockLocations.size;
-  // let isGrouping = false
-  // let groupingUntil = -1
-
   for (let i = 0; i < text.length; i++) {
     const character = text[i];
-
-    // TODO: Implementation of this block seems to be incorrect. As `index` is not defined anywhere.
-    // Don't bother executing block checks if we don't have any blocks to check for!
-    if (isBlockCheckRequired) {
-      // // Check if we have completed grouping a text sequence/block
-      // if (groupingUntil === index) {
-      // 	groupingUntil = -1
-      // 	isGrouping = false
-      // }
-      // // Check if we need to group the next text sequence/block
-      // let until = 0
-      // if (blockLocations.has(index)) {
-      // 	until = blockLocations.get(index)
-      // 	isGrouping = true
-      // 	groupingUntil = until
-      // }
-      // // if we are grouping, then we don't care about what type of character we have, it's going to be treated as a word
-      // if (isGrouping) {
-      // 	state.currentWord.push(character)
-      // 	state.mode = Mode.character
-      // 	continue
-      // }
-    }
 
     switch (state.mode) {
       case Mode.character:
@@ -154,30 +125,6 @@ function addClearWordSwitchMode(state: State, character: string, mode: Mode) {
 
   state.currentWord = [character];
   state.mode = mode;
-}
-
-function findBlocks(text: string, blockExpressions: RegExp[]) {
-  let blockLocations = new Map();
-
-  if (blockExpressions === null) {
-    return blockLocations;
-  }
-
-  for (let exp of blockExpressions) {
-    let m;
-    while ((m = exp.exec(text)) !== null) {
-      if (blockLocations.has(m.index)) {
-        throw new Error(
-          "One or more block expressions result in a text sequence that overlaps. Current expression: " +
-            exp.toString(),
-        );
-      }
-
-      blockLocations.set(m.index, m.index + m[0].length);
-    }
-  }
-
-  return blockLocations;
 }
 
 export { convertHtmlToListOfWords };

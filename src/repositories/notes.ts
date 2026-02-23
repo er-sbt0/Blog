@@ -14,7 +14,7 @@ const authorSelect = {
 
 export async function createCanvas(
   authorId: string,
-  name: string = "My Notes"
+  name: string = "My Notes",
 ): Promise<NotesCanvas> {
   const canvas = await prisma.notesCanvas.create({
     data: {
@@ -30,7 +30,7 @@ export async function createCanvas(
 }
 
 export async function findCanvasByAuthorId(
-  authorId: string
+  authorId: string,
 ): Promise<NotesCanvas[]> {
   const canvases = await prisma.notesCanvas.findMany({
     where: { authorId },
@@ -61,7 +61,7 @@ export async function findCanvasById(id: string): Promise<NotesCanvas | null> {
 
 export async function updateCanvas(
   id: string,
-  data: { name?: string }
+  data: { name?: string },
 ): Promise<NotesCanvas> {
   const canvas = await prisma.notesCanvas.update({
     where: { id },
@@ -84,7 +84,7 @@ export async function deleteCanvas(id: string): Promise<void> {
 
 // Get or create default canvas for a user
 export async function getOrCreateDefaultCanvas(
-  authorId: string
+  authorId: string,
 ): Promise<NotesCanvas> {
   const canvases = await findCanvasByAuthorId(authorId);
 
@@ -159,7 +159,7 @@ export interface UpdateNoteInput {
 
 export async function updateNote(
   id: string,
-  updates: UpdateNoteInput
+  updates: UpdateNoteInput,
 ): Promise<Note> {
   const note = await prisma.note.update({
     where: { id },
@@ -177,7 +177,7 @@ export async function deleteNote(id: string): Promise<void> {
 
 export async function bringNoteToFront(
   noteId: string,
-  canvasId: string
+  canvasId: string,
 ): Promise<Note> {
   // Get the maximum zIndex for this canvas
   const result = await prisma.note.aggregate({
@@ -194,7 +194,7 @@ export async function bringNoteToFront(
 // Batch create notes (useful for migration)
 export async function batchCreateNotes(
   canvasId: string,
-  notes: Omit<CreateNoteInput, "canvasId">[]
+  notes: Omit<CreateNoteInput, "canvasId">[],
 ): Promise<Note[]> {
   const createdNotes = await prisma.$transaction(
     notes.map((noteData) =>
@@ -211,7 +211,7 @@ export async function batchCreateNotes(
           zIndex: noteData.zIndex ?? 0,
         },
       })
-    )
+    ),
   );
 
   return createdNotes.map(mapNoteFromPrisma);
@@ -233,7 +233,7 @@ function mapNoteFromPrisma(
     zIndex: number;
     createdAt: Date;
     updatedAt: Date;
-  }
+  },
 ): Note {
   return {
     id: prismaNote.id,
@@ -274,7 +274,7 @@ function mapCanvasFromPrisma(
       createdAt: Date;
       updatedAt: Date;
     }>;
-  }
+  },
 ): NotesCanvas {
   return {
     id: prismaCanvas.id,

@@ -51,7 +51,9 @@ const SeriesGrid: React.FC<SeriesGridProps> = memo(({
   // State for drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
-  const [selectedSeriesTitle, setSelectedSeriesTitle] = useState<string | null>(null);
+  const [selectedSeriesTitle, setSelectedSeriesTitle] = useState<string | null>(
+    null,
+  );
 
   // Default grid configuration
   const defaultGridConfig = {
@@ -119,45 +121,46 @@ const SeriesGrid: React.FC<SeriesGridProps> = memo(({
 
   return (
     <>
-    <Grid
-      container
-      spacing={finalGridConfig.spacing}
-      sx={{
-        width: "100%",
-        margin: 0,
-      }}
-    >
-      {series.map((seriesItem) => (
-        <Grid
-          key={seriesItem.id}
-          size={finalGridConfig.columns}
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <SeriesCard
-            variant="detailed"
-            series={seriesItem}
-            user={user}
-            showMetadata={true}
-            showActions={true}
-            onCreatePost={() => handleCreatePost(seriesItem.id, seriesItem.title)}
-          />
-        </Grid>
-      ))}
-    </Grid>
+      <Grid
+        container
+        spacing={finalGridConfig.spacing}
+        sx={{
+          width: "100%",
+          margin: 0,
+        }}
+      >
+        {series.map((seriesItem) => (
+          <Grid
+            key={seriesItem.id}
+            size={finalGridConfig.columns}
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <SeriesCard
+              variant="detailed"
+              series={seriesItem}
+              user={user}
+              showMetadata={true}
+              showActions={true}
+              onCreatePost={() =>
+                handleCreatePost(seriesItem.id, seriesItem.title)}
+            />
+          </Grid>
+        ))}
+      </Grid>
 
-    {/* Drawer for creating new post */}
-    {selectedSeriesId && (
-      <CreatePostDrawer
-        open={drawerOpen}
-        onClose={handleCloseDrawer}
-        seriesId={selectedSeriesId}
-        seriesTitle={selectedSeriesTitle || undefined}
-      />
-    )}
-  </>
+      {/* Drawer for creating new post */}
+      {selectedSeriesId && (
+        <CreatePostDrawer
+          open={drawerOpen}
+          onClose={handleCloseDrawer}
+          seriesId={selectedSeriesId}
+          seriesTitle={selectedSeriesTitle || undefined}
+        />
+      )}
+    </>
   );
 });
 

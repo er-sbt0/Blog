@@ -121,15 +121,11 @@ const SideBar: React.FC = () => {
     // Try to load saved state from localStorage
     if (typeof window !== "undefined") {
       const savedState = localStorage.getItem("sidebarSeriesCollapsedState");
-      console.log("[Sidebar] Saved state from localStorage:", savedState);
 
       if (savedState) {
         try {
           const parsed: string[] = JSON.parse(savedState);
           const savedSet = new Set<string>(parsed);
-          console.log("[Sidebar] Loaded collapsed series from localStorage:", [
-            ...savedSet,
-          ]);
           return savedSet;
         } catch (e) {
           console.error("Failed to parse sidebar series collapsed state:", e);
@@ -265,37 +261,22 @@ const SideBar: React.FC = () => {
 
   // Toggle series expanded/collapsed state
   const toggleSeriesExpanded = useCallback((seriesId: string) => {
-    console.log("[Sidebar] Toggling series:", seriesId);
     setCollapsedSeries((prev) => {
       const next = new Set(prev);
       if (next.has(seriesId)) {
         next.delete(seriesId);
-        console.log(
-          "[Sidebar] Expanded series (removed from collapsed):",
-          seriesId,
-        );
       } else {
         next.add(seriesId);
-        console.log(
-          "[Sidebar] Collapsed series (added to collapsed):",
-          seriesId,
-        );
       }
 
       const stateArray = [...next];
-      console.log("[Sidebar] New collapsed state:", stateArray);
 
       // Save to localStorage
       if (typeof window !== "undefined") {
-        const jsonState = JSON.stringify(stateArray);
-        localStorage.setItem("sidebarSeriesCollapsedState", jsonState);
-        console.log("[Sidebar] Saved to localStorage:", jsonState);
-
-        // Verify it was saved
-        const verification = localStorage.getItem(
+        localStorage.setItem(
           "sidebarSeriesCollapsedState",
+          JSON.stringify(stateArray),
         );
-        console.log("[Sidebar] Verification read:", verification);
       }
 
       return next;
@@ -515,9 +496,7 @@ const SideBar: React.FC = () => {
               sx={{
                 minHeight: inSeries ? 30 : 32,
                 justifyContent: open ? "initial" : "center",
-                ...(inSeries
-                  ? { pl: 2, pr: 2.5 }
-                  : { px: open ? 3 : 2.5 }),
+                ...(inSeries ? { pl: 2, pr: 2.5 } : { px: open ? 3 : 2.5 }),
                 py: inSeries ? 0.25 : 0.5,
                 "&.Mui-selected": {
                   bgcolor: "action.selected",
@@ -544,38 +523,40 @@ const SideBar: React.FC = () => {
                 />
               </ListItemIcon>
               {open &&
-                (isRenaming ? (
-                  <TextField
-                    inputRef={renameInputRef}
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onBlur={handleRenameBlur}
-                    onKeyDown={handleRenameKeyDown}
-                    size="small"
-                    variant="standard"
-                    fullWidth
-                    sx={{
-                      "& .MuiInput-input": {
+                (isRenaming
+                  ? (
+                    <TextField
+                      inputRef={renameInputRef}
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={handleRenameBlur}
+                      onKeyDown={handleRenameKeyDown}
+                      size="small"
+                      variant="standard"
+                      fullWidth
+                      sx={{
+                        "& .MuiInput-input": {
+                          fontSize: "0.78em",
+                          fontWeight: isSelected ? 600 : 400,
+                          py: 0,
+                        },
+                      }}
+                    />
+                  )
+                  : (
+                    <ListItemText
+                      primary={docName}
+                      primaryTypographyProps={{
                         fontSize: "0.78em",
-                        fontWeight: isSelected ? 600 : 400,
-                        py: 0,
-                      },
-                    }}
-                  />
-                ) : (
-                  <ListItemText
-                    primary={docName}
-                    primaryTypographyProps={{
-                      fontSize: "0.78em",
-                      sx: {
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontWeight: isSelected ? 600 : 400,
-                      },
-                    }}
-                  />
-                ))}
+                        sx: {
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          fontWeight: isSelected ? 600 : 400,
+                        },
+                      }}
+                    />
+                  ))}
             </ListItemButton>
           </Tooltip>
         </ListItem>

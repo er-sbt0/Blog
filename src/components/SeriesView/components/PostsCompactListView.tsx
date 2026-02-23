@@ -1,19 +1,15 @@
 import React from "react";
 import {
   Box,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
-  Typography,
-  IconButton,
   Tooltip,
+  Typography,
 } from "@mui/material";
-import {
-  Add,
-  Remove,
-  Undo,
-} from "@mui/icons-material";
-import { UserDocument, User, DocumentStatus } from "@/types";
+import { Add, Remove, Undo } from "@mui/icons-material";
+import { DocumentStatus, User, UserDocument } from "@/types";
 import { useRouter } from "next/navigation";
 import PostActionMenu from "@/components/DocumentCardNew/PostActionMenu";
 
@@ -39,7 +35,9 @@ interface PostsCompactListViewProps {
  * Format date to short readable string
  */
 const formatDate = (dateString: string | Date): string => {
-  const date = typeof dateString === "string" ? new Date(dateString) : dateString;
+  const date = typeof dateString === "string"
+    ? new Date(dateString)
+    : dateString;
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -50,7 +48,20 @@ const formatDate = (dateString: string | Date): string => {
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
 
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
@@ -58,7 +69,20 @@ const formatDate = (dateString: string | Date): string => {
  * Format date to full display
  */
 const formatFullDate = (date: Date): string => {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
@@ -248,10 +272,14 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
         {posts.map((post) => {
           const document = post.cloud || post.local;
           const isDone = document?.status === DocumentStatus.DONE;
-          const authorName = (document && 'author' in document && document.author?.name) || "Unknown";
+          const authorName =
+            (document && "author" in document && document.author?.name) ||
+            "Unknown";
           const originalDate = new Date(document?.createdAt || new Date());
           const pendingChange = pendingChanges.get(post.id);
-          const displayDate = pendingChange ? pendingChange.newDate : originalDate;
+          const displayDate = pendingChange
+            ? pendingChange.newDate
+            : originalDate;
           const hasRowChanges = !!pendingChange;
 
           return (
@@ -271,7 +299,11 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                   transform: "translateY(-50%)",
                   width: 3,
                   height: hasRowChanges ? "100%" : isDone ? "100%" : 0,
-                  bgcolor: hasRowChanges ? "warning.main" : isDone ? "text.disabled" : "primary.main",
+                  bgcolor: hasRowChanges
+                    ? "warning.main"
+                    : isDone
+                    ? "text.disabled"
+                    : "primary.main",
                   borderRadius: "0 2px 2px 0",
                   transition: "height 0.2s ease, background-color 0.2s ease",
                 },
@@ -353,11 +385,15 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                           opacity: 0.5,
                         }}
                       />
-                      <span style={{
-                        color: hasRowChanges ? "inherit" : undefined,
-                        fontWeight: hasRowChanges ? 600 : 400,
-                      }}>
-                        {isTimeEditMode ? formatFullDate(displayDate) : formatDate(displayDate)}
+                      <span
+                        style={{
+                          color: hasRowChanges ? "inherit" : undefined,
+                          fontWeight: hasRowChanges ? 600 : 400,
+                        }}
+                      >
+                        {isTimeEditMode
+                          ? formatFullDate(displayDate)
+                          : formatDate(displayDate)}
                       </span>
                       {hasRowChanges && (
                         <Typography
@@ -378,7 +414,8 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                 {/* Time Edit Controls */}
                 {isTimeEditMode && onTimeAdjust && onTimeReset && (
                   <TimeStepperControls
-                    onAdjust={(days) => onTimeAdjust(post.id, originalDate, days)}
+                    onAdjust={(days) =>
+                      onTimeAdjust(post.id, originalDate, days)}
                     onReset={() => onTimeReset(post.id)}
                     hasChanges={hasRowChanges}
                   />

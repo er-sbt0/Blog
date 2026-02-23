@@ -65,7 +65,6 @@ const MoveToDialog: React.FC<MoveToDialogProps> = (
   // Initialize directories when dialog opens
   useEffect(() => {
     if (open) {
-      console.log("MoveToDialog opened, loading root directories");
       loadDirectories(null); // Start at root
     }
   }, [open]);
@@ -85,14 +84,9 @@ const MoveToDialog: React.FC<MoveToDialogProps> = (
         return;
       }
 
-      console.log("Loading directories for parent ID:", directoryId);
-      console.log("Total documents:", documents.length);
-
       // Since directories are no longer used in blog structure,
       // this dialog should not be used for moving documents
       const allDirectories: UserDocument[] = [];
-
-      console.log("All directories:", allDirectories.length);
 
       // Filter directories at the current level
       const directoriesAtLevel = allDirectories.filter((dir) => {
@@ -103,11 +97,6 @@ const MoveToDialog: React.FC<MoveToDialogProps> = (
           ? parentId === null || parentId === undefined
           : parentId === directoryId;
       });
-
-      console.log(
-        "Directories at this level:",
-        directoriesAtLevel.length,
-      );
 
       setDirectories(directoriesAtLevel);
 
@@ -218,8 +207,6 @@ const MoveToDialog: React.FC<MoveToDialogProps> = (
     setLoading(true);
 
     try {
-      console.log("Moving document to new location:", currentDirectoryId);
-
       // Update the document's parentId
       if (userDocument.local) {
         await dispatch(actions.updateLocalDocument({
@@ -278,7 +265,6 @@ const MoveToDialog: React.FC<MoveToDialogProps> = (
         // Only close the dialog when explicitly clicking the close button
         // This prevents the dialog from closing when clicking outside or pressing Escape
         if (reason === "backdropClick" || reason === "escapeKeyDown") {
-          console.log("Preventing dialog close from:", reason);
           return;
         }
         onClose();

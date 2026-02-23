@@ -69,10 +69,10 @@ export const groupPostsBySeries = (
   seriesMap.forEach((series) => {
     if (series.posts && series.posts.length > 0) {
       // Mark all series post IDs
-      series.posts.forEach(post => seriesPostIds.add(post.id));
+      series.posts.forEach((post) => seriesPostIds.add(post.id));
 
       // Convert series posts to UserDocument format
-      const seriesPosts: UserDocument[] = series.posts.map(post => ({
+      const seriesPosts: UserDocument[] = series.posts.map((post) => ({
         id: post.id,
         cloud: post as any, // Series posts are CloudDocument format
       }));
@@ -140,7 +140,9 @@ export const flattenGroupedPosts = (
  * @param granularity - Time granularity
  * @returns Time groups including partitions for series creation dates
  */
-export const ensureSeriesPartitions = <T extends { timeKey: string; granularity: string; posts: UserDocument[] }>(
+export const ensureSeriesPartitions = <
+  T extends { timeKey: string; granularity: string; posts: UserDocument[] },
+>(
   timeGroups: T[],
   seriesMap: Map<string, Series>,
   granularity: PartitionGranularity,
@@ -148,7 +150,7 @@ export const ensureSeriesPartitions = <T extends { timeKey: string; granularity:
   const { getTimeKey } = require("./dateHelpers");
   const { formatTimeHeader } = require("./dateHelpers");
 
-  const existingTimeKeys = new Set(timeGroups.map(g => g.timeKey));
+  const existingTimeKeys = new Set(timeGroups.map((g) => g.timeKey));
   const newPartitions: T[] = [];
 
   // Check each series to see if we need to create a partition for it
@@ -258,14 +260,18 @@ export const deduplicateSeriesAcrossPartitions = <
   // Build a map of seriesId -> correct timeKey based on series.createdAt
   // Only include series whose creation time partition exists in the filtered results
   const seriesToTimeKeyMap = new Map<string, string>();
-  const availableTimeKeys = new Set(timeGroups.map(g => g.timeKey));
+  const availableTimeKeys = new Set(timeGroups.map((g) => g.timeKey));
 
   seriesMap.forEach((series, seriesId) => {
-    const seriesCreatedAt = series.createdAt ? new Date(series.createdAt) : null;
+    const seriesCreatedAt = series.createdAt
+      ? new Date(series.createdAt)
+      : null;
     if (seriesCreatedAt) {
       // Get the time key for this series based on its creation date and granularity
       // Use the granularity from the first timeGroup (they all have the same granularity)
-      const granularity = timeGroups.length > 0 ? timeGroups[0].granularity as any : "month";
+      const granularity = timeGroups.length > 0
+        ? timeGroups[0].granularity as any
+        : "month";
       const idealTimeKey = getTimeKey(seriesCreatedAt, granularity);
 
       // Only show series card if its natural partition exists in the filtered results

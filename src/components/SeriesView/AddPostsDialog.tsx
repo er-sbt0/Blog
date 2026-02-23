@@ -308,7 +308,15 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
                             <ListItemText
                               primary={post.name}
                               secondary={post.description ||
-                                <>Updated <DateDisplay date={post.updatedAt} variant="medium" /></>}
+                                (
+                                  <>
+                                    Updated{" "}
+                                    <DateDisplay
+                                      date={post.updatedAt}
+                                      variant="medium"
+                                    />
+                                  </>
+                                )}
                               primaryTypographyProps={{
                                 fontWeight: 500,
                                 noWrap: true,
@@ -364,7 +372,15 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
                             <ListItemText
                               primary={post.name}
                               secondary={post.description ||
-                                <>Updated <DateDisplay date={post.updatedAt} variant="medium" /></>}
+                                (
+                                  <>
+                                    Updated{" "}
+                                    <DateDisplay
+                                      date={post.updatedAt}
+                                      variant="medium"
+                                    />
+                                  </>
+                                )}
                               primaryTypographyProps={{
                                 fontWeight: 500,
                                 noWrap: true,

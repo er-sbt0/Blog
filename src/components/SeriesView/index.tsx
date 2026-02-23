@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DocumentType, Post, Series, User } from "@/types";
 import { useSession } from "next-auth/react";
 import { PartitionGranularity } from "@/types/partitioning";
@@ -91,7 +91,9 @@ const SeriesView: React.FC<SeriesViewProps> = ({
 
   // Global time editing state
   const [isTimeEditMode, setIsTimeEditMode] = useState(false);
-  const [pendingTimeChanges, setPendingTimeChanges] = useState<Map<string, PendingTimeChange>>(new Map());
+  const [pendingTimeChanges, setPendingTimeChanges] = useState<
+    Map<string, PendingTimeChange>
+  >(new Map());
   const [isSavingTimeChanges, setIsSavingTimeChanges] = useState(false);
 
   // Load view preference from localStorage on mount
@@ -117,21 +119,28 @@ const SeriesView: React.FC<SeriesViewProps> = ({
     setIsTimeEditMode(!isTimeEditMode);
   }, [isTimeEditMode]);
 
-  const handleTimeAdjust = useCallback((postId: string, originalDate: Date, days: number) => {
-    setPendingTimeChanges((prev) => {
-      const newMap = new Map(prev);
-      const existing = newMap.get(postId);
-      const currentDate = existing ? existing.newDate : new Date(originalDate);
-      const newDate = new Date(currentDate);
-      newDate.setDate(newDate.getDate() + days);
+  const handleTimeAdjust = useCallback(
+    (postId: string, originalDate: Date, days: number) => {
+      setPendingTimeChanges((prev) => {
+        const newMap = new Map(prev);
+        const existing = newMap.get(postId);
+        const currentDate = existing
+          ? existing.newDate
+          : new Date(originalDate);
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() + days);
 
-      newMap.set(postId, {
-        originalDate: existing ? existing.originalDate : new Date(originalDate),
-        newDate,
+        newMap.set(postId, {
+          originalDate: existing
+            ? existing.originalDate
+            : new Date(originalDate),
+          newDate,
+        });
+        return newMap;
       });
-      return newMap;
-    });
-  }, []);
+    },
+    [],
+  );
 
   const handleTimeReset = useCallback((postId: string) => {
     setPendingTimeChanges((prev) => {
@@ -146,7 +155,9 @@ const SeriesView: React.FC<SeriesViewProps> = ({
 
     setIsSavingTimeChanges(true);
     try {
-      const updates = Array.from(pendingTimeChanges.entries()).map(([id, change]) => ({
+      const updates = Array.from(pendingTimeChanges.entries()).map((
+        [id, change],
+      ) => ({
         id,
         createdAt: change.newDate,
       }));
@@ -185,8 +196,10 @@ const SeriesView: React.FC<SeriesViewProps> = ({
         // Use pending date if available, otherwise use original date
         const pendingA = pendingTimeChanges.get(a.id);
         const pendingB = pendingTimeChanges.get(b.id);
-        const dateA = (pendingA ? pendingA.newDate : new Date(a.createdAt || 0)).getTime();
-        const dateB = (pendingB ? pendingB.newDate : new Date(b.createdAt || 0)).getTime();
+        const dateA = (pendingA ? pendingA.newDate : new Date(a.createdAt || 0))
+          .getTime();
+        const dateB = (pendingB ? pendingB.newDate : new Date(b.createdAt || 0))
+          .getTime();
         return dateB - dateA; // Newest first
       }),
     [series.posts, pendingTimeChanges],
@@ -428,7 +441,14 @@ const SeriesView: React.FC<SeriesViewProps> = ({
               postCount={filteredPosts.length}
               disabled={filteredPosts.length === 0}
             />
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                flexWrap: "wrap",
+              }}
+            >
               {/* Global Time Edit Controls - only for compact view and can edit */}
               {canEdit && viewType === "compact" && (
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -464,7 +484,8 @@ const SeriesView: React.FC<SeriesViewProps> = ({
                         color="success"
                         startIcon={<Check />}
                         onClick={handleSaveTimeChanges}
-                        disabled={pendingTimeChanges.size === 0 || isSavingTimeChanges}
+                        disabled={pendingTimeChanges.size === 0 ||
+                          isSavingTimeChanges}
                         sx={{
                           textTransform: "none",
                           fontWeight: 500,

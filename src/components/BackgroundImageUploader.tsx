@@ -52,18 +52,6 @@ const BackgroundImageUploader = (
 
       // Check if document exists
       const document = userDocument.cloud || userDocument.local;
-      console.log("Document data:", {
-        hasCloud: !!userDocument.cloud,
-        hasLocal: !!userDocument.local,
-        cloudType: userDocument.cloud?.type,
-        localType: userDocument.local?.type,
-        documentType: document?.type,
-        isDocumentCheck: document?.type === "DOCUMENT",
-        rawDocumentType: typeof document?.type === "string"
-          ? document?.type
-          : "not a string",
-      });
-
       if (!document) {
         throw new Error("Document not found");
       }
@@ -80,8 +68,6 @@ const BackgroundImageUploader = (
         );
       }
 
-      console.log("Uploading image for post:", documentId);
-
       // Upload the image
       const response = await fetch(
         `/api/documents/${documentId}/background`,
@@ -92,8 +78,6 @@ const BackgroundImageUploader = (
       );
 
       const responseData = await response.json();
-      console.log("Response from server:", responseData);
-
       if (!response.ok) {
         const errorMessage = responseData.error?.subtitle ||
           responseData.error?.title || "Upload failed";

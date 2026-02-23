@@ -12,17 +12,22 @@ import {
 } from "@/types";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { validateHandle } from "./utils";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const limit = searchParams.get("limit")
+    ? parseInt(searchParams.get("limit")!)
+    : undefined;
   const response: GetDocumentsResponse = {};
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
-      const allPosts = await findAllPosts();
+      const allPosts = await findAllPosts(limit);
       response.data = allPosts;
       return NextResponse.json(response, { status: 200 });
     }
@@ -38,7 +43,7 @@ export async function GET() {
     response.data = posts;
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "Something went wrong",
       subtitle: "Please try again later",
@@ -89,14 +94,15 @@ export async function POST(request: Request) {
       authorId: user.id,
       name: body.name,
       createdAt: body.createdAt,
-      updatedAt: body.updatedAt,
       head: body.head,
       published: body.published,
       collab: body.collab,
       private: body.private,
-      parentId: body.parentId, // Include parentId when creating document
-      type: body.type || "DOCUMENT", // Ensure posts are created as DOCUMENT type
+      parentId: body.parentId,
+      type: body.type || "DOCUMENT",
       ...(body.description !== undefined && { description: body.description }),
+      ...(body.seriesId !== undefined && { seriesId: body.seriesId }),
+      ...(body.seriesOrder !== undefined && { seriesOrder: body.seriesOrder }),
       revisions: {
         create: {
           id: body.head || undefined,
@@ -122,7 +128,7 @@ export async function POST(request: Request) {
       );
       if (InvalidEmails.length > 0) {
         response.error = {
-          title: "Invalid Coauther Email",
+          title: "Invalid Coauthor Email",
           subtitle: "One or more emails are invalid",
         };
         return NextResponse.json(response, { status: 400 });
@@ -151,9 +157,16 @@ export async function POST(request: Request) {
     }
 
     response.data = await createPost(input);
+
+    revalidatePath("/");
+    if (body.seriesId) {
+      revalidatePath("/series");
+      revalidatePath(`/series/${body.seriesId}`);
+    }
+
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "Something went wrong",
       subtitle: "Please try again later",

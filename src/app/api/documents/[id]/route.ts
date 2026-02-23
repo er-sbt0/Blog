@@ -70,7 +70,7 @@ export async function GET(
     response.data = { ...editorPost, cloudDocument: userPost };
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "Something went wrong",
       subtitle: "Please try again later",
@@ -133,7 +133,6 @@ export async function PATCH(
       head: body.head,
       handle: body.handle,
       createdAt: body.createdAt,
-      updatedAt: body.updatedAt,
       published: body.published,
       collab: body.collab,
       private: body.private,
@@ -161,7 +160,7 @@ export async function PATCH(
       );
       if (InvalidEmails.length > 0) {
         response.error = {
-          title: "Invalid Coauther Email",
+          title: "Invalid Coauthor Email",
           subtitle: "One or more emails are invalid",
         };
         return NextResponse.json(response, { status: 400 });
@@ -203,9 +202,17 @@ export async function PATCH(
     }
 
     response.data = await updatePost(params.id, input);
+
+    revalidatePath("/");
+    revalidatePath(`/${userPost.handle || params.id}`);
+    if (userPost.seriesId) {
+      revalidatePath("/series");
+      revalidatePath(`/series/${userPost.seriesId}`);
+    }
+
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "Something went wrong",
       subtitle: "Please try again later",
@@ -269,7 +276,7 @@ export async function DELETE(
     response.data = params.id;
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "Something went wrong",
       subtitle: "Please try again later",

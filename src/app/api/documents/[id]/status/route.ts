@@ -23,8 +23,6 @@ export async function PATCH(
 ) {
   const params = await props.params;
 
-  console.log("Status API called with ID:", params.id);
-
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -76,9 +74,6 @@ export async function PATCH(
     const body = await request.json();
     const { status } = body;
 
-    console.log("Received request body:", body);
-    console.log("Status to update:", status);
-
     // Validate status
     if (!status || !Object.values(DocumentStatus).includes(status)) {
       return NextResponse.json(
@@ -95,7 +90,6 @@ export async function PATCH(
     // Update the document status
     const updatedPost = await updatePost(params.id, {
       status,
-      updatedAt: new Date(),
     });
 
     if (!updatedPost) {

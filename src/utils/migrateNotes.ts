@@ -117,7 +117,9 @@ export async function migrateNotesFromIndexedDB(): Promise<MigrationResult> {
     return {
       success: false,
       notesCount: 0,
-      error: error instanceof Error ? error.message : "Unknown error during migration",
+      error: error instanceof Error
+        ? error.message
+        : "Unknown error during migration",
     };
   }
 }

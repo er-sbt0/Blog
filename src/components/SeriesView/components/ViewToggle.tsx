@@ -1,6 +1,6 @@
 import React from "react";
 import { ToggleButton, ToggleButtonGroup, Tooltip } from "@mui/material";
-import { ViewModule, ViewList, ViewHeadline } from "@mui/icons-material";
+import { ViewHeadline, ViewList, ViewModule } from "@mui/icons-material";
 
 export type ViewType = "grid" | "compact" | "detailed";
 

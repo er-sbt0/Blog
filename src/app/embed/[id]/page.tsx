@@ -8,9 +8,9 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { validate } from "uuid";
 import { findRevisionHtml } from "@/app/api/utils";
-import { format } from 'date-fns';
+import { format } from "date-fns";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const getCachedUserDocument = cache(async (id: string, revisions?: string) =>
   await findUserPost(id, revisions)
@@ -42,7 +42,9 @@ export async function generateMetadata(
     } else {
       metadata.title = document.name;
       metadata.subtitle = revision
-        ? `Last updated: ${format(new Date(revision.createdAt), 'MMMM d, yyyy, h:mm a')} (UTC)`
+        ? `Last updated: ${
+          format(new Date(revision.createdAt), "MMMM d, yyyy, h:mm a")
+        } (UTC)`
         : "Revision not Found";
       metadata.user = {
         name: document.author.name,

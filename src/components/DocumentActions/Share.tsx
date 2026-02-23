@@ -321,7 +321,10 @@ const ShareDocument: React.FC<
                               key={revision.id}
                               value={revision.id}
                             >
-                              <DateDisplay date={revision.createdAt} variant="full" />
+                              <DateDisplay
+                                date={revision.createdAt}
+                                variant="full"
+                              />
                             </MenuItem>
                           ),
                         )}
@@ -366,7 +369,10 @@ const ShareDocument: React.FC<
                               key={revision.id}
                               value={revision.id}
                             >
-                              <DateDisplay date={revision.createdAt} variant="full" />
+                              <DateDisplay
+                                date={revision.createdAt}
+                                variant="full"
+                              />
                             </MenuItem>
                           ),
                         )}
@@ -421,7 +427,10 @@ const ShareDocument: React.FC<
                                 value={revision
                                   .id}
                               >
-                                <DateDisplay date={revision.createdAt} variant="full" />
+                                <DateDisplay
+                                  date={revision.createdAt}
+                                  variant="full"
+                                />
                               </MenuItem>
                             ))}
                         </Select>
@@ -537,7 +546,10 @@ const ShareDocument: React.FC<
                               key={revision.id}
                               value={revision.id}
                             >
-                              <DateDisplay date={revision.createdAt} variant="full" />
+                              <DateDisplay
+                                date={revision.createdAt}
+                                variant="full"
+                              />
                             </MenuItem>
                           ),
                         )}

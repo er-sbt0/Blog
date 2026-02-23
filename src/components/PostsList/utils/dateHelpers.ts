@@ -3,7 +3,7 @@
  */
 
 import { PartitionGranularity } from "@/types/partitioning";
-import { format } from 'date-fns';
+import { format } from "date-fns";
 
 /**
  * Format a date into a month/year display string
@@ -11,7 +11,7 @@ import { format } from 'date-fns';
  * @returns Formatted string like "January 2024"
  */
 export const formatMonthHeader = (date: Date): string => {
-  return format(date, 'MMMM yyyy');
+  return format(date, "MMMM yyyy");
 };
 
 /**
@@ -127,7 +127,7 @@ export const formatTimeHeader = (
   switch (granularity) {
     case "day":
       // Convert "2024-01-15" to "January 15, 2024"
-      return format(new Date(timeKey), 'MMMM d, yyyy');
+      return format(new Date(timeKey), "MMMM d, yyyy");
     case "week":
       // Convert "2024-W03" to "Week 3, 2024"
       const [yearPart, weekPart] = timeKey.split("-W");

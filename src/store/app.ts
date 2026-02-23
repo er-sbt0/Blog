@@ -20,11 +20,8 @@ import {
   GetDocumentThumbnailResponse,
   GetRevisionResponse,
   GetSessionResponse,
-  PatchUserResponse,
   PostRevisionResponse,
-  User,
   UserDocument,
-  UserPost,
 } from "../types";
 import {
   DeleteDocumentResponse,
@@ -32,14 +29,24 @@ import {
   GetDocumentsResponse,
   PatchDocumentResponse,
   PostDocumentsResponse,
+  Series,
 } from "@/types";
 import { validate } from "uuid";
 import { duplicateDocument } from "./app/duplicateDocument";
+import {
+  createSeries,
+  deleteSeries,
+  loadSeries,
+  updateSeries,
+} from "./thunks/seriesThunks";
+import { alert, updateUser } from "./thunks/userThunks";
+
+const toErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : "Unknown error";
 
 const initialState: AppState = {
   documents: [],
-  posts: [], // New: posts state for blog structure
-  series: [], // New: series state for blog structure
+  series: [],
   ui: {
     announcements: [],
     alerts: [],
@@ -60,7 +67,6 @@ export const load = createAsyncThunk("app/load", async (_, thunkAPI) => {
   await Promise.allSettled([
     thunkAPI.dispatch(loadSession()),
     thunkAPI.dispatch(loadLocalDocuments()),
-    thunkAPI.dispatch(loadPosts()), // Load posts for blog structure
   ]);
 
   // Load cloud documents, then series to ensure series.posts is authoritative
@@ -89,11 +95,11 @@ export const loadSession = createAsyncThunk(
         image: data.user.image,
       };
       return thunkAPI.fulfillWithValue(user);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -142,11 +148,11 @@ export const loadLocalDocuments = createAsyncThunk(
         }),
       );
       return thunkAPI.fulfillWithValue(localDocuments);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -162,17 +168,17 @@ export const loadCloudDocuments = createAsyncThunk(
           payloadCreator,
         );
       }
-      const response = await fetch("/api/posts");
+      const response = await fetch("/api/documents");
       const { data, error } = await response
         .json() as GetDocumentsResponse;
       if (error) return thunkAPI.rejectWithValue(error);
       if (!data) return thunkAPI.fulfillWithValue([]);
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     } finally {
       NProgress.done();
@@ -210,11 +216,11 @@ export const getLocalStorageUsage = createAsyncThunk(
         });
       });
       return thunkAPI.fulfillWithValue(localStorageUsage);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -235,11 +241,11 @@ export const getCloudStorageUsage = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -260,11 +266,11 @@ export const getCloudDocumentThumbnail = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -285,11 +291,11 @@ export const getLocalDocument = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(document);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -307,11 +313,11 @@ export const getLocalRevision = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(revision);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -323,11 +329,11 @@ export const getLocalDocumentRevisions = createAsyncThunk(
     try {
       const revisions = await revisionDB.getManyByKey("documentId", id);
       return thunkAPI.fulfillWithValue(revisions);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -338,7 +344,7 @@ export const getCloudDocument = createAsyncThunk(
   async (id: string, thunkAPI) => {
     try {
       NProgress.start();
-      const response = await fetch(`/api/posts/${id}`);
+      const response = await fetch(`/api/documents/${id}`);
       const { data, error } = await response
         .json() as GetDocumentResponse;
       if (error) return thunkAPI.rejectWithValue(error);
@@ -349,11 +355,11 @@ export const getCloudDocument = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     } finally {
       NProgress.done();
@@ -377,11 +383,11 @@ export const getCloudRevision = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     } finally {
       NProgress.done();
@@ -422,11 +428,11 @@ export const forkLocalDocument = createAsyncThunk(
       document.updatedAt = revision.createdAt;
       document.data = revision.data;
       return thunkAPI.fulfillWithValue(document);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -454,11 +460,11 @@ export const forkCloudDocument = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     } finally {
       NProgress.done();
@@ -499,11 +505,11 @@ export const createLocalDocument = createAsyncThunk(
         })),
       };
       return thunkAPI.fulfillWithValue(localDocument);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -522,11 +528,11 @@ export const createLocalRevision = createAsyncThunk(
       }
       const { data, ...rest } = revision;
       return thunkAPI.fulfillWithValue(rest);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -537,7 +543,7 @@ export const createCloudDocument = createAsyncThunk(
   async (payloadCreator: DocumentCreateInput, thunkAPI) => {
     try {
       NProgress.start();
-      const response = await fetch("/api/posts", {
+      const response = await fetch("/api/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payloadCreator),
@@ -552,11 +558,11 @@ export const createCloudDocument = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     } finally {
       NProgress.done();
@@ -584,11 +590,11 @@ export const createCloudRevision = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     } finally {
       NProgress.done();
@@ -635,11 +641,11 @@ export const updateLocalDocument = createAsyncThunk(
       }
 
       return thunkAPI.fulfillWithValue(payload);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -669,11 +675,11 @@ export const updateCloudDocument = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     } finally {
       NProgress.done();
@@ -688,11 +694,11 @@ export const deleteLocalDocument = createAsyncThunk(
       await documentDB.deleteByID(id);
       await revisionDB.deleteManyByKey("documentId", id);
       return thunkAPI.fulfillWithValue(id);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -704,11 +710,11 @@ export const deleteLocalRevision = createAsyncThunk(
     try {
       await revisionDB.deleteByID(payloadCreator.id);
       return thunkAPI.fulfillWithValue(payloadCreator);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
@@ -732,11 +738,11 @@ export const deleteCloudDocument = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     } finally {
       NProgress.done();
@@ -763,11 +769,11 @@ export const deleteCloudRevision = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     } finally {
       NProgress.done();
@@ -788,285 +794,19 @@ export const getDocumentById = createAsyncThunk(
         });
       }
       return thunkAPI.fulfillWithValue(userDocument);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
         title: "Something went wrong",
-        subtitle: error.message,
+        subtitle: toErrorMessage(error),
       });
     }
   },
 );
 
-export const updateUser = createAsyncThunk(
-  "app/updateUser",
-  async (
-    payloadCreator: { id: string; partial: Partial<User> },
-    thunkAPI,
-  ) => {
-    try {
-      NProgress.start();
-      const { id, partial } = payloadCreator;
-      const response = await fetch(`/api/users/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(partial),
-      });
-      const { data, error } = await response.json() as PatchUserResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
-      if (!data) {
-        return thunkAPI.rejectWithValue({
-          title: "Something went wrong",
-          subtitle: "failed to update user",
-        });
-      }
-      const payload: User = data;
-      return thunkAPI.fulfillWithValue(payload);
-    } catch (error: any) {
-      console.error(error);
-      return thunkAPI.rejectWithValue({
-        title: "Something went wrong",
-        subtitle: error.message,
-      });
-    } finally {
-      NProgress.done();
-    }
-  },
-);
-
-export const alert = createAsyncThunk(
-  "app/alert",
-  async (payloadCreator: Alert, thunkAPI) => {
-    try {
-      const id = await new Promise((resolve) => {
-        const handler = (event: MouseEvent): any => {
-          const target = event.target as HTMLElement;
-          const button = target.closest("button");
-          const paper = target.closest(".MuiDialog-paper");
-          if (paper && !button) {
-            return document.addEventListener("click", handler, {
-              once: true,
-            });
-          }
-          resolve(button?.id ?? null);
-        };
-        setTimeout(() => {
-          document.addEventListener("click", handler, { once: true });
-        }, 0);
-      });
-      return thunkAPI.fulfillWithValue(id);
-    } catch (error: any) {
-      console.error(error);
-      return thunkAPI.rejectWithValue({
-        title: "Something went wrong",
-        subtitle: error.message,
-      });
-    }
-  },
-);
-
-// ===== NEW POST MANAGEMENT THUNKS =====
-
-export const loadPosts = createAsyncThunk(
-  "app/loadPosts",
-  async (_, thunkAPI) => {
-    try {
-      NProgress.start();
-      const response = await fetch("/api/posts");
-      const { data, error } = await response.json() as GetDocumentsResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
-      if (!data) return thunkAPI.fulfillWithValue([]);
-      NProgress.done();
-      return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
-      console.error(error);
-      NProgress.done();
-      return thunkAPI.rejectWithValue({
-        title: "Something went wrong",
-        subtitle: error.message,
-      });
-    }
-  },
-);
-
-export const createPost = createAsyncThunk(
-  "app/createPost",
-  async (payloadCreator: DocumentCreateInput, thunkAPI) => {
-    try {
-      const response = await fetch("/api/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadCreator),
-      });
-      const { data, error } = await response.json() as PostDocumentsResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
-      return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
-      console.error(error);
-      return thunkAPI.rejectWithValue({
-        title: "Something went wrong",
-        subtitle: error.message,
-      });
-    }
-  },
-);
-
-export const updatePost = createAsyncThunk(
-  "app/updatePost",
-  async (
-    { id, data }: { id: string; data: DocumentUpdateInput },
-    thunkAPI,
-  ) => {
-    try {
-      const response = await fetch(`/api/posts/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const { data: result, error } = await response
-        .json() as PatchDocumentResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
-      return thunkAPI.fulfillWithValue(result);
-    } catch (error: any) {
-      console.error(error);
-      return thunkAPI.rejectWithValue({
-        title: "Something went wrong",
-        subtitle: error.message,
-      });
-    }
-  },
-);
-
-export const deletePost = createAsyncThunk(
-  "app/deletePost",
-  async (id: string, thunkAPI) => {
-    try {
-      const response = await fetch(`/api/posts/${id}`, {
-        method: "DELETE",
-      });
-      const { data, error } = await response.json() as DeleteDocumentResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
-      return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
-      console.error(error);
-      return thunkAPI.rejectWithValue({
-        title: "Something went wrong",
-        subtitle: error.message,
-      });
-    }
-  },
-);
-
-// ===== NEW SERIES MANAGEMENT THUNKS =====
-
-// Series response types (temporary until we add them to types.ts)
-interface GetSeriesResponse {
-  data?: any[];
-  error?: { title: string; subtitle?: string };
-}
-
-interface PostSeriesResponse {
-  data?: any;
-  error?: { title: string; subtitle?: string };
-}
-
-interface SeriesCreateInput {
-  title: string;
-  description?: string;
-}
-
-export const loadSeries = createAsyncThunk(
-  "app/loadSeries",
-  async (_, thunkAPI) => {
-    try {
-      const response = await fetch("/api/series");
-      const { data, error } = await response.json() as GetSeriesResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
-      if (!data) return thunkAPI.fulfillWithValue([]);
-      return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
-      console.error(error);
-      return thunkAPI.rejectWithValue({
-        title: "Something went wrong",
-        subtitle: error.message,
-      });
-    }
-  },
-);
-
-export const createSeries = createAsyncThunk(
-  "app/createSeries",
-  async (payloadCreator: SeriesCreateInput, thunkAPI) => {
-    try {
-      const response = await fetch("/api/series", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadCreator),
-      });
-      const { data, error } = await response.json() as PostSeriesResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
-      return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
-      console.error(error);
-      return thunkAPI.rejectWithValue({
-        title: "Something went wrong",
-        subtitle: error.message,
-      });
-    }
-  },
-);
-
-export const updateSeries = createAsyncThunk(
-  "app/updateSeries",
-  async (
-    { id, data }: {
-      id: string;
-      data: { title?: string; description?: string };
-    },
-    thunkAPI,
-  ) => {
-    try {
-      const response = await fetch(`/api/series/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const { data: result, error } = await response
-        .json() as PostSeriesResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
-      return thunkAPI.fulfillWithValue(result);
-    } catch (error: any) {
-      console.error(error);
-      return thunkAPI.rejectWithValue({
-        title: "Something went wrong",
-        subtitle: error.message,
-      });
-    }
-  },
-);
-
-export const deleteSeries = createAsyncThunk(
-  "app/deleteSeries",
-  async (id: string, thunkAPI) => {
-    try {
-      const response = await fetch(`/api/series/${id}`, {
-        method: "DELETE",
-      });
-      const { data, error } = await response.json() as {
-        data?: string;
-        error?: { title: string; subtitle?: string };
-      };
-      if (error) return thunkAPI.rejectWithValue(error);
-      return thunkAPI.fulfillWithValue(data);
-    } catch (error: any) {
-      console.error(error);
-      return thunkAPI.rejectWithValue({
-        title: "Something went wrong",
-        subtitle: error.message,
-      });
-    }
-  },
-);
+// Series and user/alert thunks are defined in ./thunks/seriesThunks and ./thunks/userThunks
+export { createSeries, deleteSeries, loadSeries, updateSeries };
+export { alert, updateUser };
 
 // Add a special action to handle the auto-save before navigation
 export const appSlice = createSlice({
@@ -1185,10 +925,10 @@ export const appSlice = createSlice({
           if (!userDocument) {
             state.documents.push({
               id: document.id,
-              cloud: document as any,
+              cloud: document,
             });
           } else {
-            userDocument.cloud = document as any;
+            userDocument.cloud = document;
           }
         });
       })
@@ -1203,10 +943,10 @@ export const appSlice = createSlice({
         if (!userDocument) {
           state.documents.unshift({
             id: cloudDocument.id,
-            cloud: cloudDocument as any,
+            cloud: cloudDocument,
           });
         } else {
-          userDocument.cloud = cloudDocument as any;
+          userDocument.cloud = cloudDocument;
         }
       })
       .addCase(getCloudRevision.rejected, (state, action) => {
@@ -1257,10 +997,10 @@ export const appSlice = createSlice({
         if (!userDocument) {
           state.documents.unshift({
             id: document.id,
-            cloud: document as any,
+            cloud: document,
           });
         } else {
-          userDocument.cloud = document as any;
+          userDocument.cloud = document;
         }
       })
       .addCase(createCloudDocument.rejected, (state, action) => {
@@ -1276,7 +1016,7 @@ export const appSlice = createSlice({
           doc.id === revision.documentId
         );
         if (!document?.cloud) return;
-        document.cloud.revisions.unshift(revision as any);
+        document.cloud.revisions.unshift(revision);
       })
       .addCase(createCloudRevision.rejected, (state, action) => {
         const message = action.payload as {
@@ -1301,10 +1041,10 @@ export const appSlice = createSlice({
         if (!userDocument) {
           state.documents.unshift({
             id: document.id,
-            cloud: document as any,
+            cloud: document,
           });
         } else {
-          userDocument.cloud = document as any;
+          userDocument.cloud = document;
         }
       })
       .addCase(updateCloudDocument.rejected, (state, action) => {
@@ -1327,9 +1067,9 @@ export const appSlice = createSlice({
 
         // Also remove the post from any series that contains it
         if (state.series && state.series.length > 0) {
-          state.series.forEach(series => {
+          state.series.forEach((series) => {
             if (series.posts && series.posts.length > 0) {
-              series.posts = series.posts.filter(post => post.id !== id);
+              series.posts = series.posts.filter((post) => post.id !== id);
             }
           });
         }
@@ -1360,9 +1100,9 @@ export const appSlice = createSlice({
 
         // Also remove the post from any series that contains it
         if (state.series && state.series.length > 0) {
-          state.series.forEach(series => {
+          state.series.forEach((series) => {
             if (series.posts && series.posts.length > 0) {
-              series.posts = series.posts.filter(post => post.id !== id);
+              series.posts = series.posts.filter((post) => post.id !== id);
             }
           });
         }
@@ -1387,7 +1127,7 @@ export const appSlice = createSlice({
         ) => revision.id === id);
         if (!revision) return;
         cloudDocument.revisions = cloudDocument.revisions
-          .filter((revision) => revision.id !== id) as any;
+          .filter((revision) => revision.id !== id);
       })
       .addCase(deleteCloudRevision.rejected, (state, action) => {
         const message = action.payload as {
@@ -1414,7 +1154,7 @@ export const appSlice = createSlice({
           id: duplicatedDoc.id,
           local: duplicatedDoc,
         };
-        state.documents.push(newUserDocument as any);
+        state.documents.push(newUserDocument);
       })
       .addCase(duplicateDocument.rejected, (state, action) => {
         const message = action.payload as {
@@ -1438,70 +1178,7 @@ export const appSlice = createSlice({
         };
         state.ui.announcements.push({ message });
       })
-      // ===== NEW POST MANAGEMENT REDUCER CASES =====
-      .addCase(loadPosts.fulfilled, (state, action) => {
-        const posts = action.payload;
-        // Convert CloudDocument[] to UserPost[] format
-        const userPosts = posts.map((post: any) => ({
-          id: post.id,
-          cloud: post,
-        }));
-        state.posts = userPosts;
-      })
-      .addCase(loadPosts.rejected, (state, action) => {
-        const message = action.payload as {
-          title: string;
-          subtitle: string;
-        };
-        state.ui.announcements.push({ message });
-      })
-      .addCase(createPost.fulfilled, (state, action) => {
-        const post = action.payload;
-        if (post) {
-          const userPost: UserPost = {
-            id: post.id,
-            cloud: post as any, // Temporary cast until Post type alignment
-          };
-          state.posts.unshift(userPost as any);
-        }
-      })
-      .addCase(createPost.rejected, (state, action) => {
-        const message = action.payload as {
-          title: string;
-          subtitle: string;
-        };
-        state.ui.announcements.push({ message });
-      })
-      .addCase(updatePost.fulfilled, (state, action) => {
-        const updatedPost = action.payload;
-        if (updatedPost) {
-          const userPost = state.posts.find((p) => p.id === updatedPost.id);
-          if (userPost) {
-            userPost.cloud = updatedPost as any; // Temporary cast until Post type alignment
-          }
-        }
-      })
-      .addCase(updatePost.rejected, (state, action) => {
-        const message = action.payload as {
-          title: string;
-          subtitle: string;
-        };
-        state.ui.announcements.push({ message });
-      })
-      .addCase(deletePost.fulfilled, (state, action) => {
-        const deletedPostId = action.payload;
-        if (deletedPostId) {
-          state.posts = state.posts.filter((p) => p.id !== deletedPostId);
-        }
-      })
-      .addCase(deletePost.rejected, (state, action) => {
-        const message = action.payload as {
-          title: string;
-          subtitle: string;
-        };
-        state.ui.announcements.push({ message });
-      })
-      // ===== NEW SERIES MANAGEMENT REDUCER CASES =====
+      // ===== SERIES MANAGEMENT REDUCER CASES =====
       .addCase(loadSeries.fulfilled, (state, action) => {
         state.series = action.payload || [];
       })

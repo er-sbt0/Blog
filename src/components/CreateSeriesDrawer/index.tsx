@@ -2,16 +2,16 @@
 import * as React from "react";
 import { useState } from "react";
 import {
+  Alert,
   Box,
   Button,
+  CircularProgress,
   Drawer,
   IconButton,
   TextField,
   Typography,
-  CircularProgress,
-  Alert,
 } from "@mui/material";
-import { Close, Add } from "@mui/icons-material";
+import { Add, Close } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 
 interface CreateSeriesDrawerProps {
@@ -142,7 +142,11 @@ const CreateSeriesDrawer: React.FC<CreateSeriesDrawerProps> = ({
           }}
         >
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              onClose={() => setError(null)}
+            >
               {error}
             </Alert>
           )}

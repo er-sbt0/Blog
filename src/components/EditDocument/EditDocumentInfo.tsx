@@ -209,14 +209,16 @@ export default function EditDocumentInfo(
                 variant="subtitle2"
                 color="text.secondary"
               >
-                Created: <DateDisplay date={localDocument.createdAt} variant="full" />
+                Created:{" "}
+                <DateDisplay date={localDocument.createdAt} variant="full" />
               </Typography>
               <Typography
                 variant="subtitle2"
                 color="text.secondary"
                 gutterBottom
               >
-                Updated: <DateDisplay date={localDocument.updatedAt} variant="full" />
+                Updated:{" "}
+                <DateDisplay date={localDocument.updatedAt} variant="full" />
               </Typography>
               {!cloudDocument && (
                 <Typography variant="subtitle2">
@@ -380,9 +382,6 @@ export default function EditDocumentInfo(
                                 parentId: localDocument.parentId, // Preserve parentId when updating
                               },
                             }));
-                            console.log(
-                              "Document saved to cloud before viewing",
-                            );
                           }
                         } catch (error) {
                           console.error(
@@ -459,9 +458,6 @@ export default function EditDocumentInfo(
                               parentId: localDocument.parentId, // Preserve parentId when updating
                             },
                           }));
-                          console.log(
-                            "Document saved to cloud when exiting diff view",
-                          );
                         }
                       } catch (error) {
                         console.error("Failed to save to cloud:", error);

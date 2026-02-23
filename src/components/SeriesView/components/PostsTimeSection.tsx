@@ -4,7 +4,10 @@ import Grid from "@mui/material/Grid2";
 import { TimeGroup } from "@/types/partitioning";
 import { User, UserDocument } from "@/types";
 import DocumentCard from "@/components/DocumentCardNew";
-import { PostsCompactListView, PendingTimeChange } from "./PostsCompactListView";
+import {
+  PendingTimeChange,
+  PostsCompactListView,
+} from "./PostsCompactListView";
 import { PostsDetailedListView } from "./PostsDetailedListView";
 
 export type ViewType = "grid" | "compact" | "detailed";

@@ -34,7 +34,7 @@ const getRevisionHtml = async (id: string) => {
     } catch (error: any) {
       // During build, the API might not be available
       // This is not a critical error during build time
-      console.log(
+      console.warn(
         "HTML fetch error (likely during build):",
         error.message || String(error),
       );
@@ -54,7 +54,6 @@ const getRevisionThumbnail = async (id: string) => {
   try {
     const revision = await getCachedRevision(id);
     if (!revision) {
-      console.log("Revision not found for thumbnail:", id);
       return null;
     }
 

@@ -12,21 +12,31 @@ export const dynamic = "force-dynamic";
 // POST /api/notes/[id]/bring-to-front - Update z-index to bring note to front
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json(
-        { error: { title: "Unauthorized", subtitle: "Please sign in to reorder notes" } },
-        { status: 401 }
+        {
+          error: {
+            title: "Unauthorized",
+            subtitle: "Please sign in to reorder notes",
+          },
+        },
+        { status: 401 },
       );
     }
 
     if (session.user.disabled) {
       return NextResponse.json(
-        { error: { title: "Account Disabled", subtitle: "Account is disabled for violating terms of service" } },
-        { status: 403 }
+        {
+          error: {
+            title: "Account Disabled",
+            subtitle: "Account is disabled for violating terms of service",
+          },
+        },
+        { status: 403 },
       );
     }
 
@@ -37,7 +47,7 @@ export async function POST(
     if (!note) {
       return NextResponse.json(
         { error: { title: "Not Found", subtitle: "Note not found" } },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -50,7 +60,7 @@ export async function POST(
     console.error("Error bringing note to front:", error);
     return NextResponse.json(
       { error: { title: "Server Error", subtitle: "Failed to reorder note" } },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

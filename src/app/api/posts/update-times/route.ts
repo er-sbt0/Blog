@@ -25,8 +25,13 @@ export async function POST(request: Request) {
 
     if (!session?.user) {
       return NextResponse.json(
-        { error: { title: "Unauthorized", subtitle: "Please sign in to update posts" } },
-        { status: 401 }
+        {
+          error: {
+            title: "Unauthorized",
+            subtitle: "Please sign in to update posts",
+          },
+        },
+        { status: 401 },
       );
     }
 
@@ -35,8 +40,10 @@ export async function POST(request: Request) {
 
     if (!updates || !Array.isArray(updates) || updates.length === 0) {
       return NextResponse.json(
-        { error: { title: "Invalid request", subtitle: "No updates provided" } },
-        { status: 400 }
+        {
+          error: { title: "Invalid request", subtitle: "No updates provided" },
+        },
+        { status: 400 },
       );
     }
 
@@ -67,7 +74,7 @@ export async function POST(request: Request) {
         });
 
         return { id: update.id, success: true };
-      })
+      }),
     );
 
     const failed = results.filter((r) => !r.success);
@@ -78,7 +85,7 @@ export async function POST(request: Request) {
           message: `${failed.length} update(s) failed`,
           results,
         },
-        { status: 207 } // Multi-Status
+        { status: 207 }, // Multi-Status
       );
     }
 
@@ -90,8 +97,13 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Failed to update post times:", error);
     return NextResponse.json(
-      { error: { title: "Server error", subtitle: "Failed to update post times" } },
-      { status: 500 }
+      {
+        error: {
+          title: "Server error",
+          subtitle: "Failed to update post times",
+        },
+      },
+      { status: 500 },
     );
   }
 }

@@ -1,10 +1,12 @@
 "use client";
 import * as React from "react";
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
+  CircularProgress,
   Drawer,
   FormControl,
   FormControlLabel,
@@ -15,10 +17,8 @@ import {
   Select,
   TextField,
   Typography,
-  CircularProgress,
-  Alert,
 } from "@mui/material";
-import { Close, Add } from "@mui/icons-material";
+import { Add, Close } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
 import { actions, useDispatch, useSelector } from "@/store";
@@ -195,9 +195,12 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
       setValidating(true);
       try {
         const response = await fetch(`/api/handle?handle=${handle}`);
-        const { data: available, error } = (await response.json()) as CheckHandleResponse;
+        const { data: available, error } =
+          (await response.json()) as CheckHandleResponse;
         if (error || !available) {
-          setValidationErrors({ handle: error?.title || "Handle is not available" });
+          setValidationErrors({
+            handle: error?.title || "Handle is not available",
+          });
         } else {
           setValidationErrors({});
         }
@@ -269,7 +272,9 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
           const cloudResponse = await dispatch(
             actions.createCloudDocument(payload),
           );
-          if (cloudResponse.type === actions.createCloudDocument.fulfilled.type) {
+          if (
+            cloudResponse.type === actions.createCloudDocument.fulfilled.type
+          ) {
             // Post created successfully on cloud
             onSuccess?.();
             onClose();
@@ -357,7 +362,11 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
           }}
         >
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              onClose={() => setError(null)}
+            >
               {error}
             </Alert>
           )}
@@ -381,10 +390,8 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
             value={input.handle || ""}
             onChange={updateHandle}
             error={!!validationErrors.handle}
-            helperText={
-              validationErrors.handle ||
-              "Optional: Custom URL for this post"
-            }
+            helperText={validationErrors.handle ||
+              "Optional: Custom URL for this post"}
             sx={{ mb: 2 }}
             disabled={isSubmitting}
             InputProps={{
@@ -429,7 +436,9 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
                     onChange={() =>
                       updateInput({
                         private: !input.private,
-                        published: input.private ? (input.published ?? true) : false,
+                        published: input.private
+                          ? (input.published ?? true)
+                          : false,
                         collab: input.collab && input.private,
                       })}
                   />

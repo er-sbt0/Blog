@@ -2,6 +2,7 @@ import { DocumentType as PrismaDocumentType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   Document,
+  DocumentRevision,
   type DocumentType,
   Series,
   SeriesCreateInput,
@@ -99,7 +100,7 @@ export async function findAllSeries(): Promise<Series[]> {
       type: p.type as DocumentType,
       head: p.head || "",
       coauthors: p.coauthors.map((c) => c.user),
-      revisions: p.revisions as any,
+      revisions: p.revisions as DocumentRevision[],
     })) as Document[],
   })) as Series[];
 }
@@ -186,7 +187,7 @@ export async function findSeriesById(id: string): Promise<Series | null> {
       type: p.type as DocumentType,
       head: p.head || "",
       coauthors: p.coauthors.map((c) => c.user),
-      revisions: p.revisions as any,
+      revisions: p.revisions as DocumentRevision[],
     })) as Document[],
   } as Series;
 }
@@ -276,7 +277,7 @@ export async function findSeriesByAuthorId(
       type: p.type as DocumentType,
       head: p.head || "",
       coauthors: p.coauthors.map((c) => c.user),
-      revisions: p.revisions as any,
+      revisions: p.revisions as DocumentRevision[],
     })) as Document[],
   })) as Series[];
 }
@@ -436,6 +437,6 @@ export async function getAvailablePostsForSeries(
     type: p.type as DocumentType,
     head: p.head || "",
     coauthors: p.coauthors.map((c) => c.user),
-    revisions: p.revisions as any,
+    revisions: p.revisions as DocumentRevision[],
   })) as Document[];
 }

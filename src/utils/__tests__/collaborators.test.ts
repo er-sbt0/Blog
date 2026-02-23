@@ -206,7 +206,6 @@ export function testNullAuthors() {
 
 // Run all tests (when testing framework is available, this can be replaced with proper test runner)
 export function runAllTests() {
-  console.log("Running extractCollaborators tests...");
   testEmptyRevisions();
   testExcludesPrimaryAuthor();
   testRemovesDuplicates();
@@ -214,5 +213,4 @@ export function runAllTests() {
   testMultipleExcludedUsers();
   testPreservesOrder();
   testNullAuthors();
-  console.log("All tests completed!");
 }

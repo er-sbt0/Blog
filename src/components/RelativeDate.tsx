@@ -1,4 +1,4 @@
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from "date-fns";
 
 interface RelativeDateProps {
   date: Date | string;
@@ -18,7 +18,7 @@ interface RelativeDateProps {
 export function RelativeDate({
   date,
   addSuffix = true,
-  className
+  className,
 }: RelativeDateProps) {
   const dateObj = typeof date === "string" ? new Date(date) : date;
   const relative = formatDistanceToNow(dateObj, { addSuffix });

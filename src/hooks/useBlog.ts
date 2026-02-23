@@ -1,13 +1,12 @@
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store";
 import {
-  createPost,
+  createCloudDocument,
   createSeries,
-  deletePost,
+  deleteCloudDocument,
   deleteSeries,
-  loadPosts,
   loadSeries,
-  updatePost,
+  updateCloudDocument,
   updateSeries,
 } from "@/store/app";
 import { DocumentCreateInput, DocumentUpdateInput } from "@/types";
@@ -15,26 +14,35 @@ import { DocumentCreateInput, DocumentUpdateInput } from "@/types";
 // ===== POST HOOKS =====
 
 export const usePosts = () => {
-  const posts = useSelector((state: RootState) => state.posts);
-  return posts;
+  const documents = useSelector((state: RootState) => state.documents);
+  // Posts are cloud documents of type DOCUMENT that are not readme entries
+  return documents.filter(
+    (doc) =>
+      doc.cloud !== undefined &&
+      doc.cloud.type === "DOCUMENT" &&
+      doc.cloud.name.toLowerCase() !== "readme",
+  );
 };
 
 export const usePublishedPosts = () => {
-  const posts = useSelector((state: RootState) => state.posts);
-  // Filter for published posts only
-  return posts.filter((post) => post.cloud?.published);
+  const documents = useSelector((state: RootState) => state.documents);
+  return documents.filter(
+    (doc) =>
+      doc.cloud?.published &&
+      doc.cloud.type === "DOCUMENT" &&
+      doc.cloud.name.toLowerCase() !== "readme",
+  );
 };
 
 export const usePostActions = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   return {
-    loadPosts: () => dispatch(loadPosts()),
     createPost: (postData: DocumentCreateInput) =>
-      dispatch(createPost(postData)),
+      dispatch(createCloudDocument(postData)),
     updatePost: (id: string, data: DocumentUpdateInput) =>
-      dispatch(updatePost({ id, data })),
-    deletePost: (id: string) => dispatch(deletePost(id)),
+      dispatch(updateCloudDocument({ id, partial: data })),
+    deletePost: (id: string) => dispatch(deleteCloudDocument(id)),
   };
 };
 
@@ -85,7 +93,6 @@ export const useBlogActions = () => {
     ...postActions,
     ...seriesActions,
     loadBlogData: () => {
-      postActions.loadPosts();
       seriesActions.loadSeries();
     },
   };

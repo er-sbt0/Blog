@@ -38,8 +38,10 @@ const createAzureProvider = (): ProviderInstance => {
     throw new AIConfigurationError("AZURE_API_KEY not configured");
   }
 
-  const baseURL = process.env.AZURE_OPENAI_BASE_URL ||
-    "https://staging-openai.azure-api.net/openai-gw-proxy-dev";
+  const baseURL = process.env.AZURE_OPENAI_BASE_URL;
+  if (!baseURL) {
+    throw new AIConfigurationError("AZURE_OPENAI_BASE_URL not configured");
+  }
   const apiVersion = process.env.AZURE_OPENAI_API_VERSION ||
     "2025-04-01-preview";
 
@@ -53,7 +55,11 @@ const createAzureProvider = (): ProviderInstance => {
     },
     fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
       try {
-        const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+        const url = typeof input === "string"
+          ? input
+          : input instanceof URL
+          ? input.href
+          : input.url;
         const urlObj = new URL(url);
 
         // Extract model from request body
@@ -61,7 +67,9 @@ const createAzureProvider = (): ProviderInstance => {
         let model: string | undefined;
         if (init?.body) {
           try {
-            const bodyText = typeof init.body === "string" ? init.body : await new Response(init.body).text();
+            const bodyText = typeof init.body === "string"
+              ? init.body
+              : await new Response(init.body).text();
             const bodyData = JSON.parse(bodyText);
             model = bodyData.model;
 
@@ -72,12 +80,16 @@ const createAzureProvider = (): ProviderInstance => {
             };
           } catch (parseError) {
             console.error("Failed to parse request body:", parseError);
-            throw new AIConfigurationError("Failed to parse request body for Azure provider");
+            throw new AIConfigurationError(
+              "Failed to parse request body for Azure provider",
+            );
           }
         }
 
         if (!model) {
-          throw new AIConfigurationError("Model ID is required for Azure provider");
+          throw new AIConfigurationError(
+            "Model ID is required for Azure provider",
+          );
         }
 
         // Transform OpenAI URL to Azure format
@@ -86,7 +98,7 @@ const createAzureProvider = (): ProviderInstance => {
         if (urlObj.pathname.endsWith("/chat/completions")) {
           urlObj.pathname = urlObj.pathname.replace(
             /\/(v1\/)?chat\/completions$/,
-            `/openai/deployments/${model}/chat/completions`
+            `/openai/deployments/${model}/chat/completions`,
           );
           urlObj.searchParams.set("api-version", apiVersion);
         }

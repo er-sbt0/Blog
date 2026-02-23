@@ -250,7 +250,10 @@ export default function KanbanBoard(
                                     mt: 0.5,
                                   }}
                                 >
-                                  <DateDisplay date={data.updatedAt} variant="short" />
+                                  <DateDisplay
+                                    date={data.updatedAt}
+                                    variant="short"
+                                  />
                                 </Typography>
                               </Box>
                             </Box>

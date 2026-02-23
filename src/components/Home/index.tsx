@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Series, User, UserDocument } from "@/types";
 import { DragProvider } from "../DragContext";
 import TrashBin from "../TrashBin";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDocuments } from "@/hooks/useDocuments";
 import KanbanPreviewCard from "./KanbanPreviewCard";
 import ReadmePreviewCard from "./ReadmePreviewCard";
@@ -27,14 +27,16 @@ const Home: React.FC<{
   const router = useRouter();
   const [activeView, setActiveView] = useState<ViewType>(null);
   const [notesHeight, setNotesHeight] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('notesCanvasHeight');
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("notesCanvasHeight");
       return saved ? parseInt(saved, 10) : 400;
     }
     return 400;
   }); // Default height in pixels
   const [isResizing, setIsResizing] = useState(false);
-  const resizeStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const resizeStartRef = useRef<{ startY: number; startHeight: number } | null>(
+    null,
+  );
   const { documents, refresh } = useDocuments(staticDocuments);
 
   const recentPosts = documents.slice(0, 8);
@@ -52,7 +54,10 @@ const Home: React.FC<{
     if (!isResizing || !resizeStartRef.current) return;
 
     const deltaY = e.clientY - resizeStartRef.current.startY;
-    const newHeight = Math.max(200, resizeStartRef.current.startHeight + deltaY);
+    const newHeight = Math.max(
+      200,
+      resizeStartRef.current.startHeight + deltaY,
+    );
     setNotesHeight(newHeight);
   }, [isResizing]);
 
@@ -63,19 +68,19 @@ const Home: React.FC<{
 
   // Save height to localStorage whenever it changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('notesCanvasHeight', notesHeight.toString());
+    if (typeof window !== "undefined") {
+      localStorage.setItem("notesCanvasHeight", notesHeight.toString());
     }
   }, [notesHeight]);
 
   // Add/remove global event listeners for resize
   useEffect(() => {
     if (isResizing) {
-      document.addEventListener('mousemove', handleResizeMove);
-      document.addEventListener('mouseup', handleResizeEnd);
+      document.addEventListener("mousemove", handleResizeMove);
+      document.addEventListener("mouseup", handleResizeEnd);
       return () => {
-        document.removeEventListener('mousemove', handleResizeMove);
-        document.removeEventListener('mouseup', handleResizeEnd);
+        document.removeEventListener("mousemove", handleResizeMove);
+        document.removeEventListener("mouseup", handleResizeEnd);
       };
     }
   }, [isResizing, handleResizeMove, handleResizeEnd]);
@@ -141,7 +146,9 @@ const Home: React.FC<{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    backgroundColor: isResizing ? "action.selected" : "transparent",
+                    backgroundColor: isResizing
+                      ? "action.selected"
+                      : "transparent",
                     "&:hover": {
                       backgroundColor: "action.hover",
                     },

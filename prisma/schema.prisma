@@ -32,7 +32,7 @@ model Document {
   name        String
   description String?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   authorId    String   @db.Uuid
   published   Boolean  @default(false)
   private     Boolean  @default(false)
@@ -68,8 +68,8 @@ model Document {
   type DocumentType
 
   // Relations
-  author    User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  coauthors DocumentCoauthers[]
+  author    User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  coauthors DocumentCoauthors[]
   revisions Revision[]
   series    Series?             @relation("SeriesPosts", fields: [seriesId], references: [id], onDelete: SetNull)
 
@@ -117,7 +117,7 @@ model User {
   sessions      Session[]
   revisions     Revision[]
   documents     Document[] // User's posts  
-  coauthored    DocumentCoauthers[]
+  coauthored    DocumentCoauthors[]
   series        Series[] // User's series for organizing blog posts
   notesCanvases NotesCanvas[] // User's note canvases
 
@@ -125,7 +125,7 @@ model User {
   @@index([handle])
 }
 
-model DocumentCoauthers {
+model DocumentCoauthors {
   documentId String   @db.Uuid
   userEmail  String
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)

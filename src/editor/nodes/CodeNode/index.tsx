@@ -1,7 +1,4 @@
-import {
-  CodeNode as LexicalCodeNode,
-  SerializedCodeNode,
-} from "@lexical/code";
+import { CodeNode as LexicalCodeNode, SerializedCodeNode } from "@lexical/code";
 import type {
   DOMConversionMap,
   DOMExportOutput,
@@ -191,7 +188,7 @@ export class CodeNode extends LexicalCodeNode {
  * Helper function to create a CodeNode instance.
  */
 export function $createCodeNode(
-  language?: string | null | undefined
+  language?: string | null | undefined,
 ): CodeNode {
   return new CodeNode(language);
 }
@@ -200,7 +197,7 @@ export function $createCodeNode(
  * Type guard to check if a node is a CodeNode.
  */
 export function $isCodeNode(
-  node: LexicalNode | null | undefined
+  node: LexicalNode | null | undefined,
 ): node is CodeNode {
   return node instanceof CodeNode;
 }

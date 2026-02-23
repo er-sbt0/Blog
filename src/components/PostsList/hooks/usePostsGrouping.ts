@@ -3,7 +3,10 @@ import { UserDocument } from "@/types";
 import { PartitionGranularity, TimeGroup } from "@/types/partitioning";
 import { groupPostsByMonth } from "../utils/monthGrouping";
 import { getGroupingFunction } from "../utils/timeGrouping";
-import { deduplicateSeriesAcrossPartitions, buildSeriesMap } from "../utils/seriesGrouping";
+import {
+  buildSeriesMap,
+  deduplicateSeriesAcrossPartitions,
+} from "../utils/seriesGrouping";
 import type { MonthGroup } from "../components/MonthSection";
 import { useSelector } from "@/store";
 
@@ -50,7 +53,11 @@ export const usePostsGrouping = ({
       timeGroups = ensureSeriesPartitions(timeGroups, seriesMap, granularity);
 
       // Then deduplicate series across partitions
-      timeGroups = deduplicateSeriesAcrossPartitions(timeGroups, allPosts, seriesMap);
+      timeGroups = deduplicateSeriesAcrossPartitions(
+        timeGroups,
+        allPosts,
+        seriesMap,
+      );
     }
 
     // Filter out time groups with zero posts/series

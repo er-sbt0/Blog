@@ -23,7 +23,11 @@ npm run clean        # Remove .next and cached files
 npm run rebuild      # Clean and rebuild
 npx prisma generate  # Generate Prisma client
 npx prisma migrate dev # Run database migrations
+npx prisma studio    # Browse database in browser UI
 ```
+
+### Testing
+There is no test runner configured in `package.json`. A single test file exists at `src/utils/__tests__/collaborators.test.ts` but there is no Jest/Vitest setup to run it. Lint with `npm run lint`.
 
 ## Architecture
 
@@ -43,13 +47,26 @@ The application uses PostgreSQL with the following core models:
 - **DocumentCoauthers**: Many-to-many relationship for collaborative editing
 - **Account/Session/VerificationToken**: NextAuth models
 
+### Local vs Cloud Storage
+
+Documents have a dual-storage architecture:
+- **Local**: Stored in browser IndexedDB (`src/indexeddb/`). Accessible without authentication, supports offline use.
+- **Cloud**: Stored in PostgreSQL via Prisma. Requires authentication.
+
+Redux thunks have paired local/cloud variants (e.g., `createLocalDocument` / `createCloudDocument`, `createLocalRevision` / `createCloudRevision`). The `load` thunk initializes both sources and merges them into the Redux store.
+
 ### State Management (Redux Toolkit)
 
-The application uses Redux Toolkit with a single app slice (`src/store/app.ts`). Key actions include:
+Single app slice at `src/store/app.ts`. State shape:
+```typescript
+{ documents: EditorDocument[], posts: UserPost[], series: Series[], ui: { ... } }
+```
+
+Key async thunks:
 - Document operations: load, create, update, delete, fork, duplicate (both local and cloud)
 - Post operations: loadPosts, createPost, updatePost, deletePost
 - Series operations: loadSeries, createSeries, updateSeries, deleteSeries
-- Revision operations: create, get, delete revisions
+- Revision operations: create, get, delete revisions (both local and cloud)
 - User operations: updateUser
 - Storage: getLocalStorageUsage, getCloudStorageUsage
 
@@ -71,10 +88,12 @@ API routes are in `src/app/api/`:
 - `/api/revisions/*`: Revision history
 - `/api/users/*`: User profiles
 - `/api/auth/[...nextauth]`: NextAuth authentication
-- `/api/completion`: AI completion endpoint (supports Anthropic, Google, Ollama)
+- `/api/completion`: AI completion endpoint (supports Anthropic, Google, Ollama, Azure OpenAI)
 - `/api/docx/*`, `/api/pdf/*`: Export functionality
 - `/api/og`: Open Graph image generation
 - `/api/thumbnails/*`: Document thumbnails
+
+Server actions have a 2MB body size limit (configured in `next.config.ts`).
 
 ### Lexical Editor
 
@@ -125,21 +144,17 @@ TypeScript path aliases are configured:
 
 Required environment variables (see `.env.example`):
 - `DATABASE_URL`: PostgreSQL connection string
-- `NEXTAUTH_URL`: Application URL
-- `NEXTAUTH_SECRET`: NextAuth secret
+- `NEXTAUTH_URL` / `NEXTAUTH_SECRET`: NextAuth configuration
+- `PUBLIC_URL`: Public base URL of the app
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: Google OAuth
-- AI API keys (optional): `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `OLLAMA_API_URL`
-- `BROWSERLESS_URL`: For PDF generation (optional, uses Puppeteer locally)
+
+Optional:
+- AI APIs: `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `OLLAMA_API_URL`
+- Azure OpenAI: `AZURE_API_KEY`, `AZURE_OPENAI_BASE_URL`, `AZURE_OPENAI_API_VERSION`
+- `NEXT_PUBLIC_FASTAPI_URL`: External FastAPI backend URL
+- `BROWSERLESS_URL`: For PDF generation (falls back to local Puppeteer)
 
 ## Important Notes
-
-### Hydration Issues
-
-If encountering hydration errors, refer to `docs/HYDRATION.md`. Common causes:
-- Browser extensions modifying DOM
-- Date/time differences between server and client
-- Random values during render
-- Accessing window/document during SSR
 
 ### Build Configuration
 
@@ -147,6 +162,18 @@ If encountering hydration errors, refer to `docs/HYDRATION.md`. Common causes:
 - Bundle analyzer available with `ANALYZE=true npm run build`
 - PWA support enabled in production
 - Webpack configured for MUI modular imports and font handling
+- `npm install` automatically applies patches via `patch-package` (see `/patches/`)
+
+### ESLint Rules
+
+Key rules enforced by `eslint.config.mjs`:
+- `no-console`: only `console.warn` and `console.error` are allowed
+- `@typescript-eslint/no-explicit-any`: disallowed
+- `react-hooks/exhaustive-deps`: enforced
+
+### Documentation
+
+Additional documentation is in the `/docs/` directory, including guides on hydration issues, component architecture, and implementation-specific notes.
 
 ### AI Integration
 
@@ -158,9 +185,7 @@ The application supports multiple AI providers for completion:
 
 Configuration is in `src/lib/ai/`.
 
-## Testing and Debugging
+## Debugging
 
-- Use `npm run dev` for hot-reload development
-- Check browser console for hydration warnings
+- Hydration errors: see `docs/HYDRATION.md`. Common causes are browser extensions, date/time SSR mismatches, and `window`/`document` access during SSR.
 - Use React DevTools for component inspection
-- Database can be inspected with Prisma Studio: `npx prisma studio`

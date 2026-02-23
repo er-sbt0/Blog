@@ -75,8 +75,6 @@ const DraggablePostCard: React.FC<DraggablePostCardProps> = ({
       if (dragData.id && dragData.id !== userDocument.id) {
         // In a blog context, we might reorder posts or move to series
         // This would need to be implemented based on specific requirements
-        console.log("Post drop:", dragData, "onto:", userDocument.id);
-
         onMoveComplete?.();
       }
     } catch (error) {

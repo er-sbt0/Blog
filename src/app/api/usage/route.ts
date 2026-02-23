@@ -1,5 +1,5 @@
 import { authOptions } from "@/lib/auth";
-import { findCloudStorageUsageByAuthorId } from "@/repositories/document";
+import { findCloudStorageUsageByAuthorId } from "@/repositories/post";
 import { GetDocumentStorageUsageResponse } from "@/types";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
@@ -28,7 +28,7 @@ export async function GET() {
     response.data = cloudStorageUsage;
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "Something went wrong",
       subtitle: "Please try again later",

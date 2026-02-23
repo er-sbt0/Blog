@@ -2,18 +2,15 @@ import React from "react";
 import {
   Box,
   Card,
-  CardContent,
   CardActionArea,
-  Typography,
+  CardContent,
   Chip,
-  Stack,
   Divider,
+  Stack,
+  Typography,
 } from "@mui/material";
-import {
-  Person,
-  CalendarToday,
-} from "@mui/icons-material";
-import { UserDocument, User, DocumentStatus } from "@/types";
+import { CalendarToday, Person } from "@mui/icons-material";
+import { DocumentStatus, User, UserDocument } from "@/types";
 import { useRouter } from "next/navigation";
 
 interface PostsDetailedListViewProps {
@@ -25,8 +22,23 @@ interface PostsDetailedListViewProps {
  * Format date to readable string
  */
 const formatDate = (dateString: string | Date): string => {
-  const date = typeof dateString === "string" ? new Date(dateString) : dateString;
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const date = typeof dateString === "string"
+    ? new Date(dateString)
+    : dateString;
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 };
 
@@ -49,7 +61,8 @@ export const PostsDetailedListView: React.FC<PostsDetailedListViewProps> = ({
       {posts.map((post) => {
         const document = post.cloud || post.local;
         const isDone = document?.status === DocumentStatus.DONE;
-        const isOwner = user && document && 'author' in document && user.id === document.author?.id;
+        const isOwner = user && document && "author" in document &&
+          user.id === document.author?.id;
 
         return (
           <Card
@@ -57,7 +70,9 @@ export const PostsDetailedListView: React.FC<PostsDetailedListViewProps> = ({
             sx={{
               width: "100%",
               borderRadius: 2,
-              bgcolor: isDone ? "action.disabledBackground" : "background.paper",
+              bgcolor: isDone
+                ? "action.disabledBackground"
+                : "background.paper",
               transition: "all 0.2s ease-in-out",
               "&:hover": {
                 boxShadow: 3,
@@ -157,7 +172,8 @@ export const PostsDetailedListView: React.FC<PostsDetailedListViewProps> = ({
                   >
                     <Person sx={{ fontSize: 18, color: "text.secondary" }} />
                     <Typography variant="body2" color="text.secondary">
-                      {(document && 'author' in document && document.author?.name) || "Unknown Author"}
+                      {(document && "author" in document &&
+                        document.author?.name) || "Unknown Author"}
                     </Typography>
                   </Box>
 

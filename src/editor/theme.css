@@ -642,7 +642,9 @@ iframe {
   position: absolute;
   top: 0.3em; /* Start at the same level as text baseline */
   bottom: 0;
-  right: calc(-1.5rem / 2 - 1px); /* Position exactly in the middle of the gap, accounting for 2px separator width */
+  right: calc(
+    -1.5rem / 2 - 1px
+  ); /* Position exactly in the middle of the gap, accounting for 2px separator width */
   height: auto; /* Let it stretch between top and bottom */
   width: 2px;
   background-color: #ccc; /* Light gray divider */

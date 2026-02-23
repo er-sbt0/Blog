@@ -213,7 +213,9 @@ const NewDocument: React.FC<{ cloudDocument?: CloudDocument }> = (
     if (response.type === actions.createLocalDocument.fulfilled.type) {
       // Only save to cloud if user is online and authenticated
       if (saveToCloud && isOnline && user) {
-        const cloudResponse = await dispatch(actions.createCloudDocument(payload));
+        const cloudResponse = await dispatch(
+          actions.createCloudDocument(payload),
+        );
         if (cloudResponse.type === actions.createCloudDocument.fulfilled.type) {
           router.refresh(); // Trigger server re-fetch before navigation
         }

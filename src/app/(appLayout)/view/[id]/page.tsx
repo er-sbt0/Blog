@@ -9,7 +9,7 @@ import SplashScreen from "@/components/SplashScreen";
 import { cache } from "react";
 import { findRevisionHtml } from "@/app/api/utils";
 import { DocumentRevision } from "@/types";
-import { format } from 'date-fns';
+import { format } from "date-fns";
 
 // Mark this page as dynamic since it uses searchParams
 export const dynamic = "force-dynamic";
@@ -50,7 +50,9 @@ export async function generateMetadata(
         metadata.title = document.name;
         metadata.description = document.description || undefined;
         metadata.subtitle = revision
-          ? `Last updated: ${format(new Date(revision.createdAt), 'MMMM d, yyyy, h:mm a')} (UTC)`
+          ? `Last updated: ${
+            format(new Date(revision.createdAt), "MMMM d, yyyy, h:mm a")
+          } (UTC)`
           : "Revision not Found";
         metadata.user = {
           name: document.author.name,
@@ -65,7 +67,9 @@ export async function generateMetadata(
       metadata.title = document.name;
       metadata.description = document.description || undefined;
       metadata.subtitle = revision
-        ? `Last updated: ${format(new Date(revision.createdAt), 'MMMM d, yyyy, h:mm a')} (UTC)`
+        ? `Last updated: ${
+          format(new Date(revision.createdAt), "MMMM d, yyyy, h:mm a")
+        } (UTC)`
         : "Revision not Found";
       metadata.user = {
         name: document.author.name,

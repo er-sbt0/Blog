@@ -1,6 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
-import { Box, Button, Typography, Alert, CircularProgress } from "@mui/material";
+import { useEffect, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  CircularProgress,
+  Typography,
+} from "@mui/material";
 import { useSession } from "next-auth/react";
 import {
   hasIndexedDBNotes,
@@ -84,7 +90,8 @@ export default function NotesMigrationBanner() {
       {!result && (
         <>
           <Typography variant="body1" sx={{ flex: 1 }}>
-            We've upgraded notes storage! Import your local notes to the cloud for better reliability and multi-device sync.
+            We've upgraded notes storage! Import your local notes to the cloud
+            for better reliability and multi-device sync.
           </Typography>
 
           <Button
@@ -115,7 +122,8 @@ export default function NotesMigrationBanner() {
 
       {result && result.success && (
         <Alert severity="success" sx={{ flex: 1 }}>
-          Successfully migrated {result.notesCount} note{result.notesCount !== 1 ? "s" : ""} to the cloud!
+          Successfully migrated {result.notesCount}{" "}
+          note{result.notesCount !== 1 ? "s" : ""} to the cloud!
         </Alert>
       )}
 

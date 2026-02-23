@@ -26,8 +26,7 @@ export interface AttachmentPreviewState {
 export interface AppState {
   user?: User;
   documents: UserDocument[];
-  posts: UserPost[]; // New: posts state for blog structure
-  series: Series[]; // New: series state for blog structure
+  series: Series[];
   ui: {
     announcements: Announcement[];
     alerts: Alert[];
@@ -75,7 +74,7 @@ export enum DocumentStatus {
   DONE = "DONE",
 }
 
-export type Document = Omit<EditorDocument, "data"> & {
+export type Document = Omit<EditorDocument, "data" | "revisions"> & {
   author: User;
   coauthors: User[];
   revisions: DocumentRevision[];
@@ -135,12 +134,6 @@ export type PostRevision = DocumentRevision;
 export type EditorPost = EditorDocument;
 
 export type CloudDocument = Document; // Cloud documents are the same as regular documents
-export type UserPost = {
-  id: string;
-  local?: EditorPost;
-  cloud?: Post;
-}; // Post can be local, cloud, or both
-
 export type UserDocument = {
   id: string;
   local?: EditorDocument;
@@ -316,17 +309,17 @@ export interface Pix2textResponse {
 
 // New response types for blog structure
 export interface GetPostsResponse {
-  data?: UserPost[];
+  data?: UserDocument[];
   error?: { title: string; subtitle?: string };
 }
 
 export interface PostPostsResponse {
-  data?: UserPost;
+  data?: UserDocument;
   error?: { title: string; subtitle?: string };
 }
 
 export interface GetPostResponse {
-  data?: UserPost;
+  data?: UserDocument;
   error?: { title: string; subtitle?: string };
 }
 

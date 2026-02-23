@@ -7,8 +7,6 @@ import { JSDOM } from "jsdom";
 export const generateDocx = (data: SerializedEditorState) =>
   new Promise<Blob>((resolve, reject) => {
     try {
-      console.log("Generating DOCX...");
-
       // Initialize JSDOM with more features enabled
       const dom = new JSDOM(
         "<!DOCTYPE html><html><head></head><body></body></html>",
@@ -29,7 +27,7 @@ export const generateDocx = (data: SerializedEditorState) =>
 
       try {
         // Set global values for headless browser environment
-        global.window = dom.window as any;
+        global.window = dom.window as unknown as typeof globalThis.window;
         global.document = dom.window.document;
         // Define navigator with Object.defineProperty to handle the case
         // where it might be a read-only property
@@ -45,7 +43,6 @@ export const generateDocx = (data: SerializedEditorState) =>
         const editorState = editor.parseEditorState(data);
         editor.setEditorState(editorState);
         const blob = editorState.read($generateDocxBlob);
-        console.log("DOCX generated successfully");
         resolve(blob);
       } finally {
         // Restore original global values

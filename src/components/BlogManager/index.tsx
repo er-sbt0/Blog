@@ -98,7 +98,12 @@ export const BlogManager: React.FC = () => {
                   <br />
                   <small>
                     Updated: {(post.cloud as any)?.updatedAt
-                      ? <DateDisplay date={(post.cloud as any).updatedAt} variant="medium" />
+                      ? (
+                        <DateDisplay
+                          date={(post.cloud as any).updatedAt}
+                          variant="medium"
+                        />
+                      )
                       : "Unknown"}
                   </small>
                 </li>

@@ -37,7 +37,7 @@ export async function GET(
     response.data = series.posts;
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "Something went wrong",
       subtitle: "Please try again later",
@@ -136,7 +136,7 @@ export async function POST(
     response.data = { seriesId: params.id, postId, order: order || 0 };
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "Something went wrong",
       subtitle: "Please try again later",
@@ -227,7 +227,7 @@ export async function DELETE(
     response.data = { postId };
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     response.error = {
       title: "Something went wrong",
       subtitle: "Please try again later",

@@ -297,43 +297,43 @@ export default function NotesCanvas(
       >
         <NotesToolbar onAddNote={handleAddNote} onClearAll={handleClearAll} />
 
-      <Box
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          overflow: "auto",
-          position: "relative",
-          backgroundImage: (theme) =>
-            theme.palette.mode === "dark"
-              ? `linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                 linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)`
-              : `linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
-                 linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px)`,
-          backgroundSize: "20px 20px",
-          backgroundPosition: "0 0",
-        }}
-      >
         <Box
           sx={{
+            flex: 1,
+            minHeight: 0,
+            overflow: "auto",
             position: "relative",
-            width: `${VIRTUAL_CANVAS_WIDTH}px`,
-            height: `${VIRTUAL_CANVAS_HEIGHT}px`,
-            minWidth: "100%",
-            minHeight: "100%",
+            backgroundImage: (theme) =>
+              theme.palette.mode === "dark"
+                ? `linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                 linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)`
+                : `linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                 linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px)`,
+            backgroundSize: "20px 20px",
+            backgroundPosition: "0 0",
           }}
         >
-          {canvas?.notes.map((note) => (
-            <DraggableNote
-              key={note.id}
-              note={note}
-              onUpdate={updateNote}
-              onDelete={deleteNote}
-              onFocus={bringToFront}
-            />
-          ))}
+          <Box
+            sx={{
+              position: "relative",
+              width: `${VIRTUAL_CANVAS_WIDTH}px`,
+              height: `${VIRTUAL_CANVAS_HEIGHT}px`,
+              minWidth: "100%",
+              minHeight: "100%",
+            }}
+          >
+            {canvas?.notes.map((note) => (
+              <DraggableNote
+                key={note.id}
+                note={note}
+                onUpdate={updateNote}
+                onDelete={deleteNote}
+                onFocus={bringToFront}
+              />
+            ))}
+          </Box>
         </Box>
       </Box>
-    </Box>
     </>
   );
 }

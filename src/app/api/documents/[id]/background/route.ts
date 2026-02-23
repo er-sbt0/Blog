@@ -18,11 +18,6 @@ export async function POST(
   const response: UploadBackgroundImageResponse = {};
 
   try {
-    console.log(
-      "Processing background image upload for document:",
-      params.id,
-    );
-
     if (!validate(params.id)) {
       response.error = { title: "Bad Request", subtitle: "Invalid id" };
       return NextResponse.json(response, { status: 400 });
@@ -52,14 +47,6 @@ export async function POST(
       return NextResponse.json(response, { status: 404 });
     }
 
-    console.log("Document retrieved:", {
-      id: userDocument.id,
-      type: userDocument.type,
-      rawDocumentType: typeof userDocument.type === "string"
-        ? userDocument.type
-        : "not a string",
-    });
-
     if (user.id !== userDocument.author.id) {
       response.error = {
         title: "Forbidden",
@@ -79,11 +66,6 @@ export async function POST(
     // Parse the form data
     const formData = await request.formData();
     const file = formData.get("file") as File;
-
-    console.log(
-      "File received:",
-      file ? `${file.name} (${file.type}, ${file.size} bytes)` : "No file",
-    );
 
     if (!file) {
       response.error = {
@@ -109,8 +91,6 @@ export async function POST(
       const randomId = crypto.randomBytes(16).toString("hex");
       const fileName = `dir_${params.id}_${randomId}.${fileExt}`;
 
-      console.log("Creating directory and saving file:", fileName);
-
       // Create upload directory if it doesn't exist
       const uploadDir = path.join(
         process.cwd(),
@@ -120,19 +100,15 @@ export async function POST(
 
       // Save the file
       const filePath = path.join(uploadDir, fileName);
-      console.log("File will be saved to:", filePath);
 
       const buffer = Buffer.from(await file.arrayBuffer());
       await writeFile(filePath, buffer);
-      console.log("File saved successfully");
 
       // Update the document with the background image path
       const imagePath = `/uploads/directories/${fileName}`;
 
-      console.log("Updating document with background_image:", imagePath);
       const updatedDocument = await updatePost(params.id, {
         background_image: imagePath,
-        updatedAt: new Date(),
       });
 
       if (!updatedDocument) {

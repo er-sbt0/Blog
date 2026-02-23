@@ -228,12 +228,7 @@ const EditDocument: React.FC<
     // Preserve parentId when updating document
     if (document?.parentId) {
       partial.parentId = document.parentId;
-      console.log(
-        `Preserving parentId ${document.parentId} when updating document ${id}`,
-      );
     }
-
-    console.log("Edit dialog form submission - partial update:", partial);
 
     if (Object.keys(partial).length === 0) return;
     if (isLocal) {

@@ -7,8 +7,17 @@ import {
   LexicalEditor,
 } from "lexical";
 import { useCallback, useEffect, useState } from "react";
-import { MenuItem, Select, SelectChangeEvent, ToggleButton, ToggleButtonGroup } from "@mui/material";
-import { $isCodeNode, CodeNode as CustomCodeNode } from "@/editor/nodes/CodeNode";
+import {
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+  ToggleButton,
+  ToggleButtonGroup,
+} from "@mui/material";
+import {
+  $isCodeNode,
+  CodeNode as CustomCodeNode,
+} from "@/editor/nodes/CodeNode";
 import { $patchStyle } from "@/editor/nodes/utils";
 import {
   CODE_LANGUAGE_FRIENDLY_NAME_MAP,

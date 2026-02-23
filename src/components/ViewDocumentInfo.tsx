@@ -87,14 +87,16 @@ export default function ViewDocumentInfo(
             </Typography>
           )}
           <Typography variant="subtitle2" color="text.secondary">
-            Created: <DateDisplay date={cloudDocument.createdAt} variant="full" />
+            Created:{" "}
+            <DateDisplay date={cloudDocument.createdAt} variant="full" />
           </Typography>
           <Typography
             variant="subtitle2"
             color="text.secondary"
             gutterBottom
           >
-            Updated: <DateDisplay date={cloudDocument.updatedAt} variant="full" />
+            Updated:{" "}
+            <DateDisplay date={cloudDocument.updatedAt} variant="full" />
           </Typography>
           <Typography variant="subtitle2">
             Author{" "}

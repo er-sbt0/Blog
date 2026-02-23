@@ -1,8 +1,8 @@
-import { format } from 'date-fns';
+import { format } from "date-fns";
 
 interface DateDisplayProps {
   date: Date | string;
-  variant?: 'short' | 'medium' | 'long' | 'full';
+  variant?: "short" | "medium" | "long" | "full";
   customFormat?: string;
   className?: string;
 }
@@ -18,18 +18,18 @@ interface DateDisplayProps {
  */
 export function DateDisplay({
   date,
-  variant = 'medium',
+  variant = "medium",
   customFormat,
-  className
+  className,
 }: DateDisplayProps) {
   const dateObj = typeof date === "string" ? new Date(date) : date;
 
   // Format strings that match across all timezones
   const formats = {
-    short: 'MMM d',              // Jan 31
-    medium: 'MMM d, yyyy',       // Jan 31, 2026
-    long: 'MMMM d, yyyy',        // January 31, 2026
-    full: 'MMMM d, yyyy, h:mm a' // January 31, 2026, 3:45 PM
+    short: "MMM d", // Jan 31
+    medium: "MMM d, yyyy", // Jan 31, 2026
+    long: "MMMM d, yyyy", // January 31, 2026
+    full: "MMMM d, yyyy, h:mm a", // January 31, 2026, 3:45 PM
   };
 
   const formatStr = customFormat || formats[variant];

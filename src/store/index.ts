@@ -9,13 +9,11 @@ import {
   createCloudRevision,
   createLocalDocument,
   createLocalRevision,
-  createPost,
   createSeries,
   deleteCloudDocument,
   deleteCloudRevision,
   deleteLocalDocument,
   deleteLocalRevision,
-  deletePost,
   deleteSeries,
   duplicateDocument,
   forkCloudDocument,
@@ -33,11 +31,9 @@ import {
   loadCloudDocuments,
   loadLocalDocuments,
   // New post and series actions
-  loadPosts,
   loadSeries,
   updateCloudDocument,
   updateLocalDocument,
-  updatePost,
   updateSeries,
   updateUser,
 } from "./app";
@@ -80,10 +76,6 @@ export const actions = {
   getDocumentById,
 
   // New post and series actions
-  loadPosts,
-  createPost,
-  updatePost,
-  deletePost,
   loadSeries,
   createSeries,
   updateSeries,

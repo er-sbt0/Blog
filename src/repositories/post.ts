@@ -2,6 +2,7 @@ import { DocumentType as PrismaDocumentType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   CloudDocument,
+  DocumentRevision,
   DocumentStatus,
   type DocumentType,
   EditorDocument,
@@ -9,174 +10,125 @@ import {
 import { validate } from "uuid";
 import { getCachedRevision } from "./revision";
 
+// ─── Shared select fragments ─────────────────────────────────────────────────
+
+const authorSelect = {
+  id: true,
+  handle: true,
+  name: true,
+  image: true,
+  email: true,
+} as const;
+
+const revisionAuthorSelect = {
+  id: true,
+  handle: true,
+  name: true,
+  image: true,
+  email: true,
+} as const;
+
+const revisionsSelect = {
+  select: {
+    id: true,
+    documentId: true,
+    createdAt: true,
+    author: { select: revisionAuthorSelect },
+  },
+  orderBy: { createdAt: "desc" as const },
+};
+
+const documentCoreSelect = {
+  id: true,
+  handle: true,
+  name: true,
+  description: true,
+  createdAt: true,
+  updatedAt: true,
+  published: true,
+  collab: true,
+  private: true,
+  baseId: true,
+  head: true,
+  type: true,
+  status: true,
+  background_image: true,
+  seriesId: true,
+  seriesOrder: true,
+} as const;
+
+// Helper: map a raw prisma post row to a CloudDocument
+const toCloudDocument = (
+  post: Record<string, unknown> & {
+    collab: boolean | null;
+    head: string | null;
+    status: string | null;
+    revisions: {
+      id: string;
+      documentId: string;
+      createdAt: Date;
+      author: {
+        id: string;
+        handle: string | null;
+        name: string | null;
+        image: string | null;
+        email: string | null;
+      };
+    }[];
+  },
+): CloudDocument => {
+  const revisions = post.collab
+    ? post.revisions
+    : post.revisions.filter((r) => r.id === post.head);
+  return {
+    ...post,
+    coauthors: [],
+    revisions: revisions as DocumentRevision[],
+    type: PrismaDocumentType.DOCUMENT,
+    head: post.head || "",
+    status: post.status as DocumentStatus | undefined,
+  } as unknown as CloudDocument;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Transform: findPublishedDocuments → findPublishedPosts
 const findPublishedPosts = async (limit?: number) => {
-  console.log("findPublishedPosts called with limit:", limit);
-
   const posts = await prisma.document.findMany({
     where: {
       published: true,
-      type: PrismaDocumentType.DOCUMENT, // Only regular documents, not directories
-      NOT: {
-        name: {
-          equals: "readme",
-          mode: "insensitive",
-        },
-      },
+      type: PrismaDocumentType.DOCUMENT,
+      NOT: { name: { equals: "readme", mode: "insensitive" } },
     },
     select: {
-      id: true,
-      handle: true,
-      name: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
-      published: true,
-      collab: true,
-      private: true,
-      baseId: true,
-      head: true,
-      type: true,
-      status: true,
-      background_image: true,
-      seriesId: true,
-      seriesOrder: true,
-      revisions: {
-        select: {
-          id: true,
-          documentId: true,
-          createdAt: true,
-          author: {
-            select: {
-              id: true,
-              handle: true,
-              name: true,
-              image: true,
-              email: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-      author: {
-        select: {
-          id: true,
-          handle: true,
-          name: true,
-          image: true,
-          email: true,
-        },
-      },
-      // Remove coauthors complexity for blog posts
+      ...documentCoreSelect,
+      revisions: revisionsSelect,
+      author: { select: authorSelect },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: { createdAt: "desc" },
     take: limit,
   });
 
-  const cloudPosts = posts.map((post) => {
-    const revisions = post.collab
-      ? post.revisions
-      : post.revisions.filter((revision) => revision.id === post.head);
-
-    // Cast to CloudDocument to maintain compatibility during transition
-    const cloudPost = {
-      ...post,
-      coauthors: [], // Remove coauthor complexity for simple blog
-      revisions: revisions as any,
-      type: PrismaDocumentType.DOCUMENT, // Always DOCUMENT for posts
-      head: post.head || "",
-      status: post.status as DocumentStatus | undefined,
-    } as CloudDocument;
-
-    return cloudPost;
-  });
-
-  return cloudPosts;
+  return posts.map(toCloudDocument);
 };
 
 // Find all posts (published and unpublished)
 const findAllPosts = async (limit?: number) => {
   const posts = await prisma.document.findMany({
     where: {
-      type: PrismaDocumentType.DOCUMENT, // Only regular documents, not directories
-      NOT: {
-        name: {
-          equals: "readme",
-          mode: "insensitive",
-        },
-      },
+      type: PrismaDocumentType.DOCUMENT,
+      NOT: { name: { equals: "readme", mode: "insensitive" } },
     },
     select: {
-      id: true,
-      handle: true,
-      name: true,
-      createdAt: true,
-      updatedAt: true,
-      published: true,
-      collab: true,
-      private: true,
-      baseId: true,
-      head: true,
-      type: true,
-      status: true,
-      background_image: true,
-      seriesId: true,
-      seriesOrder: true,
-      revisions: {
-        select: {
-          id: true,
-          documentId: true,
-          createdAt: true,
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              handle: true,
-              image: true,
-            },
-          },
-        },
-      },
-      author: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          handle: true,
-          image: true,
-        },
-      },
+      ...documentCoreSelect,
+      revisions: revisionsSelect,
+      author: { select: authorSelect },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: { createdAt: "desc" },
     take: limit,
   });
 
-  const cloudPosts = posts.map((post) => {
-    const revisions = post.collab
-      ? post.revisions
-      : post.revisions.filter((revision) => revision.id === post.head);
-
-    // Cast to CloudDocument to maintain compatibility during transition
-    const cloudPost = {
-      ...post,
-      coauthors: [], // Remove coauthor complexity for simple blog
-      revisions: revisions as any,
-      type: PrismaDocumentType.DOCUMENT, // Always DOCUMENT for posts
-      head: post.head || "",
-      status: post.status as DocumentStatus | undefined,
-    } as CloudDocument;
-
-    return cloudPost;
-  });
-
-  return cloudPosts;
+  return posts.map(toCloudDocument);
 };
 
 // Transform: findUserDocument → findUserPost
@@ -239,8 +191,8 @@ const findUserPost = async (
     coauthors: [], // Remove coauthor complexity
     type: PrismaDocumentType.DOCUMENT,
     head: post.head || "",
-    revisions: post.revisions as any,
-    status: (post as any).status,
+    revisions: post.revisions as DocumentRevision[],
+    status: post.status as DocumentStatus,
   };
 
   if (revisions !== "all") {
@@ -249,7 +201,7 @@ const findUserPost = async (
       (revision) => revision.id === revisionId,
     );
     if (!revision) return null;
-    cloudPost.revisions = [revision as any];
+    cloudPost.revisions = [revision];
     cloudPost.updatedAt = revision.createdAt;
   }
 
@@ -259,81 +211,16 @@ const findUserPost = async (
 // Transform: findDocumentsByAuthorId → findPostsByAuthorId
 const findPostsByAuthorId = async (authorId: string) => {
   const posts = await prisma.document.findMany({
-    where: {
-      authorId,
-      type: PrismaDocumentType.DOCUMENT, // Only regular documents, not directories
-    },
+    where: { authorId, type: PrismaDocumentType.DOCUMENT },
     select: {
-      id: true,
-      handle: true,
-      name: true,
-      description: true,
-      createdAt: true,
-      updatedAt: true,
-      published: true,
-      collab: true,
-      private: true,
-      baseId: true,
-      head: true,
-      type: true,
-      status: true,
-      background_image: true,
-      seriesId: true,
-      seriesOrder: true,
-      revisions: {
-        select: {
-          id: true,
-          documentId: true,
-          createdAt: true,
-          author: {
-            select: {
-              id: true,
-              handle: true,
-              name: true,
-              image: true,
-              email: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-      author: {
-        select: {
-          id: true,
-          handle: true,
-          name: true,
-          image: true,
-          email: true,
-        },
-      },
-      // Remove coauthors complexity
+      ...documentCoreSelect,
+      revisions: revisionsSelect,
+      author: { select: authorSelect },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: { createdAt: "desc" },
   });
 
-  const cloudPosts = posts.map((post) => {
-    const revisions = post.collab
-      ? post.revisions
-      : post.revisions.filter((revision) => revision.id === post.head);
-
-    // Cast to CloudDocument to maintain compatibility during transition
-    const cloudPost = {
-      ...post,
-      coauthors: [], // Remove coauthor complexity
-      revisions: revisions as any,
-      type: PrismaDocumentType.DOCUMENT,
-      head: post.head || "",
-      status: post.status as DocumentStatus | undefined,
-    } as CloudDocument;
-
-    return cloudPost;
-  });
-
-  return cloudPosts;
+  return posts.map(toCloudDocument);
 };
 
 // Transform: findPublishedDocumentsByAuthorId → findPublishedPostsByAuthorId
@@ -342,83 +229,18 @@ const findPublishedPostsByAuthorId = async (authorId: string) => {
     where: {
       authorId,
       published: true,
-      type: PrismaDocumentType.DOCUMENT, // Only regular documents, not directories
-      NOT: {
-        name: {
-          equals: "readme",
-          mode: "insensitive",
-        },
-      },
+      type: PrismaDocumentType.DOCUMENT,
+      NOT: { name: { equals: "readme", mode: "insensitive" } },
     },
     select: {
-      id: true,
-      handle: true,
-      name: true,
-      createdAt: true,
-      updatedAt: true,
-      published: true,
-      collab: true,
-      private: true,
-      baseId: true,
-      head: true,
-      type: true,
-      status: true,
-      background_image: true,
-      seriesId: true,
-      seriesOrder: true,
-      revisions: {
-        select: {
-          id: true,
-          documentId: true,
-          createdAt: true,
-          author: {
-            select: {
-              id: true,
-              handle: true,
-              name: true,
-              image: true,
-              email: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-      author: {
-        select: {
-          id: true,
-          handle: true,
-          name: true,
-          image: true,
-          email: true,
-        },
-      },
-      // Remove coauthors complexity
+      ...documentCoreSelect,
+      revisions: revisionsSelect,
+      author: { select: authorSelect },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: { createdAt: "desc" },
   });
 
-  const cloudPosts = posts.map((post) => {
-    const revisions = post.collab
-      ? post.revisions
-      : post.revisions.filter((revision) => revision.id === post.head);
-
-    const cloudPost: CloudDocument = {
-      ...post,
-      coauthors: [], // Remove coauthor complexity
-      revisions: revisions as any,
-      type: PrismaDocumentType.DOCUMENT,
-      head: post.head || "",
-      status: post.status as DocumentStatus | undefined,
-    };
-
-    return cloudPost;
-  });
-
-  return cloudPosts;
+  return posts.map(toCloudDocument);
 };
 
 // Transform: createDocument → createPost
@@ -500,7 +322,7 @@ const findEditorPost = async (handle: string) => {
     ...post,
     data: revision.data as unknown as EditorDocument["data"],
     type: PrismaDocumentType.DOCUMENT,
-    status: (post as any).status as DocumentStatus,
+    status: post.status as DocumentStatus,
     head: post.head || "",
   };
 

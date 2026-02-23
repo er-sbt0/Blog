@@ -30,8 +30,6 @@ export async function POST(
   const response: UploadAttachmentResponse = {};
 
   try {
-    console.log("Processing attachment upload for document:", params.id);
-
     if (!validate(params.id)) {
       response.error = { title: "Bad Request", subtitle: "Invalid id" };
       return NextResponse.json(response, { status: 400 });
@@ -73,11 +71,6 @@ export async function POST(
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
-    console.log(
-      "File received:",
-      file ? `${file.name} (${file.type}, ${file.size} bytes)` : "No file",
-    );
-
     if (!file) {
       response.error = {
         title: "Bad Request",
@@ -103,19 +96,15 @@ export async function POST(
       const randomId = crypto.randomBytes(16).toString("hex");
       const fileName = `attach_${params.id}_${randomId}.${fileExt}`;
 
-      console.log("Creating directory and saving file:", fileName);
-
       // Create upload directory if it doesn't exist
       const uploadDir = path.join(process.cwd(), "public/uploads/attachments");
       await mkdir(uploadDir, { recursive: true });
 
       // Save the file
       const filePath = path.join(uploadDir, fileName);
-      console.log("File will be saved to:", filePath);
 
       const buffer = Buffer.from(await file.arrayBuffer());
       await writeFile(filePath, buffer);
-      console.log("File saved successfully");
 
       // Return the attachment metadata with API URL for download
       const fileUrl = `/api/attachments/${fileName}`;

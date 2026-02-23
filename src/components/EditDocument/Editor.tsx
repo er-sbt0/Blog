@@ -56,7 +56,6 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
 
       // Check if the content has changed since last cloud save
       if (lastSavedCloud.current === serializedData) {
-        console.log("No changes to save to cloud");
         return true; // No changes to save
       }
 
@@ -96,7 +95,6 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
         );
 
         if (docResponse.type === actions.updateCloudDocument.fulfilled.type) {
-          console.log("Document auto-saved to cloud successfully");
           lastSavedCloud.current = serializedData;
           setHasUnsavedChanges(false);
           return true;
