@@ -61,14 +61,23 @@ export const groupPostsBySeries = (
   posts: UserDocument[],
   seriesMap: Map<string, Series>,
 ): SeriesGroupItem[] => {
-  // Collect all post IDs that belong to series
+  // Build a set of post IDs actually present in this partition
+  const postIdsInPartition = new Set(posts.map((p) => p.id));
+
+  // Collect all post IDs that belong to displayed series
   const seriesPostIds = new Set<string>();
   const result: SeriesGroupItem[] = [];
 
-  // Add series groups using series.posts as source of truth
+  // Add series groups — only if at least one of its posts is in this partition
   seriesMap.forEach((series) => {
     if (series.posts && series.posts.length > 0) {
-      // Mark all series post IDs
+      // Skip series that have no posts in the current partition
+      const hasPostInPartition = series.posts.some((post) =>
+        postIdsInPartition.has(post.id)
+      );
+      if (!hasPostInPartition) return;
+
+      // Mark all series post IDs so they don't appear as standalone
       series.posts.forEach((post) => seriesPostIds.add(post.id));
 
       // Convert series posts to UserDocument format
