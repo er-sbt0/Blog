@@ -2,10 +2,14 @@ import React from "react";
 import { Box, Typography } from "@mui/material";
 import { TimeGroup } from "@/types/partitioning";
 import PostsGrid from "./PostsGrid";
+import { ViewType } from "@/components/SeriesView/components/ViewToggle";
 
 interface TimeSectionProps {
   timeGroup: TimeGroup;
   isLatest?: boolean;
+  viewType?: ViewType;
+  showPosts?: boolean;
+  showSeries?: boolean;
 }
 
 // Inline TimeHeader component for simplicity
@@ -46,7 +50,7 @@ const TimeHeader: React.FC<{
  * Replaces MonthSection with flexible time period support (without boxing)
  */
 const TimeSection: React.FC<TimeSectionProps> = (
-  { timeGroup, isLatest = false },
+  { timeGroup, isLatest = false, viewType, showPosts, showSeries },
 ) => {
   return (
     <Box
@@ -68,7 +72,12 @@ const TimeSection: React.FC<TimeSectionProps> = (
         id={`time-posts-${timeGroup.timeKey}`}
         aria-label={`${timeGroup.count} posts from ${timeGroup.timeLabel}`}
       >
-        <PostsGrid posts={timeGroup.posts} />
+        <PostsGrid
+          posts={timeGroup.posts}
+          viewType={viewType}
+          showPosts={showPosts}
+          showSeries={showSeries}
+        />
       </Box>
     </Box>
   );

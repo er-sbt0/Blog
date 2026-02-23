@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Skeleton, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Grid from "@mui/material/Grid2";
@@ -10,6 +10,9 @@ import TimeSection from "./components/TimeSection";
 import PostsHeader from "./components/PostsHeader";
 import SkeletonCard from "@/components/DocumentCardNew/components/LoadingCard";
 import CreatePostDrawer from "@/components/CreatePostDrawer";
+import CreateSeriesDrawer from "@/components/CreateSeriesDrawer";
+import { ViewType } from "@/components/SeriesView/components/ViewToggle";
+import { getPostSeriesId } from "./utils/seriesGrouping";
 
 // Import custom hooks
 import { usePostsData } from "./hooks/usePostsData";
@@ -107,6 +110,38 @@ const PostsList: React.FC<PostsListProps> = () => {
 
   // State for Create Post Drawer
   const [createPostDrawerOpen, setCreatePostDrawerOpen] = useState(false);
+  const [createSeriesDrawerOpen, setCreateSeriesDrawerOpen] = useState(false);
+
+  // Layout and content filter state (persisted to localStorage)
+  const [viewType, setViewType] = useState<ViewType>("grid");
+  const [showPosts, setShowPosts] = useState(true);
+  const [showSeries, setShowSeries] = useState(true);
+
+  useEffect(() => {
+    const savedView = localStorage.getItem("postsView");
+    if (savedView && ["grid", "compact", "detailed"].includes(savedView)) {
+      setViewType(savedView as ViewType);
+    }
+    const savedShowPosts = localStorage.getItem("postsShowPosts");
+    if (savedShowPosts !== null) setShowPosts(savedShowPosts === "true");
+    const savedShowSeries = localStorage.getItem("postsShowSeries");
+    if (savedShowSeries !== null) setShowSeries(savedShowSeries === "true");
+  }, []);
+
+  const handleViewTypeChange = (view: ViewType) => {
+    setViewType(view);
+    localStorage.setItem("postsView", view);
+  };
+
+  const handleShowPostsChange = (show: boolean) => {
+    setShowPosts(show);
+    localStorage.setItem("postsShowPosts", String(show));
+  };
+
+  const handleShowSeriesChange = (show: boolean) => {
+    setShowSeries(show);
+    localStorage.setItem("postsShowSeries", String(show));
+  };
 
   // Use custom hook to get posts data with search, filtering, and partitioning
   const {
@@ -125,8 +160,14 @@ const PostsList: React.FC<PostsListProps> = () => {
     searchResults,
   } = usePostsData();
 
-  // Use timeGroups for display to support flexible partitioning
-  const displayGroups = timeGroups;
+  // Filter out time groups with no visible content given current showPosts/showSeries
+  const displayGroups = timeGroups.filter((group) => {
+    if (showPosts && showSeries) return true;
+    return group.posts.some((post) => {
+      const inSeries = !!getPostSeriesId(post);
+      return inSeries ? showSeries : showPosts;
+    });
+  });
 
   return (
     <Box
@@ -153,6 +194,13 @@ const PostsList: React.FC<PostsListProps> = () => {
         granularity={granularity}
         onGranularityChange={setGranularity}
         onNewPost={() => setCreatePostDrawerOpen(true)}
+        onNewSeries={() => setCreateSeriesDrawerOpen(true)}
+        viewType={viewType}
+        onViewTypeChange={handleViewTypeChange}
+        showPosts={showPosts}
+        onShowPostsChange={handleShowPostsChange}
+        showSeries={showSeries}
+        onShowSeriesChange={handleShowSeriesChange}
       />
 
       {/* Time-Based Sections */}
@@ -228,7 +276,10 @@ const PostsList: React.FC<PostsListProps> = () => {
                 <Box key={timeGroup.timeKey}>
                   <TimeSection
                     timeGroup={timeGroup}
-                    isLatest={index === 0} // First period is the latest
+                    isLatest={index === 0}
+                    viewType={viewType}
+                    showPosts={showPosts}
+                    showSeries={showSeries}
                   />
                 </Box>
               ))}
@@ -241,6 +292,12 @@ const PostsList: React.FC<PostsListProps> = () => {
         open={createPostDrawerOpen}
         onClose={() => setCreatePostDrawerOpen(false)}
         seriesId=""
+      />
+
+      {/* Create Series Drawer */}
+      <CreateSeriesDrawer
+        open={createSeriesDrawerOpen}
+        onClose={() => setCreateSeriesDrawerOpen(false)}
       />
     </Box>
   );

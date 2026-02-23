@@ -8,6 +8,8 @@ import {
   Menu,
   MenuItem,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import {
@@ -23,6 +25,10 @@ import { useRouter } from "next/navigation";
 import { TimeFilterValue } from "../hooks/usePostsTimeFilter";
 import { PartitionGranularity } from "@/types/partitioning";
 import { PartitionControl } from "./PartitionControl";
+import {
+  ViewToggle,
+  ViewType,
+} from "@/components/SeriesView/components/ViewToggle";
 
 interface PostsHeaderProps {
   totalCount: number;
@@ -34,11 +40,48 @@ interface PostsHeaderProps {
   granularity?: PartitionGranularity;
   onGranularityChange?: (granularity: PartitionGranularity) => void;
   onNewPost?: () => void;
+  onNewSeries?: () => void;
+  viewType?: ViewType;
+  onViewTypeChange?: (view: ViewType) => void;
+  showPosts?: boolean;
+  onShowPostsChange?: (show: boolean) => void;
+  showSeries?: boolean;
+  onShowSeriesChange?: (show: boolean) => void;
 }
 
+const toggleGroupSx = {
+  backgroundColor: "background.paper",
+  height: 32,
+  "& .MuiToggleButton-root": {
+    border: 1,
+    borderColor: "divider",
+    height: 32,
+    px: 1.5,
+    textTransform: "none",
+    fontSize: "0.8125rem",
+    "&.Mui-selected": {
+      backgroundColor: "primary.main",
+      color: "primary.contrastText",
+      "&:hover": { backgroundColor: "primary.dark" },
+    },
+  },
+};
+
+const actionButtonSx = {
+  borderRadius: 2,
+  textTransform: "none",
+  fontWeight: 500,
+  height: 36,
+  px: 2,
+  borderColor: "divider",
+  "&:hover": { borderColor: "text.secondary" },
+} as const;
+
 /**
- * Header component displaying search, filters, and actions for posts management
- * Layout: Search bar on top, action buttons below (following standard content management patterns)
+ * Header component for posts management
+ * Row 1: Search + post count
+ * Row 2: Create actions (New Post, New Series)
+ * Row 3: Filters + display options (Time, Posts/Series toggle, Group By, View)
  */
 const PostsHeader: React.FC<PostsHeaderProps> = ({
   totalCount,
@@ -50,16 +93,21 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
   granularity = "quarter",
   onGranularityChange,
   onNewPost,
+  onNewSeries,
+  viewType = "grid",
+  onViewTypeChange,
+  showPosts = true,
+  onShowPostsChange,
+  showSeries = true,
+  onShowSeriesChange,
 }) => {
   const router = useRouter();
 
-  // Filter menu state
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(
     null,
   );
   const filterMenuOpen = Boolean(filterAnchorEl);
 
-  // Time filter options
   const timeFilterOptions = [
     { value: "all", label: "All Time", icon: <Schedule /> },
     { value: "thisYear", label: "This Year", icon: <CalendarMonth /> },
@@ -70,45 +118,44 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
   ];
 
   const handleNewPost = () => {
-    if (onNewPost) {
-      onNewPost();
-    } else {
-      router.push("/new");
-    }
+    if (onNewPost) onNewPost();
+    else router.push("/new");
   };
 
   const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
     setFilterAnchorEl(event.currentTarget);
   };
 
-  const handleFilterClose = () => {
-    setFilterAnchorEl(null);
-  };
+  const handleFilterClose = () => setFilterAnchorEl(null);
 
   const handleTimeFilterSelect = (value: string) => {
     onTimeFilterChange?.(value as TimeFilterValue);
     handleFilterClose();
   };
 
-  const clearSearch = () => {
-    onSearchChange?.("");
-  };
+  const clearSearch = () => onSearchChange?.("");
 
-  const activeTimeFilter = timeFilterOptions.find((option) =>
-    option.value === timeFilter
+  const activeTimeFilter = timeFilterOptions.find((o) =>
+    o.value === timeFilter
   );
 
+  const contentFilterValue = [
+    ...(showPosts ? ["posts"] : []),
+    ...(showSeries ? ["series"] : []),
+  ];
+
+  const handleContentFilterChange = (
+    _: React.MouseEvent,
+    newValues: string[],
+  ) => {
+    onShowPostsChange?.(newValues.includes("posts"));
+    onShowSeriesChange?.(newValues.includes("series"));
+  };
+
   return (
-    <Box
-      component="header"
-      sx={{
-        mb: 4,
-        pt: 2,
-        pb: 3,
-      }}
-    >
-      {/* Search Section - Full width search bar */}
-      <Box sx={{ mb: 2.5 }}>
+    <Box component="header" sx={{ mb: 4, pt: 2, pb: 3 }}>
+      {/* Row 1: Search + post count */}
+      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 2 }}>
         <TextField
           fullWidth
           size="small"
@@ -121,12 +168,8 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
               borderRadius: 2,
               backgroundColor: "background.paper",
               transition: "box-shadow 0.2s ease-in-out",
-              "&:hover": {
-                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              },
-              "&.Mui-focused": {
-                boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
-              },
+              "&:hover": { boxShadow: "0 2px 8px rgba(0,0,0,0.08)" },
+              "&.Mui-focused": { boxShadow: "0 2px 12px rgba(0,0,0,0.12)" },
             },
           }}
           InputProps={{
@@ -141,11 +184,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
                   size="small"
                   onClick={clearSearch}
                   aria-label="Clear search"
-                  sx={{
-                    "&:hover": {
-                      backgroundColor: "action.hover",
-                    },
-                  }}
+                  sx={{ "&:hover": { backgroundColor: "action.hover" } }}
                 >
                   <Clear sx={{ fontSize: 18 }} />
                 </IconButton>
@@ -154,59 +193,85 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
           }}
           aria-label="Search posts"
         />
+        {!loading && totalCount > 0 && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            {totalCount} posts
+          </Typography>
+        )}
       </Box>
 
-      {/* Actions Toolbar - Below search */}
+      {/* Row 2: Create actions */}
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: 2,
+          gap: 1.5,
+          mb: 1.5,
           flexWrap: "wrap",
         }}
       >
-        {/* Primary Action: New Post */}
         <Button
           variant="outlined"
           startIcon={<Add />}
           onClick={handleNewPost}
-          sx={{
-            borderRadius: 2,
-            textTransform: "none",
-            fontWeight: 500,
-            height: 36,
-            px: 2,
-            borderColor: "divider",
-            "&:hover": {
-              borderColor: "text.secondary",
-            },
-          }}
+          sx={actionButtonSx}
         >
           New Post
         </Button>
+        <Button
+          variant="outlined"
+          startIcon={<Add />}
+          onClick={onNewSeries}
+          sx={actionButtonSx}
+        >
+          New Series
+        </Button>
+      </Box>
 
-        {/* Time Filter Button */}
+      {/* Row 3: Filters + display options */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          flexWrap: "wrap",
+        }}
+      >
+        {/* Time filter */}
         <Button
           variant="outlined"
           startIcon={<FilterList />}
           onClick={handleFilterClick}
           sx={{
-            borderRadius: 2,
-            textTransform: "none",
+            ...actionButtonSx,
             fontWeight: 400,
-            height: 36,
-            px: 2,
             color: timeFilter !== "all" ? "primary.main" : "text.secondary",
-            borderColor: "divider",
-            "&:hover": {
-              borderColor: "text.secondary",
-            },
           }}
         >
           {activeTimeFilter?.label || "All Time"}
         </Button>
 
-        {/* Partition Control - Group By */}
+        {/* Posts / Series toggle */}
+        <ToggleButtonGroup
+          value={contentFilterValue}
+          onChange={handleContentFilterChange}
+          aria-label="content filter"
+          size="small"
+          sx={toggleGroupSx}
+        >
+          <ToggleButton value="posts" aria-label="show posts">
+            Posts
+          </ToggleButton>
+          <ToggleButton value="series" aria-label="show series">
+            Series
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        {/* Group By */}
         {totalCount > 0 && (
           <PartitionControl
             granularity={granularity}
@@ -214,26 +279,26 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
             postCount={totalCount}
           />
         )}
+
+        {/* View layout */}
+        <ViewToggle view={viewType} onChange={onViewTypeChange || (() => {})} />
       </Box>
 
-      {/* Active Filters Chips - Show when filters are active */}
+      {/* Active filter chips */}
       {(searchQuery || timeFilter !== "all") && (
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
             gap: 1,
-            mt: 2,
+            mt: 1.5,
             flexWrap: "wrap",
           }}
         >
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{
-              fontWeight: 500,
-              fontSize: "0.8125rem",
-            }}
+            sx={{ fontWeight: 500, fontSize: "0.8125rem" }}
           >
             Active filters:
           </Typography>
@@ -244,12 +309,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
               size="small"
               color="primary"
               variant="outlined"
-              sx={{
-                borderRadius: 1.5,
-                "& .MuiChip-label": {
-                  px: 1,
-                },
-              }}
+              sx={{ borderRadius: 1.5, "& .MuiChip-label": { px: 1 } }}
             />
           )}
           {timeFilter !== "all" && (
@@ -259,29 +319,19 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
               size="small"
               color="primary"
               variant="outlined"
-              sx={{
-                borderRadius: 1.5,
-                "& .MuiChip-label": {
-                  px: 1,
-                },
-              }}
+              sx={{ borderRadius: 1.5, "& .MuiChip-label": { px: 1 } }}
             />
           )}
         </Box>
       )}
 
-      {/* Filter Menu */}
+      {/* Filter menu */}
       <Menu
         anchorEl={filterAnchorEl}
         open={filterMenuOpen}
         onClose={handleFilterClose}
         PaperProps={{
-          sx: {
-            mt: 1,
-            minWidth: 180,
-            borderRadius: 2,
-            boxShadow: 3,
-          },
+          sx: { mt: 1, minWidth: 180, borderRadius: 2, boxShadow: 3 },
         }}
       >
         {timeFilterOptions.map((option) => (
@@ -289,12 +339,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
             key={option.value}
             onClick={() => handleTimeFilterSelect(option.value)}
             selected={timeFilter === option.value}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-              py: 1,
-            }}
+            sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1 }}
           >
             {option.icon}
             {option.label}

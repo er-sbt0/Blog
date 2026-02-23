@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Typography } from "@mui/material";
 import { User } from "@/types";
 import { SeriesTimeGroup } from "../utils/seriesTimeGrouping";
-import SeriesGridSection from "./SeriesGridSection";
+import PostsGrid from "@/components/PostsList/components/PostsGrid";
 
 interface SeriesTimeSectionProps {
   timeGroup: SeriesTimeGroup;
@@ -82,7 +82,7 @@ const SeriesTimeSection: React.FC<SeriesTimeSectionProps> = ({
         id={`series-time-${timeGroup.timeKey}`}
         aria-label={`${timeGroup.count} series from ${timeGroup.timeLabel}`}
       >
-        <SeriesGridSection series={timeGroup.series} user={user} />
+        <PostsGrid series={timeGroup.series} />
       </Box>
     </Box>
   );

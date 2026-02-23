@@ -2,14 +2,25 @@ import React, { useCallback, useMemo, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Grid from "@mui/material/Grid2";
-import { UserDocument } from "@/types";
+import { Series, UserDocument } from "@/types";
 import { useSelector } from "@/store";
 import DocumentCard from "@/components/DocumentCardNew";
 import SeriesCard from "@/components/SeriesCard/SeriesCardUnified";
-import { buildSeriesMap, groupPostsBySeries } from "../utils/seriesGrouping";
+import {
+  buildSeriesMap,
+  flattenGroupedPosts,
+  groupPostsBySeries,
+} from "../utils/seriesGrouping";
+import { ViewType } from "@/components/SeriesView/components/ViewToggle";
+import { PostsCompactListView } from "@/components/SeriesView/components/PostsCompactListView";
+import { PostsDetailedListView } from "@/components/SeriesView/components/PostsDetailedListView";
 
 interface PostsGridProps {
-  posts: UserDocument[];
+  posts?: UserDocument[];
+  series?: Series[];
+  viewType?: ViewType;
+  showPosts?: boolean;
+  showSeries?: boolean;
 }
 
 /**
@@ -17,7 +28,13 @@ interface PostsGridProps {
  * Posts are grouped by series with collapsible containers
  * Mobile: 1 column, Tablet: 2 columns, Desktop: 3-4 columns
  */
-const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
+const PostsGrid: React.FC<PostsGridProps> = ({
+  posts = [],
+  series,
+  viewType = "grid",
+  showPosts = true,
+  showSeries = true,
+}) => {
   const user = useSelector((state) => state.user);
   const seriesList = useSelector((state) => state.series);
   const theme = useTheme();
@@ -33,6 +50,19 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
   const groupedPosts = useMemo(
     () => groupPostsBySeries(posts, seriesMap),
     [posts, seriesMap],
+  );
+
+  // Filter groups by showPosts/showSeries flags
+  const filteredGroupedPosts = useMemo(
+    () =>
+      groupedPosts.filter((g) => g.type === "series" ? showSeries : showPosts),
+    [groupedPosts, showPosts, showSeries],
+  );
+
+  // Flat list of posts for compact/detailed modes
+  const flatPosts = useMemo(
+    () => flattenGroupedPosts(filteredGroupedPosts),
+    [filteredGroupedPosts],
   );
 
   // Track expanded series (series NOT in this set are collapsed)
@@ -77,13 +107,42 @@ const PostsGrid: React.FC<PostsGridProps> = ({ posts }) => {
   // No useEffect needed! New series automatically default to collapsed
   // since they're not in the expandedSeries set
 
+  // Compact list mode
+  if (viewType === "compact") {
+    return <PostsCompactListView posts={flatPosts} user={user || undefined} />;
+  }
+
+  // Detailed list mode
+  if (viewType === "detailed") {
+    return <PostsDetailedListView posts={flatPosts} user={user || undefined} />;
+  }
+
+  // Series catalog mode: render detailed series cards
+  if (series) {
+    return (
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {series.map((seriesItem) => (
+          <Grid key={seriesItem.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+            <SeriesCard
+              variant="detailed"
+              series={seriesItem}
+              user={user}
+              showMetadata={true}
+              showActions={true}
+            />
+          </Grid>
+        ))}
+      </Grid>
+    );
+  }
+
   return (
     <Grid
       container
       spacing={3}
       sx={{ mb: 4 }}
     >
-      {groupedPosts.map((group) => {
+      {filteredGroupedPosts.map((group) => {
         if (group.type === "series" && group.series) {
           const isCollapsed = !expandedSeries.has(group.series.id);
 
