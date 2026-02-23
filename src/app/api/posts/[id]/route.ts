@@ -14,6 +14,7 @@ import {
 } from "@/types";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { validate } from "uuid";
 import { Prisma } from "@prisma/client";
 import { validateHandle } from "../../documents/utils";
@@ -156,6 +157,15 @@ export async function PATCH(
     // if (body.coauthors !== undefined) { ... }
 
     response.data = await updatePost(params.id, input);
+
+    // Revalidate paths to reflect updated post
+    revalidatePath("/");
+    revalidatePath(`/${userPost.handle || params.id}`);
+    if (userPost.seriesId) {
+      revalidatePath("/series");
+      revalidatePath(`/series/${userPost.seriesId}`);
+    }
+
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.log(error);
@@ -207,6 +217,14 @@ export async function DELETE(
     }
 
     await deletePost(params.id);
+
+    // Revalidate paths to reflect deleted post
+    revalidatePath("/");
+    if (userPost.seriesId) {
+      revalidatePath("/series");
+      revalidatePath(`/series/${userPost.seriesId}`);
+    }
+
     response.data = params.id;
     return NextResponse.json(response, { status: 200 });
   } catch (error) {

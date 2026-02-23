@@ -13,6 +13,7 @@ import {
   Typography,
   useScrollTrigger,
 } from "@mui/material";
+import { DateDisplay } from "@/components/DateDisplay";
 import { Edit, FileCopy, History } from "@mui/icons-material";
 import RouterLink from "next/link";
 import ShareDocument from "./DocumentActions/Share";
@@ -86,20 +87,14 @@ export default function ViewDocumentInfo(
             </Typography>
           )}
           <Typography variant="subtitle2" color="text.secondary">
-            Created: {new Date(cloudDocument.createdAt).toLocaleString(
-              undefined,
-              { dateStyle: "medium", timeStyle: "short" },
-            )}
+            Created: <DateDisplay date={cloudDocument.createdAt} variant="full" />
           </Typography>
           <Typography
             variant="subtitle2"
             color="text.secondary"
             gutterBottom
           >
-            Updated: {new Date(cloudDocument.updatedAt).toLocaleString(
-              undefined,
-              { dateStyle: "medium", timeStyle: "short" },
-            )}
+            Updated: <DateDisplay date={cloudDocument.updatedAt} variant="full" />
           </Typography>
           <Typography variant="subtitle2">
             Author{" "}

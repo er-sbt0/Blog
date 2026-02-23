@@ -1,0 +1,129 @@
+"use client";
+import { useState, useEffect } from "react";
+import { Box, Button, Typography, Alert, CircularProgress } from "@mui/material";
+import { useSession } from "next-auth/react";
+import {
+  hasIndexedDBNotes,
+  hasMigrated,
+  migrateNotesFromIndexedDB,
+  type MigrationResult,
+} from "@/utils/migrateNotes";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import CloseIcon from "@mui/icons-material/Close";
+
+export default function NotesMigrationBanner() {
+  const { data: session, status } = useSession();
+  const [showBanner, setShowBanner] = useState(false);
+  const [migrating, setMigrating] = useState(false);
+  const [result, setResult] = useState<MigrationResult | null>(null);
+
+  useEffect(() => {
+    async function checkMigrationStatus() {
+      // Only check if user is authenticated
+      if (status !== "authenticated") {
+        setShowBanner(false);
+        return;
+      }
+
+      // Check if already migrated
+      if (hasMigrated()) {
+        setShowBanner(false);
+        return;
+      }
+
+      // Check if user has IndexedDB notes
+      const hasNotes = await hasIndexedDBNotes();
+      setShowBanner(hasNotes);
+    }
+
+    checkMigrationStatus();
+  }, [status]);
+
+  const handleMigrate = async () => {
+    setMigrating(true);
+    setResult(null);
+
+    const migrationResult = await migrateNotesFromIndexedDB();
+    setResult(migrationResult);
+    setMigrating(false);
+
+    if (migrationResult.success) {
+      // Hide banner after 5 seconds on success
+      setTimeout(() => {
+        setShowBanner(false);
+      }, 5000);
+    }
+  };
+
+  const handleDismiss = () => {
+    setShowBanner(false);
+  };
+
+  if (!showBanner) return null;
+
+  return (
+    <Box
+      sx={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1300,
+        bgcolor: "info.main",
+        color: "info.contrastText",
+        p: 2,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+        boxShadow: 2,
+      }}
+    >
+      <CloudUploadIcon />
+
+      {!result && (
+        <>
+          <Typography variant="body1" sx={{ flex: 1 }}>
+            We've upgraded notes storage! Import your local notes to the cloud for better reliability and multi-device sync.
+          </Typography>
+
+          <Button
+            variant="contained"
+            color="inherit"
+            onClick={handleMigrate}
+            disabled={migrating}
+            startIcon={migrating ? <CircularProgress size={16} /> : undefined}
+            sx={{
+              bgcolor: "white",
+              color: "info.main",
+              "&:hover": {
+                bgcolor: "grey.100",
+              },
+            }}
+          >
+            {migrating ? "Migrating..." : "Import Now"}
+          </Button>
+
+          <Button
+            onClick={handleDismiss}
+            sx={{ color: "info.contrastText", minWidth: "auto", p: 1 }}
+          >
+            <CloseIcon />
+          </Button>
+        </>
+      )}
+
+      {result && result.success && (
+        <Alert severity="success" sx={{ flex: 1 }}>
+          Successfully migrated {result.notesCount} note{result.notesCount !== 1 ? "s" : ""} to the cloud!
+        </Alert>
+      )}
+
+      {result && !result.success && (
+        <Alert severity="error" sx={{ flex: 1 }}>
+          Migration failed: {result.error}. Please try again or contact support.
+        </Alert>
+      )}
+    </Box>
+  );
+}

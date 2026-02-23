@@ -1,10 +1,12 @@
 "use client";
 import * as React from "react";
+import { useState } from "react";
 import { Series, User } from "@/types";
 import { Box } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import SeriesHeader from "./SeriesHeader";
 import SkeletonCard from "@/components/DocumentCardNew/components/LoadingCard";
+import CreateSeriesDrawer from "@/components/CreateSeriesDrawer";
 import { useSeriesData } from "./hooks/useSeriesData";
 import SeriesTimeSection from "./components/SeriesTimeSection";
 
@@ -45,6 +47,9 @@ const SeriesList: React.FC<SeriesListProps> = ({
   loading = false,
   showHeader = true,
 }) => {
+  // State for Create Series Drawer
+  const [createSeriesDrawerOpen, setCreateSeriesDrawerOpen] = useState(false);
+
   // Use custom hook to get series data with search, filtering, and partitioning
   const {
     timeGroups,
@@ -83,6 +88,7 @@ const SeriesList: React.FC<SeriesListProps> = ({
           onSearchChange={setSearchQuery}
           granularity={granularity}
           onGranularityChange={setGranularity}
+          onNewSeries={() => setCreateSeriesDrawerOpen(true)}
         />
       )}
 
@@ -165,6 +171,12 @@ const SeriesList: React.FC<SeriesListProps> = ({
             </Box>
           </section>
         )}
+
+      {/* Create Series Drawer */}
+      <CreateSeriesDrawer
+        open={createSeriesDrawerOpen}
+        onClose={() => setCreateSeriesDrawerOpen(false)}
+      />
     </Box>
   );
 };

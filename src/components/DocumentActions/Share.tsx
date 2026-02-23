@@ -34,6 +34,7 @@ import { useTheme } from "@mui/material/styles";
 import useFixedBodyScroll from "@/hooks/useFixedBodyScroll";
 import UploadDocument from "./Upload";
 import { useSearchParams } from "next/navigation";
+import { DateDisplay } from "@/components/DateDisplay";
 
 const ShareDocument: React.FC<
   {
@@ -320,16 +321,7 @@ const ShareDocument: React.FC<
                               key={revision.id}
                               value={revision.id}
                             >
-                              {new Date(
-                                revision
-                                  .createdAt,
-                              ).toLocaleString(
-                                undefined,
-                                {
-                                  dateStyle: "medium",
-                                  timeStyle: "short",
-                                },
-                              )}
+                              <DateDisplay date={revision.createdAt} variant="full" />
                             </MenuItem>
                           ),
                         )}
@@ -374,16 +366,7 @@ const ShareDocument: React.FC<
                               key={revision.id}
                               value={revision.id}
                             >
-                              {new Date(
-                                revision
-                                  .createdAt,
-                              ).toLocaleString(
-                                undefined,
-                                {
-                                  dateStyle: "medium",
-                                  timeStyle: "short",
-                                },
-                              )}
+                              <DateDisplay date={revision.createdAt} variant="full" />
                             </MenuItem>
                           ),
                         )}
@@ -438,16 +421,7 @@ const ShareDocument: React.FC<
                                 value={revision
                                   .id}
                               >
-                                {new Date(
-                                  revision
-                                    .createdAt,
-                                ).toLocaleString(
-                                  undefined,
-                                  {
-                                    dateStyle: "medium",
-                                    timeStyle: "short",
-                                  },
-                                )}
+                                <DateDisplay date={revision.createdAt} variant="full" />
                               </MenuItem>
                             ))}
                         </Select>
@@ -563,16 +537,7 @@ const ShareDocument: React.FC<
                               key={revision.id}
                               value={revision.id}
                             >
-                              {new Date(
-                                revision
-                                  .createdAt,
-                              ).toLocaleString(
-                                undefined,
-                                {
-                                  dateStyle: "medium",
-                                  timeStyle: "short",
-                                },
-                              )}
+                              <DateDisplay date={revision.createdAt} variant="full" />
                             </MenuItem>
                           ),
                         )}

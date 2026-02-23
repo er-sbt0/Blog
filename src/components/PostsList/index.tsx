@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { Box, Skeleton, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Grid from "@mui/material/Grid2";
@@ -9,6 +9,7 @@ import MonthSection from "./components/MonthSection";
 import TimeSection from "./components/TimeSection";
 import PostsHeader from "./components/PostsHeader";
 import SkeletonCard from "@/components/DocumentCardNew/components/LoadingCard";
+import CreatePostDrawer from "@/components/CreatePostDrawer";
 
 // Import custom hooks
 import { usePostsData } from "./hooks/usePostsData";
@@ -104,6 +105,9 @@ const PostsList: React.FC<PostsListProps> = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+  // State for Create Post Drawer
+  const [createPostDrawerOpen, setCreatePostDrawerOpen] = useState(false);
+
   // Use custom hook to get posts data with search, filtering, and partitioning
   const {
     monthGroups,
@@ -148,6 +152,7 @@ const PostsList: React.FC<PostsListProps> = () => {
         onTimeFilterChange={setTimeFilter}
         granularity={granularity}
         onGranularityChange={setGranularity}
+        onNewPost={() => setCreatePostDrawerOpen(true)}
       />
 
       {/* Time-Based Sections */}
@@ -230,6 +235,13 @@ const PostsList: React.FC<PostsListProps> = () => {
             </Box>
           </section>
         )}
+
+      {/* Create Post Drawer */}
+      <CreatePostDrawer
+        open={createPostDrawerOpen}
+        onClose={() => setCreatePostDrawerOpen(false)}
+        seriesId=""
+      />
     </Box>
   );
 };

@@ -27,6 +27,7 @@ import {
   PlayArrow,
   Preview,
 } from "@mui/icons-material";
+import { DateDisplay } from "@/components/DateDisplay";
 import type { LexicalEditor } from "lexical";
 import { RefObject } from "react";
 import RouterLink from "next/link";
@@ -208,22 +209,14 @@ export default function EditDocumentInfo(
                 variant="subtitle2"
                 color="text.secondary"
               >
-                Created: {new Date(localDocument.createdAt)
-                  .toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
+                Created: <DateDisplay date={localDocument.createdAt} variant="full" />
               </Typography>
               <Typography
                 variant="subtitle2"
                 color="text.secondary"
                 gutterBottom
               >
-                Updated: {new Date(localDocument.updatedAt)
-                  .toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
+                Updated: <DateDisplay date={localDocument.updatedAt} variant="full" />
               </Typography>
               {!cloudDocument && (
                 <Typography variant="subtitle2">

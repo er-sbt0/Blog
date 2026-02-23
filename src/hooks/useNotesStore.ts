@@ -1,188 +1,316 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { Note, NotesCanvas } from "@/types/notes";
-import { getStore } from "@/indexeddb";
+import { useSession } from "next-auth/react";
 
-const NOTES_STORE = "notesCanvas";
-const DEFAULT_CANVAS_ID = "default";
+const API_BASE = "/api/notes";
 
-// Singleton state to prevent race conditions between multiple hook instances
-let globalCanvas: NotesCanvas | null = null;
-let globalListeners: Set<(canvas: NotesCanvas | null) => void> = new Set();
-let isInitializing = false;
-let initPromise: Promise<NotesCanvas | null> | null = null;
-
-async function initializeCanvas(): Promise<NotesCanvas | null> {
-  // If already initializing, wait for that to complete
-  if (initPromise) {
-    return initPromise;
-  }
-
-  // If already initialized, return cached value
-  if (globalCanvas) {
-    return globalCanvas;
-  }
-
-  isInitializing = true;
-  initPromise = (async () => {
-    try {
-      const store = getStore<NotesCanvas>(NOTES_STORE);
-      let data = await store.getByID(DEFAULT_CANVAS_ID);
-
-      if (!data) {
-        // Create default canvas
-        data = {
-          id: DEFAULT_CANVAS_ID,
-          name: "My Notes",
-          notes: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        };
-        try {
-          await store.add(data);
-        } catch (e) {
-          // If add fails (duplicate key), try to get again
-          data = await store.getByID(DEFAULT_CANVAS_ID);
-          if (!data) {
-            console.error("Failed to create or retrieve canvas:", e);
-            return null;
-          }
-        }
-      }
-
-      globalCanvas = data;
-      return data;
-    } catch (error) {
-      console.error("Failed to load notes canvas:", error);
-      return null;
-    } finally {
-      isInitializing = false;
-    }
-  })();
-
-  return initPromise;
-}
-
-function notifyListeners(canvas: NotesCanvas | null) {
-  globalListeners.forEach((listener) => listener(canvas));
-}
-
-async function saveCanvasGlobal(updatedCanvas: NotesCanvas) {
-  try {
-    const store = getStore<NotesCanvas>(NOTES_STORE);
-    const canvasToSave = {
-      ...updatedCanvas,
-      updatedAt: Date.now(),
-    };
-    await store.update(canvasToSave);
-    globalCanvas = canvasToSave;
-    notifyListeners(canvasToSave);
-  } catch (error) {
-    console.error("Failed to save notes canvas:", error);
-  }
+// Debounce helper for frequent updates
+function debounce<T extends (...args: any[]) => void>(
+  func: T,
+  wait: number
+): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
 }
 
 export function useNotesStore() {
-  const [canvas, setCanvas] = useState<NotesCanvas | null>(globalCanvas);
-  const [loading, setLoading] = useState(!globalCanvas);
+  const { data: session, status } = useSession();
+  const [canvas, setCanvas] = useState<NotesCanvas | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Subscribe to global state changes
-    const listener = (newCanvas: NotesCanvas | null) => {
-      setCanvas(newCanvas);
-    };
-    globalListeners.add(listener);
+  // Fetch canvas from API
+  const fetchCanvas = useCallback(async () => {
+    if (status === "loading") return;
+    if (status === "unauthenticated") {
+      setLoading(false);
+      setError("Please sign in to use notes");
+      return;
+    }
 
-    // Initialize if needed
-    if (!globalCanvas) {
-      initializeCanvas().then((data) => {
-        setCanvas(data);
-        setLoading(false);
-      });
-    } else {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`${API_BASE}/canvas`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.subtitle || "Failed to fetch canvas");
+      }
+
+      setCanvas(data.data);
+    } catch (err) {
+      console.error("Error fetching canvas:", err);
+      setError(err instanceof Error ? err.message : "Failed to load notes");
+    } finally {
       setLoading(false);
     }
+  }, [status]);
 
-    return () => {
-      globalListeners.delete(listener);
-    };
-  }, []);
+  // Initial load
+  useEffect(() => {
+    fetchCanvas();
+  }, [fetchCanvas]);
 
   const refresh = useCallback(async () => {
-    try {
-      const store = getStore<NotesCanvas>(NOTES_STORE);
-      const data = await store.getByID(DEFAULT_CANVAS_ID);
-      if (data) {
-        globalCanvas = data;
-        notifyListeners(data);
+    await fetchCanvas();
+  }, [fetchCanvas]);
+
+  const addNote = useCallback(
+    async (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
+      if (!canvas) return;
+
+      // Optimistic update
+      const optimisticNote: Note = {
+        ...note,
+        id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      setCanvas((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          notes: [...prev.notes, optimisticNote],
+        };
+      });
+
+      try {
+        const response = await fetch(API_BASE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            positionX: note.position.x,
+            positionY: note.position.y,
+            width: note.size.width,
+            height: note.size.height,
+            title: note.title,
+            content: note.content,
+            color: note.color,
+            zIndex: note.zIndex,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error?.subtitle || "Failed to create note");
+        }
+
+        // Replace optimistic note with real one
+        setCanvas((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            notes: prev.notes.map((n) =>
+              n.id === optimisticNote.id ? data.data : n
+            ),
+          };
+        });
+      } catch (err) {
+        console.error("Error creating note:", err);
+        // Rollback optimistic update
+        setCanvas((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            notes: prev.notes.filter((n) => n.id !== optimisticNote.id),
+          };
+        });
+        setError(err instanceof Error ? err.message : "Failed to create note");
       }
-    } catch (error) {
-      console.error("Failed to refresh notes canvas:", error);
-    }
-  }, []);
+    },
+    [canvas]
+  );
 
-  const addNote = useCallback(async (
-    note: Omit<Note, "id" | "createdAt" | "updatedAt">,
-  ) => {
-    if (!globalCanvas) return;
+  // Debounced update for frequent changes (drag, resize)
+  const debouncedApiUpdate = useCallback(
+    debounce(async (id: string, updates: any) => {
+      try {
+        const response = await fetch(`${API_BASE}/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates),
+        });
 
-    const newNote: Note = {
-      ...note,
-      id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
+        const data = await response.json();
 
-    const updatedCanvas = {
-      ...globalCanvas,
-      notes: [...globalCanvas.notes, newNote],
-    };
+        if (!response.ok) {
+          throw new Error(data.error?.subtitle || "Failed to update note");
+        }
+      } catch (err) {
+        console.error("Error updating note:", err);
+        setError(err instanceof Error ? err.message : "Failed to update note");
+        // Refresh to get latest state from server
+        refresh();
+      }
+    }, 500),
+    [refresh]
+  );
 
-    await saveCanvasGlobal(updatedCanvas);
-  }, []);
+  const updateNote = useCallback(
+    async (id: string, updates: Partial<Note>) => {
+      if (!canvas) return;
 
-  const updateNote = useCallback(async (id: string, updates: Partial<Note>) => {
-    if (!globalCanvas) return;
+      // Optimistic update
+      setCanvas((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          notes: prev.notes.map((note) =>
+            note.id === id ? { ...note, ...updates, updatedAt: Date.now() } : note
+          ),
+        };
+      });
 
-    const updatedCanvas = {
-      ...globalCanvas,
-      notes: globalCanvas.notes.map((note) =>
-        note.id === id ? { ...note, ...updates, updatedAt: Date.now() } : note
-      ),
-    };
+      // Prepare API updates
+      const apiUpdates: any = {};
+      if (updates.position) {
+        apiUpdates.positionX = updates.position.x;
+        apiUpdates.positionY = updates.position.y;
+      }
+      if (updates.size) {
+        apiUpdates.width = updates.size.width;
+        apiUpdates.height = updates.size.height;
+      }
+      if (updates.title !== undefined) apiUpdates.title = updates.title;
+      if (updates.content !== undefined) apiUpdates.content = updates.content;
+      if (updates.color !== undefined) apiUpdates.color = updates.color;
+      if (updates.zIndex !== undefined) apiUpdates.zIndex = updates.zIndex;
 
-    await saveCanvasGlobal(updatedCanvas);
-  }, []);
+      // Use debounced update for frequent changes
+      if (updates.position || updates.size) {
+        debouncedApiUpdate(id, apiUpdates);
+      } else {
+        // Immediate update for content/color changes
+        try {
+          const response = await fetch(`${API_BASE}/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(apiUpdates),
+          });
 
-  const deleteNote = useCallback(async (id: string) => {
-    if (!globalCanvas) return;
+          const data = await response.json();
 
-    const updatedCanvas = {
-      ...globalCanvas,
-      notes: globalCanvas.notes.filter((note) => note.id !== id),
-    };
+          if (!response.ok) {
+            throw new Error(data.error?.subtitle || "Failed to update note");
+          }
 
-    await saveCanvasGlobal(updatedCanvas);
-  }, []);
+          // Update with server response
+          setCanvas((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              notes: prev.notes.map((n) => (n.id === id ? data.data : n)),
+            };
+          });
+        } catch (err) {
+          console.error("Error updating note:", err);
+          setError(err instanceof Error ? err.message : "Failed to update note");
+          // Refresh to get latest state from server
+          refresh();
+        }
+      }
+    },
+    [canvas, debouncedApiUpdate, refresh]
+  );
 
-  const bringToFront = useCallback(async (id: string) => {
-    if (!globalCanvas) return;
+  const deleteNote = useCallback(
+    async (id: string) => {
+      if (!canvas) return;
 
-    const maxZIndex = Math.max(...globalCanvas.notes.map((n) => n.zIndex), 0);
+      // Store for potential rollback
+      const previousNotes = canvas.notes;
 
-    const updatedCanvas = {
-      ...globalCanvas,
-      notes: globalCanvas.notes.map((note) =>
-        note.id === id ? { ...note, zIndex: maxZIndex + 1 } : note
-      ),
-    };
+      // Optimistic update
+      setCanvas((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          notes: prev.notes.filter((note) => note.id !== id),
+        };
+      });
 
-    await saveCanvasGlobal(updatedCanvas);
-  }, []);
+      try {
+        const response = await fetch(`${API_BASE}/${id}`, {
+          method: "DELETE",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error?.subtitle || "Failed to delete note");
+        }
+      } catch (err) {
+        console.error("Error deleting note:", err);
+        // Rollback optimistic update
+        setCanvas((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            notes: previousNotes,
+          };
+        });
+        setError(err instanceof Error ? err.message : "Failed to delete note");
+      }
+    },
+    [canvas]
+  );
+
+  const bringToFront = useCallback(
+    async (id: string) => {
+      if (!canvas) return;
+
+      // Optimistic update
+      const maxZIndex = Math.max(...canvas.notes.map((n) => n.zIndex), 0);
+      setCanvas((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          notes: prev.notes.map((note) =>
+            note.id === id ? { ...note, zIndex: maxZIndex + 1 } : note
+          ),
+        };
+      });
+
+      try {
+        const response = await fetch(`${API_BASE}/${id}/bring-to-front`, {
+          method: "POST",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error?.subtitle || "Failed to reorder note");
+        }
+
+        // Update with server response
+        setCanvas((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            notes: prev.notes.map((n) => (n.id === id ? data.data : n)),
+          };
+        });
+      } catch (err) {
+        console.error("Error bringing note to front:", err);
+        setError(err instanceof Error ? err.message : "Failed to reorder note");
+        // Refresh to get latest state from server
+        refresh();
+      }
+    },
+    [canvas, refresh]
+  );
 
   return {
     canvas,
     loading,
+    error,
     addNote,
     updateNote,
     deleteNote,

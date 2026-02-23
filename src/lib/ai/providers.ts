@@ -1,5 +1,5 @@
 import { createOllama } from "ollama-ai-provider";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import type { AIModel, AIProviderType } from "./types";
@@ -37,11 +37,70 @@ const createAzureProvider = (): ProviderInstance => {
   if (!apiKey) {
     throw new AIConfigurationError("AZURE_API_KEY not configured");
   }
-  return createOpenAICompatible({
-    name: "azure-openai",
-    baseURL: "https://models.inference.ai.azure.com/",
+
+  const baseURL = process.env.AZURE_OPENAI_BASE_URL ||
+    "https://staging-openai.azure-api.net/openai-gw-proxy-dev";
+  const apiVersion = process.env.AZURE_OPENAI_API_VERSION ||
+    "2025-04-01-preview";
+
+  // Use @ai-sdk/openai with custom fetch to transform URLs for Azure format
+  // This provides v2/v3 model specs while using standard chat completions API
+  const openai = createOpenAI({
     apiKey,
+    baseURL,
+    headers: {
+      "api-key": apiKey,
+    },
+    fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+      try {
+        const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+        const urlObj = new URL(url);
+
+        // Extract model from request body
+        // Clone the body to avoid consuming the original stream
+        let model: string | undefined;
+        if (init?.body) {
+          try {
+            const bodyText = typeof init.body === "string" ? init.body : await new Response(init.body).text();
+            const bodyData = JSON.parse(bodyText);
+            model = bodyData.model;
+
+            // Replace the consumed body with a new one
+            init = {
+              ...init,
+              body: bodyText,
+            };
+          } catch (parseError) {
+            console.error("Failed to parse request body:", parseError);
+            throw new AIConfigurationError("Failed to parse request body for Azure provider");
+          }
+        }
+
+        if (!model) {
+          throw new AIConfigurationError("Model ID is required for Azure provider");
+        }
+
+        // Transform OpenAI URL to Azure format
+        // From: {baseURL}/chat/completions or {baseURL}/v1/chat/completions
+        // To: {baseURL}/openai/deployments/{model}/chat/completions?api-version={version}
+        if (urlObj.pathname.endsWith("/chat/completions")) {
+          urlObj.pathname = urlObj.pathname.replace(
+            /\/(v1\/)?chat\/completions$/,
+            `/openai/deployments/${model}/chat/completions`
+          );
+          urlObj.searchParams.set("api-version", apiVersion);
+        }
+
+        return fetch(urlObj.toString(), init);
+      } catch (error) {
+        console.error("Azure provider fetch error:", error);
+        throw error;
+      }
+    },
   });
+
+  // Use .chat() to ensure we get chat models, not the prompt caching API
+  return (modelId: string) => openai.chat(modelId);
 };
 
 const createOllamaProvider = (): ProviderInstance => {

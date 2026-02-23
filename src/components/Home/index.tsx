@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Series, User, UserDocument } from "@/types";
 import { DragProvider } from "../DragContext";
 import TrashBin from "../TrashBin";
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useDocuments } from "@/hooks/useDocuments";
 import KanbanPreviewCard from "./KanbanPreviewCard";
 import ReadmePreviewCard from "./ReadmePreviewCard";
@@ -26,9 +26,59 @@ const Home: React.FC<{
 }> = ({ staticDocuments }) => {
   const router = useRouter();
   const [activeView, setActiveView] = useState<ViewType>(null);
+  const [notesHeight, setNotesHeight] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('notesCanvasHeight');
+      return saved ? parseInt(saved, 10) : 400;
+    }
+    return 400;
+  }); // Default height in pixels
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeStartRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const { documents, refresh } = useDocuments(staticDocuments);
 
   const recentPosts = documents.slice(0, 8);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    resizeStartRef.current = {
+      startY: e.clientY,
+      startHeight: notesHeight,
+    };
+  }, [notesHeight]);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || !resizeStartRef.current) return;
+
+    const deltaY = e.clientY - resizeStartRef.current.startY;
+    const newHeight = Math.max(200, resizeStartRef.current.startHeight + deltaY);
+    setNotesHeight(newHeight);
+  }, [isResizing]);
+
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+    resizeStartRef.current = null;
+  }, []);
+
+  // Save height to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('notesCanvasHeight', notesHeight.toString());
+    }
+  }, [notesHeight]);
+
+  // Add/remove global event listeners for resize
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+      return () => {
+        document.removeEventListener('mousemove', handleResizeMove);
+        document.removeEventListener('mouseup', handleResizeEnd);
+      };
+    }
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
 
   const handleOpenView = (viewType: ViewType) => {
     setActiveView(viewType);
@@ -68,8 +118,37 @@ const Home: React.FC<{
                   </Typography>
                 </Box>
               </Box>
-              <Box sx={{ height: "50vh", minHeight: 400, overflow: "hidden" }}>
+              <Box
+                sx={{
+                  height: `${notesHeight}px`,
+                  minHeight: 200,
+                  overflow: "hidden",
+                  position: "relative",
+                }}
+              >
                 <NotesCanvas />
+
+                {/* Resize Handle */}
+                <Box
+                  onMouseDown={handleResizeStart}
+                  sx={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 8,
+                    cursor: "ns-resize",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: isResizing ? "action.selected" : "transparent",
+                    "&:hover": {
+                      backgroundColor: "action.hover",
+                    },
+                    transition: "background-color 0.2s",
+                    zIndex: 10,
+                  }}
+                />
               </Box>
             </ErrorBoundaryCard>
           </Grid>

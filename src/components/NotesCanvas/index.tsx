@@ -5,6 +5,7 @@ import { useNotesStore } from "@/hooks/useNotesStore";
 import DraggableNote from "./DraggableNote";
 import NotesToolbar from "./NotesToolbar";
 import StaticNoteCard from "./StaticNoteCard";
+import NotesMigrationBanner from "./NotesMigrationBanner";
 import { useCallback, useEffect } from "react";
 
 // Virtual canvas dimensions for consistent coordinate system
@@ -279,20 +280,22 @@ export default function NotesCanvas(
 
   // Full canvas mode rendering
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        minHeight: 0,
-        bgcolor: "background.paper",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2,
-        overflow: "hidden",
-      }}
-    >
-      <NotesToolbar onAddNote={handleAddNote} onClearAll={handleClearAll} />
+    <>
+      <NotesMigrationBanner />
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          minHeight: 0,
+          bgcolor: "background.paper",
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
+      >
+        <NotesToolbar onAddNote={handleAddNote} onClearAll={handleClearAll} />
 
       <Box
         sx={{
@@ -331,5 +334,6 @@ export default function NotesCanvas(
         </Box>
       </Box>
     </Box>
+    </>
   );
 }

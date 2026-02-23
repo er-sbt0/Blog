@@ -6,6 +6,7 @@ import {
 } from "@/repositories/series";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { v4 as uuidv4 } from "uuid";
 
 export const dynamic = "force-dynamic";
@@ -98,6 +99,11 @@ export async function POST(request: Request) {
     };
 
     response.data = await createSeries(seriesData);
+
+    // Revalidate series list page
+    revalidatePath("/series");
+    revalidatePath("/");
+
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.log(error);

@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { Cloud, MobileFriendly } from "@mui/icons-material";
 import RouterLink from "next/link";
+import { DateDisplay } from "@/components/DateDisplay";
 import { useSearchParams } from "next/navigation";
 
 const ViewRevisionCard: React.FC<{
@@ -53,10 +54,7 @@ const ViewRevisionCard: React.FC<{
               textOverflow: "ellipsis",
             },
           }}
-          title={new Date(revision.createdAt).toLocaleString(
-            undefined,
-            { dateStyle: "medium", timeStyle: "short" },
-          )}
+          title={<DateDisplay date={revision.createdAt} variant="full" />}
           subheader={revision.author.name}
           avatar={
             <Avatar

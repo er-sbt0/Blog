@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { UserDocument } from "@/types";
 import htmr from "htmr";
+import { DateDisplay } from "@/components/DateDisplay";
 
 interface ReadmePreviewCardProps {
   documents: UserDocument[];
@@ -394,11 +395,7 @@ export default function ReadmePreviewCard({
                   pt: 1,
                 }}
               >
-                Updated{" "}
-                {new Date(readme.updatedAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
+                Updated <DateDisplay date={readme.updatedAt} variant="short" />
               </Typography>
             </Box>
           )

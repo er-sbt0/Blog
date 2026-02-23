@@ -67,6 +67,19 @@ export const AI_MODELS: AIModel[] = [
     },
   },
   {
+    id: "gpt-5.1-2025-11-13",
+    name: "GPT 5.1",
+    provider: "azure",
+    capabilities: {
+      streaming: true,
+      maxTokens: 20000,
+    },
+    metadata: {
+      fast: false,
+      reason: true,
+    },
+  },
+  {
     id: "phi4",
     name: "Phi 4",
     provider: "ollama",

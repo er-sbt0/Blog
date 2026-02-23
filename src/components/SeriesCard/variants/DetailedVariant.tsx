@@ -3,6 +3,7 @@ import * as React from "react";
 import { memo, useMemo, useState } from "react";
 import {
   Box,
+  Button,
   IconButton,
   ListItemIcon,
   ListItemText,
@@ -11,7 +12,7 @@ import {
   Skeleton,
   Typography,
 } from "@mui/material";
-import { Article, Delete, Edit, MoreVert } from "@mui/icons-material";
+import { Article, Delete, Edit, MoreVert, NoteAdd } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import CardBase from "../../DocumentCardNew/CardBase";
 import { DetailedVariantProps } from "../types";
@@ -58,6 +59,7 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
   sx,
   showMetadata = true,
   showActions = true,
+  onCreatePost,
 }) => {
   const router = useRouter();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -214,7 +216,7 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
     [series, formattedDate, postCount, showMetadata],
   );
 
-  // Memoize chip content - post count with icon
+  // Memoize chip content - post count with icon and New Post button for authors
   const chipContent = useMemo(() => {
     if (isLoading) {
       return (
@@ -230,38 +232,67 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
     return (
       <Box
         sx={{
-          px: 1.5,
-          py: 0.5,
-          borderRadius: "16px",
-          bgcolor: (t) =>
-            t.palette.mode === "dark"
-              ? "rgba(144, 202, 249, 0.15)"
-              : "rgba(25, 118, 210, 0.1)",
           display: "flex",
           alignItems: "center",
-          gap: 0.5,
+          gap: 1,
         }}
       >
-        <Article
+        <Box
           sx={{
-            fontSize: "1rem",
-            color: "primary.main",
-            opacity: 0.8,
-          }}
-        />
-        <Typography
-          variant="body2"
-          sx={{
-            fontWeight: 600,
-            color: "primary.main",
-            fontSize: "0.875rem",
+            px: 1.5,
+            py: 0.5,
+            borderRadius: "16px",
+            bgcolor: (t) =>
+              t.palette.mode === "dark"
+                ? "rgba(144, 202, 249, 0.15)"
+                : "rgba(25, 118, 210, 0.1)",
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
           }}
         >
-          {postCount}
-        </Typography>
+          <Article
+            sx={{
+              fontSize: "1rem",
+              color: "primary.main",
+              opacity: 0.8,
+            }}
+          />
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 600,
+              color: "primary.main",
+              fontSize: "0.875rem",
+            }}
+          >
+            {postCount}
+          </Typography>
+        </Box>
+        {isAuthor && onCreatePost && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<NoteAdd />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onCreatePost();
+            }}
+            sx={{
+              borderRadius: 1.5,
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.875rem",
+              height: "32px",
+            }}
+          >
+            New Post
+          </Button>
+        )}
       </Box>
     );
-  }, [isLoading, postCount]);
+  }, [isLoading, postCount, isAuthor, onCreatePost]);
 
   // Action content with menu
   const actionContent = showActions && isAuthor

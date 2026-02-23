@@ -457,23 +457,27 @@ const updatePost = async (
 
 // Transform: deleteDocument → deletePost
 const deletePost = async (handle: string) => {
-  // First find the post to get its ID
-  const post = await prisma.document.findFirst({
-    where: {
-      AND: [
-        validate(handle) ? { id: handle } : { handle: handle.toLowerCase() },
-        { type: PrismaDocumentType.DOCUMENT }, // Only allow deleting posts, not directories
-      ],
-    },
-    select: { id: true },
-  });
+  // Find and delete in a single transaction to ensure consistency
+  return await prisma.$transaction(async (tx) => {
+    // Find the post
+    const post = await tx.document.findFirst({
+      where: {
+        AND: [
+          validate(handle) ? { id: handle } : { handle: handle.toLowerCase() },
+          { type: PrismaDocumentType.DOCUMENT },
+        ],
+      },
+      select: { id: true },
+    });
 
-  if (!post) {
-    throw new Error("Post not found");
-  }
+    if (!post) {
+      throw new Error("Post not found");
+    }
 
-  return prisma.document.delete({
-    where: { id: post.id },
+    // Delete the post
+    return await tx.document.delete({
+      where: { id: post.id },
+    });
   });
 };
 

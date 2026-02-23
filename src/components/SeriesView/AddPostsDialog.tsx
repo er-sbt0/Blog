@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { Add, Article, Close, Search } from "@mui/icons-material";
 import { Document } from "@/types";
+import { DateDisplay } from "@/components/DateDisplay";
 
 interface AddPostsDialogProps {
   open: boolean;
@@ -307,9 +308,7 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
                             <ListItemText
                               primary={post.name}
                               secondary={post.description ||
-                                `Updated ${
-                                  new Date(post.updatedAt).toLocaleDateString()
-                                }`}
+                                <>Updated <DateDisplay date={post.updatedAt} variant="medium" /></>}
                               primaryTypographyProps={{
                                 fontWeight: 500,
                                 noWrap: true,
@@ -365,9 +364,7 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
                             <ListItemText
                               primary={post.name}
                               secondary={post.description ||
-                                `Updated ${
-                                  new Date(post.updatedAt).toLocaleDateString()
-                                }`}
+                                <>Updated <DateDisplay date={post.updatedAt} variant="medium" /></>}
                               primaryTypographyProps={{
                                 fontWeight: 500,
                                 noWrap: true,

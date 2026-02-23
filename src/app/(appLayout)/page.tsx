@@ -8,6 +8,9 @@ import { ThumbnailProvider } from "@/app/context/ThumbnailContext";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+// Force dynamic rendering to always show fresh data
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Modern Blog | Create & Share Knowledge",
   description:

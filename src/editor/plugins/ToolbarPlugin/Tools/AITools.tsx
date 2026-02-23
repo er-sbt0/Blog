@@ -118,22 +118,24 @@ export default function AITools(
 
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
-  const { completion, complete, isLoading, stop } = useCompletion({
-    api: "/api/completion",
-    streamProtocol: "text",
-    onError(error) {
-      annouunce({
-        message: {
-          title: "Something went wrong",
-          subtitle: "Please try again later",
-        },
-      });
-    },
-  });
-
   const annouunce = useCallback((announcement: Announcement) => {
     editor.dispatchCommand(ANNOUNCE_COMMAND, announcement);
   }, [editor]);
+
+  const handleError = useCallback(() => {
+    annouunce({
+      message: {
+        title: "Something went wrong",
+        subtitle: "Please try again later",
+      },
+    });
+  }, [annouunce]);
+
+  const { completion, complete, isLoading, stop } = useCompletion({
+    api: "/api/completion",
+    streamProtocol: "text",
+    onError: handleError,
+  });
 
   const [isCollapsed, setIsCollapsed] = useState(true);
   const offsetRef = useRef(0);

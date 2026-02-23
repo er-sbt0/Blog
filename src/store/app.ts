@@ -56,13 +56,16 @@ const initialState: AppState = {
 };
 
 export const load = createAsyncThunk("app/load", async (_, thunkAPI) => {
+  // Load series LAST so it's the freshest data
   await Promise.allSettled([
     thunkAPI.dispatch(loadSession()),
     thunkAPI.dispatch(loadLocalDocuments()),
-    thunkAPI.dispatch(loadCloudDocuments()),
     thunkAPI.dispatch(loadPosts()), // Load posts for blog structure
-    thunkAPI.dispatch(loadSeries()), // Load series for blog structure
   ]);
+
+  // Load cloud documents, then series to ensure series.posts is authoritative
+  await thunkAPI.dispatch(loadCloudDocuments());
+  await thunkAPI.dispatch(loadSeries());
 });
 
 export const loadSession = createAsyncThunk(
@@ -1182,10 +1185,10 @@ export const appSlice = createSlice({
           if (!userDocument) {
             state.documents.push({
               id: document.id,
-              cloud: document,
+              cloud: document as any,
             });
           } else {
-            userDocument.cloud = document;
+            userDocument.cloud = document as any;
           }
         });
       })
@@ -1200,10 +1203,10 @@ export const appSlice = createSlice({
         if (!userDocument) {
           state.documents.unshift({
             id: cloudDocument.id,
-            cloud: cloudDocument,
+            cloud: cloudDocument as any,
           });
         } else {
-          userDocument.cloud = cloudDocument;
+          userDocument.cloud = cloudDocument as any;
         }
       })
       .addCase(getCloudRevision.rejected, (state, action) => {
@@ -1254,10 +1257,10 @@ export const appSlice = createSlice({
         if (!userDocument) {
           state.documents.unshift({
             id: document.id,
-            cloud: document,
+            cloud: document as any,
           });
         } else {
-          userDocument.cloud = document;
+          userDocument.cloud = document as any;
         }
       })
       .addCase(createCloudDocument.rejected, (state, action) => {
@@ -1273,7 +1276,7 @@ export const appSlice = createSlice({
           doc.id === revision.documentId
         );
         if (!document?.cloud) return;
-        document.cloud.revisions.unshift(revision);
+        document.cloud.revisions.unshift(revision as any);
       })
       .addCase(createCloudRevision.rejected, (state, action) => {
         const message = action.payload as {
@@ -1298,10 +1301,10 @@ export const appSlice = createSlice({
         if (!userDocument) {
           state.documents.unshift({
             id: document.id,
-            cloud: document,
+            cloud: document as any,
           });
         } else {
-          userDocument.cloud = document;
+          userDocument.cloud = document as any;
         }
       })
       .addCase(updateCloudDocument.rejected, (state, action) => {
@@ -1321,6 +1324,15 @@ export const appSlice = createSlice({
             1,
           );
         } else delete userDocument.local;
+
+        // Also remove the post from any series that contains it
+        if (state.series && state.series.length > 0) {
+          state.series.forEach(series => {
+            if (series.posts && series.posts.length > 0) {
+              series.posts = series.posts.filter(post => post.id !== id);
+            }
+          });
+        }
       })
       .addCase(deleteLocalRevision.fulfilled, (state, action) => {
         const { id, documentId } = action.payload;
@@ -1345,6 +1357,15 @@ export const appSlice = createSlice({
         const index = state.documents.indexOf(userDocument);
         if (!userDocument.local) state.documents.splice(index, 1);
         else delete userDocument.cloud;
+
+        // Also remove the post from any series that contains it
+        if (state.series && state.series.length > 0) {
+          state.series.forEach(series => {
+            if (series.posts && series.posts.length > 0) {
+              series.posts = series.posts.filter(post => post.id !== id);
+            }
+          });
+        }
       })
       .addCase(deleteCloudDocument.rejected, (state, action) => {
         const message = action.payload as {
@@ -1393,7 +1414,7 @@ export const appSlice = createSlice({
           id: duplicatedDoc.id,
           local: duplicatedDoc,
         };
-        state.documents.push(newUserDocument);
+        state.documents.push(newUserDocument as any);
       })
       .addCase(duplicateDocument.rejected, (state, action) => {
         const message = action.payload as {
@@ -1441,7 +1462,7 @@ export const appSlice = createSlice({
             id: post.id,
             cloud: post as any, // Temporary cast until Post type alignment
           };
-          state.posts.unshift(userPost);
+          state.posts.unshift(userPost as any);
         }
       })
       .addCase(createPost.rejected, (state, action) => {

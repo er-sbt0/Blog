@@ -4,11 +4,21 @@ import Grid from "@mui/material/Grid2";
 import { TimeGroup } from "@/types/partitioning";
 import { User, UserDocument } from "@/types";
 import DocumentCard from "@/components/DocumentCardNew";
+import { PostsCompactListView, PendingTimeChange } from "./PostsCompactListView";
+import { PostsDetailedListView } from "./PostsDetailedListView";
+
+export type ViewType = "grid" | "compact" | "detailed";
 
 interface PostsTimeSectionProps {
   timeGroup: TimeGroup;
   user?: User;
   isLatest?: boolean;
+  viewType?: ViewType;
+  // Global time editing props
+  isTimeEditMode?: boolean;
+  pendingChanges?: Map<string, PendingTimeChange>;
+  onTimeAdjust?: (postId: string, originalDate: Date, days: number) => void;
+  onTimeReset?: (postId: string) => void;
 }
 
 // Inline TimeHeader component for posts
@@ -61,7 +71,57 @@ const PostsTimeSection: React.FC<PostsTimeSectionProps> = ({
   timeGroup,
   user,
   isLatest = false,
+  viewType = "grid",
+  isTimeEditMode = false,
+  pendingChanges = new Map(),
+  onTimeAdjust,
+  onTimeReset,
 }) => {
+  const renderPostsView = () => {
+    switch (viewType) {
+      case "compact":
+        return (
+          <PostsCompactListView
+            posts={timeGroup.posts as UserDocument[]}
+            user={user}
+            isTimeEditMode={isTimeEditMode}
+            pendingChanges={pendingChanges}
+            onTimeAdjust={onTimeAdjust}
+            onTimeReset={onTimeReset}
+          />
+        );
+      case "detailed":
+        return (
+          <PostsDetailedListView
+            posts={timeGroup.posts as UserDocument[]}
+            user={user}
+          />
+        );
+      case "grid":
+      default:
+        return (
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {timeGroup.posts.map((userDoc, index) => {
+              return (
+                <Grid
+                  key={userDoc.id}
+                  size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
+                  sx={{
+                    animation: `fadeInUp 0.6s ease ${index * 0.1}s both`,
+                  }}
+                >
+                  <DocumentCard
+                    userDocument={userDoc as UserDocument}
+                    user={user}
+                  />
+                </Grid>
+              );
+            })}
+          </Grid>
+        );
+    }
+  };
+
   return (
     <Box
       component="section"
@@ -82,28 +142,7 @@ const PostsTimeSection: React.FC<PostsTimeSectionProps> = ({
         id={`posts-time-${timeGroup.timeKey}`}
         aria-label={`${timeGroup.count} posts from ${timeGroup.timeLabel}`}
       >
-        <Grid
-          container
-          spacing={3}
-          sx={{ mb: 4 }}
-        >
-          {timeGroup.posts.map((userDoc, index) => {
-            return (
-              <Grid
-                key={userDoc.id}
-                size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
-                sx={{
-                  animation: `fadeInUp 0.6s ease ${index * 0.1}s both`,
-                }}
-              >
-                <DocumentCard
-                  userDocument={userDoc as UserDocument}
-                  user={user}
-                />
-              </Grid>
-            );
-          })}
-        </Grid>
+        {renderPostsView()}
       </Box>
     </Box>
   );

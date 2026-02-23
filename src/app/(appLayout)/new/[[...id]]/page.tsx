@@ -11,6 +11,7 @@ import { findRevisionThumbnail } from "@/app/api/utils";
 import SplashScreen from "@/components/SplashScreen";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
+import { format } from 'date-fns';
 
 const getCachedUserDocument = cache(async (id: string, revisions?: string) =>
   await findUserPost(id, revisions)
@@ -36,12 +37,8 @@ export async function generateMetadata(
   if (document) {
     if (document.collab || document.published) {
       metadata.title = `Fork ${document.name}`;
-      metadata.subtitle = `Last updated: ${
-        new Date(document.updatedAt).toLocaleString(undefined, {
-          dateStyle: "medium",
-          timeStyle: "short",
-        })
-      } (UTC)`;
+      const formattedDate = format(new Date(document.updatedAt), 'MMMM d, yyyy, h:mm a');
+      metadata.subtitle = `Last updated: ${formattedDate} (UTC)`;
       metadata.user = {
         name: document.author.name,
         image: document.author.image!,

@@ -8,6 +8,7 @@
 
 import React from "react";
 import { useBlogActions, useBlogData } from "@/hooks/useBlog";
+import { DateDisplay } from "@/components/DateDisplay";
 
 export const BlogManager: React.FC = () => {
   const { posts, series, publishedPosts, totalPosts, totalSeries } =
@@ -97,8 +98,7 @@ export const BlogManager: React.FC = () => {
                   <br />
                   <small>
                     Updated: {(post.cloud as any)?.updatedAt
-                      ? new Date((post.cloud as any).updatedAt)
-                        .toLocaleDateString()
+                      ? <DateDisplay date={(post.cloud as any).updatedAt} variant="medium" />
                       : "Unknown"}
                   </small>
                 </li>

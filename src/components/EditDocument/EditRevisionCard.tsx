@@ -13,6 +13,7 @@ import {
   Chip,
   IconButton,
 } from "@mui/material";
+import { DateDisplay } from "@/components/DateDisplay";
 import {
   Cloud,
   CloudSync,
@@ -275,10 +276,7 @@ const RevisionCard: React.FC<{
               textOverflow: "ellipsis",
             },
           }}
-          title={new Date(revision.createdAt).toLocaleString(
-            undefined,
-            { dateStyle: "medium", timeStyle: "short" },
-          )}
+          title={<DateDisplay date={revision.createdAt} variant="full" />}
           subheader={(cloudRevision as any)?.author?.name ??
             user?.name ?? "Local User"}
           avatar={

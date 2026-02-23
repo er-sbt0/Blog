@@ -226,6 +226,11 @@ body.fullscreen {
 }
 
 @media print {
+  @page {
+    margin: 0.5in;
+    size: A4;
+  }
+
   * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -240,16 +245,38 @@ body.fullscreen {
   body {
     background-color: #fff !important;
     color: rgba(0, 0, 0, 0.87) !important;
+    margin: 0;
+    padding: 0;
   }
 
   body > *:not(.editor-container) {
     display: none !important;
   }
 
+  .editor-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
   .editor-input,
   .document-container,
   .diff-container {
     padding-bottom: 0 !important;
+  }
+
+  /* Avoid breaking elements */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+
+  img, figure {
+    page-break-inside: avoid;
+  }
+
+  pre, code {
+    page-break-inside: avoid;
   }
 }
 

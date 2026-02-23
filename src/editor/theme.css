@@ -101,8 +101,7 @@
   position: relative;
   tab-size: 2;
   white-space: pre;
-  width: 40%;
-  min-width: 400px;
+  width: 100%;
   --code-gutter-width: 32px;
 }
 
@@ -126,6 +125,7 @@
 }
 
 .LexicalTheme__code > span:first-child:before,
+.LexicalTheme__code > br:first-child:before,
 .LexicalTheme__code > br + span:before,
 .LexicalTheme__code > br + br:before {
   color: #777;
@@ -611,7 +611,7 @@ iframe {
 
 .LexicalTheme__layoutContainer {
   display: grid;
-  gap: 0.25rem;
+  gap: 1.5rem; /* Increased gap to provide equal spacing on both sides */
   margin-bottom: 0.5rem;
 }
 
@@ -621,21 +621,31 @@ iframe {
   position: relative;
 }
 
-/* Add right padding to all layout items except the last one for separation from divider */
-.LexicalTheme__layoutItem:not(:last-child) {
-  padding-right: 10px;
+/* Equalize code block padding in layout columns */
+.LexicalTheme__layoutItem .LexicalTheme__code {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* Hide line numbers in layout columns for symmetry */
+.LexicalTheme__layoutItem .LexicalTheme__code:before,
+.LexicalTheme__layoutItem .LexicalTheme__code > span:first-child:before,
+.LexicalTheme__layoutItem .LexicalTheme__code > br:first-child:before,
+.LexicalTheme__layoutItem .LexicalTheme__code > br + span:before,
+.LexicalTheme__layoutItem .LexicalTheme__code > br + br:before {
+  display: none;
 }
 
 /* Add divider between layout items except for the last one */
 .LexicalTheme__layoutItem:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: 0;
-  right: -0.25rem; /* Position in the middle of the gap */
-  height: 100%;
-  width: 2px; /* Wider divider */
+  top: 0.3em; /* Start at the same level as text baseline */
+  bottom: 0;
+  right: calc(-1.5rem / 2 - 1px); /* Position exactly in the middle of the gap, accounting for 2px separator width */
+  height: auto; /* Let it stretch between top and bottom */
+  width: 2px;
   background-color: #ccc; /* Light gray divider */
-  margin-right: 8px; /* Add more space between divider and content */
 }
 
 /* For dark mode, adjust divider color */

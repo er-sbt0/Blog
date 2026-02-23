@@ -345,21 +345,24 @@ const SideBar: React.FC = () => {
   );
 
   const handleDeletePost = useCallback(
-    (postId: string) => {
+    async (postId: string) => {
       handleCloseContextMenu();
       if (confirm("Are you sure you want to delete this post?")) {
         // Find the document to determine if it's cloud or local
         const doc = documents?.find((d) => d.id === postId);
         if (doc) {
           if (doc.cloud) {
-            dispatch(actions.deleteCloudDocument(postId));
+            const result = await dispatch(actions.deleteCloudDocument(postId));
+            if (result.type === actions.deleteCloudDocument.fulfilled.type) {
+              router.refresh(); // Trigger server re-fetch to show updated list
+            }
           } else if (doc.local) {
             dispatch(actions.deleteLocalDocument(postId));
           }
         }
       }
     },
-    [dispatch, handleCloseContextMenu, documents],
+    [dispatch, handleCloseContextMenu, documents, router],
   );
 
   // Rename handlers
@@ -485,6 +488,111 @@ const SideBar: React.FC = () => {
       </RouterLink>
     );
   }, [isInEditMode, handleNavigationClick]);
+
+  // Render function for post items to eliminate duplication
+  const renderPostItem = useCallback(
+    (post: UserDocument, inSeries: boolean) => {
+      const doc = post.cloud || post.local;
+      const docName = doc?.name || "Untitled";
+      const isViewing = pathname === `/view/${post.id}`;
+      const isEditing = pathname === `/edit/${post.id}`;
+      const isSelected = isViewing || isEditing;
+      const isRenaming = renamingPostId === post.id;
+
+      return (
+        <ListItem key={post.id} disablePadding sx={{ display: "block" }}>
+          <Tooltip title={open ? "" : docName} placement="right">
+            <ListItemButton
+              component={isRenaming ? "div" : SafeNavigationLink}
+              href={isRenaming ? undefined : `/view/${post.id}`}
+              selected={isSelected}
+              onContextMenu={(e) => handleContextMenu(e, post.id)}
+              onDoubleClick={(e) => {
+                if (open) {
+                  handleDoubleClick(e, post.id, docName);
+                }
+              }}
+              sx={{
+                minHeight: inSeries ? 30 : 32,
+                justifyContent: open ? "initial" : "center",
+                ...(inSeries
+                  ? { pl: 2, pr: 2.5 }
+                  : { px: open ? 3 : 2.5 }),
+                py: inSeries ? 0.25 : 0.5,
+                "&.Mui-selected": {
+                  bgcolor: "action.selected",
+                  "&:hover": {
+                    bgcolor: inSeries
+                      ? "rgba(0, 0, 0, 0.12)"
+                      : "rgba(0, 0, 0, 0.15)",
+                  },
+                },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 1.5 : "auto",
+                  justifyContent: "center",
+                }}
+              >
+                <Article
+                  sx={{
+                    fontSize: "0.85em",
+                    color: "text.secondary",
+                  }}
+                />
+              </ListItemIcon>
+              {open &&
+                (isRenaming ? (
+                  <TextField
+                    inputRef={renameInputRef}
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onBlur={handleRenameBlur}
+                    onKeyDown={handleRenameKeyDown}
+                    size="small"
+                    variant="standard"
+                    fullWidth
+                    sx={{
+                      "& .MuiInput-input": {
+                        fontSize: "0.78em",
+                        fontWeight: isSelected ? 600 : 400,
+                        py: 0,
+                      },
+                    }}
+                  />
+                ) : (
+                  <ListItemText
+                    primary={docName}
+                    primaryTypographyProps={{
+                      fontSize: "0.78em",
+                      sx: {
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: isSelected ? 600 : 400,
+                      },
+                    }}
+                  />
+                ))}
+            </ListItemButton>
+          </Tooltip>
+        </ListItem>
+      );
+    },
+    [
+      pathname,
+      open,
+      renamingPostId,
+      handleContextMenu,
+      handleDoubleClick,
+      SafeNavigationLink,
+      renameValue,
+      handleRenameBlur,
+      handleRenameKeyDown,
+    ],
+  );
 
   // Effects - Keep only the initialization effect
   useEffect(() => {
@@ -811,10 +919,8 @@ const SideBar: React.FC = () => {
                           placement="right"
                         >
                           <ListItemButton
-                            onClick={(e) => {
-                              e.preventDefault();
-                              toggleSeriesExpanded(group.series!.id);
-                            }}
+                            component={SafeNavigationLink}
+                            href={`/series/${group.series.id}`}
                             sx={{
                               minHeight: 28,
                               justifyContent: open ? "initial" : "center",
@@ -829,10 +935,16 @@ const SideBar: React.FC = () => {
                             }}
                           >
                             <ListItemIcon
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleSeriesExpanded(group.series!.id);
+                              }}
                               sx={{
                                 minWidth: 0,
                                 mr: open ? 1 : "auto",
                                 justifyContent: "center",
+                                cursor: "pointer",
                               }}
                             >
                               {isExpanded
@@ -883,217 +995,16 @@ const SideBar: React.FC = () => {
                                 : "rgba(0, 0, 0, 0.15)",
                           }}
                         >
-                          {group.posts.map((post, postIndex) => {
-                            const doc = post.cloud || post.local;
-                            const docName = doc?.name || "Untitled";
-                            const isViewing = pathname === `/view/${post.id}`;
-                            const isEditing = pathname === `/edit/${post.id}`;
-                            const isSelected = isViewing || isEditing;
-                            const isRenaming = renamingPostId === post.id;
-
-                            return (
-                              <ListItem
-                                key={post.id}
-                                disablePadding
-                                sx={{ display: "block" }}
-                              >
-                                <Tooltip
-                                  title={open ? "" : docName}
-                                  placement="right"
-                                >
-                                  <ListItemButton
-                                    component={isRenaming
-                                      ? "div"
-                                      : SafeNavigationLink}
-                                    href={isRenaming
-                                      ? undefined
-                                      : `/view/${post.id}`}
-                                    selected={isSelected}
-                                    onContextMenu={(e) =>
-                                      handleContextMenu(e, post.id)}
-                                    onDoubleClick={(e) => {
-                                      if (open) {
-                                        handleDoubleClick(e, post.id, docName);
-                                      }
-                                    }}
-                                    sx={{
-                                      minHeight: 30,
-                                      justifyContent: open
-                                        ? "initial"
-                                        : "center",
-                                      pl: open ? 2 : 2,
-                                      pr: 2.5,
-                                      py: 0.25,
-                                      "&.Mui-selected": {
-                                        bgcolor: "action.selected",
-                                        "&:hover": {
-                                          bgcolor: "rgba(0, 0, 0, 0.12)",
-                                        },
-                                      },
-                                    }}
-                                  >
-                                    <ListItemIcon
-                                      sx={{
-                                        minWidth: 0,
-                                        mr: open ? 1.5 : "auto",
-                                        justifyContent: "center",
-                                      }}
-                                    >
-                                      <Article
-                                        sx={{
-                                          fontSize: "0.85em",
-                                          color: "text.secondary",
-                                        }}
-                                      />
-                                    </ListItemIcon>
-                                    {open && (
-                                      isRenaming
-                                        ? (
-                                          <TextField
-                                            inputRef={renameInputRef}
-                                            value={renameValue}
-                                            onChange={(e) =>
-                                              setRenameValue(e.target.value)}
-                                            onBlur={handleRenameBlur}
-                                            onKeyDown={handleRenameKeyDown}
-                                            size="small"
-                                            variant="standard"
-                                            fullWidth
-                                            sx={{
-                                              "& .MuiInput-input": {
-                                                fontSize: "0.78em",
-                                                fontWeight: isSelected
-                                                  ? 600
-                                                  : 400,
-                                                py: 0,
-                                              },
-                                            }}
-                                          />
-                                        )
-                                        : (
-                                          <ListItemText
-                                            primary={docName}
-                                            primaryTypographyProps={{
-                                              fontSize: "0.78em",
-                                              sx: {
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                whiteSpace: "nowrap",
-                                                fontWeight: isSelected
-                                                  ? 600
-                                                  : 400,
-                                              },
-                                            }}
-                                          />
-                                        )
-                                    )}
-                                  </ListItemButton>
-                                </Tooltip>
-                              </ListItem>
-                            );
-                          })}
+                          {group.posts.map((post) =>
+                            renderPostItem(post, true)
+                          )}
                         </Box>
                       </Collapse>
                     </Box>
                   );
                 } else {
                   // Render standalone post
-                  const post = group.posts[0];
-                  const doc = post.cloud || post.local;
-                  const docName = doc?.name || "Untitled";
-                  const isViewing = pathname === `/view/${post.id}`;
-                  const isEditing = pathname === `/edit/${post.id}`;
-                  const isSelected = isViewing || isEditing;
-                  const isRenaming = renamingPostId === post.id;
-
-                  return (
-                    <ListItem
-                      key={post.id}
-                      disablePadding
-                      sx={{ display: "block" }}
-                    >
-                      <Tooltip
-                        title={open ? "" : docName}
-                        placement="right"
-                      >
-                        <ListItemButton
-                          component={isRenaming ? "div" : SafeNavigationLink}
-                          href={isRenaming ? undefined : `/view/${post.id}`}
-                          selected={isSelected}
-                          onContextMenu={(e) => handleContextMenu(e, post.id)}
-                          onDoubleClick={(e) => {
-                            if (open) {
-                              handleDoubleClick(e, post.id, docName);
-                            }
-                          }}
-                          sx={{
-                            minHeight: 32,
-                            justifyContent: open ? "initial" : "center",
-                            px: open ? 3 : 2.5,
-                            py: 0.5,
-                            "&.Mui-selected": {
-                              bgcolor: "action.selected",
-                              "&:hover": {
-                                bgcolor: "rgba(0, 0, 0, 0.15)",
-                              },
-                            },
-                          }}
-                        >
-                          <ListItemIcon
-                            sx={{
-                              minWidth: 0,
-                              mr: open ? 1.5 : "auto",
-                              justifyContent: "center",
-                            }}
-                          >
-                            <Article
-                              sx={{
-                                fontSize: "0.85em",
-                                color: "text.secondary",
-                              }}
-                            />
-                          </ListItemIcon>
-                          {open && (
-                            isRenaming
-                              ? (
-                                <TextField
-                                  inputRef={renameInputRef}
-                                  value={renameValue}
-                                  onChange={(e) =>
-                                    setRenameValue(e.target.value)}
-                                  onBlur={handleRenameBlur}
-                                  onKeyDown={handleRenameKeyDown}
-                                  size="small"
-                                  variant="standard"
-                                  fullWidth
-                                  sx={{
-                                    "& .MuiInput-input": {
-                                      fontSize: "0.8em",
-                                      fontWeight: isSelected ? 600 : 400,
-                                      py: 0,
-                                    },
-                                  }}
-                                />
-                              )
-                              : (
-                                <ListItemText
-                                  primary={docName}
-                                  primaryTypographyProps={{
-                                    fontSize: "0.8em",
-                                    sx: {
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      whiteSpace: "nowrap",
-                                      fontWeight: isSelected ? 600 : 400,
-                                    },
-                                  }}
-                                />
-                              )
-                          )}
-                        </ListItemButton>
-                      </Tooltip>
-                    </ListItem>
-                  );
+                  return renderPostItem(group.posts[0], false);
                 }
               })}
             </List>

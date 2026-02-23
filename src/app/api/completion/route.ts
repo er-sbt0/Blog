@@ -12,9 +12,14 @@ import {
 export const runtime = "edge";
 
 export async function POST(req: Request) {
+  let provider: string | undefined;
+  let modelId: string | undefined;
+
   try {
-    const { prompt, option, command, provider, model: modelId } = await req
-      .json();
+    const body = await req.json();
+    provider = body.provider;
+    modelId = body.model;
+    const { prompt, option, command } = body;
 
     const systemPrompt = getSystemPrompt(option as AIOptionType);
 
@@ -71,6 +76,10 @@ export async function POST(req: Request) {
       ])
       .run();
 
+    if (!modelId) {
+      throw new Error("Model ID is required");
+    }
+
     const model = getModelById(modelId);
     if (!model) {
       throw new AIModelNotFoundError(modelId);
@@ -87,9 +96,18 @@ export async function POST(req: Request) {
     return result.toTextStreamResponse();
   } catch (error) {
     console.error("AI Completion error:", error);
-    return new Response(JSON.stringify({ error: String(error) }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error("Error details:", { errorMessage, errorStack, provider, modelId });
+    return new Response(
+      JSON.stringify({
+        error: errorMessage,
+        details: errorStack,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }

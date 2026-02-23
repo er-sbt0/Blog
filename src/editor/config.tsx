@@ -1,8 +1,10 @@
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode } from "./nodes/TableNode";
 import { ListItemNode, ListNode } from "@lexical/list";
-import { CodeHighlightNode, CodeNode } from "@lexical/code";
+import { CodeHighlightNode, CodeNode as LexicalCodeNode } from "@lexical/code";
+import { CodeNode } from "./nodes/CodeNode";
 import "prismjs/components/prism-csharp";
+import "prismjs/components/prism-bash";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { HorizontalRuleNode } from "@/editor/nodes/HorizontalRuleNode";
 import { MathNode } from "./nodes/MathNode";
@@ -44,6 +46,10 @@ export const editorConfig = {
     ListNode,
     ListItemNode,
     QuoteNode,
+    {
+      replace: LexicalCodeNode,
+      with: (node: LexicalCodeNode) => new CodeNode(node.getLanguage()),
+    },
     CodeNode,
     CodeHighlightNode,
     TableNode,

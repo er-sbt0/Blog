@@ -24,6 +24,8 @@ export interface BaseSeriesCardProps {
   animationIndex?: number;
   /** Whether to show actions menu */
   showActions?: boolean;
+  /** Callback to create a new post in this series */
+  onCreatePost?: () => void;
 }
 
 /**

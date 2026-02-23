@@ -6,6 +6,7 @@ import {
 } from "@/repositories/series";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,12 @@ export async function PATCH(
     }
 
     response.data = await updateSeries(params.id, body);
+
+    // Revalidate all relevant paths
+    revalidatePath("/series");
+    revalidatePath(`/series/${params.id}`);
+    revalidatePath("/");
+
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.log(error);
@@ -158,6 +165,12 @@ export async function DELETE(
     }
 
     await deleteSeries(params.id);
+
+    // Revalidate all relevant paths
+    revalidatePath("/series");
+    revalidatePath(`/series/${params.id}`);
+    revalidatePath("/");
+
     response.data = params.id;
     return NextResponse.json(response, { status: 200 });
   } catch (error) {

@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { DocumentType, Post, Series, User } from "@/types";
 import { useSession } from "next-auth/react";
 import { PartitionGranularity } from "@/types/partitioning";
@@ -14,8 +14,11 @@ import {
   Typography,
 } from "@mui/material";
 import {
+  AccessTime,
   Add,
+  Check,
   Clear,
+  Close,
   CollectionsBookmark,
   NoteAdd,
   Search,
@@ -23,10 +26,13 @@ import {
 import Grid from "@mui/material/Grid2";
 import DocumentCard from "../DocumentCardNew";
 import AddPostsDialog from "./AddPostsDialog";
+import CreatePostDrawer from "../CreatePostDrawer";
 import { useRouter } from "next/navigation";
 import { usePostsGrouping } from "./hooks/usePostsGrouping";
 import { PostsPartitionControl } from "./components/PostsPartitionControl";
 import PostsTimeSection from "./components/PostsTimeSection";
+import { ViewToggle, type ViewType } from "./components/ViewToggle";
+import { PendingTimeChange } from "./components/PostsCompactListView";
 
 interface SeriesViewProps {
   series: Series;
@@ -76,19 +82,114 @@ const SeriesView: React.FC<SeriesViewProps> = ({
 
   const canEdit = !!user && user.id === series.authorId;
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [createPostDrawerOpen, setCreatePostDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [granularity, setGranularity] = useState<PartitionGranularity>(
     "quarter",
   );
+  const [viewType, setViewType] = useState<ViewType>("grid");
 
+  // Global time editing state
+  const [isTimeEditMode, setIsTimeEditMode] = useState(false);
+  const [pendingTimeChanges, setPendingTimeChanges] = useState<Map<string, PendingTimeChange>>(new Map());
+  const [isSavingTimeChanges, setIsSavingTimeChanges] = useState(false);
+
+  // Load view preference from localStorage on mount
+  useEffect(() => {
+    const savedView = localStorage.getItem("seriesPostsView");
+    if (savedView && ["grid", "compact", "detailed"].includes(savedView)) {
+      setViewType(savedView as ViewType);
+    }
+  }, []);
+
+  // Save view preference to localStorage when changed
+  const handleViewChange = (newView: ViewType) => {
+    setViewType(newView);
+    localStorage.setItem("seriesPostsView", newView);
+  };
+
+  // Global time editing handlers
+  const handleToggleTimeEditMode = useCallback(() => {
+    if (isTimeEditMode) {
+      // Exiting edit mode - discard changes
+      setPendingTimeChanges(new Map());
+    }
+    setIsTimeEditMode(!isTimeEditMode);
+  }, [isTimeEditMode]);
+
+  const handleTimeAdjust = useCallback((postId: string, originalDate: Date, days: number) => {
+    setPendingTimeChanges((prev) => {
+      const newMap = new Map(prev);
+      const existing = newMap.get(postId);
+      const currentDate = existing ? existing.newDate : new Date(originalDate);
+      const newDate = new Date(currentDate);
+      newDate.setDate(newDate.getDate() + days);
+
+      newMap.set(postId, {
+        originalDate: existing ? existing.originalDate : new Date(originalDate),
+        newDate,
+      });
+      return newMap;
+    });
+  }, []);
+
+  const handleTimeReset = useCallback((postId: string) => {
+    setPendingTimeChanges((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(postId);
+      return newMap;
+    });
+  }, []);
+
+  const handleSaveTimeChanges = useCallback(async () => {
+    if (pendingTimeChanges.size === 0) return;
+
+    setIsSavingTimeChanges(true);
+    try {
+      const updates = Array.from(pendingTimeChanges.entries()).map(([id, change]) => ({
+        id,
+        createdAt: change.newDate,
+      }));
+
+      const response = await fetch("/api/posts/update-times", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ updates }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update times");
+      }
+
+      setPendingTimeChanges(new Map());
+      setIsTimeEditMode(false);
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to save time changes:", error);
+    } finally {
+      setIsSavingTimeChanges(false);
+    }
+  }, [pendingTimeChanges, router]);
+
+  const handleDiscardTimeChanges = useCallback(() => {
+    setPendingTimeChanges(new Map());
+    setIsTimeEditMode(false);
+  }, []);
+
+  // Sort posts, applying pending time changes for live reordering
   const sortedPosts = useMemo(
     () =>
       [...(series.posts || [])].sort((a, b) => {
-        const dateA = new Date(a.createdAt || 0).getTime();
-        const dateB = new Date(b.createdAt || 0).getTime();
+        // Use pending date if available, otherwise use original date
+        const pendingA = pendingTimeChanges.get(a.id);
+        const pendingB = pendingTimeChanges.get(b.id);
+        const dateA = (pendingA ? pendingA.newDate : new Date(a.createdAt || 0)).getTime();
+        const dateB = (pendingB ? pendingB.newDate : new Date(b.createdAt || 0)).getTime();
         return dateB - dateA; // Newest first
       }),
-    [series.posts],
+    [series.posts, pendingTimeChanges],
   );
 
   // Filter posts by search query
@@ -118,10 +219,11 @@ const SeriesView: React.FC<SeriesViewProps> = ({
     });
   }, [sortedPosts, searchQuery]);
 
-  // Apply time grouping to filtered posts
+  // Apply time grouping to filtered posts, with pending changes for live preview
   const { timeGroups } = usePostsGrouping({
     posts: filteredPosts,
     granularity,
+    pendingTimeChanges,
   });
 
   const handlePostsAdded = () => {
@@ -173,7 +275,7 @@ const SeriesView: React.FC<SeriesViewProps> = ({
             <Button
               variant="contained"
               startIcon={<NoteAdd />}
-              onClick={() => router.push(`/new?seriesId=${series.id}`)}
+              onClick={() => setCreatePostDrawerOpen(true)}
               sx={{
                 borderRadius: 1.5,
                 textTransform: "none",
@@ -311,12 +413,93 @@ const SeriesView: React.FC<SeriesViewProps> = ({
               ),
             }}
           />
-          <PostsPartitionControl
-            granularity={granularity}
-            onGranularityChange={setGranularity}
-            postCount={filteredPosts.length}
-            disabled={filteredPosts.length === 0}
-          />
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 2,
+            }}
+          >
+            <PostsPartitionControl
+              granularity={granularity}
+              onGranularityChange={setGranularity}
+              postCount={filteredPosts.length}
+              disabled={filteredPosts.length === 0}
+            />
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+              {/* Global Time Edit Controls - only for compact view and can edit */}
+              {canEdit && viewType === "compact" && (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Button
+                    size="small"
+                    variant={isTimeEditMode ? "contained" : "outlined"}
+                    startIcon={<AccessTime />}
+                    onClick={handleToggleTimeEditMode}
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: 500,
+                      fontSize: "0.8rem",
+                      borderRadius: 1.5,
+                      height: 32,
+                    }}
+                  >
+                    {isTimeEditMode ? "Editing Times" : "Edit Times"}
+                  </Button>
+
+                  {isTimeEditMode && (
+                    <>
+                      {pendingTimeChanges.size > 0 && (
+                        <Chip
+                          size="small"
+                          label={`${pendingTimeChanges.size} modified`}
+                          color="warning"
+                          sx={{ fontSize: "0.75rem", height: 24 }}
+                        />
+                      )}
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        startIcon={<Check />}
+                        onClick={handleSaveTimeChanges}
+                        disabled={pendingTimeChanges.size === 0 || isSavingTimeChanges}
+                        sx={{
+                          textTransform: "none",
+                          fontWeight: 500,
+                          fontSize: "0.8rem",
+                          borderRadius: 1.5,
+                          minWidth: 80,
+                          height: 32,
+                        }}
+                      >
+                        {isSavingTimeChanges ? "Saving..." : "Save"}
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        startIcon={<Close />}
+                        onClick={handleDiscardTimeChanges}
+                        disabled={isSavingTimeChanges}
+                        sx={{
+                          textTransform: "none",
+                          fontWeight: 500,
+                          fontSize: "0.8rem",
+                          borderRadius: 1.5,
+                          height: 32,
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  )}
+                </Box>
+              )}
+              <ViewToggle view={viewType} onChange={handleViewChange} />
+            </Box>
+          </Box>
         </Box>
       )}
 
@@ -330,6 +513,11 @@ const SeriesView: React.FC<SeriesViewProps> = ({
                   timeGroup={timeGroup}
                   user={user}
                   isLatest={index === 0}
+                  viewType={viewType}
+                  isTimeEditMode={isTimeEditMode}
+                  pendingChanges={pendingTimeChanges}
+                  onTimeAdjust={canEdit ? handleTimeAdjust : undefined}
+                  onTimeReset={canEdit ? handleTimeReset : undefined}
                 />
               </Box>
             ))}
@@ -387,6 +575,15 @@ const SeriesView: React.FC<SeriesViewProps> = ({
         seriesId={series.id}
         existingPosts={sortedPosts}
         onPostsAdded={handlePostsAdded}
+      />
+
+      {/* Create Post Drawer */}
+      <CreatePostDrawer
+        open={createPostDrawerOpen}
+        onClose={() => setCreatePostDrawerOpen(false)}
+        seriesId={series.id}
+        seriesTitle={series.title}
+        onSuccess={handlePostsAdded}
       />
     </Box>
   );

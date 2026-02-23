@@ -9,6 +9,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import { v4 as uuid } from "uuid";
+import { useRouter } from "next/navigation";
 
 /**
  * Component to delete both local and cloud versions of a document or directory at once
@@ -19,6 +20,7 @@ const DeleteBothDocument: React.FC<{
   closeMenu?: () => void;
 }> = ({ userDocument, variant = "iconbutton", closeMenu }) => {
   const dispatch = useDispatch();
+  const router = useRouter();
   const localDocument = userDocument.local;
   const cloudDocument = userDocument.cloud;
   const isLocal = !!localDocument;
@@ -53,6 +55,9 @@ const DeleteBothDocument: React.FC<{
       if (isLocal) {
         await dispatch(actions.deleteLocalDocument(id));
       }
+
+      // Refresh the page to reflect the deletion
+      router.refresh();
     }
   };
 

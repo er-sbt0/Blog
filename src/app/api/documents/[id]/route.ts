@@ -13,6 +13,7 @@ import {
 } from "@/types";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { validate } from "uuid";
 import { Prisma } from "@prisma/client";
 import { validateHandle } from "../utils";
@@ -252,7 +253,19 @@ export async function DELETE(
       };
       return NextResponse.json(response, { status: 403 });
     }
+
+    // Delete post using transaction for consistency
     await deletePost(params.id);
+
+    // Aggressively revalidate all affected paths
+    // Using both "page" and "layout" ensures complete cache invalidation
+    revalidatePath("/", "layout");
+    revalidatePath("/posts", "page");
+    revalidatePath("/series", "page");
+    if (userPost.seriesId) {
+      revalidatePath(`/series/${userPost.seriesId}`, "page");
+    }
+
     response.data = params.id;
     return NextResponse.json(response, { status: 200 });
   } catch (error) {

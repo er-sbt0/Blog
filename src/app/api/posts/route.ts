@@ -18,6 +18,7 @@ import {
 } from "@/types/partitioning";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { validateHandle } from "../documents/utils";
 
@@ -155,6 +156,19 @@ export async function POST(request: Request) {
     }
 
     response.data = await createPost(input);
+
+    // Revalidate paths to reflect new post
+    revalidatePath("/");
+    if (body.seriesId) {
+      revalidatePath("/series");
+      revalidatePath(`/series/${body.seriesId}`);
+    }
+
+    // Revalidate cache tags for the new revision and HTML
+    revalidateTag("revision");
+    revalidateTag("html");
+    revalidateTag("thumbnail");
+
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.log(error);

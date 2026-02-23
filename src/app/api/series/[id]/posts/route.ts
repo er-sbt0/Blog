@@ -7,6 +7,7 @@ import {
 import { findUserPost } from "@/repositories/post";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { validate } from "uuid";
 
 export const dynamic = "force-dynamic";
@@ -127,6 +128,11 @@ export async function POST(
     // Add post to series with order
     await addPostToSeries(params.id, postId, order || 0);
 
+    // Revalidate all relevant paths
+    revalidatePath("/series");
+    revalidatePath(`/series/${params.id}`);
+    revalidatePath("/");
+
     response.data = { seriesId: params.id, postId, order: order || 0 };
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
@@ -212,6 +218,11 @@ export async function DELETE(
 
     // Remove post from series
     await removePostFromSeries(postId);
+
+    // Revalidate all relevant paths
+    revalidatePath("/series");
+    revalidatePath(`/series/${params.id}`);
+    revalidatePath("/");
 
     response.data = { postId };
     return NextResponse.json(response, { status: 200 });

@@ -1,4 +1,3 @@
-"use client";
 import React from "react";
 import {
   Box,
@@ -9,7 +8,6 @@ import {
   Typography,
 } from "@mui/material";
 import { Add, Clear, Search } from "@mui/icons-material";
-import { useRouter } from "next/navigation";
 import { PartitionGranularity } from "@/types/partitioning";
 import { SeriesPartitionControl } from "./components/SeriesPartitionControl";
 
@@ -20,6 +18,7 @@ interface SeriesHeaderProps {
   onSearchChange?: (query: string) => void;
   granularity?: PartitionGranularity;
   onGranularityChange?: (granularity: PartitionGranularity) => void;
+  onNewSeries?: () => void;
 }
 
 /**
@@ -33,11 +32,12 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
   onSearchChange,
   granularity = "quarter",
   onGranularityChange,
+  onNewSeries,
 }) => {
-  const router = useRouter();
-
   const handleNewSeries = () => {
-    router.push("/series/new");
+    if (onNewSeries) {
+      onNewSeries();
+    }
   };
 
   const clearSearch = () => {

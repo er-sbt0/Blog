@@ -3,6 +3,7 @@ import { Box, Typography } from "@mui/material";
 import { ArticleOutlined } from "@mui/icons-material";
 import { UserDocument } from "@/types";
 import { useRouter } from "next/navigation";
+import { DateDisplay } from "@/components/DateDisplay";
 
 interface RecentPostsPreviewCardProps {
   documents: UserDocument[];
@@ -123,10 +124,7 @@ export default function RecentPostsPreviewCard({
                           flexShrink: 0,
                         }}
                       >
-                        {new Date(post.updatedAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
+                        <DateDisplay date={post.updatedAt} variant="short" />
                       </Typography>
                     </Box>
                   );

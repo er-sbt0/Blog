@@ -34,8 +34,8 @@ model Document {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
   authorId    String   @db.Uuid
-  published Boolean  @default(false)
-  private   Boolean  @default(false)
+  published   Boolean  @default(false)
+  private     Boolean  @default(false)
 
   // Document-specific fields
   head   String? @db.Uuid
@@ -46,7 +46,7 @@ model Document {
 
   // Series support for blog posts
   seriesId    String? @db.Uuid
-  seriesOrder Int?    // Order of post within series
+  seriesOrder Int? // Order of post within series
 
   // Background image for posts (optional)
   background_image String?
@@ -119,6 +119,7 @@ model User {
   documents     Document[] // User's posts  
   coauthored    DocumentCoauthers[]
   series        Series[] // User's series for organizing blog posts
+  notesCanvases NotesCanvas[] // User's note canvases
 
   @@index([email])
   @@index([handle])
@@ -170,4 +171,41 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// Notes Canvas model for organizing sticky notes
+model NotesCanvas {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @default("My Notes")
+  authorId  String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  notes  Note[]
+
+  @@index([authorId])
+}
+
+// Note model for individual sticky notes on a canvas
+model Note {
+  id        String   @id @default(uuid()) @db.Uuid
+  canvasId  String   @db.Uuid
+  positionX Float // x position on canvas
+  positionY Float // y position on canvas
+  width     Float // note width
+  height    Float // note height
+  title     String? // optional note title
+  content   String // note content (Lexical state as JSON string)
+  color     String   @default("#FFD700") // note color
+  zIndex    Int      @default(0) // stacking order
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  canvas NotesCanvas @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+
+  @@index([canvasId])
+  @@index([canvasId, zIndex]) // for efficient z-index queries
 }

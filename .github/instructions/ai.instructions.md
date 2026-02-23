@@ -11,13 +11,14 @@ applyTo: 'src/**/*ai*,src/**/*completion*,src/**/*llm*'
 - `@ai-sdk/react`: 3.0.29
 - `@ai-sdk/google`: 3.0.6
 - `@ai-sdk/anthropic`: 3.0.9 ✓ v3 model support with AI SDK v6
+- `@ai-sdk/azure`: 3.0.12
 
 ### Active Providers
 | Provider | Models | Use Case |
 |----------|--------|----------|
 | Google | gemini-2.5-flash, gemini-2.5-pro | Default, fast completions |
 | Anthropic | claude-3-5-sonnet-20241022, claude-sonnet-4-20250514 | Complex reasoning |
-| Azure OpenAI | gpt-4o-mini | Enterprise fallback |
+| Azure OpenAI | gpt-4o-mini, gpt-5.1-2025-11-13 | Enterprise fallback |
 | Ollama | phi4 | Local/offline |
 
 ### Key Files
@@ -181,9 +182,10 @@ GOOGLE_GENERATIVE_AI_API_KEY=
 # Required for Anthropic Claude
 ANTHROPIC_API_KEY=
 
-# Optional: Azure OpenAI
+# Azure OpenAI (gateway/proxy setup)
 AZURE_API_KEY=
-AZURE_RESOURCE_NAME=
+AZURE_OPENAI_BASE_URL=https://staging-openai.azure-api.net/openai-gw-proxy-dev
+AZURE_OPENAI_API_VERSION=2025-04-01-preview
 
 # Optional: Local Ollama
 OLLAMA_API_URL=http://localhost:11434/api

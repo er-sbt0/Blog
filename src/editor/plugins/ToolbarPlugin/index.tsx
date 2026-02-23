@@ -8,7 +8,6 @@ import {
   CLEAR_HISTORY_COMMAND,
   LexicalNode,
 } from "lexical";
-import { $isCodeNode } from "@lexical/code";
 import { $isListNode, ListNode } from "@lexical/list";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $isHeadingNode } from "@lexical/rich-text";
@@ -70,6 +69,7 @@ import AITools from "./Tools/AITools";
 import FontSelect from "./Menus/FontSelect";
 import CodeTools from "./Tools/CodeTools";
 import NoteTools from "./Tools/NoteTools";
+import { $isCodeNode } from "@/editor/nodes/CodeNode";
 
 const blockTypeToBlockName = {
   bullet: "Bulleted List",

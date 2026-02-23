@@ -12,6 +12,7 @@ import { DragIndicator } from "@mui/icons-material";
 import { UserDocument } from "@/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DateDisplay } from "@/components/DateDisplay";
 
 interface KanbanBoardProps {
   documents: UserDocument[];
@@ -249,13 +250,7 @@ export default function KanbanBoard(
                                     mt: 0.5,
                                   }}
                                 >
-                                  {new Date(data.updatedAt).toLocaleDateString(
-                                    "en-US",
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                    },
-                                  )}
+                                  <DateDisplay date={data.updatedAt} variant="short" />
                                 </Typography>
                               </Box>
                             </Box>
