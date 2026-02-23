@@ -56,13 +56,10 @@ const Breadcrumbs: React.FC = () => {
       case "series":
         breadcrumbs.push({
           label: "Series",
-          href: "/series",
           icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         if (segments.length > 1) {
-          if (segments[1] === "new") {
-            breadcrumbs.push({ label: "New Series" });
-          } else if (segments.length > 2 && segments[2] === "edit") {
+          if (segments.length > 2 && segments[2] === "edit") {
             breadcrumbs.push({
               label: "Series Details",
               href: `/series/${segments[1]}`,

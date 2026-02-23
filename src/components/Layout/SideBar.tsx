@@ -32,7 +32,6 @@ import {
   ChevronRight,
   Clear,
   Code,
-  CollectionsBookmark,
   Create,
   Dashboard,
   Delete,
@@ -410,7 +409,6 @@ const SideBar: React.FC = () => {
       { text: "Home", icon: <Home />, path: "/" },
       // { text: "Browse Posts", icon: <LibraryBooks />, path: "/browse" },
       { text: "Posts", icon: <LibraryBooks />, path: "/posts" },
-      { text: "Series", icon: <CollectionsBookmark />, path: "/series" },
       { text: "Notes", icon: <StickyNote2 />, path: "/notes" },
     ];
 

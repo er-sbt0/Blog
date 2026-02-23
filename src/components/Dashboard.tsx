@@ -32,6 +32,7 @@ import {
 } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import CreateSeriesDrawer from "@/components/CreateSeriesDrawer";
 
 const Dashboard: React.FC = () => {
   const user = useSelector((state) => state.user);
@@ -355,6 +356,7 @@ const BlogStatsSection: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [createSeriesDrawerOpen, setCreateSeriesDrawerOpen] = useState(false);
   const router = useRouter();
   const user = useSelector((state) => state.user);
 
@@ -410,6 +412,7 @@ const BlogStatsSection: React.FC = () => {
   }
 
   return (
+    <>
     <Grid container spacing={3}>
       <Grid size={{ xs: 6, sm: 3 }}>
         <Box
@@ -538,7 +541,7 @@ const BlogStatsSection: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<Category />}
-            onClick={() => router.push("/series/new")}
+            onClick={() => setCreateSeriesDrawerOpen(true)}
             size="small"
           >
             Create Series
@@ -555,5 +558,11 @@ const BlogStatsSection: React.FC = () => {
         </Box>
       </Grid>
     </Grid>
+
+      <CreateSeriesDrawer
+        open={createSeriesDrawerOpen}
+        onClose={() => setCreateSeriesDrawerOpen(false)}
+      />
+    </>
   );
 };

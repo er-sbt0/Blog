@@ -61,15 +61,6 @@ const Footer: React.FC = () => {
             Browse Posts
           </Link>
           <Link
-            component={RouterLink}
-            href="/series"
-            color="text.secondary"
-            underline="hover"
-            variant="body2"
-          >
-            Series
-          </Link>
-          <Link
             href={href}
             target="_blank"
             color="text.secondary"
