@@ -465,7 +465,7 @@ const SeriesView: React.FC<SeriesViewProps> = ({
                       height: 32,
                     }}
                   >
-                    {isTimeEditMode ? "Editing Times" : "Edit Times"}
+                    {isTimeEditMode ? "Editing" : "Edit"}
                   </Button>
 
                   {isTimeEditMode && (

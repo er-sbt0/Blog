@@ -1,17 +1,20 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   IconButton,
+  InputBase,
   List,
   ListItem,
   ListItemButton,
   Tooltip,
   Typography,
 } from "@mui/material";
-import { Add, Remove, Undo } from "@mui/icons-material";
+import { Add, DeleteForever, Remove, Undo } from "@mui/icons-material";
 import { DocumentStatus, User, UserDocument } from "@/types";
 import { useRouter } from "next/navigation";
 import PostActionMenu from "@/components/DocumentCardNew/PostActionMenu";
+import { actions, useDispatch } from "@/store";
+import { v4 as uuid } from "uuid";
 
 export interface PendingTimeChange {
   originalDate: Date;
@@ -251,6 +254,47 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
   onTimeReset,
 }) => {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const [editingNames, setEditingNames] = useState<Map<string, string>>(
+    new Map(),
+  );
+
+  const handleRenameCommit = async (
+    postId: string,
+    documentId: string,
+    originalName: string,
+  ) => {
+    const newName = editingNames.get(postId)?.trim();
+    setEditingNames((prev) => {
+      const m = new Map(prev);
+      m.delete(postId);
+      return m;
+    });
+    if (!newName || newName === originalName) return;
+    await dispatch(
+      actions.updateCloudDocument({ id: documentId, partial: { name: newName } }),
+    );
+    router.refresh();
+  };
+
+  const handleDelete = async (post: UserDocument) => {
+    const name = post.cloud?.name || post.local?.name || "This post";
+    const alertPayload = {
+      title: "Delete Post",
+      content:
+        `Are you sure you want to delete "${name}"? This cannot be undone.`,
+      actions: [
+        { label: "Cancel", id: uuid() },
+        { label: "Delete", id: uuid() },
+      ],
+    };
+    const response = await dispatch(actions.alert(alertPayload));
+    if (response.payload === alertPayload.actions[1].id) {
+      if (post.cloud) await dispatch(actions.deleteCloudDocument(post.id));
+      if (post.local) await dispatch(actions.deleteLocalDocument(post.id));
+      router.refresh();
+    }
+  };
 
   if (posts.length === 0) {
     return null;
@@ -338,22 +382,107 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
               >
                 {/* Title and Metadata */}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  {/* Title */}
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 500,
-                      color: isDone ? "text.secondary" : "text.primary",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      width: "100%",
-                      fontSize: "0.9rem",
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    {document?.name || "Untitled"}
-                  </Typography>
+                  {/* Title row: text + optional delete icon */}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+                  {/* Title - editable in edit mode */}
+                  {isTimeEditMode && document?.id
+                    ? (
+                      <InputBase
+                        value={editingNames.has(post.id)
+                          ? editingNames.get(post.id)
+                          : (document?.name || "")}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          setEditingNames((prev) => {
+                            const m = new Map(prev);
+                            m.set(post.id, e.target.value);
+                            return m;
+                          });
+                        }}
+                        onBlur={() =>
+                          handleRenameCommit(
+                            post.id,
+                            document.id,
+                            document?.name || "",
+                          )}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleRenameCommit(
+                              post.id,
+                              document.id,
+                              document?.name || "",
+                            );
+                          }
+                          if (e.key === "Escape") {
+                            setEditingNames((prev) => {
+                              const m = new Map(prev);
+                              m.delete(post.id);
+                              return m;
+                            });
+                          }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        fullWidth
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: "0.9rem",
+                          letterSpacing: "-0.01em",
+                          color: isDone ? "text.secondary" : "text.primary",
+                          borderBottom: "1px solid",
+                          borderColor: editingNames.has(post.id)
+                            ? "primary.main"
+                            : "divider",
+                          borderRadius: 0,
+                          px: 0.5,
+                          "& input": { p: 0 },
+                        }}
+                      />
+                    )
+                    : (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: 500,
+                          color: isDone ? "text.secondary" : "text.primary",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          minWidth: 0,
+                          flex: 1,
+                          fontSize: "0.9rem",
+                          letterSpacing: "-0.01em",
+                        }}
+                      >
+                        {document?.name || "Untitled"}
+                      </Typography>
+                    )}
+
+                  {/* Delete icon - only in edit mode, next to title */}
+                  {isTimeEditMode && (
+                    <Tooltip title="Delete post" arrow>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(post);
+                        }}
+                        sx={{
+                          flexShrink: 0,
+                          width: 22,
+                          height: 22,
+                          color: "text.disabled",
+                          "&:hover": {
+                            color: "text.secondary",
+                            bgcolor: "action.hover",
+                          },
+                        }}
+                      >
+                        <DeleteForever sx={{ fontSize: 15 }} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  </Box>
 
                   {/* Metadata line */}
                   <Box
@@ -411,14 +540,19 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                   </Box>
                 </Box>
 
-                {/* Time Edit Controls */}
+                {/* Edit Mode Controls - time stepper only */}
                 {isTimeEditMode && onTimeAdjust && onTimeReset && (
-                  <TimeStepperControls
-                    onAdjust={(days) =>
-                      onTimeAdjust(post.id, originalDate, days)}
-                    onReset={() => onTimeReset(post.id)}
-                    hasChanges={hasRowChanges}
-                  />
+                  <Box
+                    sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <TimeStepperControls
+                      onAdjust={(days) =>
+                        onTimeAdjust(post.id, originalDate, days)}
+                      onReset={() => onTimeReset(post.id)}
+                      hasChanges={hasRowChanges}
+                    />
+                  </Box>
                 )}
 
                 {/* Action Menu - Three Dots */}
