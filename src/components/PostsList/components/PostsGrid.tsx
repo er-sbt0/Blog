@@ -7,6 +7,7 @@ import { useSelector } from "@/store";
 import DocumentCard from "@/components/DocumentCardNew";
 import SeriesCard from "@/components/SeriesCard/SeriesCardUnified";
 import {
+  SeriesGroupItem,
   buildSeriesMap,
   flattenGroupedPosts,
   groupPostsBySeries,
@@ -18,6 +19,8 @@ import { PostsDetailedListView } from "@/components/SeriesView/components/PostsD
 interface PostsGridProps {
   posts?: UserDocument[];
   series?: Series[];
+  /** Zero-post series to show in this partition (injected by TimeSection) */
+  emptySeries?: Series[];
   viewType?: ViewType;
   showPosts?: boolean;
   showSeries?: boolean;
@@ -31,6 +34,7 @@ interface PostsGridProps {
 const PostsGrid: React.FC<PostsGridProps> = ({
   posts = [],
   series,
+  emptySeries,
   viewType = "grid",
   showPosts = true,
   showSeries = true,
@@ -52,12 +56,35 @@ const PostsGrid: React.FC<PostsGridProps> = ({
     [posts, seriesMap],
   );
 
-  // Filter groups by showPosts/showSeries flags
-  const filteredGroupedPosts = useMemo(
-    () =>
-      groupedPosts.filter((g) => g.type === "series" ? showSeries : showPosts),
-    [groupedPosts, showPosts, showSeries],
-  );
+  // Filter groups by showPosts/showSeries flags, then merge in any zero-post series
+  const filteredGroupedPosts = useMemo(() => {
+    const baseGroups = groupedPosts.filter((g) =>
+      g.type === "series" ? showSeries : showPosts
+    );
+
+    if (!emptySeries?.length || !showSeries) return baseGroups;
+
+    // Avoid duplicating a series already present with posts
+    const existingSeriesIds = new Set<string>(
+      baseGroups
+        .filter((g) => g.type === "series" && g.series)
+        .map((g) => g.series!.id),
+    );
+
+    const emptyGroups: SeriesGroupItem[] = emptySeries
+      .filter((s) => !existingSeriesIds.has(s.id))
+      .map((s) => ({
+        type: "series" as const,
+        series: s,
+        posts: [],
+        sortKey: s.createdAt ? new Date(s.createdAt).getTime() : 0,
+      }));
+
+    if (!emptyGroups.length) return baseGroups;
+
+    // Interleave by sortKey (newest first)
+    return [...baseGroups, ...emptyGroups].sort((a, b) => b.sortKey - a.sortKey);
+  }, [groupedPosts, showPosts, showSeries, emptySeries]);
 
   // Flat list of posts for compact/detailed modes
   const flatPosts = useMemo(

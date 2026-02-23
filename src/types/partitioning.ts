@@ -25,6 +25,8 @@ export interface TimeGroup {
   posts: UserDocument[];
   count: number;
   granularity: PartitionGranularity;
+  /** Series that have zero posts, to be shown once in this partition */
+  emptySeries?: Series[];
 }
 
 // API query parameters for posts endpoint
@@ -47,4 +49,4 @@ export interface PartitionedPostsResponse {
   };
 }
 
-import { UserDocument } from "@/types";
+import { Series, UserDocument } from "@/types";

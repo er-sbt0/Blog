@@ -293,7 +293,7 @@ export const deduplicateSeriesAcrossPartitions = <
   });
 
   // Process each time group
-  return timeGroups.map((group) => {
+  return timeGroups.map((group, groupIndex) => {
     const newPosts: UserDocument[] = [];
     const addedPostIds = new Set<string>(); // Track added post IDs to avoid duplicates
 
@@ -326,10 +326,30 @@ export const deduplicateSeriesAcrossPartitions = <
       }
     });
 
+    // Collect zero-post series for this partition.
+    // A zero-post series is one present in seriesMap but absent from seriesAllPostsMap.
+    // It goes into the partition that matches its createdAt, or falls back to the
+    // latest (first) partition when no matching partition exists.
+    const groupEmptySeries: Series[] = [];
+    seriesMap.forEach((series, seriesId) => {
+      if (placedSeries.has(seriesId)) return;
+      if (seriesAllPostsMap.has(seriesId)) return; // has posts, handled above
+
+      const seriesTimeKey = seriesToTimeKeyMap.get(seriesId);
+      if (
+        seriesTimeKey === group.timeKey ||
+        (groupIndex === 0 && seriesTimeKey === undefined)
+      ) {
+        groupEmptySeries.push(series);
+        placedSeries.add(seriesId);
+      }
+    });
+
     return {
       ...group,
       posts: newPosts,
       count: newPosts.length,
+      ...(groupEmptySeries.length > 0 ? { emptySeries: groupEmptySeries } : {}),
     };
   });
 };

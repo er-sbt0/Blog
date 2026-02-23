@@ -60,8 +60,11 @@ export const usePostsGrouping = ({
       );
     }
 
-    // Filter out time groups with zero posts/series
-    timeGroups = timeGroups.filter((group) => group.posts.length > 0);
+    // Filter out time groups with zero posts/series (but keep groups that have empty series)
+    timeGroups = timeGroups.filter((group) =>
+      group.posts.length > 0 ||
+      (group.emptySeries && group.emptySeries.length > 0)
+    );
 
     const totalCount = posts.length;
 

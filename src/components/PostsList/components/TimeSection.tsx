@@ -74,6 +74,7 @@ const TimeSection: React.FC<TimeSectionProps> = (
       >
         <PostsGrid
           posts={timeGroup.posts}
+          emptySeries={timeGroup.emptySeries}
           viewType={viewType}
           showPosts={showPosts}
           showSeries={showSeries}
