@@ -5,7 +5,6 @@ import { useTheme } from "@mui/material/styles";
 import Grid from "@mui/material/Grid2";
 
 // Import components
-import MonthSection from "./components/MonthSection";
 import TimeSection from "./components/TimeSection";
 import PostsHeader from "./components/PostsHeader";
 import SkeletonCard from "@/components/DocumentCardNew/components/LoadingCard";
@@ -105,9 +104,6 @@ const PostsLoadingState: React.FC = () => {
  * Features: Search, time filtering, partitioning control, responsive design, accessibility, SEO optimization
  */
 const PostsList: React.FC<PostsListProps> = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
   // State for Create Post Drawer
   const [createPostDrawerOpen, setCreatePostDrawerOpen] = useState(false);
   const [createSeriesDrawerOpen, setCreateSeriesDrawerOpen] = useState(false);
@@ -119,7 +115,7 @@ const PostsList: React.FC<PostsListProps> = () => {
 
   useEffect(() => {
     const savedView = localStorage.getItem("postsView");
-    if (savedView && ["grid", "compact", "detailed"].includes(savedView)) {
+    if (savedView && ["grid", "compact"].includes(savedView)) {
       setViewType(savedView as ViewType);
     }
     const savedShowPosts = localStorage.getItem("postsShowPosts");
@@ -145,7 +141,6 @@ const PostsList: React.FC<PostsListProps> = () => {
 
   // Use custom hook to get posts data with search, filtering, and partitioning
   const {
-    monthGroups,
     timeGroups,
     loading,
     totalCount,

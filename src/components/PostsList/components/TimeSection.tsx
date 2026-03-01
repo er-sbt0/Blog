@@ -1,7 +1,8 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { TimeGroup } from "@/types/partitioning";
 import PostsGrid from "./PostsGrid";
+import TimeHeader from "./TimeHeader";
 import { ViewType } from "@/components/SeriesView/components/ViewToggle";
 
 interface TimeSectionProps {
@@ -11,39 +12,6 @@ interface TimeSectionProps {
   showPosts?: boolean;
   showSeries?: boolean;
 }
-
-// Inline TimeHeader component for simplicity
-const TimeHeader: React.FC<{
-  timeLabel: string;
-  postCount: number;
-  timeKey: string;
-  granularity: TimeGroup["granularity"];
-  isLatest?: boolean;
-}> = ({ timeLabel, postCount, timeKey, granularity, isLatest = false }) => {
-  return (
-    <Box
-      id={`time-header-${timeKey}`}
-      sx={{
-        mb: { xs: 2, md: 3 },
-        display: "flex",
-        alignItems: "center",
-        gap: 2,
-      }}
-    >
-      <Typography
-        variant="h5"
-        component="h2"
-        sx={{
-          fontWeight: 600,
-          color: "text.primary",
-          fontSize: { xs: "1.25rem", md: "1.5rem" },
-        }}
-      >
-        {timeLabel}
-      </Typography>
-    </Box>
-  );
-};
 
 /**
  * Generic section component for displaying posts grouped by any time period

@@ -156,7 +156,8 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
   );
 
   // Group-aware rendering (used by PostsGrid compact mode)
-  if (groups && groups.length > 0) {
+  if (groups !== undefined) {
+    if (groups.length === 0) return null;
     return (
       <Box sx={{ width: "100%" }}>
         <List sx={listSx}>
@@ -164,6 +165,38 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
             if (group.type === "series" && group.series) {
               const isExpanded = expandedSeries.has(group.series.id);
               const postCount = group.posts.length;
+
+              if (postCount === 0) {
+                return (
+                  <Box
+                    key={`series-${group.series.id}`}
+                    sx={{
+                      py: 1.25,
+                      px: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      borderRadius: 1.5,
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        fontSize: "0.9rem",
+                        letterSpacing: "-0.01em",
+                        color: "text.disabled",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        minWidth: 0,
+                      }}
+                    >
+                      {group.series.title}
+                    </Typography>
+                  </Box>
+                );
+              }
 
               return (
                 <React.Fragment key={`series-${group.series.id}`}>
@@ -191,9 +224,7 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                     }}
                   >
                     <ListItemButton
-                      onClick={() =>
-                        postCount > 0 && toggleSeries(group.series!.id)}
-                      disabled={postCount === 0}
+                      onClick={() => toggleSeries(group.series!.id)}
                       sx={{
                         py: 1.25,
                         px: 2,
@@ -202,7 +233,6 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                         gap: 1,
                         borderRadius: 1.5,
                         "&:hover": { bgcolor: "transparent" },
-                        cursor: postCount === 0 ? "default" : "pointer",
                       }}
                     >
                       <ChevronRight
@@ -212,7 +242,6 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                           flexShrink: 0,
                           transition: "transform 0.2s ease",
                           transform: isExpanded ? "rotate(90deg)" : "none",
-                          visibility: postCount === 0 ? "hidden" : "visible",
                         }}
                       />
                       <Typography
@@ -231,7 +260,7 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                         {group.series.title}
                       </Typography>
                       <Chip
-                        label={`${postCount} ${postCount === 1 ? "post" : "posts"}`}
+                        label={postCount}
                         size="small"
                         sx={{
                           height: 20,
@@ -243,30 +272,33 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                     </ListItemButton>
                   </ListItem>
 
-                  {postCount > 0 && (
-                    <Collapse in={isExpanded} unmountOnExit>
-                      <Box
-                        sx={{
-                          pl: 1,
-                          ml: 2.5,
-                          borderLeft: "2px solid",
-                          borderColor: "divider",
-                          mb: 0.5,
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 0.5,
-                        }}
-                      >
-                        {group.posts.map(renderPostItem)}
-                      </Box>
-                    </Collapse>
-                  )}
+                  <Collapse in={isExpanded} unmountOnExit>
+                    <Box
+                      sx={{
+                        pl: 1,
+                        ml: 2.5,
+                        borderLeft: "2px solid",
+                        borderColor: "divider",
+                        mb: 0.5,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.5,
+                      }}
+                    >
+                      {group.posts.map(renderPostItem)}
+                    </Box>
+                  </Collapse>
                 </React.Fragment>
               );
             } else {
               const post = group.posts[0];
               if (!post) return null;
-              return renderPostItem(post);
+              // Match the indentation of series member posts (ml:2.5 + pl:1 = 28px)
+              return (
+                <Box key={post.id} sx={{ pl: 3.5 }}>
+                  {renderPostItem(post)}
+                </Box>
+              );
             }
           })}
         </List>
