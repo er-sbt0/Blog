@@ -87,7 +87,14 @@ export default function AITools(
   const modelMenuOpen = Boolean(modelMenuAnchor);
   const toneMenuOpen = Boolean(toneMenuAnchor);
 
-  const TONES = ["Professional", "Casual", "Friendly", "Academic", "Persuasive", "Direct"];
+  const TONES = [
+    "Professional",
+    "Casual",
+    "Friendly",
+    "Academic",
+    "Persuasive",
+    "Direct",
+  ];
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -284,7 +291,9 @@ export default function AITools(
       if (!$isRangeSelection(selection)) return;
       const textContent = selection.getTextContent();
       const { provider, model } = llmConfig;
-      complete(textContent, { body: { option: "tone", tone, provider, model } });
+      complete(textContent, {
+        body: { option: "tone", tone, provider, model },
+      });
     });
   };
 
@@ -629,7 +638,10 @@ export default function AITools(
         transformOrigin={{ vertical: "top", horizontal: "left" }}
       >
         {TONES.map((tone) => (
-          <MenuItem key={tone} onClick={() => handleChangeTone(tone)}>
+          <MenuItem
+            key={tone}
+            onClick={() => handleChangeTone(tone)}
+          >
             <ListItemText>{tone}</ListItemText>
           </MenuItem>
         ))}
