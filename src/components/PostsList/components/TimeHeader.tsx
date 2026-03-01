@@ -10,15 +10,9 @@ interface TimeHeaderProps {
   isLatest?: boolean;
 }
 
-/**
- * Generic header component for time-based sections
- * Shows time period label and post count
- */
 const TimeHeader: React.FC<TimeHeaderProps> = ({
   timeLabel,
-  postCount,
   timeKey,
-  granularity,
   isLatest = false,
 }) => {
   return (
@@ -28,20 +22,30 @@ const TimeHeader: React.FC<TimeHeaderProps> = ({
         mb: { xs: 2, md: 3 },
         display: "flex",
         alignItems: "center",
-        gap: 2,
+        gap: 1.5,
       }}
     >
       <Typography
-        variant="h5"
         component="h2"
         sx={{
+          fontSize: "0.9rem",
           fontWeight: 600,
-          color: isLatest ? "primary.main" : "text.primary",
-          fontSize: { xs: "1.25rem", md: "1.5rem" },
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: isLatest ? "primary.main" : "text.disabled",
+          whiteSpace: "nowrap",
+          flexShrink: 0,
         }}
       >
         {timeLabel}
       </Typography>
+      <Box
+        sx={{
+          flex: 1,
+          height: "1px",
+          bgcolor: "divider",
+        }}
+      />
     </Box>
   );
 };
