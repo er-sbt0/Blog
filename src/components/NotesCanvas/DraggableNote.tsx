@@ -150,7 +150,7 @@ export default function DraggableNote({
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          borderRadius: "12px",
+          borderRadius: "6px",
           border: isFocused
             ? "2px solid rgba(25, 118, 210, 0.5)"
             : "1px solid rgba(0, 0, 0, 0.1)",
@@ -172,11 +172,11 @@ export default function DraggableNote({
             display: "flex",
             alignItems: "center",
             gap: 1,
-            padding: "8px 10px",
+            padding: "6px 8px",
             backgroundColor: "rgba(255, 255, 255, 0.25)",
             cursor: "move",
             borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
-            minHeight: "36px",
+            minHeight: "28px",
             transition: "background-color 0.2s ease",
             "&:hover": {
               backgroundColor: "rgba(255, 255, 255, 0.35)",
@@ -249,7 +249,7 @@ export default function DraggableNote({
           sx={{
             flex: 1,
             overflow: "auto",
-            padding: "12px",
+            padding: "10px",
             backgroundColor: "rgba(255, 255, 255, 0.3)",
             "& .editor-input": {
               minHeight: "100%",
