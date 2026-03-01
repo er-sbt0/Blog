@@ -14,7 +14,6 @@ import {
 } from "../utils/seriesGrouping";
 import { ViewType } from "@/components/SeriesView/components/ViewToggle";
 import { PostsCompactListView } from "@/components/SeriesView/components/PostsCompactListView";
-import { PostsDetailedListView } from "@/components/SeriesView/components/PostsDetailedListView";
 
 interface PostsGridProps {
   posts?: UserDocument[];
@@ -139,11 +138,6 @@ const PostsGrid: React.FC<PostsGridProps> = ({
   // Compact list mode
   if (viewType === "compact") {
     return <PostsCompactListView posts={flatPosts} user={user || undefined} />;
-  }
-
-  // Detailed list mode
-  if (viewType === "detailed") {
-    return <PostsDetailedListView posts={flatPosts} user={user || undefined} />;
   }
 
   // Series catalog mode: render detailed series cards

@@ -1,8 +1,8 @@
 import React from "react";
 import { ToggleButton, ToggleButtonGroup, Tooltip } from "@mui/material";
-import { ViewHeadline, ViewList, ViewModule } from "@mui/icons-material";
+import { ViewList, ViewModule } from "@mui/icons-material";
 
-export type ViewType = "grid" | "compact" | "detailed";
+export type ViewType = "grid" | "compact";
 
 interface ViewToggleProps {
   view: ViewType;
@@ -54,11 +54,6 @@ export const ViewToggle: React.FC<ViewToggleProps> = ({ view, onChange }) => {
       <ToggleButton value="compact" aria-label="compact list view">
         <Tooltip title="Compact List">
           <ViewList />
-        </Tooltip>
-      </ToggleButton>
-      <ToggleButton value="detailed" aria-label="detailed list view">
-        <Tooltip title="Detailed List">
-          <ViewHeadline />
         </Tooltip>
       </ToggleButton>
     </ToggleButtonGroup>
