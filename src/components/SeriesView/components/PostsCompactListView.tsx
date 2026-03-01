@@ -272,7 +272,10 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
     });
     if (!newName || newName === originalName) return;
     await dispatch(
-      actions.updateCloudDocument({ id: documentId, partial: { name: newName } }),
+      actions.updateCloudDocument({
+        id: documentId,
+        partial: { name: newName },
+      }),
     );
     router.refresh();
   };
@@ -383,105 +386,112 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                 {/* Title and Metadata */}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   {/* Title row: text + optional delete icon */}
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
-                  {/* Title - editable in edit mode */}
-                  {isTimeEditMode && document?.id
-                    ? (
-                      <InputBase
-                        value={editingNames.has(post.id)
-                          ? editingNames.get(post.id)
-                          : (document?.name || "")}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          setEditingNames((prev) => {
-                            const m = new Map(prev);
-                            m.set(post.id, e.target.value);
-                            return m;
-                          });
-                        }}
-                        onBlur={() =>
-                          handleRenameCommit(
-                            post.id,
-                            document.id,
-                            document?.name || "",
-                          )}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      minWidth: 0,
+                    }}
+                  >
+                    {/* Title - editable in edit mode */}
+                    {isTimeEditMode && document?.id
+                      ? (
+                        <InputBase
+                          value={editingNames.has(post.id)
+                            ? editingNames.get(post.id)
+                            : (document?.name || "")}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setEditingNames((prev) => {
+                              const m = new Map(prev);
+                              m.set(post.id, e.target.value);
+                              return m;
+                            });
+                          }}
+                          onBlur={() =>
                             handleRenameCommit(
                               post.id,
                               document.id,
                               document?.name || "",
-                            );
-                          }
-                          if (e.key === "Escape") {
-                            setEditingNames((prev) => {
-                              const m = new Map(prev);
-                              m.delete(post.id);
-                              return m;
-                            });
-                          }
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        fullWidth
-                        sx={{
-                          fontWeight: 500,
-                          fontSize: "0.9rem",
-                          letterSpacing: "-0.01em",
-                          color: isDone ? "text.secondary" : "text.primary",
-                          borderBottom: "1px solid",
-                          borderColor: editingNames.has(post.id)
-                            ? "primary.main"
-                            : "divider",
-                          borderRadius: 0,
-                          px: 0.5,
-                          "& input": { p: 0 },
-                        }}
-                      />
-                    )
-                    : (
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: 500,
-                          color: isDone ? "text.secondary" : "text.primary",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          minWidth: 0,
-                          flex: 1,
-                          fontSize: "0.9rem",
-                          letterSpacing: "-0.01em",
-                        }}
-                      >
-                        {document?.name || "Untitled"}
-                      </Typography>
-                    )}
+                            )}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleRenameCommit(
+                                post.id,
+                                document.id,
+                                document?.name || "",
+                              );
+                            }
+                            if (e.key === "Escape") {
+                              setEditingNames((prev) => {
+                                const m = new Map(prev);
+                                m.delete(post.id);
+                                return m;
+                              });
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          fullWidth
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: "0.9rem",
+                            letterSpacing: "-0.01em",
+                            color: isDone ? "text.secondary" : "text.primary",
+                            borderBottom: "1px solid",
+                            borderColor: editingNames.has(post.id)
+                              ? "primary.main"
+                              : "divider",
+                            borderRadius: 0,
+                            px: 0.5,
+                            "& input": { p: 0 },
+                          }}
+                        />
+                      )
+                      : (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 500,
+                            color: isDone ? "text.secondary" : "text.primary",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            minWidth: 0,
+                            flex: 1,
+                            fontSize: "0.9rem",
+                            letterSpacing: "-0.01em",
+                          }}
+                        >
+                          {document?.name || "Untitled"}
+                        </Typography>
+                      )}
 
-                  {/* Delete icon - only in edit mode, next to title */}
-                  {isTimeEditMode && (
-                    <Tooltip title="Delete post" arrow>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(post);
-                        }}
-                        sx={{
-                          flexShrink: 0,
-                          width: 22,
-                          height: 22,
-                          color: "text.disabled",
-                          "&:hover": {
-                            color: "text.secondary",
-                            bgcolor: "action.hover",
-                          },
-                        }}
-                      >
-                        <DeleteForever sx={{ fontSize: 15 }} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
+                    {/* Delete icon - only in edit mode, next to title */}
+                    {isTimeEditMode && (
+                      <Tooltip title="Delete post" arrow>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(post);
+                          }}
+                          sx={{
+                            flexShrink: 0,
+                            width: 22,
+                            height: 22,
+                            color: "text.disabled",
+                            "&:hover": {
+                              color: "text.secondary",
+                              bgcolor: "action.hover",
+                            },
+                          }}
+                        >
+                          <DeleteForever sx={{ fontSize: 15 }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                   </Box>
 
                   {/* Metadata line */}

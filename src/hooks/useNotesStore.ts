@@ -17,7 +17,7 @@ function debounce<T extends (...args: any[]) => void>(
   };
 }
 
-export function useNotesStore() {
+export function useNotesStore(canvasId: string | null) {
   const { data: session, status } = useSession();
   const [canvas, setCanvas] = useState<NotesCanvas | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,11 +31,16 @@ export function useNotesStore() {
       setError("Please sign in to use notes");
       return;
     }
+    if (!canvasId) {
+      // Authenticated but canvasId not yet set (boards still loading)
+      return;
+    }
 
     try {
       setLoading(true);
+      setCanvas(null);
       setError(null);
-      const response = await fetch(`${API_BASE}/canvas`);
+      const response = await fetch(`${API_BASE}/canvas/${canvasId}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -49,7 +54,7 @@ export function useNotesStore() {
     } finally {
       setLoading(false);
     }
-  }, [status]);
+  }, [status, canvasId]);
 
   // Initial load
   useEffect(() => {
@@ -61,12 +66,13 @@ export function useNotesStore() {
   }, [fetchCanvas]);
 
   const addNote = useCallback(
-    async (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
-      if (!canvas) return;
+    async (note: Omit<Note, "id" | "createdAt" | "updatedAt" | "canvasId">) => {
+      if (!canvas || !canvasId) return;
 
       // Optimistic update
       const optimisticNote: Note = {
         ...note,
+        canvasId,
         id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -85,6 +91,7 @@ export function useNotesStore() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            canvasId,
             positionX: note.position.x,
             positionY: note.position.y,
             width: note.size.width,
@@ -125,7 +132,7 @@ export function useNotesStore() {
         setError(err instanceof Error ? err.message : "Failed to create note");
       }
     },
-    [canvas],
+    [canvas, canvasId],
   );
 
   // Debounced update for frequent changes (drag, resize)

@@ -16,6 +16,8 @@ import KanbanBoard from "./KanbanBoard";
 import ReadmeViewer from "./ReadmeViewer";
 import ErrorBoundaryCard from "./ErrorBoundaryCard";
 import { StickyNote2 } from "@mui/icons-material";
+import { useNotesBoards } from "@/hooks/useNotesBoards";
+import BoardSelector from "../NotesCanvas/BoardSelector";
 
 type ViewType = "notes" | "kanban" | "readme" | "posts" | null;
 
@@ -26,6 +28,14 @@ const Home: React.FC<{
 }> = ({ staticDocuments }) => {
   const router = useRouter();
   const [activeView, setActiveView] = useState<ViewType>(null);
+  const {
+    boards,
+    activeCanvasId,
+    setActiveCanvasId,
+    createBoard,
+    renameBoard,
+    deleteBoard,
+  } = useNotesBoards();
   const [notesHeight, setNotesHeight] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("notesCanvasHeight");
@@ -100,28 +110,29 @@ const Home: React.FC<{
           {/* Notes Canvas - Full width at top */}
           <Grid size={{ xs: 12 }}>
             <ErrorBoundaryCard cardName="Notes">
-              {/* Header */}
+              {/* Board selector row */}
               <Box
                 sx={{
                   display: "flex",
-                  justifyContent: "space-between",
                   alignItems: "center",
-                  mb: 1.5,
+                  gap: 1,
+                  mb: 1,
+                  pb: 1,
+                  borderBottom: "1px solid",
+                  borderColor: "divider",
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <StickyNote2 sx={{ fontSize: 20, color: "text.secondary" }} />
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      fontWeight: 500,
-                      color: "text.primary",
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    Notes
-                  </Typography>
-                </Box>
+                <StickyNote2
+                  sx={{ fontSize: 18, color: "text.secondary", flexShrink: 0 }}
+                />
+                <BoardSelector
+                  boards={boards}
+                  activeCanvasId={activeCanvasId}
+                  onSelectBoard={setActiveCanvasId}
+                  onCreateBoard={createBoard}
+                  onRenameBoard={renameBoard}
+                  onDeleteBoard={deleteBoard}
+                />
               </Box>
               <Box
                 sx={{
@@ -131,7 +142,7 @@ const Home: React.FC<{
                   position: "relative",
                 }}
               >
-                <NotesCanvas />
+                <NotesCanvas canvasId={activeCanvasId} />
 
                 {/* Resize Handle */}
                 <Box

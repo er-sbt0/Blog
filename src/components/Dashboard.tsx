@@ -413,151 +413,151 @@ const BlogStatsSection: React.FC = () => {
 
   return (
     <>
-    <Grid container spacing={3}>
-      <Grid size={{ xs: 6, sm: 3 }}>
-        <Box
-          sx={{
-            textAlign: "center",
-            p: 3,
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-              transform: "translateY(-1px)",
-            },
-          }}
-        >
-          <Typography
-            variant="h4"
-            color="primary.main"
-            sx={{ fontWeight: 600 }}
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <Box
+            sx={{
+              textAlign: "center",
+              p: 3,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                transform: "translateY(-1px)",
+              },
+            }}
           >
-            {stats.posts}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Total Posts
-          </Typography>
-        </Box>
+            <Typography
+              variant="h4"
+              color="primary.main"
+              sx={{ fontWeight: 600 }}
+            >
+              {stats.posts}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Total Posts
+            </Typography>
+          </Box>
+        </Grid>
+
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <Box
+            sx={{
+              textAlign: "center",
+              p: 3,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                transform: "translateY(-1px)",
+              },
+            }}
+          >
+            <Typography
+              variant="h4"
+              color="success.main"
+              sx={{ fontWeight: 600 }}
+            >
+              {stats.publishedPosts}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Published
+            </Typography>
+          </Box>
+        </Grid>
+
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <Box
+            sx={{
+              textAlign: "center",
+              p: 3,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                transform: "translateY(-1px)",
+              },
+            }}
+          >
+            <Typography
+              variant="h4"
+              color="warning.main"
+              sx={{ fontWeight: 600 }}
+            >
+              {stats.draftPosts}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Drafts
+            </Typography>
+          </Box>
+        </Grid>
+
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <Box
+            sx={{
+              textAlign: "center",
+              p: 3,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              transition: "all 0.2s ease-in-out",
+              "&:hover": {
+                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                transform: "translateY(-1px)",
+              },
+            }}
+          >
+            <Typography variant="h4" color="info.main" sx={{ fontWeight: 600 }}>
+              {stats.series}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              Series
+            </Typography>
+          </Box>
+        </Grid>
+
+        {/* Quick Actions */}
+        <Grid size={12}>
+          <Box sx={{ display: "flex", gap: 2, mt: 2, flexWrap: "wrap" }}>
+            <Button
+              variant="outlined"
+              startIcon={<Edit />}
+              onClick={() => router.push("/new")}
+              size="small"
+            >
+              Write New Post
+            </Button>
+
+            <Button
+              variant="outlined"
+              startIcon={<Category />}
+              onClick={() => setCreateSeriesDrawerOpen(true)}
+              size="small"
+            >
+              Create Series
+            </Button>
+
+            <Button
+              variant="outlined"
+              startIcon={<LibraryBooks />}
+              onClick={() => router.push("/dashboard/posts")}
+              size="small"
+            >
+              Manage Posts
+            </Button>
+          </Box>
+        </Grid>
       </Grid>
-
-      <Grid size={{ xs: 6, sm: 3 }}>
-        <Box
-          sx={{
-            textAlign: "center",
-            p: 3,
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-              transform: "translateY(-1px)",
-            },
-          }}
-        >
-          <Typography
-            variant="h4"
-            color="success.main"
-            sx={{ fontWeight: 600 }}
-          >
-            {stats.publishedPosts}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Published
-          </Typography>
-        </Box>
-      </Grid>
-
-      <Grid size={{ xs: 6, sm: 3 }}>
-        <Box
-          sx={{
-            textAlign: "center",
-            p: 3,
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-              transform: "translateY(-1px)",
-            },
-          }}
-        >
-          <Typography
-            variant="h4"
-            color="warning.main"
-            sx={{ fontWeight: 600 }}
-          >
-            {stats.draftPosts}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Drafts
-          </Typography>
-        </Box>
-      </Grid>
-
-      <Grid size={{ xs: 6, sm: 3 }}>
-        <Box
-          sx={{
-            textAlign: "center",
-            p: 3,
-            borderRadius: 2,
-            border: "1px solid",
-            borderColor: "divider",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            transition: "all 0.2s ease-in-out",
-            "&:hover": {
-              boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-              transform: "translateY(-1px)",
-            },
-          }}
-        >
-          <Typography variant="h4" color="info.main" sx={{ fontWeight: 600 }}>
-            {stats.series}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Series
-          </Typography>
-        </Box>
-      </Grid>
-
-      {/* Quick Actions */}
-      <Grid size={12}>
-        <Box sx={{ display: "flex", gap: 2, mt: 2, flexWrap: "wrap" }}>
-          <Button
-            variant="outlined"
-            startIcon={<Edit />}
-            onClick={() => router.push("/new")}
-            size="small"
-          >
-            Write New Post
-          </Button>
-
-          <Button
-            variant="outlined"
-            startIcon={<Category />}
-            onClick={() => setCreateSeriesDrawerOpen(true)}
-            size="small"
-          >
-            Create Series
-          </Button>
-
-          <Button
-            variant="outlined"
-            startIcon={<LibraryBooks />}
-            onClick={() => router.push("/dashboard/posts")}
-            size="small"
-          >
-            Manage Posts
-          </Button>
-        </Box>
-      </Grid>
-    </Grid>
 
       <CreateSeriesDrawer
         open={createSeriesDrawerOpen}

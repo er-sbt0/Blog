@@ -16,10 +16,11 @@ const PREVIEW_HEIGHT = 260;
 interface NotesCanvasProps {
   preview?: boolean;
   onViewFull?: () => void;
+  canvasId?: string | null;
 }
 
 export default function NotesCanvas(
-  { preview = false, onViewFull }: NotesCanvasProps,
+  { preview = false, onViewFull, canvasId = null }: NotesCanvasProps,
 ) {
   const {
     canvas,
@@ -29,7 +30,7 @@ export default function NotesCanvas(
     deleteNote,
     bringToFront,
     refresh,
-  } = useNotesStore();
+  } = useNotesStore(canvasId);
 
   const handleAddNote = useCallback(
     (color: string) => {

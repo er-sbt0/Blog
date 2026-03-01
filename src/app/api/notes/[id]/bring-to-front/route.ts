@@ -1,8 +1,8 @@
 import { authOptions } from "@/lib/auth";
 import {
   bringNoteToFront,
+  findCanvasById,
   findNoteById,
-  getOrCreateDefaultCanvas,
 } from "@/repositories/notes";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
@@ -51,10 +51,21 @@ export async function POST(
       );
     }
 
-    // Get user's default canvas to verify ownership and get canvasId
-    const canvas = await getOrCreateDefaultCanvas(session.user.id);
+    // Verify ownership through the note's canvas
+    const canvas = await findCanvasById(note.canvasId);
+    if (!canvas || canvas.authorId !== session.user.id) {
+      return NextResponse.json(
+        {
+          error: {
+            title: "Forbidden",
+            subtitle: "You don't have permission to reorder this note",
+          },
+        },
+        { status: 403 },
+      );
+    }
 
-    const updatedNote = await bringNoteToFront(noteId, canvas.id);
+    const updatedNote = await bringNoteToFront(noteId, note.canvasId);
     return NextResponse.json({ data: updatedNote }, { status: 200 });
   } catch (error) {
     console.error("Error bringing note to front:", error);

@@ -7,10 +7,10 @@ import { useSelector } from "@/store";
 import DocumentCard from "@/components/DocumentCardNew";
 import SeriesCard from "@/components/SeriesCard/SeriesCardUnified";
 import {
-  SeriesGroupItem,
   buildSeriesMap,
   flattenGroupedPosts,
   groupPostsBySeries,
+  SeriesGroupItem,
 } from "../utils/seriesGrouping";
 import { ViewType } from "@/components/SeriesView/components/ViewToggle";
 import { PostsCompactListView } from "@/components/SeriesView/components/PostsCompactListView";
@@ -83,7 +83,9 @@ const PostsGrid: React.FC<PostsGridProps> = ({
     if (!emptyGroups.length) return baseGroups;
 
     // Interleave by sortKey (newest first)
-    return [...baseGroups, ...emptyGroups].sort((a, b) => b.sortKey - a.sortKey);
+    return [...baseGroups, ...emptyGroups].sort((a, b) =>
+      b.sortKey - a.sortKey
+    );
   }, [groupedPosts, showPosts, showSeries, emptySeries]);
 
   // Flat list of posts for compact/detailed modes

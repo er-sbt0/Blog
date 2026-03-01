@@ -1,17 +1,15 @@
 import { authOptions } from "@/lib/auth";
 import {
   createCanvas,
-  deleteCanvas,
   findCanvasByAuthorId,
   getOrCreateDefaultCanvas,
-  updateCanvas,
 } from "@/repositories/notes";
 import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/notes/canvas - Get user's default canvas (or create if not exists)
+// GET /api/notes/canvas - Get all canvases for the user (auto-creates Default if none exist)
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -39,15 +37,23 @@ export async function GET() {
       );
     }
 
-    const canvas = await getOrCreateDefaultCanvas(session.user.id);
-    return NextResponse.json({ data: canvas }, { status: 200 });
+    // Ensure at least one canvas exists
+    await getOrCreateDefaultCanvas(session.user.id);
+    const canvases = await findCanvasByAuthorId(session.user.id);
+    const summaries = canvases.map(({ id, name, createdAt, updatedAt }) => ({
+      id,
+      name,
+      createdAt,
+      updatedAt,
+    }));
+    return NextResponse.json({ data: summaries }, { status: 200 });
   } catch (error) {
-    console.error("Error fetching canvas:", error);
+    console.error("Error fetching canvases:", error);
     return NextResponse.json(
       {
         error: {
           title: "Server Error",
-          subtitle: "Failed to fetch notes canvas",
+          subtitle: "Failed to fetch notes canvases",
         },
       },
       { status: 500 },

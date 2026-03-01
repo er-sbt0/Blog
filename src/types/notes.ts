@@ -1,5 +1,6 @@
 export interface Note {
   id: string;
+  canvasId: string;
   position: {
     x: number;
     y: number;
@@ -18,8 +19,16 @@ export interface Note {
 
 export interface NotesCanvas {
   id: string;
+  authorId: string;
   name: string;
   notes: Note[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CanvasSummary {
+  id: string;
+  name: string;
   createdAt: number;
   updatedAt: number;
 }

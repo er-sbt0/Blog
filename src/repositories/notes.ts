@@ -39,7 +39,7 @@ export async function findCanvasByAuthorId(
         orderBy: { zIndex: "asc" },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
   });
 
   return canvases.map(mapCanvasFromPrisma);
@@ -89,11 +89,11 @@ export async function getOrCreateDefaultCanvas(
   const canvases = await findCanvasByAuthorId(authorId);
 
   if (canvases.length > 0) {
-    return canvases[0]; // Return the first (most recent) canvas
+    return canvases[0]; // Return the first (oldest) canvas as default
   }
 
   // Create default canvas if none exists
-  return createCanvas(authorId, "My Notes");
+  return createCanvas(authorId, "Default");
 }
 
 // Note operations
@@ -237,6 +237,7 @@ function mapNoteFromPrisma(
 ): Note {
   return {
     id: prismaNote.id,
+    canvasId: prismaNote.canvasId,
     position: {
       x: prismaNote.positionX,
       y: prismaNote.positionY,
@@ -258,6 +259,7 @@ function mapCanvasFromPrisma(
   prismaCanvas: {
     id: string;
     name: string;
+    authorId: string;
     createdAt: Date;
     updatedAt: Date;
     notes: Array<{
@@ -278,6 +280,7 @@ function mapCanvasFromPrisma(
 ): NotesCanvas {
   return {
     id: prismaCanvas.id,
+    authorId: prismaCanvas.authorId,
     name: prismaCanvas.name,
     notes: prismaCanvas.notes.map(mapNoteFromPrisma),
     createdAt: prismaCanvas.createdAt.getTime(),

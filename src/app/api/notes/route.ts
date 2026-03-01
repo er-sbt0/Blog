@@ -1,6 +1,7 @@
 import { authOptions } from "@/lib/auth";
 import {
   createNote,
+  findCanvasById,
   findNotesByCanvasId,
   getOrCreateDefaultCanvas,
 } from "@/repositories/notes";
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
       content,
       color,
       zIndex,
+      canvasId,
     } = body;
 
     // Validate required fields
@@ -108,11 +110,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get or create user's default canvas
-    const canvas = await getOrCreateDefaultCanvas(session.user.id);
+    // Resolve the target canvas
+    let targetCanvasId: string;
+    if (canvasId && typeof canvasId === "string") {
+      const canvas = await findCanvasById(canvasId);
+      if (!canvas) {
+        return NextResponse.json(
+          { error: { title: "Not Found", subtitle: "Canvas not found" } },
+          { status: 404 },
+        );
+      }
+      if (canvas.authorId !== session.user.id) {
+        return NextResponse.json(
+          {
+            error: {
+              title: "Forbidden",
+              subtitle: "You don't have permission to add notes to this canvas",
+            },
+          },
+          { status: 403 },
+        );
+      }
+      targetCanvasId = canvasId;
+    } else {
+      // Fall back to the user's default canvas
+      const canvas = await getOrCreateDefaultCanvas(session.user.id);
+      targetCanvasId = canvas.id;
+    }
 
     const note = await createNote({
-      canvasId: canvas.id,
+      canvasId: targetCanvasId,
       positionX,
       positionY,
       width,
