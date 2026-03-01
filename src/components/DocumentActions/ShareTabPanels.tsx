@@ -22,7 +22,7 @@ import { DateDisplay } from "@/components/DateDisplay";
 interface SharedPanelProps {
   cloudDocument: Document;
   revision: string | null;
-  setRevision: (v: string) => void;
+  setRevision: (v: string | null) => void;
   isPrivate: boolean;
   isAuthor: boolean;
   togglePrivate: () => void;

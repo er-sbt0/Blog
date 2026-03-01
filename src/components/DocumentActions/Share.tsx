@@ -134,7 +134,7 @@ const ShareDocument: React.FC<{
                   <ShareEditPanel
                     cloudDocument={cloudDocument}
                     isAuthor={isAuthor}
-                    isCollab={isCollab}
+                    isCollab={isCollab ?? false}
                     toggleCollab={toggleCollab}
                     updateCoauthors={updateCoauthors}
                   />
@@ -142,7 +142,7 @@ const ShareDocument: React.FC<{
                 {isCloud && (
                   <ShareCopyLinkButton
                     isCloud={isCloud}
-                    isPrivate={isPrivate}
+                    isPrivate={isPrivate ?? false}
                     format={format}
                     copyLink={copyLink}
                   />

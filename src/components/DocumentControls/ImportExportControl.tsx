@@ -47,7 +47,7 @@ const ImportExportControl: FC<ImportExportControlProps> = (
                   createdAt: new Date().toISOString(),
                   updatedAt: new Date().toISOString(),
                   // Ensure it's created as a post (not directory)
-                  type: "DOCUMENT",
+                  type: "DOCUMENT" as const,
                 };
 
                 await documentDB.add(newDocument);

@@ -1,5 +1,4 @@
 import { DocumentStatus, User } from "@/types";
-import type { Document as PrismaDocument } from "@prisma/client";
 import { Avatar, Box, Chip, Typography } from "@mui/material";
 import { CheckCircle, PlayArrow } from "@mui/icons-material";
 import { DateDisplay } from "@/components/DateDisplay";
@@ -15,8 +14,8 @@ interface LocalDoc {
   name: string;
   description?: string | null;
   status?: DocumentStatus | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
 }
 
 interface Collaborator {

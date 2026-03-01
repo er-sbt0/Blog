@@ -1,16 +1,10 @@
 "use client";
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PendingTimeChange } from "./components/PostsCompactListView";
+import { PendingTimeChange } from "../components/PostsCompactListView";
 import { Document } from "@/types";
 
-interface Post {
-  id: string;
-  createdAt?: string | null;
-  [key: string]: unknown;
-}
-
-export function useTimeEditing(posts: Post[]) {
+export function useTimeEditing(posts: Document[]) {
   const router = useRouter();
   const [isTimeEditMode, setIsTimeEditMode] = useState(false);
   const [pendingTimeChanges, setPendingTimeChanges] = useState<
