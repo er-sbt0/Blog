@@ -98,24 +98,6 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
       sx={{
         borderRadius: 1.5,
         overflow: "hidden",
-        position: "relative",
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          left: 0,
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: 3,
-          height: hasRowChanges ? "100%" : isDone ? "100%" : 0,
-          bgcolor: hasRowChanges
-            ? "warning.main"
-            : isDone
-            ? "text.disabled"
-            : "primary.main",
-          borderRadius: "0 2px 2px 0",
-          transition: "height 0.2s ease, background-color 0.2s ease",
-        },
-        "&:hover::before": { height: "60%" },
         bgcolor: hasRowChanges ? "warning.50" : "transparent",
         "&:hover": { bgcolor: hasRowChanges ? "warning.100" : "action.hover" },
         transition: "background-color 0.2s ease",

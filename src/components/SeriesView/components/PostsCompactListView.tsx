@@ -166,27 +166,20 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
               const isExpanded = postCount > 0 && expandedSeries.has(group.series.id);
 
               return (
-                <React.Fragment key={`series-${group.series.id}`}>
+                <Box
+                  key={`series-${group.series.id}`}
+                  sx={{
+                    borderLeft: "2px solid",
+                    borderColor: isExpanded ? "divider" : "transparent",
+                    transition: "border-color 0.2s ease",
+                  }}
+                >
                   <ListItem
                     disablePadding
                     sx={{
                       borderRadius: 1.5,
                       overflow: "hidden",
-                      position: "relative",
-                      "&::before": {
-                        content: '""',
-                        position: "absolute",
-                        left: 0,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        width: 3,
-                        height: isExpanded ? "100%" : 0,
-                        bgcolor: "primary.main",
-                        borderRadius: "0 2px 2px 0",
-                        transition: "height 0.2s ease",
-                      },
                       ...(postCount > 0 && {
-                        "&:hover::before": { height: "60%" },
                         "&:hover": { bgcolor: "action.hover" },
                       }),
                       transition: "background-color 0.2s ease",
@@ -249,8 +242,6 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                   <Collapse in={isExpanded} unmountOnExit>
                     <Box
                       sx={{
-                        borderLeft: "2px solid",
-                        borderColor: "divider",
                         mb: 0.5,
                         display: "flex",
                         flexDirection: "column",
@@ -260,7 +251,7 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                       {group.posts.map(renderPostItem)}
                     </Box>
                   </Collapse>
-                </React.Fragment>
+                </Box>
               );
             } else {
               const post = group.posts[0];
