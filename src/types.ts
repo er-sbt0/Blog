@@ -1,4 +1,3 @@
-"use client";
 import type { SerializedEditorState } from "lexical";
 import type { Session } from "next-auth";
 
