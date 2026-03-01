@@ -63,14 +63,23 @@ export function withApiHandler<C = any>(
     try {
       return await handler(request, context);
     } catch (error) {
+      if (error instanceof ApiError) {
+        // Only log unexpected server errors (5xx); 4xx are expected client errors
+        if (error.status >= 500) {
+          if (options?.context) {
+            console.error(`${options.context}:`, error);
+          } else {
+            console.error(error);
+          }
+        }
+        return error.toResponse();
+      }
+
+      // Unexpected error — always log
       if (options?.context) {
         console.error(`${options.context}:`, error);
       } else {
         console.error(error);
-      }
-
-      if (error instanceof ApiError) {
-        return error.toResponse();
       }
 
       return NextResponse.json(

@@ -5,6 +5,7 @@ import {
   DocumentRevision,
   DocumentStatus,
   EditorDocument,
+  EditorDocumentRevision,
 } from "@/types";
 import { validate } from "uuid";
 import { getCachedRevision } from "./revision";
@@ -304,7 +305,7 @@ const deletePost = async (handle: string) => {
 
 // Transform: findEditorDocument → findEditorPost
 const findEditorPost = async (handle: string) => {
-  const post = await prisma.document.findFirst({
+  let post = await prisma.document.findFirst({
     where: {
       AND: [
         validate(handle) ? { id: handle } : { handle: handle.toLowerCase() },
@@ -314,7 +315,31 @@ const findEditorPost = async (handle: string) => {
   });
 
   if (!post) return null;
-  const revision = await getCachedRevision(post.head || "");
+
+  let revision = post.head ? await getCachedRevision(post.head) : null;
+
+  if (!revision) {
+    // Head is missing or points to a deleted revision — recover from latest
+    const latestRevision = await prisma.revision.findFirst({
+      where: { documentId: post.id },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, documentId: true, createdAt: true, data: true },
+    });
+    if (latestRevision) {
+      // Repair the document's head pointer
+      await prisma.document.update({
+        where: { id: post.id },
+        data: { head: latestRevision.id },
+      });
+      revision = {
+        ...latestRevision,
+        data: latestRevision.data as unknown as EditorDocumentRevision["data"],
+      };
+      // Update post.head so the editorPost below is consistent
+      post = { ...post, head: latestRevision.id };
+    }
+  }
+
   if (!revision) return null;
 
   const editorPost: EditorDocument = {
