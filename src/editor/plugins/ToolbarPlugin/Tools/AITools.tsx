@@ -493,7 +493,6 @@ export default function AITools(
             size="small"
             placeholder="What to do?"
             inputRef={promptRef}
-            autoFocus
             autoComplete="off"
             spellCheck="false"
             sx={{
