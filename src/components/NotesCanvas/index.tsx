@@ -8,12 +8,18 @@ import StaticNoteCard from "./StaticNoteCard";
 import NotesMigrationBanner from "./NotesMigrationBanner";
 import { useNotesClipboard } from "./NotesClipboardContext";
 import type { Note, NotesCanvas as CanvasData } from "@/types/notes";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // Virtual canvas dimensions for consistent coordinate system
 const VIRTUAL_CANVAS_WIDTH = 1920;
 const VIRTUAL_CANVAS_HEIGHT = 1080;
 const PREVIEW_HEIGHT = 260;
+
+// Zoom constants
+const MIN_SCALE = 0.25;
+const MAX_SCALE = 2.0;
+const SCALE_STEP = 0.25;
+const DEFAULT_SCALE = 1.0;
 
 interface NotesCanvasProps {
   preview?: boolean;
@@ -109,11 +115,38 @@ export default function NotesCanvas(
     refresh,
   } = useNotesStore(canvasId);
 
+  const [scale, setScale] = useState(DEFAULT_SCALE);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const zoomIn = useCallback(() => {
+    setScale((s) =>
+      Math.min(MAX_SCALE, parseFloat((s + SCALE_STEP).toFixed(2)))
+    );
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setScale((s) =>
+      Math.max(MIN_SCALE, parseFloat((s - SCALE_STEP).toFixed(2)))
+    );
+  }, []);
+
+  const resetZoom = useCallback(() => {
+    setScale(DEFAULT_SCALE);
+  }, []);
+
   const handleAddNote = useCallback(
     (color: string) => {
-      // Calculate center position with some randomness using virtual canvas dimensions
-      const centerX = VIRTUAL_CANVAS_WIDTH / 2 - 150 + Math.random() * 100;
-      const centerY = VIRTUAL_CANVAS_HEIGHT / 2 - 100 + Math.random() * 100;
+      // Place new note at center of current visible viewport
+      let centerX = VIRTUAL_CANVAS_WIDTH / 2 - 150 + Math.random() * 100;
+      let centerY = VIRTUAL_CANVAS_HEIGHT / 2 - 100 + Math.random() * 100;
+
+      if (scrollContainerRef.current) {
+        const el = scrollContainerRef.current;
+        const visibleCenterX = (el.scrollLeft + el.clientWidth / 2) / scale;
+        const visibleCenterY = (el.scrollTop + el.clientHeight / 2) / scale;
+        centerX = visibleCenterX - 120 + (Math.random() - 0.5) * 100;
+        centerY = visibleCenterY - 100 + (Math.random() - 0.5) * 100;
+      }
 
       addNote({
         position: { x: centerX, y: centerY },
@@ -125,7 +158,7 @@ export default function NotesCanvas(
           : 1,
       });
     },
-    [addNote, canvas],
+    [addNote, canvas, scale],
   );
 
   const handleClearAll = useCallback(() => {
@@ -147,6 +180,56 @@ export default function NotesCanvas(
       return () => window.removeEventListener("focus", handleFocus);
     }
   }, [preview, refresh]);
+
+  // Ctrl+wheel zoom (only in full canvas mode)
+  useEffect(() => {
+    if (preview) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        setScale((s) =>
+          Math.min(MAX_SCALE, parseFloat((s + SCALE_STEP).toFixed(2)))
+        );
+      } else {
+        setScale((s) =>
+          Math.max(MIN_SCALE, parseFloat((s - SCALE_STEP).toFixed(2)))
+        );
+      }
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [preview]);
+
+  // Keyboard shortcuts: Ctrl+=, Ctrl+-, Ctrl+0 (only in full canvas mode)
+  useEffect(() => {
+    if (preview) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!e.ctrlKey) return;
+      if (e.key === "=" || e.key === "+") {
+        e.preventDefault();
+        setScale((s) =>
+          Math.min(MAX_SCALE, parseFloat((s + SCALE_STEP).toFixed(2)))
+        );
+      } else if (e.key === "-") {
+        e.preventDefault();
+        setScale((s) =>
+          Math.max(MIN_SCALE, parseFloat((s - SCALE_STEP).toFixed(2)))
+        );
+      } else if (e.key === "0") {
+        e.preventDefault();
+        setScale(DEFAULT_SCALE);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [preview]);
 
   const previewNotes = preview ? (canvas?.notes.slice(0, 4) || []) : [];
   const remainingCount = preview ? ((canvas?.notes.length || 0) - 4) : 0;
@@ -373,10 +456,20 @@ export default function NotesCanvas(
           overflow: "hidden",
         }}
       >
-        <NotesToolbar onAddNote={handleAddNote} onClearAll={handleClearAll} />
+        <NotesToolbar
+          onAddNote={handleAddNote}
+          onClearAll={handleClearAll}
+          scale={scale}
+          onZoomIn={zoomIn}
+          onZoomOut={zoomOut}
+          onResetZoom={resetZoom}
+          canZoomIn={scale < MAX_SCALE}
+          canZoomOut={scale > MIN_SCALE}
+        />
         <PasteButton addNote={addNote} canvas={canvas} />
 
         <Box
+          ref={scrollContainerRef}
           sx={{
             flex: 1,
             minHeight: 0,
@@ -388,28 +481,42 @@ export default function NotesCanvas(
                  linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px)`
                 : `linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
                  linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px)`,
-            backgroundSize: "20px 20px",
+            backgroundSize: `${20 * scale}px ${20 * scale}px`,
             backgroundPosition: "0 0",
           }}
         >
+          {/* Sizing div ensures scrollbars reflect scaled canvas size */}
           <Box
             sx={{
-              position: "relative",
-              width: `${VIRTUAL_CANVAS_WIDTH}px`,
-              height: `${VIRTUAL_CANVAS_HEIGHT}px`,
+              width: `${VIRTUAL_CANVAS_WIDTH * scale}px`,
+              height: `${VIRTUAL_CANVAS_HEIGHT * scale}px`,
               minWidth: "100%",
               minHeight: "100%",
+              position: "relative",
             }}
           >
-            {canvas?.notes.map((note) => (
-              <DraggableNote
-                key={note.id}
-                note={note}
-                onUpdate={updateNote}
-                onDelete={deleteNote}
-                onFocus={bringToFront}
-              />
-            ))}
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: `${VIRTUAL_CANVAS_WIDTH}px`,
+                height: `${VIRTUAL_CANVAS_HEIGHT}px`,
+                transform: `scale(${scale})`,
+                transformOrigin: "top left",
+              }}
+            >
+              {canvas?.notes.map((note) => (
+                <DraggableNote
+                  key={note.id}
+                  note={note}
+                  onUpdate={updateNote}
+                  onDelete={deleteNote}
+                  onFocus={bringToFront}
+                  scale={scale}
+                />
+              ))}
+            </Box>
           </Box>
         </Box>
       </Box>

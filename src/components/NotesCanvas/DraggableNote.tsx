@@ -38,6 +38,7 @@ interface DraggableNoteProps {
   onUpdate: (id: string, updates: Partial<Note>) => void;
   onDelete: (id: string) => void;
   onFocus: (id: string) => void;
+  scale?: number;
 }
 
 export default function DraggableNote({
@@ -45,6 +46,7 @@ export default function DraggableNote({
   onUpdate,
   onDelete,
   onFocus,
+  scale = 1,
 }: DraggableNoteProps) {
   const editorRef = useRef<LexicalEditor | null>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -128,6 +130,7 @@ export default function DraggableNote({
       minHeight={120}
       bounds="parent"
       dragHandleClassName="drag-handle"
+      scale={scale}
       style={{ zIndex: note.zIndex }}
       enableResizing={{
         bottom: true,
