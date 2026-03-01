@@ -23,7 +23,9 @@ export default memo(function ProgressBar() {
       if (window.location.href === targetElement.href) return;
       if (targetElement.target === "_blank") return;
       if (targetElement.hash) return;
-      NProgress.start();
+      setTimeout(() => {
+        if (!event.defaultPrevented) NProgress.start();
+      }, 0);
     };
 
     const handleMutation: MutationCallback = () => {

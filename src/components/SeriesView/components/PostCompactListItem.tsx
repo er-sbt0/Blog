@@ -164,7 +164,11 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
                 />
               )
               : (
-                <Tooltip title={authorName} placement="top-start" enterDelay={600}>
+                <Tooltip
+                  title={authorName}
+                  placement="top-start"
+                  enterDelay={600}
+                >
                   <Typography
                     variant="body2"
                     sx={{

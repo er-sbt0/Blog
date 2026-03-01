@@ -163,17 +163,11 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
           {groups.map((group) => {
             if (group.type === "series" && group.series) {
               const postCount = group.posts.length;
-              const isExpanded = postCount > 0 && expandedSeries.has(group.series.id);
+              const isExpanded = postCount > 0 &&
+                expandedSeries.has(group.series.id);
 
               return (
-                <Box
-                  key={`series-${group.series.id}`}
-                  sx={{
-                    borderLeft: "2px solid",
-                    borderColor: isExpanded ? "divider" : "transparent",
-                    transition: "border-color 0.2s ease",
-                  }}
-                >
+                <Box key={`series-${group.series.id}`}>
                   <ListItem
                     disablePadding
                     sx={{
@@ -246,6 +240,9 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                         display: "flex",
                         flexDirection: "column",
                         gap: 0.5,
+                        borderLeft: "2px solid",
+                        borderColor: "divider",
+                        transition: "border-color 0.2s ease",
                       }}
                     >
                       {group.posts.map(renderPostItem)}
