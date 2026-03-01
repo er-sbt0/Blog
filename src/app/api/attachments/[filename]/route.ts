@@ -1,3 +1,4 @@
+import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { NextResponse } from "next/server";
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
@@ -79,156 +80,120 @@ function isEditableFile(filename: string): boolean {
   return configFiles.includes(baseName);
 }
 
-export async function GET(
-  request: Request,
+export const GET = withApiHandler(async (
+  request,
   props: { params: Promise<{ filename: string }> },
-) {
+) => {
   const params = await props.params;
+  const { filename } = params;
 
-  try {
-    const { filename } = params;
-
-    // Security: prevent directory traversal
-    if (
-      filename.includes("..") || filename.includes("/") ||
-      filename.includes("\\")
-    ) {
-      return NextResponse.json(
-        { error: "Invalid filename" },
-        { status: 400 },
-      );
-    }
-
-    // Construct file path
-    const filePath = path.join(
-      process.cwd(),
-      "public/uploads/attachments",
-      filename,
-    );
-
-    // Check if file exists
-    if (!existsSync(filePath)) {
-      return NextResponse.json(
-        { error: "File not found" },
-        { status: 404 },
-      );
-    }
-
-    // Read file
-    const fileBuffer = await readFile(filePath);
-
-    // Determine content type based on extension
-    const ext = filename.split(".").pop()?.toLowerCase();
-    const contentTypeMap: Record<string, string> = {
-      txt: "text/plain",
-      pdf: "application/pdf",
-      zip: "application/zip",
-      tar: "application/x-tar",
-      gz: "application/gzip",
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      png: "image/png",
-      gif: "image/gif",
-      sh: "application/x-sh",
-      js: "application/javascript",
-      json: "application/json",
-      xml: "application/xml",
-      md: "text/markdown",
-      csv: "text/csv",
-    };
-
-    const contentType = ext
-      ? (contentTypeMap[ext] || "application/octet-stream")
-      : "application/octet-stream";
-
-    // Return file with appropriate headers
-    return new NextResponse(fileBuffer as unknown as BodyInit, {
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="${filename}"`,
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-    });
-  } catch (error) {
-    console.error("Error serving attachment:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+  // Security: prevent directory traversal
+  if (
+    filename.includes("..") || filename.includes("/") ||
+    filename.includes("\\")
+  ) {
+    throw new ApiError(400, "Invalid filename");
   }
-}
 
-export async function PUT(
-  request: Request,
+  // Construct file path
+  const filePath = path.join(
+    process.cwd(),
+    "public/uploads/attachments",
+    filename,
+  );
+
+  // Check if file exists
+  if (!existsSync(filePath)) {
+    throw new ApiError(404, "File not found");
+  }
+
+  // Read file
+  const fileBuffer = await readFile(filePath);
+
+  // Determine content type based on extension
+  const ext = filename.split(".").pop()?.toLowerCase();
+  const contentTypeMap: Record<string, string> = {
+    txt: "text/plain",
+    pdf: "application/pdf",
+    zip: "application/zip",
+    tar: "application/x-tar",
+    gz: "application/gzip",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    sh: "application/x-sh",
+    js: "application/javascript",
+    json: "application/json",
+    xml: "application/xml",
+    md: "text/markdown",
+    csv: "text/csv",
+  };
+
+  const contentType = ext
+    ? (contentTypeMap[ext] || "application/octet-stream")
+    : "application/octet-stream";
+
+  // Return file with appropriate headers
+  return new NextResponse(fileBuffer as unknown as BodyInit, {
+    headers: {
+      "Content-Type": contentType,
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
+  });
+}, { context: "Error serving attachment" });
+
+export const PUT = withApiHandler(async (
+  request,
   props: { params: Promise<{ filename: string }> },
-) {
+) => {
   const params = await props.params;
+  const { filename } = params;
 
-  try {
-    const { filename } = params;
-
-    // Security: prevent directory traversal
-    if (
-      filename.includes("..") || filename.includes("/") ||
-      filename.includes("\\")
-    ) {
-      return NextResponse.json(
-        { error: "Invalid filename" },
-        { status: 400 },
-      );
-    }
-
-    // Check if file is editable
-    if (!isEditableFile(filename)) {
-      return NextResponse.json(
-        { error: "This file type cannot be edited" },
-        { status: 415 },
-      );
-    }
-
-    // Construct file path
-    const filePath = path.join(
-      process.cwd(),
-      "public/uploads/attachments",
-      filename,
-    );
-
-    // Check if file exists
-    if (!existsSync(filePath)) {
-      return NextResponse.json(
-        { error: "File not found" },
-        { status: 404 },
-      );
-    }
-
-    // Parse request body
-    const body = await request.json();
-    const { content } = body;
-
-    if (typeof content !== "string") {
-      return NextResponse.json(
-        { error: "Content must be a string" },
-        { status: 400 },
-      );
-    }
-
-    // Write the file
-    await writeFile(filePath, content, "utf-8");
-
-    // Get updated file size
-    const stats = statSync(filePath);
-    const newSize = stats.size;
-
-    return NextResponse.json({
-      success: true,
-      size: newSize,
-      filename,
-    });
-  } catch (error) {
-    console.error("Error updating attachment:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+  // Security: prevent directory traversal
+  if (
+    filename.includes("..") || filename.includes("/") ||
+    filename.includes("\\")
+  ) {
+    throw new ApiError(400, "Invalid filename");
   }
-}
+
+  // Check if file is editable
+  if (!isEditableFile(filename)) {
+    throw new ApiError(415, "This file type cannot be edited");
+  }
+
+  // Construct file path
+  const filePath = path.join(
+    process.cwd(),
+    "public/uploads/attachments",
+    filename,
+  );
+
+  // Check if file exists
+  if (!existsSync(filePath)) {
+    throw new ApiError(404, "File not found");
+  }
+
+  // Parse request body
+  const body = await request.json();
+  const { content } = body;
+
+  if (typeof content !== "string") {
+    throw new ApiError(400, "Content must be a string");
+  }
+
+  // Write the file
+  await writeFile(filePath, content, "utf-8");
+
+  // Get updated file size
+  const stats = statSync(filePath);
+  const newSize = stats.size;
+
+  return NextResponse.json({
+    success: true,
+    size: newSize,
+    filename,
+  });
+}, { context: "Error updating attachment" });

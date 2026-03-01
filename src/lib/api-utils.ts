@@ -28,11 +28,10 @@ export class ApiError extends Error {
   }
 }
 
-type RouteContext = { params: Promise<Record<string, string>> };
-
-type RouteHandler = (
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RouteHandler<C = any> = (
   request: Request,
-  context: RouteContext,
+  context: C,
 ) => Promise<Response | NextResponse>;
 
 interface HandlerOptions {
@@ -55,10 +54,11 @@ interface HandlerOptions {
  *   return NextResponse.json({ data });
  * });
  */
-export function withApiHandler(
-  handler: RouteHandler,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function withApiHandler<C = any>(
+  handler: RouteHandler<C>,
   options?: HandlerOptions,
-): RouteHandler {
+): RouteHandler<C> {
   return async (request, context) => {
     try {
       return await handler(request, context);

@@ -1,3 +1,4 @@
+import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
@@ -154,86 +155,58 @@ function getMimeType(filename: string): string {
     : "application/octet-stream";
 }
 
-export async function GET(
-  request: Request,
+export const GET = withApiHandler(async (
+  request,
   props: { params: Promise<{ filename: string }> },
-) {
+) => {
   const params = await props.params;
+  const { filename } = params;
 
-  try {
-    const { filename } = params;
-
-    // Security: prevent directory traversal
-    if (
-      filename.includes("..") || filename.includes("/") ||
-      filename.includes("\\")
-    ) {
-      return NextResponse.json(
-        { error: "Invalid filename" },
-        { status: 400 },
-      );
-    }
-
-    // Construct file path
-    const filePath = path.join(
-      process.cwd(),
-      "public/uploads/attachments",
-      filename,
-    );
-
-    // Check if file exists
-    if (!existsSync(filePath)) {
-      return NextResponse.json(
-        { error: "File not found" },
-        { status: 404 },
-      );
-    }
-
-    // Get file stats
-    const stats = statSync(filePath);
-    const fileSize = stats.size;
-
-    // Check file size limit
-    if (fileSize > MAX_CONTENT_SIZE) {
-      return NextResponse.json(
-        {
-          error: "File too large for content preview",
-          size: fileSize,
-          maxSize: MAX_CONTENT_SIZE,
-        },
-        { status: 413 },
-      );
-    }
-
-    // Determine mimetype
-    const mimetype = getMimeType(filename);
-
-    // Check if file is text-based
-    if (!isTextFile(mimetype, filename)) {
-      return NextResponse.json(
-        {
-          error: "Binary files cannot be previewed as text",
-          mimetype,
-        },
-        { status: 415 },
-      );
-    }
-
-    // Read file content
-    const fileBuffer = await readFile(filePath);
-    const content = fileBuffer.toString("utf-8");
-
-    return NextResponse.json({
-      content,
-      encoding: "utf-8",
-      size: fileSize,
-      mimetype,
-    });
-  } catch (error) {
-    console.error("Error reading attachment content:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+  // Security: prevent directory traversal
+  if (
+    filename.includes("..") || filename.includes("/") ||
+    filename.includes("\\")
+  ) {
+    throw new ApiError(400, "Invalid filename");
   }
-}
+
+  // Construct file path
+  const filePath = path.join(
+    process.cwd(),
+    "public/uploads/attachments",
+    filename,
+  );
+
+  // Check if file exists
+  if (!existsSync(filePath)) {
+    throw new ApiError(404, "File not found");
+  }
+
+  // Get file stats
+  const stats = statSync(filePath);
+  const fileSize = stats.size;
+
+  // Check file size limit
+  if (fileSize > MAX_CONTENT_SIZE) {
+    throw new ApiError(413, "File too large for content preview", `File size ${fileSize} exceeds maximum ${MAX_CONTENT_SIZE}`);
+  }
+
+  // Determine mimetype
+  const mimetype = getMimeType(filename);
+
+  // Check if file is text-based
+  if (!isTextFile(mimetype, filename)) {
+    throw new ApiError(415, "Binary files cannot be previewed as text", `MIME type: ${mimetype}`);
+  }
+
+  // Read file content
+  const fileBuffer = await readFile(filePath);
+  const content = fileBuffer.toString("utf-8");
+
+  return NextResponse.json({
+    content,
+    encoding: "utf-8",
+    size: fileSize,
+    mimetype,
+  });
+}, { context: "Error reading attachment content" });

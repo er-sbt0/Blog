@@ -1,4 +1,5 @@
 import { authOptions } from "@/lib/auth";
+import { ApiError, withApiHandler } from "@/lib/api-utils";
 import {
   deleteSeries,
   findSeriesById,
@@ -10,158 +11,108 @@ import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
-// Series response types (temporary until we add them to types.ts)
-interface GetSeriesResponse {
-  data?: any;
-  error?: { title: string; subtitle?: string };
-}
-
-interface PatchSeriesResponse {
-  data?: any;
-  error?: { title: string; subtitle?: string };
-}
-
-interface DeleteSeriesResponse {
-  data?: string;
-  error?: { title: string; subtitle?: string };
-}
-
 interface SeriesUpdateInput {
   title?: string;
   description?: string;
   createdAt?: string;
 }
 
-export async function GET(
-  request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
-  const params = await props.params;
-  const response: GetSeriesResponse = {};
-  try {
+export const GET = withApiHandler(
+  async (request, props: { params: Promise<{ id: string }> }) => {
+    const params = await props.params;
     const series = await findSeriesById(params.id);
     if (!series) {
-      response.error = { title: "Series not found" };
-      return NextResponse.json(response, { status: 404 });
+      throw new ApiError(404, "Series not found");
     }
 
-    response.data = series;
-    return NextResponse.json(response, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    response.error = {
-      title: "Something went wrong",
-      subtitle: "Please try again later",
-    };
-    return NextResponse.json(response, { status: 500 });
-  }
-}
+    return NextResponse.json({ data: series });
+  },
+);
 
-export async function PATCH(
-  request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
-  const params = await props.params;
-  const response: PatchSeriesResponse = {};
-  try {
+export const PATCH = withApiHandler(
+  async (request, props: { params: Promise<{ id: string }> }) => {
+    const params = await props.params;
     const session = await getServerSession(authOptions);
     if (!session) {
-      response.error = {
-        title: "Unauthorized",
-        subtitle: "Please sign in to update the series",
-      };
-      return NextResponse.json(response, { status: 401 });
+      throw new ApiError(
+        401,
+        "Unauthorized",
+        "Please sign in to update the series",
+      );
     }
 
     const { user } = session;
     if (user.disabled) {
-      response.error = {
-        title: "Account Disabled",
-        subtitle: "Account is disabled for violating terms of service",
-      };
-      return NextResponse.json(response, { status: 403 });
+      throw new ApiError(
+        403,
+        "Account Disabled",
+        "Account is disabled for violating terms of service",
+      );
     }
 
     const series = await findSeriesById(params.id);
     if (!series) {
-      response.error = { title: "Series not found" };
-      return NextResponse.json(response, { status: 404 });
+      throw new ApiError(404, "Series not found");
     }
 
     const isAuthor = user.id === series.authorId;
     if (!isAuthor) {
-      response.error = {
-        title: "Unauthorized",
-        subtitle: "You are not authorized to update this series",
-      };
-      return NextResponse.json(response, { status: 403 });
+      throw new ApiError(
+        403,
+        "Unauthorized",
+        "You are not authorized to update this series",
+      );
     }
 
-    const body = await request.json() as SeriesUpdateInput;
+    const body = (await request.json()) as SeriesUpdateInput;
     if (!body) {
-      response.error = {
-        title: "Bad Request",
-        subtitle: "No series data provided",
-      };
-      return NextResponse.json(response, { status: 400 });
+      throw new ApiError(400, "Bad Request", "No series data provided");
     }
 
-    response.data = await updateSeries(params.id, body);
+    const data = await updateSeries(params.id, body);
 
     // Revalidate all relevant paths
     revalidatePath("/series");
     revalidatePath(`/series/${params.id}`);
     revalidatePath("/");
 
-    return NextResponse.json(response, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    response.error = {
-      title: "Something went wrong",
-      subtitle: "Please try again later",
-    };
-    return NextResponse.json(response, { status: 500 });
-  }
-}
+    return NextResponse.json({ data });
+  },
+);
 
-export async function DELETE(
-  request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
-  const params = await props.params;
-  const response: DeleteSeriesResponse = {};
-  try {
+export const DELETE = withApiHandler(
+  async (request, props: { params: Promise<{ id: string }> }) => {
+    const params = await props.params;
     const session = await getServerSession(authOptions);
     if (!session) {
-      response.error = {
-        title: "Unauthorized",
-        subtitle: "Please sign in to delete the series",
-      };
-      return NextResponse.json(response, { status: 401 });
+      throw new ApiError(
+        401,
+        "Unauthorized",
+        "Please sign in to delete the series",
+      );
     }
 
     const { user } = session;
     if (user.disabled) {
-      response.error = {
-        title: "Account Disabled",
-        subtitle: "Account is disabled for violating terms of service",
-      };
-      return NextResponse.json(response, { status: 403 });
+      throw new ApiError(
+        403,
+        "Account Disabled",
+        "Account is disabled for violating terms of service",
+      );
     }
 
     const series = await findSeriesById(params.id);
     if (!series) {
-      response.error = { title: "Series not found" };
-      return NextResponse.json(response, { status: 404 });
+      throw new ApiError(404, "Series not found");
     }
 
     const isAuthor = user.id === series.authorId;
     if (!isAuthor) {
-      response.error = {
-        title: "Unauthorized",
-        subtitle: "You are not authorized to delete this series",
-      };
-      return NextResponse.json(response, { status: 403 });
+      throw new ApiError(
+        403,
+        "Unauthorized",
+        "You are not authorized to delete this series",
+      );
     }
 
     await deleteSeries(params.id);
@@ -171,14 +122,6 @@ export async function DELETE(
     revalidatePath(`/series/${params.id}`);
     revalidatePath("/");
 
-    response.data = params.id;
-    return NextResponse.json(response, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    response.error = {
-      title: "Something went wrong",
-      subtitle: "Please try again later",
-    };
-    return NextResponse.json(response, { status: 500 });
-  }
-}
+    return NextResponse.json({ data: params.id });
+  },
+);
