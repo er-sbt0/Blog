@@ -4,13 +4,14 @@ import { Rnd } from "react-rnd";
 import { EditorState, LexicalEditor } from "lexical";
 import { editorConfig } from "@/editor/config";
 import { useRef, useState } from "react";
-import { Box, IconButton, Paper, TextField } from "@mui/material";
-import { Close } from "@mui/icons-material";
+import { Box, Divider, IconButton, Menu, MenuItem, Paper, Popover, TextField } from "@mui/material";
+import { ContentCopy, ContentCut, Delete, MoreHoriz, Palette } from "@mui/icons-material";
+import { useNotesClipboard } from "./NotesClipboardContext";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { EditorPlugins } from "@/editor/plugins";
 import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin";
-import { NOTE_COLORS, NoteColorKey } from "./noteColors";
+import { NOTE_COLOR_LIST, NOTE_COLORS, NOTE_SWATCH_COLORS, NoteColorKey } from "./noteColors";
 
 interface DraggableNoteProps {
   note: Note;
@@ -28,6 +29,9 @@ export default function DraggableNote({
   const editorRef = useRef<LexicalEditor | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [title, setTitle] = useState(note.title || "");
+  const [moreAnchor, setMoreAnchor] = useState<null | HTMLElement>(null);
+  const [colorAnchor, setColorAnchor] = useState<null | HTMLElement>(null);
+  const { copyNote, cutNote } = useNotesClipboard();
 
   const handleEditorChange = (
     editorState: EditorState,
@@ -72,6 +76,26 @@ export default function DraggableNote({
     const newTitle = event.target.value;
     setTitle(newTitle);
     onUpdate(note.id, { title: newTitle });
+  };
+
+  const handleCut = () => {
+    cutNote(note, onDelete);
+    setMoreAnchor(null);
+  };
+
+  const handleCopy = () => {
+    copyNote(note);
+    setMoreAnchor(null);
+  };
+
+  const handleDelete = () => {
+    onDelete(note.id);
+    setMoreAnchor(null);
+  };
+
+  const handleColorChange = (color: NoteColorKey) => {
+    onUpdate(note.id, { color });
+    setColorAnchor(null);
   };
 
   return (
@@ -168,20 +192,35 @@ export default function DraggableNote({
             size="small"
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(note.id);
+              setColorAnchor(e.currentTarget);
             }}
+            onMouseDown={(e) => e.stopPropagation()}
             sx={{
               padding: "3px",
-              opacity: 0.5,
-              transition: "all 0.2s ease",
-              "&:hover": {
-                opacity: 1,
-                backgroundColor: "rgba(244, 67, 54, 0.08)",
-                color: "error.main",
-              },
+              flexShrink: 0,
+              opacity: 0.45,
+              transition: "opacity 0.2s ease",
+              "&:hover": { opacity: 1 },
             }}
           >
-            <Close sx={{ fontSize: "16px" }} />
+            <Palette sx={{ fontSize: "14px" }} />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              setMoreAnchor(e.currentTarget);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            sx={{
+              padding: "3px",
+              flexShrink: 0,
+              opacity: 0.45,
+              transition: "opacity 0.2s ease",
+              "&:hover": { opacity: 1 },
+            }}
+          >
+            <MoreHoriz sx={{ fontSize: "14px" }} />
           </IconButton>
         </Box>
 
@@ -219,6 +258,67 @@ export default function DraggableNote({
             <EditorRefPlugin editorRef={editorRef} />
           </LexicalComposer>
         </Box>
+
+        {/* Color picker */}
+        <Popover
+          open={Boolean(colorAnchor)}
+          anchorEl={colorAnchor}
+          onClose={() => setColorAnchor(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          transformOrigin={{ vertical: "top", horizontal: "right" }}
+          onClick={(e) => e.stopPropagation()}
+          slotProps={{ paper: { elevation: 3, sx: { p: 1 } } }}
+        >
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 22px)",
+              gap: 0.75,
+            }}
+          >
+            {NOTE_COLOR_LIST.map(({ value }) => (
+              <Box
+                key={value}
+                onClick={() => handleColorChange(value)}
+                sx={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: "50%",
+                  background: NOTE_SWATCH_COLORS[value],
+                  border: note.color === value
+                    ? "2px solid rgba(25, 118, 210, 0.85)"
+                    : "2px solid rgba(0,0,0,0.12)",
+                  cursor: "pointer",
+                  transition: "transform 0.1s ease",
+                  "&:hover": { transform: "scale(1.2)" },
+                }}
+              />
+            ))}
+          </Box>
+        </Popover>
+
+        {/* Note actions menu */}
+        <Menu
+          anchorEl={moreAnchor}
+          open={Boolean(moreAnchor)}
+          onClose={() => setMoreAnchor(null)}
+          onClick={(e) => e.stopPropagation()}
+          slotProps={{ paper: { elevation: 2 } }}
+        >
+          <MenuItem onClick={handleCut} dense>
+            <ContentCut sx={{ fontSize: 15, mr: 1 }} />
+            Cut
+          </MenuItem>
+          <MenuItem onClick={handleCopy} dense>
+            <ContentCopy sx={{ fontSize: 15, mr: 1 }} />
+            Copy
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleDelete} dense sx={{ color: "error.main" }}>
+            <Delete sx={{ fontSize: 15, mr: 1 }} />
+            Delete
+          </MenuItem>
+        </Menu>
       </Paper>
     </Rnd>
   );

@@ -4,6 +4,7 @@ import BoardSelector from "@/components/NotesCanvas/BoardSelector";
 import { useNotesBoards } from "@/hooks/useNotesBoards";
 import { Box } from "@mui/material";
 import { StickyNote2 } from "@mui/icons-material";
+import { NotesClipboardProvider } from "@/components/NotesCanvas/NotesClipboardContext";
 
 export default function NotesPage() {
   const {
@@ -16,6 +17,7 @@ export default function NotesPage() {
   } = useNotesBoards();
 
   return (
+    <NotesClipboardProvider>
     <Box
       sx={{
         display: "flex",
@@ -54,5 +56,6 @@ export default function NotesPage() {
         <NotesCanvas canvasId={activeCanvasId} />
       </Box>
     </Box>
+    </NotesClipboardProvider>
   );
 }

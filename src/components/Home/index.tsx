@@ -18,6 +18,7 @@ import ErrorBoundaryCard from "./ErrorBoundaryCard";
 import { StickyNote2 } from "@mui/icons-material";
 import { useNotesBoards } from "@/hooks/useNotesBoards";
 import BoardSelector from "../NotesCanvas/BoardSelector";
+import { NotesClipboardProvider } from "../NotesCanvas/NotesClipboardContext";
 
 type ViewType = "notes" | "kanban" | "readme" | "posts" | null;
 
@@ -109,6 +110,7 @@ const Home: React.FC<{
         <Grid container spacing={2}>
           {/* Notes Canvas - Full width at top */}
           <Grid size={{ xs: 12 }}>
+            <NotesClipboardProvider>
             <ErrorBoundaryCard cardName="Notes">
               {/* Board selector row */}
               <Box
@@ -169,9 +171,8 @@ const Home: React.FC<{
                 />
               </Box>
             </ErrorBoundaryCard>
+            </NotesClipboardProvider>
           </Grid>
-
-          {/* Bottom row: Board, README, Recent Posts */}
           <Grid size={{ xs: 12, md: 6, lg: 4 }}>
             <ErrorBoundaryCard cardName="Board">
               <KanbanPreviewCard

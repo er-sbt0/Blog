@@ -15,6 +15,18 @@ export const NOTE_COLORS = {
 
 export type NoteColorKey = keyof typeof NOTE_COLORS;
 
+// Solid fill colors for swatches in the color picker (end colors of each gradient)
+export const NOTE_SWATCH_COLORS: Record<NoteColorKey, string> = {
+  yellow: "#FFF59D",
+  pink: "#F8BBD0",
+  blue: "#BBDEFB",
+  green: "#C8E6C9",
+  orange: "#FFE0B2",
+  purple: "#E1BEE7",
+  mint: "#B2DFDB",
+  peach: "#FFCDD2",
+};
+
 export const NOTE_COLOR_LIST = [
   { name: "Yellow", value: "yellow" as NoteColorKey },
   { name: "Pink", value: "pink" as NoteColorKey },
