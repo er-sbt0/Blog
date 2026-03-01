@@ -1,643 +1,105 @@
 "use client";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
+import { usePathname } from "next/navigation";
 import RouterLink from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import { actions, type RootState, useDispatch, useSelector } from "@/store";
 import {
   Avatar,
   Box,
-  Collapse,
   Divider,
   Drawer,
-  IconButton,
-  InputAdornment,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Menu,
-  MenuItem,
-  TextField,
   Tooltip,
-  Typography,
-  useMediaQuery,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import {
-  Add,
-  Article,
-  ChevronLeft,
-  ChevronRight,
-  Clear,
-  CloudUpload,
-  Code,
-  Create,
-  Dashboard,
-  Delete,
-  DriveFileRenameOutline,
-  Edit,
-  EditNote,
-  ExpandLess,
-  ExpandMore,
-  Home,
-  LibraryBooks,
-  Remove,
-  Search,
-  StickyNote2,
-} from "@mui/icons-material";
+import { Home, LibraryBooks, StickyNote2 } from "@mui/icons-material";
 import { styles } from "./styles";
-import type { DocumentStatus, Series, User } from "@/types";
+import type { UserDocument } from "@/types";
 import { useSidebarState } from "./SideBar/hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./SideBar/hooks/useKeyboardShortcuts";
 import { useSidebarWidth } from "./SideBar/SidebarWidthContext";
-import type { UserDocument } from "@/types";
+import { useSidebarFontSize } from "./SideBar/hooks/useSidebarFontSize";
+import { useSidebarActions } from "./SideBar/hooks/useSidebarActions";
+import { SidebarHeader } from "./SideBar/SidebarHeader";
+import { ActivePostsSection } from "./SideBar/ActivePostsSection";
+import { PostContextMenu } from "./SideBar/PostContextMenu";
+import { SafeNavigationLink } from "./SideBar/SafeNavigationLink";
 import {
   buildSeriesMap,
   groupPostsBySeries,
-  type SeriesGroupItem,
 } from "@/components/PostsList/utils/seriesGrouping";
 
-// Accessibility and styling constants
-const SIDEBAR_CONSTANTS = {
-  DOMAIN_INDICATOR_SIZE: 8,
-  DOMAIN_AVATAR_SIZE: 24,
-  MIN_HEIGHT: {
-    NAVIGATION_ITEM: 42,
-    DOMAIN_ITEM: 36,
-    USER_ITEM: 48,
-  },
-  COLORS: {
-    DOMAIN_INDICATOR_DEFAULT: "#555",
-  },
-} as const;
-
-// Types
-interface NavigationItem {
-  text: string;
-  icon: React.ReactNode;
-  path: string;
-  isDomain?: boolean;
-  slug?: string;
-  id?: string;
-}
-
-// Helper functions - simplified for blog structure
-const isEditMode = (pathname: string): boolean => pathname.startsWith("/edit/");
-// Remove domain-related helpers as we don't need them for blog structure
+const NAV_ITEM_MIN_HEIGHT = 42;
+const USER_ITEM_MIN_HEIGHT = 48;
 
 const SideBar: React.FC = () => {
   const dispatch = useDispatch();
-  const router = useRouter();
   const pathname = usePathname();
   const theme = useTheme();
 
-  // Custom hooks for state management
   const { open, toggleSidebar, isMobile } = useSidebarState();
-  const { width: sidebarWidth, isResizing, startResize, getEffectiveWidth } =
-    useSidebarWidth();
+  const { isResizing, startResize, getEffectiveWidth } = useSidebarWidth();
+  const { sidebarFontSize, increaseFontSize, decreaseFontSize, resetFontSize } =
+    useSidebarFontSize();
+  const {
+    contextMenu,
+    handleCloseContextMenu,
+    handleEditPost,
+    handleRenameFromMenu,
+    handleDeletePost,
+    ...postItemActions
+  } = useSidebarActions();
 
-  // Active posts search state
-  const [activePostsSearch, setActivePostsSearch] = useState("");
+  useKeyboardShortcuts({ onToggleSidebar: toggleSidebar, enabled: true });
 
-  // Context menu state
-  const [contextMenu, setContextMenu] = useState<
-    {
-      mouseX: number;
-      mouseY: number;
-      postId: string;
-    } | null
-  >(null);
-
-  // Rename state
-  const [renamingPostId, setRenamingPostId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const renameInputRef = useRef<HTMLInputElement>(null);
-
-  // Track collapsed series in sidebar (series NOT in this set are expanded)
-  // This way new series default to expanded automatically
-  const [collapsedSeries, setCollapsedSeries] = useState<Set<string>>(() => {
-    // Try to load saved state from localStorage
-    if (typeof window !== "undefined") {
-      const savedState = localStorage.getItem("sidebarSeriesCollapsedState");
-
-      if (savedState) {
-        try {
-          const parsed: string[] = JSON.parse(savedState);
-          const savedSet = new Set<string>(parsed);
-          return savedSet;
-        } catch (e) {
-          console.error("Failed to parse sidebar series collapsed state:", e);
-        }
-      }
-    }
-    // Default: empty set (no series collapsed = all expanded by default)
-    return new Set();
-  });
-
-  // Sidebar font size control (in pixels, persisted to localStorage)
-  const [sidebarFontSize, setSidebarFontSize] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("sidebarFontSize");
-      return saved ? parseInt(saved, 10) : 16;
-    }
-    return 16;
-  });
-
-  // Save to localStorage when font size changes
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("sidebarFontSize", sidebarFontSize.toString());
-    }
-  }, [sidebarFontSize]);
-
-  // Handlers for font size adjustment
-  const increaseFontSize = useCallback(() => {
-    setSidebarFontSize((prev) => Math.min(prev + 1, 24)); // Max 24px
-  }, []);
-
-  const decreaseFontSize = useCallback(() => {
-    setSidebarFontSize((prev) => Math.max(prev - 1, 10)); // Min 10px
-  }, []);
-
-  const resetFontSize = useCallback(() => {
-    setSidebarFontSize(16); // Reset to default
-  }, []);
-
-  // Get the effective width based on open/closed state
-  const getWidth = (isOpen: boolean) => getEffectiveWidth(isOpen);
-
-  // Keyboard shortcuts for accessibility
-  const { shortcutHint } = useKeyboardShortcuts({
-    onToggleSidebar: toggleSidebar,
-    enabled: true,
-  });
-
-  // Remove drag and drop handlers for blog structure
-
-  // Redux selectors with proper typing
   const initialized = useSelector((state: RootState) => state.ui.initialized);
   const user = useSelector((state: RootState) => state.user);
   const documents = useSelector((state: RootState) => state.documents);
   const seriesList = useSelector((state: RootState) => state.series);
 
-  // Memoized computed values
-  const isInEditMode = useMemo(() => isEditMode(pathname), [pathname]);
-  // Remove file browser for blog structure
-  const showFileBrowser = false;
+  const getWidth = (isOpen: boolean) => getEffectiveWidth(isOpen);
 
-  // Get active documents (only show for authenticated users)
   const activeDocuments = useMemo((): UserDocument[] => {
     if (!user || !documents) return [];
-
     return documents.filter((doc) => {
       const cloudDocument = doc.cloud;
       const localDocument = doc.local;
-
-      // For cloud documents, check author and status
       if (cloudDocument) {
-        return cloudDocument.status === "ACTIVE" &&
-          cloudDocument.author.id === user.id;
+        return (
+          cloudDocument.status === "ACTIVE" &&
+          cloudDocument.author.id === user.id
+        );
       }
-
-      // For local documents, assume they belong to the current user and check status
-      if (localDocument) {
-        return localDocument.status === "ACTIVE";
-      }
-
+      if (localDocument) return localDocument.status === "ACTIVE";
       return false;
     });
   }, [user, documents]);
 
-  // Build series map for grouping
-  const seriesMap = useMemo(() => buildSeriesMap(seriesList || []), [
-    seriesList,
-  ]);
-
-  // Group active documents by series
-  const groupedActivePosts = useMemo((): SeriesGroupItem[] => {
-    return groupPostsBySeries(activeDocuments, seriesMap);
-  }, [activeDocuments, seriesMap]);
-
-  // Filter grouped posts based on search query
-  const filteredGroupedPosts = useMemo((): SeriesGroupItem[] => {
-    if (!activePostsSearch.trim()) return groupedActivePosts;
-
-    const searchLower = activePostsSearch.toLowerCase();
-
-    return groupedActivePosts
-      .map((group) => {
-        if (group.type === "series") {
-          // For series, check if series title matches or filter posts
-          const seriesMatches = group.series?.title.toLowerCase().includes(
-            searchLower,
-          );
-          if (seriesMatches) return group; // Return whole series if title matches
-
-          // Otherwise filter posts within series
-          const filteredPosts = group.posts.filter((post) => {
-            const doc = post.cloud || post.local;
-            return doc?.name?.toLowerCase().includes(searchLower);
-          });
-
-          if (filteredPosts.length === 0) return null;
-          return { ...group, posts: filteredPosts };
-        } else {
-          // For standalone posts, filter by name
-          const doc = group.posts[0]?.cloud || group.posts[0]?.local;
-          if (doc?.name?.toLowerCase().includes(searchLower)) return group;
-          return null;
-        }
-      })
-      .filter((group): group is SeriesGroupItem => group !== null);
-  }, [groupedActivePosts, activePostsSearch]);
-
-  // Show search bar when there are 5 or more posts
-  const showActivePostsSearch = activeDocuments.length >= 5;
-
-  // No useEffect needed! New series automatically default to expanded
-  // since they're not in the collapsedSeries set
-
-  // Toggle series expanded/collapsed state
-  const toggleSeriesExpanded = useCallback((seriesId: string) => {
-    setCollapsedSeries((prev) => {
-      const next = new Set(prev);
-      if (next.has(seriesId)) {
-        next.delete(seriesId);
-      } else {
-        next.add(seriesId);
-      }
-
-      const stateArray = [...next];
-
-      // Save to localStorage
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "sidebarSeriesCollapsedState",
-          JSON.stringify(stateArray),
-        );
-      }
-
-      return next;
-    });
-  }, []);
-
-  // Context menu handlers
-  const handleContextMenu = useCallback(
-    (event: React.MouseEvent, postId: string) => {
-      event.preventDefault();
-      setContextMenu(
-        contextMenu === null
-          ? {
-            mouseX: event.clientX + 2,
-            mouseY: event.clientY - 6,
-            postId,
-          }
-          : null,
-      );
-    },
-    [contextMenu],
+  const seriesMap = useMemo(
+    () => buildSeriesMap(seriesList || []),
+    [seriesList],
   );
 
-  const handleCloseContextMenu = useCallback(() => {
-    setContextMenu(null);
-  }, []);
-
-  const handleEditPost = useCallback(
-    (postId: string) => {
-      handleCloseContextMenu();
-      router.push(`/edit/${postId}`);
-    },
-    [router, handleCloseContextMenu],
+  const groupedActivePosts = useMemo(
+    () => groupPostsBySeries(activeDocuments, seriesMap),
+    [activeDocuments, seriesMap],
   );
 
-  const handleRenameFromMenu = useCallback(
-    (postId: string) => {
-      handleCloseContextMenu();
-      const doc = documents?.find((d) => d.id === postId);
-      if (doc) {
-        const docName = (doc.cloud || doc.local)?.name || "Untitled";
-        setRenamingPostId(postId);
-        setRenameValue(docName);
-      }
-    },
-    [handleCloseContextMenu, documents],
-  );
-
-  const handleDeletePost = useCallback(
-    async (postId: string) => {
-      handleCloseContextMenu();
-      if (confirm("Are you sure you want to delete this post?")) {
-        // Find the document to determine if it's cloud or local
-        const doc = documents?.find((d) => d.id === postId);
-        if (doc) {
-          if (doc.cloud) {
-            const result = await dispatch(actions.deleteCloudDocument(postId));
-            if (result.type === actions.deleteCloudDocument.fulfilled.type) {
-              router.refresh(); // Trigger server re-fetch to show updated list
-            }
-          } else if (doc.local) {
-            dispatch(actions.deleteLocalDocument(postId));
-          }
-        }
-      }
-    },
-    [dispatch, handleCloseContextMenu, documents, router],
-  );
-
-  // Rename handlers
-  const handleDoubleClick = useCallback(
-    (event: React.MouseEvent, postId: string, currentName: string) => {
-      event.preventDefault();
-      setRenamingPostId(postId);
-      setRenameValue(currentName);
-    },
+  const navigationItems = useMemo(
+    () => [
+      { text: "Home", icon: <Home />, path: "/" },
+      { text: "Posts", icon: <LibraryBooks />, path: "/posts" },
+      { text: "Notes", icon: <StickyNote2 />, path: "/notes" },
+    ],
     [],
   );
 
-  const handleRenameBlur = useCallback(() => {
-    if (renamingPostId && renameValue.trim()) {
-      // Find the document to determine if it's cloud or local
-      const doc = documents?.find((d) => d.id === renamingPostId);
-      if (doc) {
-        if (doc.cloud) {
-          dispatch(
-            actions.updateCloudDocument({
-              id: renamingPostId,
-              partial: { name: renameValue.trim() },
-            }),
-          );
-        } else if (doc.local) {
-          dispatch(
-            actions.updateLocalDocument({
-              id: renamingPostId,
-              partial: { name: renameValue.trim() },
-            }),
-          );
-        }
-      }
-    }
-    setRenamingPostId(null);
-    setRenameValue("");
-  }, [dispatch, renamingPostId, renameValue, documents]);
-
-  const handleRenameKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        handleRenameBlur();
-      } else if (event.key === "Escape") {
-        event.preventDefault();
-        setRenamingPostId(null);
-        setRenameValue("");
-      }
-    },
-    [handleRenameBlur],
-  );
-
-  // Auto-focus rename input
   useEffect(() => {
-    if (renamingPostId && renameInputRef.current) {
-      renameInputRef.current.focus();
-      renameInputRef.current.select();
-    }
-  }, [renamingPostId]);
-
-  // Navigation items for blog structure
-  const navigationItems = useMemo((): NavigationItem[] => {
-    const items = [
-      { text: "Home", icon: <Home />, path: "/" },
-      // { text: "Browse Posts", icon: <LibraryBooks />, path: "/browse" },
-      { text: "Posts", icon: <LibraryBooks />, path: "/posts" },
-      { text: "Notes", icon: <StickyNote2 />, path: "/notes" },
-    ];
-
-    // Add user-specific navigation items if authenticated
-    if (user) {
-      items.push(
-        // { text: "Dashboard", icon: <Dashboard />, path: "/dashboard" },
-        // { text: "New Post", icon: <Create />, path: "/new" },
-      );
-    }
-
-    return items;
-  }, [user]);
-
-  // Remove domain-related items for blog structure
-  const domainItems = useMemo((): NavigationItem[] => [], []);
-
-  // Callbacks - keep only the navigation handler
-  const handleNavigationClick = useCallback((targetUrl: string) => {
-    if (isInEditMode) {
-      // Trigger autosave before navigation
-      dispatch({
-        type: "TRIGGER_AUTOSAVE_BEFORE_NAVIGATION",
-        payload: { targetUrl },
-      });
-
-      setTimeout(() => {
-        router.push(targetUrl);
-      }, 100);
-    }
-  }, [dispatch, router, isInEditMode]);
-
-  // Custom Link component with proper typing
-  const SafeNavigationLink = useCallback(({
-    href,
-    children,
-    onClick,
-    ...props
-  }: {
-    href: string;
-    children: React.ReactNode;
-    onClick?: () => void;
-    [key: string]: any;
-  }) => {
-    const handleClick = (e: React.MouseEvent) => {
-      if (isInEditMode) {
-        e.preventDefault();
-        handleNavigationClick(href);
-      }
-      onClick?.();
-    };
-
-    return (
-      <RouterLink href={href} onClick={handleClick} {...props}>
-        {children}
-      </RouterLink>
-    );
-  }, [isInEditMode, handleNavigationClick]);
-
-  // Render function for post items to eliminate duplication
-  const renderPostItem = useCallback(
-    (post: UserDocument, inSeries: boolean) => {
-      const doc = post.cloud || post.local;
-      const docName = doc?.name || "Untitled";
-      const isViewing = pathname === `/view/${post.id}`;
-      const isEditing = pathname === `/edit/${post.id}`;
-      const isSelected = isViewing || isEditing;
-      const isRenaming = renamingPostId === post.id;
-      const isDirty = Boolean(post.local) && Boolean(post.cloud) &&
-        post.local!.head !== post.cloud!.head;
-
-      const handleSyncToCloud = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dispatch(
-          actions.updateCloudDocument({
-            id: post.id,
-            partial: {
-              head: post.local!.head,
-              updatedAt: post.local!.updatedAt,
-              parentId: post.local!.parentId,
-            },
-          }),
-        );
-      };
-
-      return (
-        <ListItem
-          key={post.id}
-          disablePadding
-          sx={{
-            display: "block",
-            "& .sync-btn": { opacity: 0, transition: "opacity 0.15s" },
-            "&:hover .sync-btn": { opacity: 1 },
-          }}
-        >
-          <Tooltip title={open ? "" : docName} placement="right">
-            <ListItemButton
-              component={isRenaming ? "div" : SafeNavigationLink}
-              href={isRenaming ? undefined : `/view/${post.id}`}
-              selected={isSelected}
-              onContextMenu={(e) => handleContextMenu(e, post.id)}
-              onDoubleClick={(e) => {
-                if (open) {
-                  handleDoubleClick(e, post.id, docName);
-                }
-              }}
-              sx={{
-                minHeight: inSeries ? 30 : 32,
-                justifyContent: open ? "initial" : "center",
-                ...(inSeries ? { pl: 2, pr: 2.5 } : { px: open ? 3 : 2.5 }),
-                py: inSeries ? 0.25 : 0.5,
-                "&.Mui-selected": {
-                  bgcolor: "action.selected",
-                  "&:hover": {
-                    bgcolor: inSeries
-                      ? "rgba(0, 0, 0, 0.12)"
-                      : "rgba(0, 0, 0, 0.15)",
-                  },
-                },
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  minWidth: 0,
-                  mr: open ? 1.5 : "auto",
-                  justifyContent: "center",
-                  position: "relative",
-                }}
-              >
-                <Article
-                  sx={{
-                    fontSize: "0.85em",
-                    color: "text.secondary",
-                  }}
-                />
-                {post.local && post.cloud &&
-                  post.local.head !== post.cloud.head && (
-                  <Box
-                    component="span"
-                    sx={{
-                      position: "absolute",
-                      top: -1,
-                      right: -3,
-                      width: 5,
-                      height: 5,
-                      borderRadius: "50%",
-                      bgcolor: "primary.main",
-                    }}
-                  />
-                )}
-              </ListItemIcon>
-              {open &&
-                (isRenaming
-                  ? (
-                    <TextField
-                      inputRef={renameInputRef}
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onBlur={handleRenameBlur}
-                      onKeyDown={handleRenameKeyDown}
-                      size="small"
-                      variant="standard"
-                      fullWidth
-                      sx={{
-                        "& .MuiInput-input": {
-                          fontSize: "0.78em",
-                          fontWeight: isSelected ? 600 : 400,
-                          py: 0,
-                        },
-                      }}
-                    />
-                  )
-                  : (
-                    <ListItemText
-                      primary={docName}
-                      primaryTypographyProps={{
-                        fontSize: "0.78em",
-                        sx: {
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          fontWeight: isSelected ? 600 : 400,
-                        },
-                      }}
-                    />
-                  ))}
-              {open && isDirty && (
-                <Tooltip title="Save to cloud" placement="right">
-                  <IconButton
-                    className="sync-btn"
-                    size="small"
-                    onClick={handleSyncToCloud}
-                    sx={{
-                      p: 0.25,
-                      ml: 0.5,
-                      color: "primary.main",
-                      "&:hover": { bgcolor: "action.hover" },
-                    }}
-                  >
-                    <CloudUpload sx={{ fontSize: 14 }} />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </ListItemButton>
-          </Tooltip>
-        </ListItem>
-      );
-    },
-    [
-      pathname,
-      open,
-      dispatch,
-      renamingPostId,
-      handleContextMenu,
-      handleDoubleClick,
-      SafeNavigationLink,
-      renameValue,
-      handleRenameBlur,
-      handleRenameKeyDown,
-    ],
-  );
-
-  // Effects - Keep only the initialization effect
-  useEffect(() => {
-    if (!initialized) {
-      dispatch(actions.load());
-    }
+    if (!initialized) dispatch(actions.load());
   }, [dispatch, initialized]);
 
   return (
@@ -666,137 +128,26 @@ const SideBar: React.FC = () => {
         },
       }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          padding: theme.spacing(1, 1),
-          justifyContent: open ? "space-between" : "center",
-          flexShrink: 0,
-          minHeight: 64,
-        }}
-      >
-        {open && (
-          <Box
-            component={RouterLink}
-            href="/"
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              textDecoration: "none",
-              color: "inherit",
-            }}
-          >
-            <Image
-              src="/logo.svg"
-              alt="Editor Logo"
-              width={32}
-              height={32}
-            />
-            <Box
-              sx={{
-                ml: 1,
-                fontWeight: "bold",
-                fontSize: "1.2em",
-              }}
-            >
-              Blog
-            </Box>
-          </Box>
-        )}
-        {!open && (
-          <Tooltip title="Blog">
-            <Box
-              component={RouterLink}
-              href="/"
-              sx={{ display: "flex", justifyContent: "center" }}
-            >
-              <Image
-                src="/logo.svg"
-                alt="Blog Logo"
-                width={32}
-                height={32}
-              />
-            </Box>
-          </Tooltip>
-        )}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          {open && (
-            <>
-              <Tooltip title="Decrease font size">
-                <IconButton
-                  size="small"
-                  onClick={decreaseFontSize}
-                  disabled={sidebarFontSize <= 10}
-                  aria-label="Decrease sidebar font size"
-                >
-                  <Remove fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip
-                title={`Font size: ${sidebarFontSize}px (click to reset)`}
-              >
-                <IconButton
-                  size="small"
-                  onClick={resetFontSize}
-                  aria-label="Reset sidebar font size"
-                  sx={{
-                    fontSize: "0.7em",
-                    minWidth: "32px",
-                    fontWeight: sidebarFontSize !== 16 ? "bold" : "normal",
-                  }}
-                >
-                  {sidebarFontSize}
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Increase font size">
-                <IconButton
-                  size="small"
-                  onClick={increaseFontSize}
-                  disabled={sidebarFontSize >= 24}
-                  aria-label="Increase sidebar font size"
-                >
-                  <Add fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </>
-          )}
-          <Tooltip
-            title={`${open ? "Collapse" : "Expand"} sidebar (Ctrl+Alt+S)`}
-          >
-            <IconButton
-              onClick={toggleSidebar}
-              aria-label={`${open ? "Collapse" : "Expand"} sidebar`}
-            >
-              {open ? <ChevronLeft /> : <ChevronRight />}
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
+      <SidebarHeader
+        open={open}
+        sidebarFontSize={sidebarFontSize}
+        toggleSidebar={toggleSidebar}
+        increaseFontSize={increaseFontSize}
+        decreaseFontSize={decreaseFontSize}
+        resetFontSize={resetFontSize}
+      />
 
       <Divider sx={styles.divider} />
 
-      {/* Top section - Main navigation */}
       <Box
         role="navigation"
         aria-label="Main navigation"
-        sx={{
-          ...styles.sectionBox,
-          flexShrink: 0,
-          pb: 0,
-        }}
+        sx={{ ...styles.sectionBox, flexShrink: 0, pb: 0 }}
       >
         <List>
           {navigationItems.map((item) => (
-            <ListItem
-              key={item.text}
-              disablePadding
-              sx={{ display: "block" }}
-            >
-              <Tooltip
-                title={open ? "" : item.text}
-                placement="right"
-              >
+            <ListItem key={item.text} disablePadding sx={{ display: "block" }}>
+              <Tooltip title={open ? "" : item.text} placement="right">
                 <ListItemButton
                   component={SafeNavigationLink}
                   href={item.path}
@@ -805,14 +156,12 @@ const SideBar: React.FC = () => {
                       pathname.startsWith(`${item.path}/`),
                   )}
                   sx={{
-                    minHeight: SIDEBAR_CONSTANTS.MIN_HEIGHT.NAVIGATION_ITEM,
+                    minHeight: NAV_ITEM_MIN_HEIGHT,
                     justifyContent: open ? "initial" : "center",
                     px: 2.5,
                     "&.Mui-selected": {
                       bgcolor: "action.selected",
-                      "&:hover": {
-                        bgcolor: "rgba(0, 0, 0, 0.15)",
-                      },
+                      "&:hover": { bgcolor: "rgba(0, 0, 0, 0.15)" },
                     },
                   }}
                 >
@@ -821,9 +170,7 @@ const SideBar: React.FC = () => {
                       minWidth: 0,
                       mr: open ? 2 : "auto",
                       justifyContent: "center",
-                      "& .MuiSvgIcon-root": {
-                        fontSize: "1.2em",
-                      },
+                      "& .MuiSvgIcon-root": { fontSize: "1.2em" },
                     }}
                   >
                     {item.icon}
@@ -831,9 +178,7 @@ const SideBar: React.FC = () => {
                   {open && (
                     <ListItemText
                       primary={item.text}
-                      primaryTypographyProps={{
-                        fontSize: "0.9em",
-                      }}
+                      primaryTypographyProps={{ fontSize: "0.9em" }}
                     />
                   )}
                 </ListItemButton>
@@ -845,231 +190,22 @@ const SideBar: React.FC = () => {
 
       <Divider sx={styles.divider} />
 
-      {/* Middle section - Active Documents */}
       {user && activeDocuments.length > 0 && (
-        <Box
-          sx={{
-            ...styles.sectionBox,
-            flex: "1 1 auto",
-            minHeight: 0,
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          {open && (
-            <Box
-              sx={{
-                px: 2.5,
-                py: 1,
-                display: "flex",
-                flexDirection: "column",
-                gap: 1,
-              }}
-            >
-              <Box
-                sx={{
-                  fontSize: "0.75em",
-                  fontWeight: 600,
-                  color: "text.secondary",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                Active Posts
-              </Box>
-              {showActivePostsSearch && (
-                <TextField
-                  size="small"
-                  placeholder="Search posts..."
-                  value={activePostsSearch}
-                  onChange={(e) => setActivePostsSearch(e.target.value)}
-                  variant="standard"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search
-                          sx={{ fontSize: "0.9em", color: "text.disabled" }}
-                        />
-                      </InputAdornment>
-                    ),
-                    endAdornment: activePostsSearch && (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          onClick={() => setActivePostsSearch("")}
-                          edge="end"
-                          sx={{
-                            padding: 0.25,
-                            opacity: 0.6,
-                            "&:hover": { opacity: 1 },
-                          }}
-                        >
-                          <Clear sx={{ fontSize: "0.9em" }} />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                    disableUnderline: false,
-                  }}
-                  sx={{
-                    width: "100%",
-                    "& .MuiInput-root": {
-                      fontSize: "0.75em",
-                      "&:before": {
-                        borderBottomColor: "divider",
-                      },
-                      "&:hover:not(.Mui-disabled):before": {
-                        borderBottomColor: "text.secondary",
-                      },
-                      "&:after": {
-                        borderBottomColor: "primary.main",
-                      },
-                    },
-                    "& .MuiInput-input": {
-                      padding: "4px 0 4px 0",
-                      "&::placeholder": {
-                        fontSize: "0.75em",
-                        opacity: 0.5,
-                      },
-                    },
-                  }}
-                />
-              )}
-            </Box>
-          )}
-          <Box sx={{ overflow: "auto", flex: "1 1 auto" }}>
-            <List dense>
-              {filteredGroupedPosts.map((group, groupIndex) => {
-                if (group.type === "series" && group.series) {
-                  const isExpanded = !collapsedSeries.has(group.series.id);
-                  // Render series with minimal left border accent
-                  return (
-                    <Box
-                      key={`series-${group.series.id}`}
-                      sx={{
-                        mt: groupIndex > 0 ? 0.5 : 0,
-                        mb: 0.5,
-                      }}
-                    >
-                      {/* Series Header - Collapsible, minimal style */}
-                      <ListItem disablePadding sx={{ display: "block" }}>
-                        <Tooltip
-                          title={open ? "" : group.series.title}
-                          placement="right"
-                        >
-                          <ListItemButton
-                            component={SafeNavigationLink}
-                            href={`/series/${group.series.id}`}
-                            sx={{
-                              minHeight: 28,
-                              justifyContent: open ? "initial" : "center",
-                              px: 2.5,
-                              py: 0.25,
-                              "&:hover": {
-                                bgcolor: (theme) =>
-                                  theme.palette.mode === "dark"
-                                    ? "rgba(255, 255, 255, 0.05)"
-                                    : "rgba(0, 0, 0, 0.04)",
-                              },
-                            }}
-                          >
-                            <ListItemIcon
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                toggleSeriesExpanded(group.series!.id);
-                              }}
-                              sx={{
-                                minWidth: 0,
-                                mr: open ? 1 : "auto",
-                                justifyContent: "center",
-                                cursor: "pointer",
-                              }}
-                            >
-                              {isExpanded
-                                ? (
-                                  <ExpandLess
-                                    sx={{
-                                      fontSize: "0.85em",
-                                      color: "text.secondary",
-                                    }}
-                                  />
-                                )
-                                : (
-                                  <ExpandMore
-                                    sx={{
-                                      fontSize: "0.85em",
-                                      color: "text.secondary",
-                                    }}
-                                  />
-                                )}
-                            </ListItemIcon>
-                            {open && (
-                              <ListItemText
-                                primary={`${group.series.title} (${group.posts.length})`}
-                                primaryTypographyProps={{
-                                  fontSize: "0.7em",
-                                  fontWeight: 500,
-                                  color: "text.secondary",
-                                  sx: {
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                  },
-                                }}
-                              />
-                            )}
-                          </ListItemButton>
-                        </Tooltip>
-                      </ListItem>
-                      {/* Series Posts - with left border accent */}
-                      <Collapse in={isExpanded} timeout="auto">
-                        <Box
-                          sx={{
-                            ml: open ? 2.5 : 0,
-                            borderLeft: open ? "2px solid" : "none",
-                            borderLeftColor: (theme) =>
-                              theme.palette.mode === "dark"
-                                ? "rgba(255, 255, 255, 0.2)"
-                                : "rgba(0, 0, 0, 0.15)",
-                          }}
-                        >
-                          {group.posts.map((post) =>
-                            renderPostItem(post, true)
-                          )}
-                        </Box>
-                      </Collapse>
-                    </Box>
-                  );
-                } else {
-                  // Render standalone post
-                  return renderPostItem(group.posts[0], false);
-                }
-              })}
-            </List>
-          </Box>
-        </Box>
+        <ActivePostsSection
+          groupedActivePosts={groupedActivePosts}
+          sidebarOpen={open}
+          pathname={pathname}
+          itemActions={postItemActions}
+        />
       )}
 
-      {/* Flexible space when no active documents or user not logged in */}
       {(!user || activeDocuments.length === 0) && (
-        <Box
-          sx={{
-            flex: "1 1 auto",
-            minHeight: 0,
-          }}
-        />
+        <Box sx={{ flex: "1 1 auto", minHeight: 0 }} />
       )}
 
       <Divider sx={styles.dividerBottom} />
 
-      {/* Bottom section - User */}
-      <Box
-        sx={{
-          ...styles.userBox,
-          flexShrink: 0,
-        }}
-      >
+      <Box sx={{ ...styles.userBox, flexShrink: 0 }}>
         <Box sx={{ mt: "auto" }}>
           <List>
             <ListItem disablePadding sx={{ display: "block" }}>
@@ -1081,7 +217,7 @@ const SideBar: React.FC = () => {
                   component={SafeNavigationLink}
                   href={user ? "/dashboard" : "/api/auth/signin"}
                   sx={{
-                    minHeight: SIDEBAR_CONSTANTS.MIN_HEIGHT.USER_ITEM,
+                    minHeight: USER_ITEM_MIN_HEIGHT,
                     justifyContent: open ? "initial" : "center",
                     px: 2.5,
                   }}
@@ -1096,16 +232,11 @@ const SideBar: React.FC = () => {
                     <Avatar
                       alt={user?.name}
                       src={user?.image ?? undefined}
-                      sx={{
-                        width: 32,
-                        height: 32,
-                      }}
+                      sx={{ width: 32, height: 32 }}
                     />
                   </ListItemIcon>
                   {open && (
-                    <ListItemText
-                      primary={user ? user.name : "Sign In"}
-                    />
+                    <ListItemText primary={user ? user.name : "Sign In"} />
                   )}
                 </ListItemButton>
               </Tooltip>
@@ -1114,7 +245,6 @@ const SideBar: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Resize handle - only visible when expanded and not on mobile */}
       {open && !isMobile && (
         <Box
           onMouseDown={startResize}
@@ -1127,119 +257,20 @@ const SideBar: React.FC = () => {
             cursor: "col-resize",
             backgroundColor: isResizing ? "primary.main" : "transparent",
             transition: isResizing ? "none" : "background-color 0.2s",
-            "&:hover": {
-              backgroundColor: "primary.main",
-              opacity: 0.5,
-            },
-            "&:active": {
-              backgroundColor: "primary.main",
-              opacity: 1,
-            },
+            "&:hover": { backgroundColor: "primary.main", opacity: 0.5 },
+            "&:active": { backgroundColor: "primary.main", opacity: 1 },
             zIndex: 1300,
           }}
         />
       )}
 
-      {/* Context menu for Active Posts */}
-      <Menu
-        open={contextMenu !== null}
+      <PostContextMenu
+        contextMenu={contextMenu}
         onClose={handleCloseContextMenu}
-        anchorReference="anchorPosition"
-        anchorPosition={contextMenu !== null
-          ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-          : undefined}
-        slotProps={{
-          paper: {
-            elevation: 2,
-            sx: {
-              minWidth: 130,
-              borderRadius: 1,
-              mt: 0.5,
-              bgcolor: (theme) => theme.palette.mode === "dark"
-                ? "rgba(30, 30, 30, 0.95)"
-                : "rgba(250, 250, 250, 0.95)",
-              backdropFilter: "blur(8px)",
-            },
-          },
-        }}
-      >
-        <MenuItem
-          onClick={() => contextMenu && handleEditPost(contextMenu.postId)}
-          sx={{
-            py: 0.75,
-            px: 1.75,
-            gap: 1.25,
-            fontSize: "0.875rem",
-            borderBottom: (theme) => theme.palette.mode === "dark"
-              ? "1px solid rgba(255, 255, 255, 0.06)"
-              : "1px solid rgba(0, 0, 0, 0.04)",
-            "&:hover": {
-              backgroundColor: "action.hover",
-            },
-          }}
-        >
-          <ListItemIcon sx={{ minWidth: "auto !important" }}>
-            <Edit fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primaryTypographyProps={{
-              fontSize: "0.875rem",
-            }}
-          >
-            Edit
-          </ListItemText>
-        </MenuItem>
-        <MenuItem
-          onClick={() =>
-            contextMenu && handleRenameFromMenu(contextMenu.postId)}
-          sx={{
-            py: 0.75,
-            px: 1.75,
-            gap: 1.25,
-            fontSize: "0.875rem",
-            borderBottom: (theme) => theme.palette.mode === "dark"
-              ? "1px solid rgba(255, 255, 255, 0.06)"
-              : "1px solid rgba(0, 0, 0, 0.04)",
-            "&:hover": {
-              backgroundColor: "action.hover",
-            },
-          }}
-        >
-          <ListItemIcon sx={{ minWidth: "auto !important" }}>
-            <DriveFileRenameOutline fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primaryTypographyProps={{
-              fontSize: "0.875rem",
-            }}
-          >
-            Rename
-          </ListItemText>
-        </MenuItem>
-        <MenuItem
-          onClick={() => contextMenu && handleDeletePost(contextMenu.postId)}
-          sx={{
-            py: 0.75,
-            px: 1.75,
-            gap: 1.25,
-            fontSize: "0.875rem",
-            "&:hover": {
-              backgroundColor: "action.hover",
-            },
-          }}
-        >
-          <ListItemIcon sx={{ minWidth: "auto !important" }}>
-            <Delete fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primaryTypographyProps={{
-              fontSize: "0.875rem",
-            }}
-          >
-            Delete
-          </ListItemText>
-        </MenuItem>
-      </Menu>
+        onEdit={handleEditPost}
+        onRename={handleRenameFromMenu}
+        onDelete={handleDeletePost}
+      />
     </Drawer>
   );
 };

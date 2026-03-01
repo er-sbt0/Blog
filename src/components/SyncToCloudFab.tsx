@@ -1,0 +1,63 @@
+"use client";
+import { CloudUpload } from "@mui/icons-material";
+import { Fab, Tooltip } from "@mui/material";
+import { actions, useDispatch, useSelector } from "@/store";
+import { FloatingActionButton } from "./Layout/FloatingActionsContainer";
+
+/**
+ * Floating action button that appears on the /view/<id> page
+ * when the document's local version is ahead of the cloud version.
+ * Clicking it syncs local → cloud.
+ */
+const SyncToCloudFab: React.FC<{ documentId: string }> = ({ documentId }) => {
+  const dispatch = useDispatch();
+  const userDocument = useSelector((state) =>
+    state.documents.find((d) => d.id === documentId)
+  );
+
+  const isDirty = Boolean(userDocument?.local) &&
+    Boolean(userDocument?.cloud) &&
+    userDocument!.local!.head !== userDocument!.cloud!.head;
+
+  const handleSync = async () => {
+    if (!userDocument?.local) return;
+    await dispatch(
+      actions.updateCloudDocument({
+        id: documentId,
+        partial: {
+          head: userDocument.local.head,
+          updatedAt: userDocument.local.updatedAt,
+          parentId: userDocument.local.parentId,
+        },
+      }),
+    );
+  };
+
+  if (!isDirty) return null;
+
+  return (
+    <FloatingActionButton id="sync-to-cloud" priority={5}>
+      <Tooltip title="Save to cloud" placement="left">
+        <Fab
+          size="medium"
+          aria-label="save to cloud"
+          onClick={handleSync}
+          sx={{
+            displayPrint: "none",
+            bgcolor: "primary.main",
+            color: "primary.contrastText",
+            boxShadow: 3,
+            "&:hover": {
+              bgcolor: "primary.dark",
+              boxShadow: 5,
+            },
+          }}
+        >
+          <CloudUpload />
+        </Fab>
+      </Tooltip>
+    </FloatingActionButton>
+  );
+};
+
+export default SyncToCloudFab;
