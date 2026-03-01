@@ -505,7 +505,8 @@ const SideBar: React.FC = () => {
             "& .sync-btn": { opacity: 0, transition: "opacity 0.15s" },
             "&:hover .sync-btn": { opacity: 1 },
           }}
-        >          <Tooltip title={open ? "" : docName} placement="right">
+        >
+          <Tooltip title={open ? "" : docName} placement="right">
             <ListItemButton
               component={isRenaming ? "div" : SafeNavigationLink}
               href={isRenaming ? undefined : `/view/${post.id}`}
@@ -545,7 +546,8 @@ const SideBar: React.FC = () => {
                     color: "text.secondary",
                   }}
                 />
-                {post.local && post.cloud && post.local.head !== post.cloud.head && (
+                {post.local && post.cloud &&
+                  post.local.head !== post.cloud.head && (
                   <Box
                     component="span"
                     sx={{
