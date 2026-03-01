@@ -8,7 +8,7 @@ import {
 } from "@/types";
 import { actions, useDispatch, useSelector } from "@/store";
 import { usePathname, useRouter } from "next/navigation";
-import type { EditorState, LexicalEditor } from "lexical";
+import type { EditorState, LexicalEditor, SerializedEditorState } from "lexical";
 import { v4 as uuidv4 } from "uuid";
 import dynamic from "next/dynamic";
 import DiffView from "../Diff";
@@ -132,81 +132,49 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
 
   // Helper function to ensure document has valid editor data
   const ensureValidDocumentData = (doc: EditorDocument): EditorDocument => {
+    const defaultParagraph = {
+      children: [],
+      direction: null,
+      format: "",
+      indent: 0,
+      type: "paragraph",
+      version: 1,
+    };
+    const defaultRoot: SerializedEditorState = {
+      root: {
+        children: [defaultParagraph],
+        direction: null,
+        format: "",
+        indent: 0,
+        type: "root",
+        version: 1,
+      },
+    };
+
     // If data is missing or invalid, create a default state
     if (!doc.data || typeof doc.data !== "object") {
-      return {
-        ...doc,
-        data: {
-          root: {
-            children: [
-              {
-                children: [],
-                direction: null,
-                format: "",
-                indent: 0,
-                type: "paragraph",
-                version: 1,
-              },
-            ],
-            direction: null,
-            format: "",
-            indent: 0,
-            type: "root",
-            version: 1,
-          },
-        } as any,
-      };
+      return { ...doc, data: defaultRoot };
     }
 
     // Validate that root exists and has the required structure
     if (
-      !doc.data.root || !(doc.data as any).root.children ||
-      !Array.isArray((doc.data as any).root.children)
+      !doc.data.root || !doc.data.root.children ||
+      !Array.isArray(doc.data.root.children)
     ) {
-      return {
-        ...doc,
-        data: {
-          root: {
-            children: [
-              {
-                children: [],
-                direction: null,
-                format: "",
-                indent: 0,
-                type: "paragraph",
-                version: 1,
-              },
-            ],
-            direction: null,
-            format: "",
-            indent: 0,
-            type: "root",
-            version: 1,
-          },
-        } as any,
-      };
+      return { ...doc, data: defaultRoot };
     }
 
     // If root has no children, add an empty paragraph
-    if ((doc.data as any).root.children.length === 0) {
+    if (doc.data.root.children.length === 0) {
       return {
         ...doc,
         data: {
-          ...(doc.data as any),
+          ...doc.data,
           root: {
-            ...(doc.data as any).root,
-            children: [
-              {
-                children: [],
-                direction: null,
-                format: "",
-                indent: 0,
-                type: "paragraph",
-                version: 1,
-              },
-            ],
+            ...doc.data.root,
+            children: [defaultParagraph],
           },
-        } as any,
+        } as SerializedEditorState,
       };
     }
 
@@ -318,7 +286,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
                     type: "root",
                     version: 1,
                   },
-                } as any,
+                } as unknown as SerializedEditorState,
               };
 
               // Create the document locally first

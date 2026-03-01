@@ -83,7 +83,7 @@ export const groupPostsBySeries = (
       // Convert series posts to UserDocument format
       const seriesPosts: UserDocument[] = series.posts.map((post) => ({
         id: post.id,
-        cloud: post as any, // Series posts are CloudDocument format
+        cloud: post,
       }));
 
       // Sort posts within series by creation time (newest first)

@@ -86,6 +86,7 @@ export type Document = Omit<EditorDocument, "data" | "revisions"> & {
   // Series support for blog posts
   seriesId?: string | null;
   seriesOrder?: number | null;
+  series?: Series | null;
 };
 
 // New types for blog structure

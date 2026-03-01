@@ -21,7 +21,7 @@ export const usePostsFiltering = () => {
         seriesPostIds.add(post.id);
         seriesPosts.push({
           id: post.id,
-          cloud: post as any, // Series posts are CloudDocument format
+          cloud: post,
         });
       });
     });

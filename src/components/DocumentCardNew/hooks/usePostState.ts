@@ -49,7 +49,7 @@ export const usePostState = (userDocument?: UserDocument, user?: User) => {
 
     // Series information (if available)
     const seriesInfo = (() => {
-      const cloudDoc = userDocument?.cloud as any; // TODO: Add proper Series type to UserDocument
+      const cloudDoc = userDocument?.cloud;
       return {
         series: cloudDoc?.series || null,
         seriesOrder: cloudDoc?.seriesOrder || null,

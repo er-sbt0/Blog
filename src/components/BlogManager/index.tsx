@@ -9,6 +9,7 @@
 import React from "react";
 import { useBlogActions, useBlogData } from "@/hooks/useBlog";
 import { DateDisplay } from "@/components/DateDisplay";
+import { DocumentCreateInput, EMPTY_EDITOR_STATE } from "@/types";
 
 export const BlogManager: React.FC = () => {
   const { posts, series, publishedPosts, totalPosts, totalSeries } =
@@ -21,26 +22,17 @@ export const BlogManager: React.FC = () => {
   }, [loadBlogData]);
 
   const handleCreateSamplePost = () => {
-    const samplePost = {
+    const samplePost: DocumentCreateInput = {
       id: `post-${Date.now()}`,
       name: "Sample Blog Post",
       type: "DOCUMENT" as const,
       head: `revision-${Date.now()}`,
-      data: {
-        root: {
-          children: [],
-          direction: null,
-          format: "",
-          indent: 0,
-          type: "root",
-          version: 1,
-        },
-      } as any,
+      data: EMPTY_EDITOR_STATE,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       published: true,
       private: false,
-    } as any; // Cast to maintain compatibility during transition
+    };
     createPost(samplePost);
   };
 
@@ -88,19 +80,19 @@ export const BlogManager: React.FC = () => {
             <ul>
               {posts.slice(0, 5).map((post) => (
                 <li key={post.id}>
-                  <strong>{(post.cloud as any)?.name || "Untitled"}</strong>
-                  {(post.cloud as any)?.published && (
+                  <strong>{post.cloud?.name || "Untitled"}</strong>
+                  {post.cloud?.published && (
                     <span style={{ color: "green" }}>(Published)</span>
                   )}
-                  {(post.cloud as any)?.private && (
+                  {post.cloud?.private && (
                     <span style={{ color: "orange" }}>(Private)</span>
                   )}
                   <br />
                   <small>
-                    Updated: {(post.cloud as any)?.updatedAt
+                    Updated: {post.cloud?.updatedAt
                       ? (
                         <DateDisplay
-                          date={(post.cloud as any).updatedAt}
+                          date={post.cloud.updatedAt}
                           variant="medium"
                         />
                       )
