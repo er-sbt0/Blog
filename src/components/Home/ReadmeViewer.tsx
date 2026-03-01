@@ -5,14 +5,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ViewDocument from "@/components/ViewDocument";
 import htmr from "htmr";
-import { CloudDocument, UserDocument } from "@/types";
+import { Document, UserDocument } from "@/types";
 
 interface ReadmeViewerProps {
   documents: UserDocument[];
 }
 
 interface ReadmeViewerState {
-  cloudDocument: CloudDocument;
+  cloudDocument: Document;
   html: string;
 }
 

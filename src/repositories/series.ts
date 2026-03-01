@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import {
   Document,
   DocumentRevision,
-  type DocumentType,
   Series,
   SeriesCreateInput,
   SeriesUpdateInput,
@@ -97,7 +96,7 @@ export async function findAllSeries(): Promise<Series[]> {
     ...s,
     posts: s.posts.map((p) => ({
       ...p,
-      type: p.type as DocumentType,
+      type: p.type as "DOCUMENT",
       head: p.head || "",
       coauthors: p.coauthors.map((c) => c.user),
       revisions: p.revisions as DocumentRevision[],
@@ -184,7 +183,7 @@ export async function findSeriesById(id: string): Promise<Series | null> {
     ...series,
     posts: series.posts.map((p) => ({
       ...p,
-      type: p.type as DocumentType,
+      type: p.type as "DOCUMENT",
       head: p.head || "",
       coauthors: p.coauthors.map((c) => c.user),
       revisions: p.revisions as DocumentRevision[],
@@ -274,7 +273,7 @@ export async function findSeriesByAuthorId(
     ...s,
     posts: s.posts.map((p) => ({
       ...p,
-      type: p.type as DocumentType,
+      type: p.type as "DOCUMENT",
       head: p.head || "",
       coauthors: p.coauthors.map((c) => c.user),
       revisions: p.revisions as DocumentRevision[],
@@ -434,7 +433,7 @@ export async function getAvailablePostsForSeries(
 
   return posts.map((p) => ({
     ...p,
-    type: p.type as DocumentType,
+    type: p.type as "DOCUMENT",
     head: p.head || "",
     coauthors: p.coauthors.map((c) => c.user),
     revisions: p.revisions as DocumentRevision[],

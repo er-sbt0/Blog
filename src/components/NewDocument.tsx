@@ -4,9 +4,8 @@ import { v4 as uuidv4, validate } from "uuid";
 import * as React from "react";
 import {
   CheckHandleResponse,
-  CloudDocument,
+  Document,
   DocumentCreateInput,
-  DocumentType,
   User,
   UserDocument,
 } from "@/types";
@@ -80,7 +79,7 @@ const getEditorData = (title: string) => {
   return ({ root });
 };
 
-const NewDocument: React.FC<{ cloudDocument?: CloudDocument }> = (
+const NewDocument: React.FC<{ cloudDocument?: Document }> = (
   { cloudDocument },
 ) => {
   const initialized = useSelector((state) => state.ui.initialized);
@@ -200,7 +199,7 @@ const NewDocument: React.FC<{ cloudDocument?: CloudDocument }> = (
       head: uuidv4(),
       name,
       data,
-      type: "DOCUMENT" as DocumentType,
+      type: "DOCUMENT",
       parentId: parentId || null,
       seriesId: seriesId || null,
       seriesOrder: seriesId && nextSeriesOrder !== null

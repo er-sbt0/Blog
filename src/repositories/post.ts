@@ -1,10 +1,9 @@
 import { DocumentType as PrismaDocumentType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
-  CloudDocument,
+  Document,
   DocumentRevision,
   DocumentStatus,
-  type DocumentType,
   EditorDocument,
 } from "@/types";
 import { validate } from "uuid";
@@ -76,7 +75,7 @@ const toCloudDocument = (
       };
     }[];
   },
-): CloudDocument => {
+): Document => {
   const revisions = post.collab
     ? post.revisions
     : post.revisions.filter((r) => r.id === post.head);
@@ -87,7 +86,7 @@ const toCloudDocument = (
     type: PrismaDocumentType.DOCUMENT,
     head: post.head || "",
     status: post.status as DocumentStatus | undefined,
-  } as unknown as CloudDocument;
+  } as unknown as Document;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -186,7 +185,7 @@ const findUserPost = async (
     return null;
   }
 
-  const cloudPost: CloudDocument = {
+  const cloudPost: Document = {
     ...post,
     coauthors: [], // Remove coauthor complexity
     type: PrismaDocumentType.DOCUMENT,

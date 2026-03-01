@@ -1,6 +1,6 @@
 "use client";
 import { useMemo } from "react";
-import { DocumentType, UserDocument } from "@/types";
+import { UserDocument } from "@/types";
 
 interface UseDocumentFilteringProps {
   documents: UserDocument[];

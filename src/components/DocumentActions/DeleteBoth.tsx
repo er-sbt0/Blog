@@ -1,6 +1,6 @@
 "use client";
 import { actions, useDispatch } from "@/store";
-import { DocumentType, UserDocument } from "@/types";
+import { UserDocument } from "@/types";
 import { Delete, DeleteForever } from "@mui/icons-material";
 import {
   IconButton,

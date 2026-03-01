@@ -56,7 +56,7 @@ export type EditorDocument = {
   handle?: string | null;
   baseId?: string | null;
   parentId?: string | null;
-  type: DocumentType;
+  type: "DOCUMENT";
   status?: DocumentStatus;
   revisions?: EditorDocumentRevision[];
   sort_order?: number | null;
@@ -64,9 +64,6 @@ export type EditorDocument = {
   seriesId?: string | null; // For blog series functionality
   seriesOrder?: number | null; // For ordering posts within series
 };
-
-// Simplified since we only have posts now
-export type DocumentType = "DOCUMENT";
 
 export enum DocumentStatus {
   ACTIVE = "ACTIVE",
@@ -100,21 +97,6 @@ export interface Series {
   posts: Document[]; // Use Document[] since these are documents from the database
 }
 
-export interface Post {
-  id: string;
-  title: string;
-  content: string;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-  published: boolean;
-  authorId: string;
-  author: User;
-  seriesId?: string | null;
-  series?: Series | null;
-  seriesOrder?: number | null;
-  revisions: PostRevision[];
-}
-
 // Series input types
 export interface SeriesCreateInput {
   id: string;
@@ -129,11 +111,6 @@ export interface SeriesUpdateInput {
   createdAt?: string;
 }
 
-// Transform existing types for compatibility during migration
-export type PostRevision = DocumentRevision;
-export type EditorPost = EditorDocument;
-
-export type CloudDocument = Document; // Cloud documents are the same as regular documents
 export type UserDocument = {
   id: string;
   local?: EditorDocument;
@@ -183,8 +160,6 @@ export type CloudDocumentRevision = DocumentRevision & {
   author: User;
 };
 
-// User document revisions can be either local (no author) or cloud (with author)
-export type UserDocumentRevision = DocumentRevision;
 export type LocalDocumentRevision = Partial<EditorDocumentRevision>; // Allow partial for local document revisions
 
 // Utility for creating empty editor states
@@ -231,7 +206,7 @@ export interface DeleteUserResponse {
 }
 
 export interface GetDocumentsResponse {
-  data?: CloudDocument[];
+  data?: Document[];
   error?: { title: string; subtitle?: string };
 }
 
@@ -240,17 +215,17 @@ export interface GetDocumentStorageUsageResponse {
   error?: { title: string; subtitle?: string };
 }
 export interface PostDocumentsResponse {
-  data?: CloudDocument | null;
+  data?: Document | null;
   error?: { title: string; subtitle?: string };
 }
 
 export interface GetPublishedDocumentsResponse {
-  data?: CloudDocument[];
+  data?: Document[];
   error?: { title: string; subtitle?: string };
 }
 
 export interface GetDocumentResponse {
-  data?: EditorDocument & { cloudDocument: CloudDocument };
+  data?: EditorDocument & { cloudDocument: Document };
   error?: { title: string; subtitle?: string };
 }
 
@@ -260,14 +235,14 @@ export interface GetDocumentThumbnailResponse {
 }
 
 export interface PatchDocumentResponse {
-  data?: CloudDocument | null;
+  data?: Document | null;
   error?: { title: string; subtitle?: string };
 }
 
 export interface UploadBackgroundImageResponse {
   data?: {
     background_image: string;
-    document: CloudDocument;
+    document: Document;
   };
   error?: { title: string; subtitle?: string };
 }

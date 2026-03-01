@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { CloudDocument } from "@/types";
 import { validate } from "uuid";
 
 const findUser = async (handle: string) => {

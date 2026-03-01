@@ -4,7 +4,7 @@ import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
-import { CloudDocument, User } from "@/types";
+import { Document, User } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import { actions, useDispatch, useSelector } from "@/store";
 import {
@@ -39,7 +39,7 @@ export default function UsersAutocomplete({
   const documents = useSelector((state) => state.documents);
   const cloudDocuments = documents.filter((d) => !!d.cloud).map((d) =>
     d.cloud
-  ) as CloudDocument[];
+  ) as Document[];
 
   const users: User[] = cloudDocuments.reduce((users, document) => {
     const author = document.author;

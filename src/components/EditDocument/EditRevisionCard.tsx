@@ -1,7 +1,6 @@
 "use client";
 import * as React from "react";
-import { CloudDocumentRevision } from "@/types";
-import { UserDocumentRevision } from "@/types";
+import { CloudDocumentRevision, DocumentRevision } from "@/types";
 import { memo } from "react";
 import { SxProps, Theme } from "@mui/material/styles";
 import {
@@ -31,7 +30,7 @@ import NProgress from "nprogress";
 import { v4 as uuid } from "uuid";
 
 const RevisionCard: React.FC<{
-  revision: UserDocumentRevision;
+  revision: DocumentRevision;
   editorRef: React.RefObject<LexicalEditor | null>;
   sx?: SxProps<Theme> | undefined;
 }> = memo(({ revision, editorRef, sx }) => {

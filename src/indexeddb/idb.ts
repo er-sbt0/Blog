@@ -19,7 +19,7 @@ function validateStore(db: IDBDatabase, storeName: string) {
 export function validateBeforeTransaction(
   db: IDBDatabase | undefined,
   storeName: string,
-  reject: Function,
+  reject: (reason: string) => void,
 ) {
   if (!db) {
     return reject("Queried before opening connection");
@@ -29,18 +29,22 @@ export function validateBeforeTransaction(
   }
 }
 
+export function commitTransaction(tx: IDBTransaction): void {
+  (tx as IDBTransaction & { commit?: () => void }).commit?.();
+}
+
 export function createTransaction(
   db: IDBDatabase,
   dbMode: IDBTransactionMode,
   currentStore: string,
-  resolve: ((this: IDBTransaction, ev: any) => any) | null,
-  reject?: ((this: IDBTransaction, ev: any) => any) | null,
-  abort?: ((this: IDBTransaction, ev: any) => any) | null,
+  resolve: (() => void) | null,
+  reject?: ((reason?: unknown) => void) | null,
+  abort?: (() => void) | null,
 ): IDBTransaction {
   let tx: IDBTransaction = db.transaction(currentStore, dbMode);
-  tx.onerror = reject!;
-  tx.oncomplete = resolve;
-  tx.onabort = abort!;
+  tx.onerror = reject ? (ev: Event) => reject((ev.target as IDBTransaction).error) : null;
+  tx.oncomplete = resolve ? () => resolve() : null;
+  tx.onabort = abort ? () => abort() : null;
   return tx;
 }
 
@@ -66,12 +70,12 @@ export async function getConnection(
         resolve(request.result);
       };
 
-      request.onerror = (e: any) => {
-        reject(e.target.error.name);
+      request.onerror = () => {
+        reject(request.error?.name ?? "Unknown error");
       };
 
-      request.onupgradeneeded = (e: any) => {
-        const db = e.target.result;
+      request.onupgradeneeded = (e: IDBVersionChangeEvent) => {
+        const db = (e.target as IDBOpenDBRequest).result;
         _config.stores.forEach((s) => {
           if (!db.objectStoreNames.contains(s.name)) {
             const store = db.createObjectStore(s.name, s.id);
@@ -100,13 +104,13 @@ export function getActions<T>(currentStore: string) {
               db,
               "readonly",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);
             let request = objectStore.get(id);
-            request.onsuccess = (e: any) => {
-              resolve(e.target.result as T);
+            request.onsuccess = () => {
+              resolve(request.result as T);
             };
           })
           .catch(reject);
@@ -121,14 +125,14 @@ export function getActions<T>(currentStore: string) {
               db,
               "readonly",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);
             let index = objectStore.index(keyPath);
             let request = index.get(value);
-            request.onsuccess = (e: any) => {
-              resolve(e.target.result);
+            request.onsuccess = () => {
+              resolve(request.result);
             };
           })
           .catch(reject);
@@ -143,14 +147,14 @@ export function getActions<T>(currentStore: string) {
               db,
               "readonly",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);
             let index = objectStore.index(keyPath);
             let request = index.getAll(value);
-            request.onsuccess = (e: any) => {
-              resolve(e.target.result);
+            request.onsuccess = () => {
+              resolve(request.result);
             };
           })
           .catch(reject);
@@ -165,21 +169,21 @@ export function getActions<T>(currentStore: string) {
               db,
               "readonly",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);
             let request = objectStore.getAll();
-            request.onsuccess = (e: any) => {
-              resolve(e.target.result as T[]);
+            request.onsuccess = () => {
+              resolve(request.result as T[]);
             };
           })
           .catch(reject);
       });
     },
 
-    add(value: T, key?: any) {
-      return new Promise<number>((resolve, reject) => {
+    add(value: T, key?: IDBValidKey) {
+      return new Promise<IDBValidKey>((resolve, reject) => {
         getConnection()
           .then((db) => {
             validateBeforeTransaction(db, currentStore, reject);
@@ -187,22 +191,22 @@ export function getActions<T>(currentStore: string) {
               db,
               "readwrite",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);
             let request = objectStore.add(value, key);
-            request.onsuccess = (e: any) => {
-              (tx as any)?.commit?.();
-              resolve(e.target.result);
+            request.onsuccess = () => {
+              commitTransaction(tx);
+              resolve(request.result);
             };
           })
           .catch(reject);
       });
     },
 
-    addMany(values: T[], keys?: any[]) {
-      return new Promise<number[]>((resolve, reject) => {
+    addMany(values: T[], keys?: IDBValidKey[]) {
+      return new Promise<IDBValidKey[]>((resolve, reject) => {
         getConnection()
           .then((db) => {
             validateBeforeTransaction(db, currentStore, reject);
@@ -210,16 +214,18 @@ export function getActions<T>(currentStore: string) {
               db,
               "readwrite",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);
+            const results: IDBValidKey[] = [];
             values.forEach((value, i) => {
               let request = objectStore.put(value, keys?.[i]);
-              request.onsuccess = (e: any) => {
+              request.onsuccess = () => {
+                results.push(request.result);
                 if (i === values.length - 1) {
-                  (tx as any)?.commit?.();
-                  resolve(e.target.result);
+                  commitTransaction(tx);
+                  resolve(results);
                 }
               };
             });
@@ -228,8 +234,8 @@ export function getActions<T>(currentStore: string) {
       });
     },
 
-    update(value: T, key?: any) {
-      return new Promise<any>((resolve, reject) => {
+    update(value: T, key?: IDBValidKey) {
+      return new Promise<IDBValidKey>((resolve, reject) => {
         getConnection()
           .then((db) => {
             validateBeforeTransaction(db, currentStore, reject);
@@ -237,14 +243,14 @@ export function getActions<T>(currentStore: string) {
               db,
               "readwrite",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);
             let request = objectStore.put(value, key);
-            request.onsuccess = (e: any) => {
-              (tx as any)?.commit?.();
-              resolve(e.target.result);
+            request.onsuccess = () => {
+              commitTransaction(tx);
+              resolve(request.result);
             };
           })
           .catch(reject);
@@ -252,7 +258,7 @@ export function getActions<T>(currentStore: string) {
     },
 
     patch(id: string | number, value: Partial<T>) {
-      return new Promise<any>((resolve, reject) => {
+      return new Promise<IDBValidKey>((resolve, reject) => {
         this.getByID(id).then((data) => {
           if (data) {
             const updatedData = { ...data, ...value };
@@ -264,8 +270,8 @@ export function getActions<T>(currentStore: string) {
       });
     },
 
-    deleteByID(id: any) {
-      return new Promise<any>((resolve, reject) => {
+    deleteByID(id: IDBValidKey) {
+      return new Promise<void>((resolve, reject) => {
         getConnection()
           .then((db) => {
             validateBeforeTransaction(db, currentStore, reject);
@@ -273,21 +279,21 @@ export function getActions<T>(currentStore: string) {
               db,
               "readwrite",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);
             let request = objectStore.delete(id);
-            request.onsuccess = (e: any) => {
-              (tx as any)?.commit?.();
-              resolve(e);
+            request.onsuccess = () => {
+              commitTransaction(tx);
+              resolve();
             };
           })
           .catch(reject);
       });
     },
     deleteManyByKey(keyPath: string, value: string | number) {
-      return new Promise<any>((resolve, reject) => {
+      return new Promise<void>((resolve, reject) => {
         getConnection()
           .then((db) => {
             validateBeforeTransaction(db, currentStore, reject);
@@ -295,20 +301,20 @@ export function getActions<T>(currentStore: string) {
               db,
               "readwrite",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);
             let index = objectStore.index(keyPath);
             let request = index.openCursor(value);
-            request.onsuccess = (e: any) => {
-              let cursor = e.target.result;
+            request.onsuccess = () => {
+              const cursor = request.result;
               if (cursor) {
                 cursor.delete();
                 cursor.continue();
               } else {
-                (tx as any)?.commit?.();
-                resolve(e);
+                commitTransaction(tx);
+                resolve();
               }
             };
           })
@@ -316,7 +322,7 @@ export function getActions<T>(currentStore: string) {
       });
     },
     deleteAll() {
-      return new Promise<any>((resolve, reject) => {
+      return new Promise<void>((resolve, reject) => {
         getConnection()
           .then((db) => {
             validateBeforeTransaction(db, currentStore, reject);
@@ -324,14 +330,14 @@ export function getActions<T>(currentStore: string) {
               db,
               "readwrite",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);
             let request = objectStore.clear();
-            request.onsuccess = (e: any) => {
-              (tx as any)?.commit?.();
-              resolve(e);
+            request.onsuccess = () => {
+              commitTransaction(tx);
+              resolve();
             };
           })
           .catch(reject);
@@ -347,7 +353,7 @@ export function getActions<T>(currentStore: string) {
               db,
               "readonly",
               currentStore,
-              resolve,
+              null,
               reject,
             );
             let objectStore = tx.objectStore(currentStore);

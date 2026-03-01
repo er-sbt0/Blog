@@ -3,7 +3,7 @@ import { FC, useCallback } from "react";
 import { Box, Button, Tooltip } from "@mui/material";
 import { Storage, UploadFile } from "@mui/icons-material";
 import { actions, useDispatch, useSelector } from "@/store";
-import { BackupDocument, DocumentType } from "@/types";
+import { BackupDocument } from "@/types";
 import { v4 as uuid } from "uuid";
 import documentDB, { revisionDB } from "@/indexeddb";
 
@@ -47,7 +47,7 @@ const ImportExportControl: FC<ImportExportControlProps> = (
                   createdAt: new Date().toISOString(),
                   updatedAt: new Date().toISOString(),
                   // Ensure it's created as a post (not directory)
-                  type: "DOCUMENT" as DocumentType,
+                  type: "DOCUMENT",
                 };
 
                 await documentDB.add(newDocument);

@@ -1,5 +1,5 @@
 "use client";
-import { CloudDocument, User } from "@/types";
+import { Document, User } from "@/types";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -13,7 +13,7 @@ const ViewDocumentInfo = dynamic(
 );
 
 const ViewDocument: React.FC<
-  React.PropsWithChildren & { cloudDocument: CloudDocument; user?: User }
+  React.PropsWithChildren & { cloudDocument: Document; user?: User }
 > = ({ cloudDocument, children }) => {
   const router = useRouter();
   const { data: session } = useSession();

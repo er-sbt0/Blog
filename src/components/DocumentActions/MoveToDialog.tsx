@@ -26,7 +26,7 @@ import {
   Home as HomeIcon,
 } from "@mui/icons-material";
 import { actions, useDispatch, useSelector } from "@/store";
-import { type DocumentType, UserDocument } from "@/types";
+import { UserDocument } from "@/types";
 
 interface MoveToDialogProps {
   open: boolean;
@@ -51,7 +51,7 @@ const MoveToDialog: React.FC<MoveToDialogProps> = (
   const document = userDocument?.local || userDocument?.cloud;
   const documentId = userDocument.id;
   const documentName = document?.name || "Document";
-  const documentType = document?.type || ("DOCUMENT" as DocumentType);
+  const documentType = document?.type || "DOCUMENT";
   const currentParentId = document?.parentId || null;
 
   // Function to determine if a document is at the root level

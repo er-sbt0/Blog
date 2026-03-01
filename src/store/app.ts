@@ -6,7 +6,7 @@ import {
   Announcement,
   AppState,
   BackupDocument,
-  CloudDocument,
+  Document,
   CloudDocumentRevision,
   DeleteRevisionResponse,
   DocumentCreateInput,
@@ -160,7 +160,7 @@ export const loadLocalDocuments = createAsyncThunk(
 
 export const loadCloudDocuments = createAsyncThunk(
   "app/loadCloudDocuments",
-  async (payloadCreator: CloudDocument[] | undefined, thunkAPI) => {
+  async (payloadCreator: Document[] | undefined, thunkAPI) => {
     try {
       NProgress.start();
       if (payloadCreator) {

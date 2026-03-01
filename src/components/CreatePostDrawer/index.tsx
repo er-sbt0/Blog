@@ -34,7 +34,6 @@ import type { SerializedHeadingNode } from "@lexical/rich-text";
 import type {
   CheckHandleResponse,
   DocumentCreateInput,
-  DocumentType,
   User,
 } from "@/types";
 
@@ -257,7 +256,7 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
         head: uuidv4(),
         name,
         data: data as any,
-        type: "DOCUMENT" as DocumentType,
+        type: "DOCUMENT",
         parentId: null,
         seriesId,
         seriesOrder: nextSeriesOrder,

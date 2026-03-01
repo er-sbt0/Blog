@@ -1,5 +1,5 @@
 "use client";
-import { CloudDocument, CloudDocumentRevision, User } from "@/types";
+import { Document, CloudDocumentRevision, User } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import Grid from "@mui/material/Grid2";
 import {
@@ -26,7 +26,7 @@ import { useSearchParams } from "next/navigation";
 import { FloatingActionButton } from "./Layout/FloatingActionsContainer";
 
 export default function ViewDocumentInfo(
-  { cloudDocument, user }: { cloudDocument: CloudDocument; user?: User },
+  { cloudDocument, user }: { cloudDocument: Document; user?: User },
 ) {
   const slideTrigger = useScrollTrigger({ disableHysteresis: true });
   const handle = cloudDocument.handle || cloudDocument.id;

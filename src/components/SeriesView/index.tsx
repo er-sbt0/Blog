@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DocumentType, Post, Series, User } from "@/types";
+import { Series, User } from "@/types";
 import { useSession } from "next-auth/react";
 import { PartitionGranularity } from "@/types/partitioning";
 import {

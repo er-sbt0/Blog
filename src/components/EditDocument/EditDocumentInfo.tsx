@@ -3,7 +3,6 @@ import {
   EditorDocumentRevision,
   LocalDocumentRevision,
   User,
-  UserDocumentRevision,
 } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import RevisionCard from "./EditRevisionCard";
@@ -70,7 +69,7 @@ export default function EditDocumentInfo(
     )
     : [];
 
-  const revisions: (UserDocumentRevision | EditorDocumentRevision)[] = [
+  const revisions: (DocumentRevision | EditorDocumentRevision)[] = [
     ...cloudDocumentRevisions,
   ];
   localDocumentRevisions.forEach((revision) => {
@@ -96,7 +95,7 @@ export default function EditDocumentInfo(
           handle: null,
           image: null,
         },
-    } as UserDocumentRevision;
+    } as DocumentRevision;
     documentRevisions.unshift(unsavedRevision);
   }
 

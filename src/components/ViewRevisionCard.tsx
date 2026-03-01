@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { CloudDocument, CloudDocumentRevision } from "@/types";
+import { Document, CloudDocumentRevision } from "@/types";
 import { memo } from "react";
 import { SxProps, Theme } from "@mui/material/styles";
 import {
@@ -17,7 +17,7 @@ import { DateDisplay } from "@/components/DateDisplay";
 import { useSearchParams } from "next/navigation";
 
 const ViewRevisionCard: React.FC<{
-  cloudDocument: CloudDocument;
+  cloudDocument: Document;
   revision: CloudDocumentRevision;
   sx?: SxProps<Theme> | undefined;
 }> = memo(({ cloudDocument, revision, sx }) => {

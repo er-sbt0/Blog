@@ -3,7 +3,6 @@ import { actions, useDispatch, useSelector } from "@/store";
 import {
   CheckHandleResponse,
   DocumentStatus,
-  DocumentType,
   DocumentUpdateInput,
   User,
   UserDocument,
