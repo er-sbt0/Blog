@@ -112,67 +112,80 @@ const Home: React.FC<{
           <Grid size={{ xs: 12 }}>
             <NotesClipboardProvider>
               <ErrorBoundaryCard cardName="Notes">
-                {/* Board selector row */}
+                {/* Board selector + canvas in unified container */}
                 <Box
                   sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    mb: 1,
-                    pb: 1,
-                    borderBottom: "1px solid",
+                    border: "1px solid",
                     borderColor: "divider",
-                  }}
-                >
-                  <StickyNote2
-                    sx={{
-                      fontSize: 18,
-                      color: "text.secondary",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <BoardSelector
-                    boards={boards}
-                    activeCanvasId={activeCanvasId}
-                    onSelectBoard={setActiveCanvasId}
-                    onCreateBoard={createBoard}
-                    onRenameBoard={renameBoard}
-                    onDeleteBoard={deleteBoard}
-                  />
-                </Box>
-                <Box
-                  sx={{
-                    height: `${notesHeight}px`,
-                    minHeight: 200,
+                    borderRadius: 2,
                     overflow: "hidden",
-                    position: "relative",
+                    bgcolor: "background.paper",
                   }}
                 >
-                  <NotesCanvas canvasId={activeCanvasId} />
-
-                  {/* Resize Handle */}
                   <Box
-                    onMouseDown={handleResizeStart}
                     sx={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 8,
-                      cursor: "ns-resize",
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: isResizing
-                        ? "action.selected"
-                        : "transparent",
-                      "&:hover": {
-                        backgroundColor: "action.hover",
-                      },
-                      transition: "background-color 0.2s",
-                      zIndex: 10,
+                      gap: 1.5,
+                      px: 1.5,
+                      py: 0.75,
                     }}
-                  />
+                  >
+                    <StickyNote2
+                      sx={{
+                        fontSize: 18,
+                        color: "text.secondary",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <BoardSelector
+                      boards={boards}
+                      activeCanvasId={activeCanvasId}
+                      onSelectBoard={setActiveCanvasId}
+                      onCreateBoard={createBoard}
+                      onRenameBoard={renameBoard}
+                      onDeleteBoard={deleteBoard}
+                    />
+                  </Box>
+                  <Box
+                    sx={{
+                      height: `${notesHeight}px`,
+                      minHeight: 200,
+                      overflow: "hidden",
+                      position: "relative",
+                      // Remove NotesCanvas own border since the parent provides it
+                      "& > *:first-of-type": {
+                        border: "none",
+                        borderRadius: 0,
+                      },
+                    }}
+                  >
+                    <NotesCanvas canvasId={activeCanvasId} />
+
+                    {/* Resize Handle */}
+                    <Box
+                      onMouseDown={handleResizeStart}
+                      sx={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 8,
+                        cursor: "ns-resize",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: isResizing
+                          ? "action.selected"
+                          : "transparent",
+                        "&:hover": {
+                          backgroundColor: "action.hover",
+                        },
+                        transition: "background-color 0.2s",
+                        zIndex: 10,
+                      }}
+                    />
+                  </Box>
                 </Box>
               </ErrorBoundaryCard>
             </NotesClipboardProvider>
