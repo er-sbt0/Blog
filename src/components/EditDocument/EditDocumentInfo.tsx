@@ -1,5 +1,6 @@
 import {
   DocumentRevision,
+  DocumentStatus,
   EditorDocumentRevision,
   LocalDocumentRevision,
   User,
@@ -185,18 +186,18 @@ export default function EditDocumentInfo(
               {localDocument.status && (
                 <Chip
                   size="small"
-                  icon={localDocument.status === "ACTIVE"
+                  icon={localDocument.status === DocumentStatus.ACTIVE
                     ? <PlayArrow />
                     : <CheckCircle />}
-                  label={localDocument.status === "ACTIVE" ? "Active" : "Done"}
+                  label={localDocument.status === DocumentStatus.ACTIVE ? "Active" : "Done"}
                   sx={{
-                    backgroundColor: localDocument.status === "ACTIVE"
+                    backgroundColor: localDocument.status === DocumentStatus.ACTIVE
                       ? "#e3f2fd"
                       : "#e8f5e8",
-                    color: localDocument.status === "ACTIVE"
+                    color: localDocument.status === DocumentStatus.ACTIVE
                       ? "#1976d2"
                       : "#2e7d32",
-                    borderColor: localDocument.status === "ACTIVE"
+                    borderColor: localDocument.status === DocumentStatus.ACTIVE
                       ? "#2196f3"
                       : "#4caf50",
                     fontWeight: "bold",

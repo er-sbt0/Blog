@@ -18,7 +18,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { Home, LibraryBooks, StickyNote2 } from "@mui/icons-material";
 import { styles } from "./styles";
-import type { UserDocument } from "@/types";
+import { DocumentStatus, type UserDocument } from "@/types";
 import { useSidebarState } from "./SideBar/hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./SideBar/hooks/useKeyboardShortcuts";
 import { useSidebarWidth } from "./SideBar/SidebarWidthContext";
@@ -70,11 +70,11 @@ const SideBar: React.FC = () => {
       const localDocument = doc.local;
       if (cloudDocument) {
         return (
-          cloudDocument.status === "ACTIVE" &&
+          cloudDocument.status === DocumentStatus.ACTIVE &&
           cloudDocument.author.id === user.id
         );
       }
-      if (localDocument) return localDocument.status === "ACTIVE";
+      if (localDocument) return localDocument.status === DocumentStatus.ACTIVE;
       return false;
     });
   }, [user, documents]);
