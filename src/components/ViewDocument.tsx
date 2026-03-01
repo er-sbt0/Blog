@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useRef } from "react";
 import ViewAttachmentEnhancer from "./ViewAttachmentEnhancer";
+import SyncToCloudFab from "./SyncToCloudFab";
 
 const ViewDocumentInfo = dynamic(
   () => import("@/components/ViewDocumentInfo"),
@@ -45,6 +46,7 @@ const ViewDocument: React.FC<
         <ViewAttachmentEnhancer containerRef={containerRef} />
       </div>
       <ViewDocumentInfo cloudDocument={cloudDocument} user={user} />
+      <SyncToCloudFab documentId={cloudDocument.id} />
     </div>
   );
 };

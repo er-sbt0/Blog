@@ -52,7 +52,9 @@ export function NotesClipboardProvider({
   const clearClip = useCallback(() => setClip(null), []);
 
   return (
-    <NotesClipboardContext.Provider value={{ clip, copyNote, cutNote, clearClip }}>
+    <NotesClipboardContext.Provider
+      value={{ clip, copyNote, cutNote, clearClip }}
+    >
       {children}
     </NotesClipboardContext.Provider>
   );

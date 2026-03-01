@@ -4,14 +4,34 @@ import { Rnd } from "react-rnd";
 import { EditorState, LexicalEditor } from "lexical";
 import { editorConfig } from "@/editor/config";
 import { useRef, useState } from "react";
-import { Box, Divider, IconButton, Menu, MenuItem, Paper, Popover, TextField } from "@mui/material";
-import { ContentCopy, ContentCut, Delete, MoreHoriz, Palette } from "@mui/icons-material";
+import {
+  Box,
+  Divider,
+  IconButton,
+  Menu,
+  MenuItem,
+  Paper,
+  Popover,
+  TextField,
+} from "@mui/material";
+import {
+  ContentCopy,
+  ContentCut,
+  Delete,
+  MoreHoriz,
+  Palette,
+} from "@mui/icons-material";
 import { useNotesClipboard } from "./NotesClipboardContext";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { EditorPlugins } from "@/editor/plugins";
 import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin";
-import { NOTE_COLOR_LIST, NOTE_COLORS, NOTE_SWATCH_COLORS, NoteColorKey } from "./noteColors";
+import {
+  NOTE_COLOR_LIST,
+  NOTE_COLORS,
+  NOTE_SWATCH_COLORS,
+  NoteColorKey,
+} from "./noteColors";
 
 interface DraggableNoteProps {
   note: Note;

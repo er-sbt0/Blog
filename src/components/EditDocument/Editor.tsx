@@ -108,91 +108,6 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
     }
   }, [document, user, dispatch, editorRef]);
 
-  // Handle browser beforeunload event
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        // Save automatically without confirmation
-        saveToCloud();
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [saveToCloud, hasUnsavedChanges]);
-
-  // Handle router navigation
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      // Create a custom router event handler for Next.js navigation
-      const handleRouteChangeStart = (url: string) => {
-        if (hasUnsavedChanges) {
-          // Auto-save when navigating within the app
-          saveToCloud();
-        }
-      };
-
-      // Create a patched router.push method
-      const originalPush = router.push;
-      const originalReplace = router.replace;
-      const originalBack = router.back;
-
-      router.push = (href: string) => {
-        if (hasUnsavedChanges) {
-          saveToCloud().then(() => {
-            originalPush(href);
-          });
-          return Promise.resolve(true);
-        }
-        return originalPush(href);
-      };
-
-      router.replace = (href: string) => {
-        if (hasUnsavedChanges) {
-          saveToCloud().then(() => {
-            originalReplace(href);
-          });
-          return Promise.resolve(true);
-        }
-        return originalReplace(href);
-      };
-
-      router.back = () => {
-        if (hasUnsavedChanges) {
-          saveToCloud().then(() => {
-            originalBack();
-          });
-          return Promise.resolve(true);
-        }
-        return originalBack();
-      };
-
-      return () => {
-        // Restore original methods
-        router.push = originalPush;
-        router.replace = originalReplace;
-        router.back = originalBack;
-
-        // Final attempt to save on unmount
-        if (hasUnsavedChanges) {
-          saveToCloud();
-        }
-      };
-    }
-  }, [router, saveToCloud, hasUnsavedChanges]);
-
-  // Auto-save when component unmounts
-  useEffect(() => {
-    return () => {
-      if (hasUnsavedChanges) {
-        saveToCloud();
-      }
-    };
-  }, [saveToCloud, hasUnsavedChanges]);
-
   function handleChange(
     editorState: EditorState,
     editor: LexicalEditor,
@@ -306,6 +221,29 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
       ) {
         const editorDocument = localResponse.payload as EditorDocument;
         setDocument(ensureValidDocumentData(editorDocument));
+
+        // Check if local is ahead of cloud by comparing head revision IDs.
+        // This detects the case where the user edited locally, closed the tab
+        // before saving to cloud, and has now re-opened the document.
+        if (user) {
+          const cloudResponse = await dispatch(actions.getCloudDocument(id));
+          if (cloudResponse.type === actions.getCloudDocument.fulfilled.type) {
+            const { cloudDocument, ...cloudEditorDocument } = cloudResponse
+              .payload as ReturnType<
+                typeof actions.getCloudDocument.fulfilled
+              >["payload"];
+            if (editorDocument.head !== cloudEditorDocument.head) {
+              // Local has been modified since last cloud save
+              setHasUnsavedChanges(true);
+            } else {
+              // In sync — seed lastSavedCloud so save deduplication works correctly
+              lastSavedCloud.current = JSON.stringify(editorDocument.data);
+            }
+          } else {
+            // Cloud fetch failed — conservatively treat local as potentially dirty
+            setHasUnsavedChanges(true);
+          }
+        }
       } else {
         const cloudResponse = await dispatch(
           actions.getCloudDocument(id),
@@ -319,6 +257,8 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
               typeof actions.getCloudDocument.fulfilled
             >["payload"];
           setDocument(ensureValidDocumentData(editorDocument));
+          // Seed lastSavedCloud — local was just created from cloud, they're in sync
+          lastSavedCloud.current = JSON.stringify(editorDocument.data);
           dispatch(actions.createLocalDocument(editorDocument));
           const editorDocumentRevision = {
             id: editorDocument.head,
@@ -470,6 +410,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
       <SaveDiscardActions
         onSave={handleSaveAndNavigate}
         onDiscard={handleDiscard}
+        isDirty={hasUnsavedChanges}
       />
     </>
   );

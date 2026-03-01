@@ -2,7 +2,8 @@
 import * as React from "react";
 import { ReactNode } from "react";
 import { SxProps, Theme } from "@mui/material/styles";
-import { Box, Card, CardActionArea } from "@mui/material";
+import { Box, Card, CardActionArea, Tooltip } from "@mui/material";
+import { EditNote } from "@mui/icons-material";
 import Link from "next/link";
 import { DocumentStatus } from "@/types";
 
@@ -24,6 +25,8 @@ interface SimplifiedCardBaseProps {
   actionContent: ReactNode;
   /** Status of the document (affects visual styling) */
   status?: DocumentStatus;
+  /** Whether local version is ahead of cloud (unsaved to cloud) */
+  isDirty?: boolean;
   /** Additional styles */
   sx?: SxProps<Theme>;
   /** Accessible label */
@@ -40,6 +43,7 @@ const CardBase: React.FC<SimplifiedCardBaseProps> = ({
   chipContent,
   actionContent,
   status,
+  isDirty,
   sx = {},
   ariaLabel = "Open post",
 }) => {
@@ -53,14 +57,14 @@ const CardBase: React.FC<SimplifiedCardBaseProps> = ({
     borderRadius: 2,
     backgroundColor: "background.paper",
     border: "2px solid",
-    borderColor: isDone ? "#424242" : "divider", // Dark gray for DONE status
+    borderColor: isDone ? "#424242" : "divider",
     overflow: "hidden",
     transition: "box-shadow 0.2s ease, border-color 0.2s ease",
 
     // Simple hover effects for blog cards
     "&:hover": {
       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      borderColor: isDone ? "#616161" : "primary.light", // Slightly lighter gray on hover for DONE
+      borderColor: isDone ? "#616161" : "primary.light",
     },
 
     // Simple focus states
@@ -113,6 +117,18 @@ const CardBase: React.FC<SimplifiedCardBaseProps> = ({
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {chipContent}
+          {isDirty && (
+            <Tooltip title="Unsaved changes" arrow placement="top">
+              <EditNote
+                sx={{
+                  fontSize: 16,
+                  color: "primary.main",
+                  opacity: 0.75,
+                  flexShrink: 0,
+                }}
+              />
+            </Tooltip>
+          )}
         </Box>
         <Box sx={{ display: "flex", alignItems: "center" }}>
           {actionContent}

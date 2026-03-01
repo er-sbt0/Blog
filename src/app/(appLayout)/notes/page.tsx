@@ -18,44 +18,44 @@ export default function NotesPage() {
 
   return (
     <NotesClipboardProvider>
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        minHeight: 0,
-      }}
-    >
-      {/* Board selector header — visually distinct from canvas */}
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
-          gap: 1.5,
-          px: 2,
-          py: 1,
-          bgcolor: "background.paper",
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          flexShrink: 0,
+          flexDirection: "column",
+          height: "100%",
+          minHeight: 0,
         }}
       >
-        <StickyNote2 sx={{ fontSize: 20, color: "text.secondary" }} />
-        <BoardSelector
-          boards={boards}
-          activeCanvasId={activeCanvasId}
-          onSelectBoard={setActiveCanvasId}
-          onCreateBoard={createBoard}
-          onRenameBoard={renameBoard}
-          onDeleteBoard={deleteBoard}
-        />
-      </Box>
+        {/* Board selector header — visually distinct from canvas */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            px: 2,
+            py: 1,
+            bgcolor: "background.paper",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            flexShrink: 0,
+          }}
+        >
+          <StickyNote2 sx={{ fontSize: 20, color: "text.secondary" }} />
+          <BoardSelector
+            boards={boards}
+            activeCanvasId={activeCanvasId}
+            onSelectBoard={setActiveCanvasId}
+            onCreateBoard={createBoard}
+            onRenameBoard={renameBoard}
+            onDeleteBoard={deleteBoard}
+          />
+        </Box>
 
-      {/* Canvas area */}
-      <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-        <NotesCanvas canvasId={activeCanvasId} />
+        {/* Canvas area */}
+        <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+          <NotesCanvas canvasId={activeCanvasId} />
+        </Box>
       </Box>
-    </Box>
     </NotesClipboardProvider>
   );
 }

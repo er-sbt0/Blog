@@ -6,11 +6,13 @@ import { FloatingActionButton } from "../Layout/FloatingActionsContainer";
 interface SaveDiscardActionsProps {
   onSave?: () => void;
   onDiscard?: () => void;
+  isDirty?: boolean;
 }
 
 const SaveDiscardActions: React.FC<SaveDiscardActionsProps> = ({
   onSave,
   onDiscard,
+  isDirty,
 }) => {
   if (!onSave && !onDiscard) return null;
 
@@ -45,11 +47,12 @@ const SaveDiscardActions: React.FC<SaveDiscardActionsProps> = ({
             onClick={onSave}
             sx={{
               displayPrint: "none",
-              bgcolor: "background.paper",
-              color: "text.primary",
-              boxShadow: 2,
+              bgcolor: isDirty ? "primary.main" : "background.paper",
+              color: isDirty ? "primary.contrastText" : "text.primary",
+              boxShadow: isDirty ? 4 : 2,
+              transition: "background-color 0.2s, color 0.2s, box-shadow 0.2s",
               "&:hover": {
-                bgcolor: "action.hover",
+                bgcolor: isDirty ? "primary.dark" : "action.hover",
                 boxShadow: 4,
               },
             }}

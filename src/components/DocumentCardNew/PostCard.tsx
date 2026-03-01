@@ -35,6 +35,11 @@ const PostCard: React.FC<PostCardProps> = memo(({
   const { document, author, postState, href, seriesInfo, ariaLabel, status } =
     usePostState(userDocument, user);
 
+  // Local is ahead of cloud when both exist but heads differ
+  const isDirty = Boolean(userDocument?.local) &&
+    Boolean(userDocument?.cloud) &&
+    userDocument!.local!.head !== userDocument!.cloud!.head;
+
   // If loading, show unified loading card
   if (postState.isLoading) {
     return <LoadingCard sx={sx} />;
@@ -46,6 +51,7 @@ const PostCard: React.FC<PostCardProps> = memo(({
       href={href}
       isLoading={false}
       status={status}
+      isDirty={isDirty}
       topContent={
         <PostContent
           userDocument={userDocument}

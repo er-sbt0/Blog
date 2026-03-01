@@ -6,9 +6,7 @@ import DraggableNote from "./DraggableNote";
 import NotesToolbar from "./NotesToolbar";
 import StaticNoteCard from "./StaticNoteCard";
 import NotesMigrationBanner from "./NotesMigrationBanner";
-import {
-  useNotesClipboard,
-} from "./NotesClipboardContext";
+import { useNotesClipboard } from "./NotesClipboardContext";
 import type { Note, NotesCanvas as CanvasData } from "@/types/notes";
 import { useCallback, useEffect } from "react";
 
@@ -27,7 +25,9 @@ function PasteButton({
   addNote,
   canvas,
 }: {
-  addNote: (note: Omit<Note, "id" | "createdAt" | "updatedAt" | "canvasId">) => void;
+  addNote: (
+    note: Omit<Note, "id" | "createdAt" | "updatedAt" | "canvasId">,
+  ) => void;
   canvas: CanvasData | null;
 }) {
   const { clip, clearClip } = useNotesClipboard();
@@ -45,7 +45,9 @@ function PasteButton({
       content: clip.content,
       color: clip.color,
       title: clip.title,
-      zIndex: canvas ? Math.max(...canvas.notes.map((n) => n.zIndex), 0) + 1 : 1,
+      zIndex: canvas
+        ? Math.max(...canvas.notes.map((n) => n.zIndex), 0) + 1
+        : 1,
     });
     clearClip();
   };
@@ -80,7 +82,13 @@ function PasteButton({
       <Button
         size="small"
         onClick={clearClip}
-        sx={{ fontSize: "0.75rem", py: 0.5, px: 1, textTransform: "none", minWidth: "auto" }}
+        sx={{
+          fontSize: "0.75rem",
+          py: 0.5,
+          px: 1,
+          textTransform: "none",
+          minWidth: "auto",
+        }}
       >
         Clear
       </Button>

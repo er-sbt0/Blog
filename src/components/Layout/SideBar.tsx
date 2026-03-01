@@ -31,6 +31,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clear,
+  CloudUpload,
   Code,
   Create,
   Dashboard,
@@ -477,10 +478,34 @@ const SideBar: React.FC = () => {
       const isEditing = pathname === `/edit/${post.id}`;
       const isSelected = isViewing || isEditing;
       const isRenaming = renamingPostId === post.id;
+      const isDirty = Boolean(post.local) && Boolean(post.cloud) &&
+        post.local!.head !== post.cloud!.head;
+
+      const handleSyncToCloud = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dispatch(
+          actions.updateCloudDocument({
+            id: post.id,
+            partial: {
+              head: post.local!.head,
+              updatedAt: post.local!.updatedAt,
+              parentId: post.local!.parentId,
+            },
+          }),
+        );
+      };
 
       return (
-        <ListItem key={post.id} disablePadding sx={{ display: "block" }}>
-          <Tooltip title={open ? "" : docName} placement="right">
+        <ListItem
+          key={post.id}
+          disablePadding
+          sx={{
+            display: "block",
+            "& .sync-btn": { opacity: 0, transition: "opacity 0.15s" },
+            "&:hover .sync-btn": { opacity: 1 },
+          }}
+        >          <Tooltip title={open ? "" : docName} placement="right">
             <ListItemButton
               component={isRenaming ? "div" : SafeNavigationLink}
               href={isRenaming ? undefined : `/view/${post.id}`}
@@ -511,6 +536,7 @@ const SideBar: React.FC = () => {
                   minWidth: 0,
                   mr: open ? 1.5 : "auto",
                   justifyContent: "center",
+                  position: "relative",
                 }}
               >
                 <Article
@@ -519,6 +545,20 @@ const SideBar: React.FC = () => {
                     color: "text.secondary",
                   }}
                 />
+                {post.local && post.cloud && post.local.head !== post.cloud.head && (
+                  <Box
+                    component="span"
+                    sx={{
+                      position: "absolute",
+                      top: -1,
+                      right: -3,
+                      width: 5,
+                      height: 5,
+                      borderRadius: "50%",
+                      bgcolor: "primary.main",
+                    }}
+                  />
+                )}
               </ListItemIcon>
               {open &&
                 (isRenaming
@@ -555,6 +595,23 @@ const SideBar: React.FC = () => {
                       }}
                     />
                   ))}
+              {open && isDirty && (
+                <Tooltip title="Save to cloud" placement="right">
+                  <IconButton
+                    className="sync-btn"
+                    size="small"
+                    onClick={handleSyncToCloud}
+                    sx={{
+                      p: 0.25,
+                      ml: 0.5,
+                      color: "primary.main",
+                      "&:hover": { bgcolor: "action.hover" },
+                    }}
+                  >
+                    <CloudUpload sx={{ fontSize: 14 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
             </ListItemButton>
           </Tooltip>
         </ListItem>
@@ -563,6 +620,7 @@ const SideBar: React.FC = () => {
     [
       pathname,
       open,
+      dispatch,
       renamingPostId,
       handleContextMenu,
       handleDoubleClick,
