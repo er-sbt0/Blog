@@ -32,6 +32,7 @@ import {
   loadLocalDocuments,
   // New post and series actions
   loadSeries,
+  syncLocalToCloud,
   updateCloudDocument,
   updateLocalDocument,
   updateSeries,
@@ -67,6 +68,7 @@ export const actions = {
   deleteLocalRevision,
   deleteCloudRevision,
 
+  syncLocalToCloud,
   updateUser,
   alert,
 

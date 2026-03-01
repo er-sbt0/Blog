@@ -51,13 +51,11 @@ export const PostItem = memo(
       e.preventDefault();
       e.stopPropagation();
       dispatch(
-        actions.updateCloudDocument({
+        actions.syncLocalToCloud({
           id: post.id,
-          partial: {
-            head: post.local!.head,
-            updatedAt: post.local!.updatedAt,
-            parentId: post.local!.parentId,
-          },
+          localHead: post.local!.head,
+          updatedAt: post.local!.updatedAt,
+          parentId: post.local!.parentId,
         }),
       );
     };

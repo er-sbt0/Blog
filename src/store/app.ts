@@ -602,6 +602,56 @@ export const createCloudRevision = createAsyncThunk(
   },
 );
 
+export const syncLocalToCloud = createAsyncThunk(
+  "app/syncLocalToCloud",
+  async (payload: { id: string; localHead: string; updatedAt: string | Date; parentId?: string | null }, thunkAPI) => {
+    try {
+      NProgress.start();
+      const { id, localHead, updatedAt, parentId } = payload;
+
+      // Regular edits update documentDB (not revisionDB), so read from there
+      const localDoc = await documentDB.getByID(id);
+      if (!localDoc?.data) {
+        return thunkAPI.rejectWithValue({
+          title: "Sync failed",
+          subtitle: "Local document not found",
+        });
+      }
+
+      const revision: EditorDocumentRevision = {
+        id: localHead,
+        documentId: id,
+        data: localDoc.data,
+        createdAt: updatedAt,
+      };
+
+      const revisionResponse = await thunkAPI.dispatch(
+        createCloudRevision(revision),
+      );
+      if (revisionResponse.type !== createCloudRevision.fulfilled.type) {
+        return thunkAPI.rejectWithValue(revisionResponse.payload);
+      }
+
+      const docResponse = await thunkAPI.dispatch(
+        updateCloudDocument({ id, partial: { head: localHead, updatedAt, parentId } }),
+      );
+      if (docResponse.type !== updateCloudDocument.fulfilled.type) {
+        return thunkAPI.rejectWithValue(docResponse.payload);
+      }
+
+      return thunkAPI.fulfillWithValue(undefined);
+    } catch (error: unknown) {
+      console.error(error);
+      return thunkAPI.rejectWithValue({
+        title: "Something went wrong",
+        subtitle: toErrorMessage(error),
+      });
+    } finally {
+      NProgress.done();
+    }
+  },
+);
+
 export const updateLocalDocument = createAsyncThunk(
   "app/updateLocalDocument",
   async (
@@ -665,8 +715,7 @@ export const updateCloudDocument = createAsyncThunk(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(partial),
       });
-      const { data, error } = await response
-        .json() as PatchDocumentResponse;
+      const { data, error } = await response.json() as PatchDocumentResponse;
       if (error) return thunkAPI.rejectWithValue(error);
       if (!data) {
         return thunkAPI.rejectWithValue({

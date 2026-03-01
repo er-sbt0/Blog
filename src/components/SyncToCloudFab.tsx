@@ -22,13 +22,11 @@ const SyncToCloudFab: React.FC<{ documentId: string }> = ({ documentId }) => {
   const handleSync = async () => {
     if (!userDocument?.local) return;
     await dispatch(
-      actions.updateCloudDocument({
+      actions.syncLocalToCloud({
         id: documentId,
-        partial: {
-          head: userDocument.local.head,
-          updatedAt: userDocument.local.updatedAt,
-          parentId: userDocument.local.parentId,
-        },
+        localHead: userDocument.local.head,
+        updatedAt: userDocument.local.updatedAt,
+        parentId: userDocument.local.parentId,
       }),
     );
   };

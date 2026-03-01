@@ -182,6 +182,7 @@ export const PATCH = withApiHandler(
 
     revalidatePath("/");
     revalidatePath(`/${userPost.handle || params.id}`);
+    revalidatePath(`/view/${params.id}`);
     if (userPost.seriesId) {
       revalidatePath("/series");
       revalidatePath(`/series/${userPost.seriesId}`);
