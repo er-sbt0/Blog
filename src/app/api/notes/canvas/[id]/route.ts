@@ -1,3 +1,4 @@
+import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { authOptions } from "@/lib/auth";
 import {
   deleteCanvas,
@@ -5,200 +6,118 @@ import {
   updateCanvas,
 } from "@/repositories/notes";
 import { getServerSession } from "next-auth";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/notes/canvas/[id] - Get a single canvas with its notes
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Unauthorized",
-            subtitle: "Please sign in to access notes",
-          },
-        },
-        { status: 401 },
-      );
-    }
+export const GET = withApiHandler(async (_request, { params }) => {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    throw new ApiError(401, "Unauthorized", "Please sign in to access notes");
+  }
 
-    if (session.user.disabled) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Account Disabled",
-            subtitle: "Account is disabled for violating terms of service",
-          },
-        },
-        { status: 403 },
-      );
-    }
-
-    const { id: canvasId } = await params;
-    const canvas = await findCanvasById(canvasId);
-
-    if (!canvas) {
-      return NextResponse.json(
-        { error: { title: "Not Found", subtitle: "Canvas not found" } },
-        { status: 404 },
-      );
-    }
-
-    if (canvas.authorId !== session.user.id) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Forbidden",
-            subtitle: "You don't have permission to access this canvas",
-          },
-        },
-        { status: 403 },
-      );
-    }
-
-    return NextResponse.json({ data: canvas }, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching canvas:", error);
-    return NextResponse.json(
-      { error: { title: "Server Error", subtitle: "Failed to fetch canvas" } },
-      { status: 500 },
+  if (session.user.disabled) {
+    throw new ApiError(
+      403,
+      "Account Disabled",
+      "Account is disabled for violating terms of service",
     );
   }
-}
+
+  const { id: canvasId } = await params;
+  const canvas = await findCanvasById(canvasId);
+
+  if (!canvas) {
+    throw new ApiError(404, "Not Found", "Canvas not found");
+  }
+
+  if (canvas.authorId !== session.user.id) {
+    throw new ApiError(
+      403,
+      "Forbidden",
+      "You don't have permission to access this canvas",
+    );
+  }
+
+  return NextResponse.json({ data: canvas });
+}, { context: "Error fetching canvas" });
 
 // PATCH /api/notes/canvas/[id] - Update canvas name
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Unauthorized",
-            subtitle: "Please sign in to update a canvas",
-          },
-        },
-        { status: 401 },
-      );
-    }
-
-    if (session.user.disabled) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Account Disabled",
-            subtitle: "Account is disabled for violating terms of service",
-          },
-        },
-        { status: 403 },
-      );
-    }
-
-    const { id: canvasId } = await params;
-    const canvas = await findCanvasById(canvasId);
-
-    if (!canvas) {
-      return NextResponse.json(
-        { error: { title: "Not Found", subtitle: "Canvas not found" } },
-        { status: 404 },
-      );
-    }
-
-    if (canvas.authorId !== session.user.id) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Forbidden",
-            subtitle: "You don't have permission to update this canvas",
-          },
-        },
-        { status: 403 },
-      );
-    }
-
-    const body = await request.json();
-    const { name } = body;
-
-    const updatedCanvas = await updateCanvas(canvasId, { name });
-    return NextResponse.json({ data: updatedCanvas }, { status: 200 });
-  } catch (error) {
-    console.error("Error updating canvas:", error);
-    return NextResponse.json(
-      { error: { title: "Server Error", subtitle: "Failed to update canvas" } },
-      { status: 500 },
+export const PATCH = withApiHandler(async (request, { params }) => {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    throw new ApiError(
+      401,
+      "Unauthorized",
+      "Please sign in to update a canvas",
     );
   }
-}
+
+  if (session.user.disabled) {
+    throw new ApiError(
+      403,
+      "Account Disabled",
+      "Account is disabled for violating terms of service",
+    );
+  }
+
+  const { id: canvasId } = await params;
+  const canvas = await findCanvasById(canvasId);
+
+  if (!canvas) {
+    throw new ApiError(404, "Not Found", "Canvas not found");
+  }
+
+  if (canvas.authorId !== session.user.id) {
+    throw new ApiError(
+      403,
+      "Forbidden",
+      "You don't have permission to update this canvas",
+    );
+  }
+
+  const body = await request.json();
+  const { name } = body;
+
+  const updatedCanvas = await updateCanvas(canvasId, { name });
+  return NextResponse.json({ data: updatedCanvas });
+}, { context: "Error updating canvas" });
 
 // DELETE /api/notes/canvas/[id] - Delete canvas
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Unauthorized",
-            subtitle: "Please sign in to delete a canvas",
-          },
-        },
-        { status: 401 },
-      );
-    }
-
-    if (session.user.disabled) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Account Disabled",
-            subtitle: "Account is disabled for violating terms of service",
-          },
-        },
-        { status: 403 },
-      );
-    }
-
-    const { id: canvasId } = await params;
-    const canvas = await findCanvasById(canvasId);
-
-    if (!canvas) {
-      return NextResponse.json(
-        { error: { title: "Not Found", subtitle: "Canvas not found" } },
-        { status: 404 },
-      );
-    }
-
-    if (canvas.authorId !== session.user.id) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Forbidden",
-            subtitle: "You don't have permission to delete this canvas",
-          },
-        },
-        { status: 403 },
-      );
-    }
-
-    await deleteCanvas(canvasId);
-    return NextResponse.json({ data: { success: true } }, { status: 200 });
-  } catch (error) {
-    console.error("Error deleting canvas:", error);
-    return NextResponse.json(
-      { error: { title: "Server Error", subtitle: "Failed to delete canvas" } },
-      { status: 500 },
+export const DELETE = withApiHandler(async (_request, { params }) => {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    throw new ApiError(
+      401,
+      "Unauthorized",
+      "Please sign in to delete a canvas",
     );
   }
-}
+
+  if (session.user.disabled) {
+    throw new ApiError(
+      403,
+      "Account Disabled",
+      "Account is disabled for violating terms of service",
+    );
+  }
+
+  const { id: canvasId } = await params;
+  const canvas = await findCanvasById(canvasId);
+
+  if (!canvas) {
+    throw new ApiError(404, "Not Found", "Canvas not found");
+  }
+
+  if (canvas.authorId !== session.user.id) {
+    throw new ApiError(
+      403,
+      "Forbidden",
+      "You don't have permission to delete this canvas",
+    );
+  }
+
+  await deleteCanvas(canvasId);
+  return NextResponse.json({ data: { success: true } });
+}, { context: "Error deleting canvas" });

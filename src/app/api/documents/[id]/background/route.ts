@@ -1,6 +1,6 @@
 import { authOptions } from "@/lib/auth";
+import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { findUserPost, updatePost } from "@/repositories/post";
-import { UploadBackgroundImageResponse } from "@/types";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
@@ -10,79 +10,64 @@ import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
-  request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
-  const params = await props.params;
-  const response: UploadBackgroundImageResponse = {};
+export const POST = withApiHandler(
+  async (request, props: { params: Promise<{ id: string }> }) => {
+    const params = await props.params;
 
-  try {
     if (!validate(params.id)) {
-      response.error = { title: "Bad Request", subtitle: "Invalid id" };
-      return NextResponse.json(response, { status: 400 });
+      throw new ApiError(400, "Bad Request", "Invalid id");
     }
 
     const session = await getServerSession(authOptions);
     if (!session) {
-      response.error = {
-        title: "Unauthorized",
-        subtitle: "Please sign in to upload images",
-      };
-      return NextResponse.json(response, { status: 401 });
+      throw new ApiError(
+        401,
+        "Unauthorized",
+        "Please sign in to upload images",
+      );
     }
 
     const { user } = session;
     if (user.disabled) {
-      response.error = {
-        title: "Account Disabled",
-        subtitle: "Account is disabled for violating terms of service",
-      };
-      return NextResponse.json(response, { status: 403 });
+      throw new ApiError(
+        403,
+        "Account Disabled",
+        "Account is disabled for violating terms of service",
+      );
     }
 
     const userDocument = await findUserPost(params.id);
     if (!userDocument) {
-      response.error = { title: "Document not found" };
-      return NextResponse.json(response, { status: 404 });
+      throw new ApiError(404, "Document not found");
     }
 
     if (user.id !== userDocument.author.id) {
-      response.error = {
-        title: "Forbidden",
-        subtitle: "You are not authorized to modify this document",
-      };
-      return NextResponse.json(response, { status: 403 });
+      throw new ApiError(
+        403,
+        "Forbidden",
+        "You are not authorized to modify this document",
+      );
     }
 
     // Since directories have been removed in blog refactor, reject all background operations
-    response.error = {
-      title: "Bad Request",
-      subtitle:
-        "Background images are only supported for directories, which have been removed",
-    };
-    return NextResponse.json(response, { status: 400 });
+    throw new ApiError(
+      400,
+      "Bad Request",
+      "Background images are only supported for directories, which have been removed",
+    );
 
     // Parse the form data
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
     if (!file) {
-      response.error = {
-        title: "Bad Request",
-        subtitle: "No file uploaded",
-      };
-      return NextResponse.json(response, { status: 400 });
+      throw new ApiError(400, "Bad Request", "No file uploaded");
     }
 
     // Check file type
     const fileType = file.type;
     if (!fileType.startsWith("image/")) {
-      response.error = {
-        title: "Bad Request",
-        subtitle: "Only image files are allowed",
-      };
-      return NextResponse.json(response, { status: 400 });
+      throw new ApiError(400, "Bad Request", "Only image files are allowed");
     }
 
     try {
@@ -112,33 +97,26 @@ export async function POST(
       });
 
       if (!updatedDocument) {
-        response.error = {
-          title: "Update Failed",
-          subtitle: "Failed to update document with background image",
-        };
-        return NextResponse.json(response, { status: 500 });
+        throw new ApiError(
+          500,
+          "Update Failed",
+          "Failed to update document with background image",
+        );
       }
 
-      response.data = {
-        background_image: imagePath,
-        document: updatedDocument!,
-      };
-
-      return NextResponse.json(response, { status: 200 });
+      return NextResponse.json({
+        data: {
+          background_image: imagePath,
+          document: updatedDocument!,
+        },
+      });
     } catch (error) {
       console.error("File processing error:", error);
-      response.error = {
-        title: "Upload Failed",
-        subtitle: "Failed to process the uploaded file",
-      };
-      return NextResponse.json(response, { status: 500 });
+      throw new ApiError(
+        500,
+        "Upload Failed",
+        "Failed to process the uploaded file",
+      );
     }
-  } catch (error) {
-    console.error(error);
-    response.error = {
-      title: "Something went wrong",
-      subtitle: "Please try again later",
-    };
-    return NextResponse.json(response, { status: 500 });
-  }
-}
+  },
+);

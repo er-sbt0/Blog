@@ -1,6 +1,7 @@
+import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { authOptions } from "@/lib/auth";
 import { createRevision } from "@/repositories/revision";
-import { EditorDocumentRevision, PostRevisionResponse } from "@/types";
+import { EditorDocumentRevision } from "@/types";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
@@ -8,61 +9,55 @@ import { findUserPost } from "@/repositories/post";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
-  const response: PostRevisionResponse = {};
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      response.error = {
-        title: "Unauthorized",
-        subtitle: "Please sign in to save your revision to the cloud",
-      };
-      return NextResponse.json(response, { status: 401 });
-    }
-    const { user } = session;
-    if (user.disabled) {
-      response.error = {
-        title: "Account Disabled",
-        subtitle: "Account is disabled for violating terms of service",
-      };
-      return NextResponse.json(response, { status: 403 });
-    }
-    const body = await request.json() as EditorDocumentRevision;
-    if (!body) {
-      response.error = {
-        title: "Bad Request",
-        subtitle: "No revision provided",
-      };
-      return NextResponse.json(response, { status: 400 });
-    }
+export const POST = withApiHandler(async (request: Request) => {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    throw new ApiError(
+      401,
+      "Unauthorized",
+      "Please sign in to save your revision to the cloud",
+    );
+  }
+  const { user } = session;
+  if (user.disabled) {
+    throw new ApiError(
+      403,
+      "Account Disabled",
+      "Account is disabled for violating terms of service",
+    );
+  }
+  const body = (await request.json()) as EditorDocumentRevision;
+  if (!body) {
+    throw new ApiError(400, "Bad Request", "No revision provided");
+  }
 
-    const cloudDocument = await findUserPost(body.documentId);
-    if (!cloudDocument) {
-      response.error = { title: "Document not found" };
-      return NextResponse.json(response, { status: 404 });
-    }
-    const isAuthor = user.id === cloudDocument.author.id;
-    // Remove coauthor logic for simple blog structure
-    const isCollab = cloudDocument.collab;
+  const cloudDocument = await findUserPost(body.documentId);
+  if (!cloudDocument) {
+    throw new ApiError(404, "Document not found");
+  }
+  const isAuthor = user.id === cloudDocument.author.id;
+  // Remove coauthor logic for simple blog structure
+  const isCollab = cloudDocument.collab;
 
-    if (!isAuthor && !isCollab) {
-      response.error = {
-        title: "This document is private",
-        subtitle: "You are not authorized to Edit this document",
-      };
-      return NextResponse.json(response, { status: 403 });
-    }
+  if (!isAuthor && !isCollab) {
+    throw new ApiError(
+      403,
+      "This document is private",
+      "You are not authorized to Edit this document",
+    );
+  }
 
-    const input: Prisma.RevisionUncheckedCreateInput = {
-      id: body.id,
-      authorId: user.id,
-      documentId: body.documentId,
-      createdAt: body.createdAt,
-      data: body.data as unknown as Prisma.JsonObject,
-    };
+  const input: Prisma.RevisionUncheckedCreateInput = {
+    id: body.id,
+    authorId: user.id,
+    documentId: body.documentId,
+    createdAt: body.createdAt,
+    data: body.data as unknown as Prisma.JsonObject,
+  };
 
-    const revision = await createRevision(input);
-    response.data = {
+  const revision = await createRevision(input);
+  return NextResponse.json({
+    data: {
       id: revision.id,
       documentId: revision.documentId,
       createdAt: revision.createdAt,
@@ -73,14 +68,6 @@ export async function POST(request: Request) {
         image: user.image,
         email: user.email,
       },
-    };
-    return NextResponse.json(response, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    response.error = {
-      title: "Something went wrong",
-      subtitle: "Please try again later",
-    };
-    return NextResponse.json(response, { status: 500 });
-  }
-}
+    },
+  });
+});

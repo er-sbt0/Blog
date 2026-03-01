@@ -1,4 +1,5 @@
 import { authOptions } from "@/lib/auth";
+import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { findUserPost, updatePost } from "@/repositories/post";
 import { DocumentStatus } from "@/types";
 import { getServerSession } from "next-auth";
@@ -6,52 +7,38 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
-  const params = await props.params;
-  return NextResponse.json({
-    message: "Status endpoint reached",
-    id: params.id,
-  });
-}
+export const GET = withApiHandler(
+  async (request, props: { params: Promise<{ id: string }> }) => {
+    const params = await props.params;
+    return NextResponse.json({
+      message: "Status endpoint reached",
+      id: params.id,
+    });
+  },
+);
 
-export async function PATCH(
-  request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
-  const params = await props.params;
+export const PATCH = withApiHandler(
+  async (request, props: { params: Promise<{ id: string }> }) => {
+    const params = await props.params;
 
-  try {
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json(
-        { error: { title: "Unauthorized", subtitle: "Please sign in" } },
-        { status: 401 },
-      );
+      throw new ApiError(401, "Unauthorized", "Please sign in");
     }
 
     const { user } = session;
     if (user.disabled) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Account Disabled",
-            subtitle: "Account is disabled for violating terms of service",
-          },
-        },
-        { status: 403 },
+      throw new ApiError(
+        403,
+        "Account Disabled",
+        "Account is disabled for violating terms of service",
       );
     }
 
     // Find the document
     const userPost = await findUserPost(params.id);
     if (!userPost) {
-      return NextResponse.json(
-        { error: { title: "Document not found" } },
-        { status: 404 },
-      );
+      throw new ApiError(404, "Document not found");
     }
 
     // Check if user can edit this document
@@ -60,14 +47,10 @@ export async function PATCH(
     const canEdit = isAuthor || isCollab;
 
     if (!canEdit) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Forbidden",
-            subtitle: "You are not authorized to edit this document",
-          },
-        },
-        { status: 403 },
+      throw new ApiError(
+        403,
+        "Forbidden",
+        "You are not authorized to edit this document",
       );
     }
 
@@ -76,15 +59,7 @@ export async function PATCH(
 
     // Validate status
     if (!status || !Object.values(DocumentStatus).includes(status)) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Bad Request",
-            subtitle: "Invalid status value",
-          },
-        },
-        { status: 400 },
-      );
+      throw new ApiError(400, "Bad Request", "Invalid status value");
     }
 
     // Update the document status
@@ -93,14 +68,10 @@ export async function PATCH(
     });
 
     if (!updatedPost) {
-      return NextResponse.json(
-        {
-          error: {
-            title: "Internal Server Error",
-            subtitle: "Failed to update document",
-          },
-        },
-        { status: 500 },
+      throw new ApiError(
+        500,
+        "Internal Server Error",
+        "Failed to update document",
       );
     }
 
@@ -111,16 +82,5 @@ export async function PATCH(
         status: updatedPost.status,
       },
     });
-  } catch (error) {
-    console.error("Error updating document status:", error);
-    return NextResponse.json(
-      {
-        error: {
-          title: "Internal Server Error",
-          subtitle: "Failed to update document status",
-        },
-      },
-      { status: 500 },
-    );
-  }
-}
+  },
+);

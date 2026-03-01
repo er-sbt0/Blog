@@ -1,39 +1,24 @@
 import { generateDocx } from "@/editor/utils/generateDocx";
+import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { getCachedRevision } from "@/repositories/revision";
-import { NextResponse } from "next/server";
 
-export async function GET(request: Request) {
+export const GET = withApiHandler(async (request: Request) => {
   const url = new URL(request.url);
   const search = url.searchParams;
   const revisionId = search.get("v")!;
 
-  try {
-    const revision = await getCachedRevision(revisionId);
-    if (!revision) {
-      return NextResponse.json({
-        error: {
-          title: "Something went wrong",
-          subtitle: "Revision not found",
-        },
-      }, { status: 404 });
-    }
-    const blob = await generateDocx(revision.data);
-    return new Response(blob, {
-      headers: {
-        "Content-Type":
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `inline; filename="${
-          encodeURIComponent(revision.id)
-        }.docx"`,
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({
-      error: {
-        title: "Something went wrong",
-        subtitle: "Please try again later",
-      },
-    }, { status: 500 });
+  const revision = await getCachedRevision(revisionId);
+  if (!revision) {
+    throw new ApiError(404, "Something went wrong", "Revision not found");
   }
-}
+  const blob = await generateDocx(revision.data);
+  return new Response(blob, {
+    headers: {
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "Content-Disposition": `inline; filename="${
+        encodeURIComponent(revision.id)
+      }.docx"`,
+    },
+  });
+});

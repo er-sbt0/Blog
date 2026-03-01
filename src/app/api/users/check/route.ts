@@ -1,32 +1,16 @@
-import { CheckHandleResponse } from "@/types";
+import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { NextResponse } from "next/server";
 import { validateHandle } from "../utils";
 
-export async function GET(request: Request) {
-  const response: CheckHandleResponse = {};
+export const GET = withApiHandler(async (request: Request) => {
   const { searchParams } = new URL(request.url);
   const handle = searchParams.get("handle");
   if (!handle) {
-    response.error = {
-      title: "Bad Request",
-      subtitle: "No user handle provided",
-    };
-    return NextResponse.json(response, { status: 400 });
+    throw new ApiError(400, "Bad Request", "No user handle provided");
   }
-  try {
-    const validationError = await validateHandle(handle);
-    if (validationError) {
-      response.error = validationError;
-      return NextResponse.json(response, { status: 200 });
-    }
-    response.data = true;
-    return NextResponse.json(response, { status: 200 });
-  } catch (error) {
-    console.error(error);
-    response.error = {
-      title: "something went wrong",
-      subtitle: "Please try again later",
-    };
-    return NextResponse.json(response, { status: 500 });
+  const validationError = await validateHandle(handle);
+  if (validationError) {
+    return NextResponse.json({ error: validationError });
   }
-}
+  return NextResponse.json({ data: true });
+});
