@@ -182,22 +182,24 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
                 />
               )
               : (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 500,
-                    color: isDone ? "text.secondary" : "text.primary",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    minWidth: 0,
-                    flex: 1,
-                    fontSize: "0.9rem",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {document?.name || "Untitled"}
-                </Typography>
+                <Tooltip title={authorName} placement="top-start" enterDelay={600}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 500,
+                      color: isDone ? "text.secondary" : "text.primary",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      minWidth: 0,
+                      flex: 1,
+                      fontSize: "0.9rem",
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    {document?.name || "Untitled"}
+                  </Typography>
+                </Tooltip>
               )}
 
             {isTimeEditMode && (
@@ -225,62 +227,49 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
             )}
           </Box>
 
-          {/* Metadata */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              width: "100%",
-            }}
-          >
-            <Typography
-              variant="caption"
+          {/* Metadata — only shown in time-edit mode */}
+          {isTimeEditMode && (
+            <Box
               sx={{
-                color: "text.disabled",
-                fontSize: "0.75rem",
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
+                width: "100%",
               }}
             >
-              <span>{authorName}</span>
-              {isTimeEditMode && (
-                <>
-                  <Box
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.disabled",
+                  fontSize: "0.75rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <span
+                  style={{
+                    color: hasRowChanges ? "inherit" : undefined,
+                    fontWeight: hasRowChanges ? 600 : 400,
+                  }}
+                >
+                  {formatFullDate(displayDate)}
+                </span>
+                {hasRowChanges && (
+                  <Typography
                     component="span"
                     sx={{
-                      width: 3,
-                      height: 3,
-                      borderRadius: "50%",
-                      bgcolor: "text.disabled",
-                      opacity: 0.5,
-                    }}
-                  />
-                  <span
-                    style={{
-                      color: hasRowChanges ? "inherit" : undefined,
-                      fontWeight: hasRowChanges ? 600 : 400,
+                      fontSize: "0.7rem",
+                      color: "warning.main",
+                      fontWeight: 500,
                     }}
                   >
-                    {formatFullDate(displayDate)}
-                  </span>
-                  {hasRowChanges && (
-                    <Typography
-                      component="span"
-                      sx={{
-                        fontSize: "0.7rem",
-                        color: "warning.main",
-                        fontWeight: 500,
-                      }}
-                    >
-                      (was {formatFullDate(originalDate)})
-                    </Typography>
-                  )}
-                </>
-              )}
-            </Typography>
-          </Box>
+                    (was {formatFullDate(originalDate)})
+                  </Typography>
+                )}
+              </Typography>
+            </Box>
+          )}
         </Box>
 
         {/* Time stepper controls */}
