@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from "react";
 import {
   Box,
-  Chip,
   Collapse,
   List,
   ListItem,
@@ -163,40 +162,8 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
         <List sx={listSx}>
           {groups.map((group) => {
             if (group.type === "series" && group.series) {
-              const isExpanded = expandedSeries.has(group.series.id);
               const postCount = group.posts.length;
-
-              if (postCount === 0) {
-                return (
-                  <Box
-                    key={`series-${group.series.id}`}
-                    sx={{
-                      py: 1.25,
-                      px: 2,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      borderRadius: 1.5,
-                    }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontWeight: 600,
-                        fontSize: "0.9rem",
-                        letterSpacing: "-0.01em",
-                        color: "text.disabled",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        minWidth: 0,
-                      }}
-                    >
-                      {group.series.title}
-                    </Typography>
-                  </Box>
-                );
-              }
+              const isExpanded = postCount > 0 && expandedSeries.has(group.series.id);
 
               return (
                 <React.Fragment key={`series-${group.series.id}`}>
@@ -218,13 +185,17 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                         borderRadius: "0 2px 2px 0",
                         transition: "height 0.2s ease",
                       },
-                      "&:hover::before": { height: "60%" },
-                      "&:hover": { bgcolor: "action.hover" },
+                      ...(postCount > 0 && {
+                        "&:hover::before": { height: "60%" },
+                        "&:hover": { bgcolor: "action.hover" },
+                      }),
                       transition: "background-color 0.2s ease",
                     }}
                   >
                     <ListItemButton
-                      onClick={() => toggleSeries(group.series!.id)}
+                      disableRipple={postCount === 0}
+                      onClick={() =>
+                        postCount > 0 && toggleSeries(group.series!.id)}
                       sx={{
                         py: 1.25,
                         px: 2,
@@ -232,51 +203,52 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                         alignItems: "center",
                         gap: 1,
                         borderRadius: 1.5,
+                        cursor: postCount === 0 ? "default" : "pointer",
                         "&:hover": { bgcolor: "transparent" },
                       }}
                     >
-                      <ChevronRight
-                        sx={{
-                          fontSize: 18,
-                          color: "text.secondary",
-                          flexShrink: 0,
-                          transition: "transform 0.2s ease",
-                          transform: isExpanded ? "rotate(90deg)" : "none",
-                        }}
-                      />
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: "0.9rem",
-                          letterSpacing: "-0.01em",
-                          flex: 1,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          minWidth: 0,
-                        }}
-                      >
-                        {group.series.title}
-                      </Typography>
-                      <Chip
-                        label={postCount}
-                        size="small"
-                        sx={{
-                          height: 20,
-                          fontSize: "0.7rem",
-                          flexShrink: 0,
-                          bgcolor: "action.selected",
-                        }}
-                      />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: "0.9rem",
+                            letterSpacing: "-0.01em",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {group.series.title}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: "text.disabled",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          series · {postCount}{" "}
+                          {postCount === 1 ? "post" : "posts"}
+                        </Typography>
+                      </Box>
+                      {postCount > 0 && (
+                        <ChevronRight
+                          sx={{
+                            fontSize: 18,
+                            color: "text.secondary",
+                            flexShrink: 0,
+                            transition: "transform 0.2s ease",
+                            transform: isExpanded ? "rotate(90deg)" : "none",
+                          }}
+                        />
+                      )}
                     </ListItemButton>
                   </ListItem>
 
                   <Collapse in={isExpanded} unmountOnExit>
                     <Box
                       sx={{
-                        pl: 1,
-                        ml: 2.5,
                         borderLeft: "2px solid",
                         borderColor: "divider",
                         mb: 0.5,
@@ -293,12 +265,7 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
             } else {
               const post = group.posts[0];
               if (!post) return null;
-              // Match the indentation of series member posts (ml:2.5 + pl:1 = 28px)
-              return (
-                <Box key={post.id} sx={{ pl: 3.5 }}>
-                  {renderPostItem(post)}
-                </Box>
-              );
+              return renderPostItem(post);
             }
           })}
         </List>

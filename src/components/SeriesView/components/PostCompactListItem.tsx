@@ -245,37 +245,39 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
               }}
             >
               <span>{authorName}</span>
-              <Box
-                component="span"
-                sx={{
-                  width: 3,
-                  height: 3,
-                  borderRadius: "50%",
-                  bgcolor: "text.disabled",
-                  opacity: 0.5,
-                }}
-              />
-              <span
-                style={{
-                  color: hasRowChanges ? "inherit" : undefined,
-                  fontWeight: hasRowChanges ? 600 : 400,
-                }}
-              >
-                {isTimeEditMode
-                  ? formatFullDate(displayDate)
-                  : formatDate(displayDate)}
-              </span>
-              {hasRowChanges && (
-                <Typography
-                  component="span"
-                  sx={{
-                    fontSize: "0.7rem",
-                    color: "warning.main",
-                    fontWeight: 500,
-                  }}
-                >
-                  (was {formatFullDate(originalDate)})
-                </Typography>
+              {isTimeEditMode && (
+                <>
+                  <Box
+                    component="span"
+                    sx={{
+                      width: 3,
+                      height: 3,
+                      borderRadius: "50%",
+                      bgcolor: "text.disabled",
+                      opacity: 0.5,
+                    }}
+                  />
+                  <span
+                    style={{
+                      color: hasRowChanges ? "inherit" : undefined,
+                      fontWeight: hasRowChanges ? 600 : 400,
+                    }}
+                  >
+                    {formatFullDate(displayDate)}
+                  </span>
+                  {hasRowChanges && (
+                    <Typography
+                      component="span"
+                      sx={{
+                        fontSize: "0.7rem",
+                        color: "warning.main",
+                        fontWeight: 500,
+                      }}
+                    >
+                      (was {formatFullDate(originalDate)})
+                    </Typography>
+                  )}
+                </>
               )}
             </Typography>
           </Box>
