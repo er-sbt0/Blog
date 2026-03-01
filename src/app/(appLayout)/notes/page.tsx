@@ -35,8 +35,6 @@ export default function NotesPage() {
             px: 2,
             py: 1,
             bgcolor: "background.paper",
-            borderBottom: "1px solid",
-            borderColor: "divider",
             flexShrink: 0,
           }}
         >
