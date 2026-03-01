@@ -1,14 +1,8 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { v4 as uuidv4, validate } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import * as React from "react";
-import {
-  CheckHandleResponse,
-  Document,
-  DocumentCreateInput,
-  User,
-  UserDocument,
-} from "@/types";
+import { DocumentCreateInput, User, UserDocument } from "@/types";
 import { useCallback, useEffect, useState } from "react";
 import { actions, useDispatch, useSelector } from "@/store";
 import DocumentCard from "./DocumentCardNew";
@@ -16,14 +10,9 @@ import {
   Avatar,
   Box,
   Button,
-  Checkbox,
   Container,
-  FormControl,
   FormControlLabel,
   FormHelperText,
-  InputLabel,
-  MenuItem,
-  Select,
   Switch,
   TextField,
   Typography,
@@ -31,69 +20,17 @@ import {
 import { Add, Article } from "@mui/icons-material";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import UsersAutocomplete from "./User/UsersAutocomplete";
-import { debounce } from "@mui/material/utils";
-import type {
-  SerializedParagraphNode,
-  SerializedRootNode,
-  SerializedTextNode,
-} from "lexical";
-import type { SerializedHeadingNode } from "@lexical/rich-text";
+import { Document } from "@/types";
+import { getEditorData } from "@/utils/getEditorData";
+import { useHandleValidation } from "@/hooks/useHandleValidation";
+import DocumentVisibilityFields from "./DocumentActions/DocumentVisibilityFields";
 
-const getEditorData = (title: string) => {
-  const headingText: SerializedTextNode = {
-    detail: 0,
-    format: 0,
-    mode: "normal",
-    style: "",
-    text: title,
-    type: "text",
-    version: 1,
-  };
-  const heading: SerializedHeadingNode = {
-    children: [headingText],
-    direction: "ltr",
-    format: "center",
-    indent: 0,
-    tag: "h2",
-    type: "heading",
-    version: 1,
-  };
-  const paragraph: SerializedParagraphNode = {
-    children: [],
-    direction: "ltr",
-    format: "left",
-    textFormat: 0,
-    textStyle: "",
-    indent: 0,
-    type: "paragraph",
-    version: 1,
-  };
-  const root: SerializedRootNode = {
-    children: [heading, paragraph],
-    direction: "ltr",
-    type: "root",
-    version: 1,
-    format: "left",
-    indent: 0,
-  };
-  return ({ root });
-};
-
-const NewDocument: React.FC<{ cloudDocument?: Document }> = (
-  { cloudDocument },
-) => {
+const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) => {
   const initialized = useSelector((state) => state.ui.initialized);
   const user = useSelector((state) => state.user);
   const unauthenticated = initialized && !user;
   const isOnline = useOnlineStatus();
-  const [input, setInput] = useState<Partial<DocumentCreateInput>>({
-    published: true, // Default to published for blog posts
-  });
-  const [validating, setValidating] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
-  const hasErrors = Object.keys(validationErrors).length > 0;
+  const [input, setInput] = useState<Partial<DocumentCreateInput>>({ published: true });
   const [saveToCloud, setSaveToCloud] = useState(true);
   const dispatch = useDispatch();
   const pathname = usePathname();
@@ -102,91 +39,65 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
   const revisionId = searchParams.get("v");
   const parentId = searchParams.get("parentId");
   const seriesId = searchParams.get("seriesId");
-
   const [base, setBase] = useState<UserDocument | undefined>(
     cloudDocument ? { id: cloudDocument.id, cloud: cloudDocument } : undefined,
   );
   const [nextSeriesOrder, setNextSeriesOrder] = useState<number | null>(null);
 
-  // Effect to fetch series and calculate next order if seriesId is provided
+  const updateInput = useCallback((partial: Partial<DocumentCreateInput>) => {
+    setInput((prev) => ({ ...prev, ...partial }));
+  }, []);
+
+  const { validating, validationErrors, hasErrors, updateHandle } = useHandleValidation({ updateInput });
+
   useEffect(() => {
     const fetchSeriesOrder = async () => {
       if (!seriesId) return;
-
       try {
         const response = await fetch(`/api/series/${seriesId}`);
         if (response.ok) {
           const { data: series } = await response.json();
-          if (series && series.posts) {
-            // Calculate next order based on existing posts
-            const maxOrder = series.posts.reduce(
-              (max: number, post: any) => Math.max(max, post.seriesOrder || 0),
-              0,
-            );
-            setNextSeriesOrder(maxOrder + 1);
-          } else {
-            setNextSeriesOrder(1); // First post in series
-          }
+          const maxOrder = (series?.posts ?? []).reduce(
+            (max: number, post: { seriesOrder?: number }) => Math.max(max, post.seriesOrder || 0),
+            0,
+          );
+          setNextSeriesOrder(maxOrder + 1);
+        } else {
+          setNextSeriesOrder(1);
         }
       } catch (error) {
         console.error("Failed to fetch series:", error);
-        setNextSeriesOrder(1); // Default to first post
+        setNextSeriesOrder(1);
       }
     };
-
     fetchSeriesOrder();
   }, [seriesId]);
 
-  // Effect to handle changes in online status or authentication
   useEffect(() => {
-    // If user goes offline or logs out, disable cloud saving
-    if (!isOnline || !user) {
-      setSaveToCloud(false);
-    }
+    if (!isOnline || !user) setSaveToCloud(false);
   }, [isOnline, user]);
 
   useEffect(() => {
     const loadDocument = async (id: string) => {
-      const localResponse = await dispatch(
-        actions.forkLocalDocument({ id, revisionId }),
-      );
-      if (
-        localResponse.type === actions.forkLocalDocument.fulfilled.type
-      ) {
-        const editorDocument = localResponse.payload as ReturnType<
-          typeof actions.forkLocalDocument.fulfilled
-        >["payload"];
-        const { data, ...rest } = editorDocument;
-        const localDocument = { ...rest, data, revisions: [] };
-        setBase({
-          ...base,
-          id: editorDocument.id,
-          local: localDocument,
-        });
-        setInput({ ...input, data, baseId: editorDocument.id });
+      const localResponse = await dispatch(actions.forkLocalDocument({ id, revisionId }));
+      if (localResponse.type === actions.forkLocalDocument.fulfilled.type) {
+        const editorDoc = localResponse.payload as ReturnType<typeof actions.forkLocalDocument.fulfilled>["payload"];
+        const { data, ...rest } = editorDoc;
+        setBase({ ...base, id: editorDoc.id, local: { ...rest, data, revisions: [] } });
+        setInput((prev) => ({ ...prev, data, baseId: editorDoc.id }));
       } else {
-        const cloudResponse = await dispatch(
-          actions.forkCloudDocument({ id, revisionId }),
-        );
-        if (
-          cloudResponse.type ===
-            actions.forkCloudDocument.fulfilled.type
-        ) {
-          const { data, ...userDocument } = cloudResponse
-            .payload as ReturnType<
-              typeof actions.forkCloudDocument.fulfilled
-            >["payload"];
+        const cloudResponse = await dispatch(actions.forkCloudDocument({ id, revisionId }));
+        if (cloudResponse.type === actions.forkCloudDocument.fulfilled.type) {
+          const { data, ...userDocument } = cloudResponse.payload as ReturnType<typeof actions.forkCloudDocument.fulfilled>["payload"];
           setBase(userDocument);
-          setInput({ ...input, data, baseId: userDocument.id });
+          setInput((prev) => ({ ...prev, data, baseId: userDocument.id }));
         }
       }
     };
-
-    baseId && loadDocument(baseId);
-  }, []);
+    if (baseId) loadDocument(baseId);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const router = useRouter();
-  const navigate = (path: string) => router.push(path, { scroll: false });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -202,101 +113,30 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
       type: "DOCUMENT",
       parentId: parentId || null,
       seriesId: seriesId || null,
-      seriesOrder: seriesId && nextSeriesOrder !== null
-        ? nextSeriesOrder
-        : null,
+      seriesOrder: seriesId && nextSeriesOrder !== null ? nextSeriesOrder : null,
       createdAt,
       updatedAt: createdAt,
     };
     const response = await dispatch(actions.createLocalDocument(payload));
     if (response.type === actions.createLocalDocument.fulfilled.type) {
-      // Only save to cloud if user is online and authenticated
       if (saveToCloud && isOnline && user) {
-        const cloudResponse = await dispatch(
-          actions.createCloudDocument(payload),
-        );
+        const cloudResponse = await dispatch(actions.createCloudDocument(payload));
         if (cloudResponse.type === actions.createCloudDocument.fulfilled.type) {
-          router.refresh(); // Trigger server re-fetch before navigation
+          router.refresh();
         }
       }
-      // Document created successfully - navigate back to series or posts page
-      if (seriesId) {
-        router.push(`/series/${seriesId}`);
-      } else {
-        router.push("/posts");
-      }
+      router.push(seriesId ? `/series/${seriesId}` : "/posts");
     }
-  };
-
-  const updateInput = (partial: Partial<DocumentCreateInput>) => {
-    setInput((input) => ({ ...input, ...partial }));
   };
 
   const updateCoauthors = (users: (User | string)[]) => {
-    const coauthors = users.map((u) => typeof u === "string" ? u : u.email);
+    const coauthors = users.map((u) => (typeof u === "string" ? u : u.email));
     updateInput({ coauthors });
   };
 
-  const updateHandle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const handle = event.target.value.trim().toLowerCase().replace(
-      /[^A-Za-z0-9]/g,
-      "-",
-    );
-    updateInput({ handle });
-    if (!handle) return setValidationErrors({});
-    if (handle.length < 3) {
-      return setValidationErrors({
-        handle:
-          "Handle is too short: Handle must be at least 3 characters long",
-      });
-    }
-    if (!/^[a-zA-Z0-9-]+$/.test(handle)) {
-      return setValidationErrors({
-        handle:
-          "Invalid Handle: Handle must only contain letters, numbers, and hyphens",
-      });
-    }
-    if (validate(handle)) {
-      return setValidationErrors({
-        handle: "Invalid Handle: Handle must not be a UUID",
-      });
-    }
-    setValidating(true);
-    checkHandle(handle);
-  };
-
-  const checkHandle = useCallback(
-    debounce(async (handle: string) => {
-      try {
-        const response = await fetch(
-          `/api/documents/check?handle=${handle}`,
-        );
-        const { error } = await response.json() as CheckHandleResponse;
-        if (error) {
-          setValidationErrors({
-            handle: `${error.title}: ${error.subtitle}`,
-          });
-        } else setValidationErrors({});
-      } catch (error) {
-        setValidationErrors({
-          handle: `Something went wrong: Please try again later`,
-        });
-      }
-      setValidating(false);
-    }, 500),
-    [],
-  );
-
   return (
     <Container maxWidth="xs" sx={{ flex: 1 }}>
-      <Box
-        sx={{
-          mt: 5,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
+      <Box sx={{ mt: 5, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <Avatar sx={{ my: 2, bgcolor: "primary.main" }}>
           <Article />
         </Avatar>
@@ -305,17 +145,10 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
         </Typography>
         {baseId && (
           <>
-            <Typography
-              variant="overline"
-              sx={{ color: "text.secondary", my: 1 }}
-            >
+            <Typography variant="overline" sx={{ color: "text.secondary", my: 1 }}>
               Based on
             </Typography>
-            <DocumentCard
-              userDocument={base}
-              user={user}
-              sx={{ width: 396 }}
-            />
+            <DocumentCard userDocument={base} user={user} sx={{ width: 396 }} />
           </>
         )}
         <Box
@@ -348,14 +181,8 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
             onChange={(e) => updateInput({ description: e.target.value })}
             helperText="This description will appear in document previews and help with SEO"
             sx={{
-              "& .MuiInputBase-root": {
-                minHeight: 80,
-                alignItems: "flex-start",
-                padding: "8px 12px",
-              },
-              "& .MuiInputBase-input": {
-                resize: "vertical",
-              },
+              "& .MuiInputBase-root": { minHeight: 80, alignItems: "flex-start", padding: "8px 12px" },
+              "& .MuiInputBase-input": { resize: "vertical" },
             }}
           />
           <TextField
@@ -367,26 +194,26 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
             value={input.handle || ""}
             onChange={updateHandle}
             error={!validating && !!validationErrors.handle}
-            helperText={validating
-              ? "Validating..."
-              : validationErrors.handle
-              ? validationErrors.handle
-              : input.handle
-              ? `https://matheditor.me/view/${input.handle}`
-              : "This will be used in the URL of your document"}
+            helperText={
+              validating
+                ? "Validating..."
+                : validationErrors.handle
+                ? validationErrors.handle
+                : input.handle
+                ? `https://matheditor.me/view/${input.handle}`
+                : "This will be used in the URL of your document"
+            }
           />
 
           <FormControlLabel
             control={
               <Switch
                 checked={saveToCloud}
-                onChange={() => setSaveToCloud(!saveToCloud)}
+                onChange={() => setSaveToCloud((v) => !v)}
                 disabled={!isOnline || !user}
               />
             }
-            label={saveToCloud
-              ? "Save to Cloud (Default)"
-              : "Save Locally Only"}
+            label={saveToCloud ? "Save to Cloud (Default)" : "Save Locally Only"}
           />
           <FormHelperText>
             {!isOnline
@@ -397,6 +224,7 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
               ? "Document will be saved to cloud for access from anywhere"
               : "Document will only be saved locally"}
           </FormHelperText>
+
           {saveToCloud && (
             <>
               <UsersAutocomplete
@@ -407,66 +235,19 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
                 sx={{ my: 2 }}
                 disabled={!isOnline}
               />
-              <FormControlLabel
-                label="Private"
-                control={
-                  <Checkbox
-                    checked={input.private}
-                    disabled={!isOnline}
-                    onChange={() =>
-                      updateInput({
-                        private: !input.private,
-                        // Private posts cannot be published
-                        published: input.private
-                          ? (input.published ?? true)
-                          : false,
-                        collab: input.collab &&
-                          input.private,
-                      })}
-                  />
-                }
+              <DocumentVisibilityFields
+                isPrivate={input.private}
+                isPublished={input.published ?? true}
+                isCollab={input.collab}
+                disabled={!isOnline}
+                onChange={(partial) => updateInput(partial)}
               />
-              <FormHelperText>
-                Private documents are only accessible to authors and coauthors.
-              </FormHelperText>
-              <FormControlLabel
-                label="Published"
-                control={
-                  <Checkbox
-                    checked={input.published ?? true}
-                    disabled={!isOnline || input.private}
-                    onChange={() =>
-                      updateInput({
-                        published: !(input.published ?? true),
-                      })}
-                  />
-                }
-              />
-              <FormHelperText>
-                Published posts appear in your blog and are publicly accessible.
-              </FormHelperText>
-              <FormControlLabel
-                label="Collab"
-                control={
-                  <Checkbox
-                    checked={input.collab}
-                    disabled={!isOnline || input.private}
-                    onChange={() =>
-                      updateInput({
-                        collab: !input.collab,
-                      })}
-                  />
-                }
-              />
-              <FormHelperText>
-                Collab documents are open for anyone to edit.
-              </FormHelperText>
             </>
           )}
+
           <Button
             type="submit"
-            disabled={!!(baseId && !base) || validating ||
-              hasErrors}
+            disabled={!!(baseId && !base) || validating || hasErrors}
             fullWidth
             variant="contained"
             startIcon={<Add />}

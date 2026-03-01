@@ -1,24 +1,16 @@
 "use client";
-import { actions, useDispatch, useSelector } from "@/store";
-import {
-  CheckHandleResponse,
-  DocumentStatus,
-  DocumentUpdateInput,
-  User,
-  UserDocument,
-} from "@/types";
+import { actions, useDispatch } from "@/store";
+import { DocumentStatus, UserDocument } from "@/types";
 import { CloudOff, Settings } from "@mui/icons-material";
 import {
   Box,
   Button,
-  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
   FormControl,
-  FormControlLabel,
   FormHelperText,
   IconButton,
   InputLabel,
@@ -30,232 +22,52 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import useFixedBodyScroll from "@/hooks/useFixedBodyScroll";
-import { validate } from "uuid";
-import { debounce } from "@mui/material/utils";
+import useOnlineStatus from "@/hooks/useOnlineStatus";
 import UploadDocument from "./Upload";
 import UsersAutocomplete from "../User/UsersAutocomplete";
-import useOnlineStatus from "@/hooks/useOnlineStatus";
 import BackgroundImageUploader from "../BackgroundImageUploader";
+import { useEditDocumentForm } from "./hooks/useEditDocumentForm";
+import DocumentVisibilityFields from "./DocumentVisibilityFields";
 
-const EditDocument: React.FC<
-  {
-    userDocument: UserDocument;
-    variant?: "menuitem" | "iconbutton";
-    closeMenu?: () => void;
-  }
-> = ({ userDocument, variant = "iconbutton", closeMenu }) => {
-  const dispatch = useDispatch();
-  const user = useSelector((state) => state.user);
+const EditDocument: React.FC<{
+  userDocument: UserDocument;
+  variant?: "menuitem" | "iconbutton";
+  closeMenu?: () => void;
+}> = ({ userDocument, variant = "iconbutton", closeMenu }) => {
   const isOnline = useOnlineStatus();
-  const localDocument = userDocument?.local;
-  const cloudDocument = userDocument?.cloud;
-  const isLocal = !!localDocument;
-  const isCloud = !!cloudDocument;
-  const isUploaded = isLocal && isCloud;
-  const isPublished = isCloud && cloudDocument.published;
-  const isCollab = isCloud && cloudDocument.collab;
-  const isPrivate = isCloud && cloudDocument.private;
-  const isAuthor = isCloud ? cloudDocument.author.id === user?.id : true;
-  const id = userDocument.id;
-  const name = cloudDocument?.name ?? localDocument?.name ??
-    "Untitled Document";
-  const handle = cloudDocument?.handle ?? localDocument?.handle ?? null;
-  const isCloudOnly = !isLocal && isCloud;
-  const document = isCloudOnly ? cloudDocument : localDocument;
   // All documents are posts now
   const isDirectory = false;
-  const currentStatus = document?.status || DocumentStatus.ACTIVE;
 
-  const [input, setInput] = useState<Partial<DocumentUpdateInput>>({
-    name,
-    handle,
-    coauthors: cloudDocument?.coauthors.map((u) => u.email) ?? [],
-    private: isPrivate,
-    published: isPublished,
-    collab: isCollab,
-    background_image: document?.background_image || null,
-    sort_order: document?.sort_order || null,
-    createdAt: document?.createdAt || new Date().toISOString(),
-    status: currentStatus,
-  });
+  const {
+    cloudDocument,
+    document,
+    isAuthor,
+    isCloud,
+    input,
+    validating,
+    validationErrors,
+    hasErrors,
+    editDialogOpen,
+    updateInput,
+    updateCoauthors,
+    updateBackgroundImage,
+    updateHandle,
+    openEditDialog,
+    closeEditDialog,
+    handleSubmit,
+  } = useEditDocumentForm(userDocument);
 
-  const [validating, setValidating] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
-  const hasErrors = Object.keys(validationErrors).length > 0;
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-
-  useEffect(() => {
-    setInput({
-      name,
-      handle,
-      description: document?.description || "",
-      coauthors: cloudDocument?.coauthors.map((u) => u.email) ?? [],
-      private: isPrivate,
-      published: isPublished,
-      collab: isCollab,
-      background_image: document?.background_image || null,
-      sort_order: document?.sort_order || null,
-      createdAt: document?.createdAt || new Date().toISOString(),
-      status: currentStatus,
-    });
-    setValidating(false);
-    setValidationErrors({});
-  }, [userDocument, editDialogOpen, currentStatus]);
-
-  const openEditDialog = () => {
-    if (closeMenu) closeMenu();
-    setEditDialogOpen(true);
-  };
-
-  const closeEditDialog = () => {
-    setEditDialogOpen(false);
-  };
-
-  const updateInput = (partial: Partial<DocumentUpdateInput>) => {
-    setInput((input) => ({ ...input, ...partial }));
-  };
-
-  const updateCoauthors = (users: (User | string)[]) => {
-    const coauthors = users.map((u) => typeof u === "string" ? u : u.email);
-    updateInput({ coauthors });
-  };
-
-  const updateBackgroundImage = (imagePath: string | null) => {
-    updateInput({ background_image: imagePath });
-  };
-
-  const updateHandle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value.trim().toLowerCase().replace(
-      /[^A-Za-z0-9]/g,
-      "-",
-    );
-    updateInput({ handle: value });
-    if (!value || value === handle) return setValidationErrors({});
-    if (value.length < 3) {
-      return setValidationErrors({
-        handle:
-          "Handle is too short: Handle must be at least 3 characters long",
-      });
-    }
-    if (!/^[a-zA-Z0-9-]+$/.test(value)) {
-      return setValidationErrors({
-        handle:
-          "Invalid Handle: Handle must only contain letters, numbers, and hyphens",
-      });
-    }
-    if (validate(value)) {
-      return setValidationErrors({
-        handle: "Invalid Handle: Handle must not be a UUID",
-      });
-    }
-    setValidating(true);
-    checkHandle(value);
-  };
-
-  const checkHandle = useCallback(
-    debounce(async (handle: string) => {
-      try {
-        const response = await fetch(
-          `/api/documents/check?handle=${handle}`,
-        );
-        const { error } = await response.json() as CheckHandleResponse;
-        if (error) {
-          setValidationErrors({
-            handle: `${error.title}: ${error.subtitle}`,
-          });
-        } else setValidationErrors({});
-      } catch (error) {
-        setValidationErrors({
-          handle: `Something went wrong: Please try again later`,
-        });
-      }
-      setValidating(false);
-    }, 500),
-    [],
-  );
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    closeEditDialog();
-    const partial: Partial<DocumentUpdateInput> = {};
-    if (input.name !== name) {
-      partial.name = input.name;
-      partial.updatedAt = new Date().toISOString();
-    }
-    if (input.handle !== handle) {
-      partial.handle = input.handle || null;
-    }
-    if (input.description !== document?.description) {
-      partial.description = input.description || null;
-    }
-    if (
-      input.coauthors?.join(",") !==
-        cloudDocument?.coauthors.map((u) => u.email).join(",")
-    ) {
-      partial.coauthors = input.coauthors;
-    }
-    if (input.private !== isPrivate) {
-      partial.private = input.private;
-    }
-    if (input.published !== isPublished) {
-      partial.published = input.published;
-    }
-    if (input.collab !== isCollab) {
-      partial.collab = input.collab;
-    }
-    // Add background_image to the update if it has changed
-    if (input.background_image !== document?.background_image) {
-      partial.background_image = input.background_image;
-    }
-    // Add sort_order to the update if it has changed
-    if (input.sort_order !== document?.sort_order) {
-      partial.sort_order = input.sort_order;
-    }
-    // Add createdAt to the update if it has changed
-    if (input.createdAt && input.createdAt !== document?.createdAt) {
-      partial.createdAt = input.createdAt;
-    }
-    // Add status to the update if it has changed
-    if (input.status !== currentStatus) {
-      partial.status = input.status;
-    }
-    // Preserve parentId when updating document
-    if (document?.parentId) {
-      partial.parentId = document.parentId;
-    }
-
-    if (Object.keys(partial).length === 0) return;
-    if (isLocal) {
-      try {
-        dispatch(actions.updateLocalDocument({ id, partial }));
-      } catch (err) {
-        dispatch(actions.announce({
-          message: {
-            title: "Error Updating Document",
-            subtitle: "An error occurred while updating local document",
-          },
-        }));
-      }
-    }
-    if (isUploaded || isCloud) {
-      await dispatch(actions.updateCloudDocument({ id, partial }));
-    }
-  };
-
-  useFixedBodyScroll(editDialogOpen);
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("md"));
+  useFixedBodyScroll(editDialogOpen);
 
   return (
     <>
       {variant === "menuitem"
         ? (
-          <MenuItem onClick={openEditDialog}>
+          <MenuItem onClick={() => openEditDialog(closeMenu)}>
             <ListItemIcon>
               <Settings />
             </ListItemIcon>
@@ -263,11 +75,7 @@ const EditDocument: React.FC<
           </MenuItem>
         )
         : (
-          <IconButton
-            aria-label="Edit Document"
-            onClick={openEditDialog}
-            size="small"
-          >
+          <IconButton aria-label="Edit Document" onClick={() => openEditDialog(closeMenu)} size="small">
             <Settings />
           </IconButton>
         )}
@@ -284,23 +92,11 @@ const EditDocument: React.FC<
           noValidate
           autoComplete="off"
           spellCheck="false"
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            height: "100%",
-          }}
+          sx={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}
         >
-          <DialogTitle>
-            Edit Post
-          </DialogTitle>
+          <DialogTitle>Edit Post</DialogTitle>
           <DialogContent
-            sx={{
-              "& .MuiFormHelperText-root": {
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              },
-            }}
+            sx={{ "& .MuiFormHelperText-root": { overflow: "hidden", textOverflow: "ellipsis" } }}
           >
             <TextField
               margin="normal"
@@ -324,14 +120,8 @@ const EditDocument: React.FC<
               onChange={(e) => updateInput({ description: e.target.value })}
               helperText="This description will appear in post previews and help with SEO"
               sx={{
-                "& .MuiInputBase-root": {
-                  minHeight: 80,
-                  alignItems: "flex-start",
-                  padding: "8px 12px",
-                },
-                "& .MuiInputBase-input": {
-                  resize: "vertical",
-                },
+                "& .MuiInputBase-root": { minHeight: 80, alignItems: "flex-start", padding: "8px 12px" },
+                "& .MuiInputBase-input": { resize: "vertical" },
               }}
             />
             <TextField
@@ -343,22 +133,19 @@ const EditDocument: React.FC<
               value={input.handle || ""}
               onChange={updateHandle}
               error={!validating && !!validationErrors.handle}
-              helperText={validating
-                ? "Validating..."
-                : validationErrors.handle
-                ? validationErrors.handle
-                : input.handle
-                ? `https://matheditor.me/view/${input.handle}`
-                : "This will be used in the URL of your document"}
+              helperText={
+                validating
+                  ? "Validating..."
+                  : validationErrors.handle
+                  ? validationErrors.handle
+                  : input.handle
+                  ? `https://matheditor.me/view/${input.handle}`
+                  : "This will be used in the URL of your document"
+              }
             />
 
-            {/* Publication Date Section */}
-            <Typography
-              variant="subtitle2"
-              color="text.secondary"
-              gutterBottom
-              sx={{ mt: 2, mb: 1 }}
-            >
+            {/* Publication Date */}
+            <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2, mb: 1 }}>
               Publication Date
             </Typography>
             <Box sx={{ display: "flex", gap: 1 }}>
@@ -367,23 +154,16 @@ const EditDocument: React.FC<
                 label="Date"
                 type="date"
                 disabled={!isAuthor}
-                value={input.createdAt
-                  ? new Date(input.createdAt).toISOString().slice(0, 10)
-                  : ""}
+                value={input.createdAt ? new Date(input.createdAt).toISOString().slice(0, 10) : ""}
                 onChange={(e) => {
                   if (e.target.value && input.createdAt) {
-                    const currentDate = new Date(input.createdAt);
-                    const newDate = new Date(e.target.value);
-                    newDate.setHours(
-                      currentDate.getHours(),
-                      currentDate.getMinutes(),
-                    );
-                    updateInput({ createdAt: newDate.toISOString() });
+                    const current = new Date(input.createdAt);
+                    const next = new Date(e.target.value);
+                    next.setHours(current.getHours(), current.getMinutes());
+                    updateInput({ createdAt: next.toISOString() });
                   }
                 }}
-                InputLabelProps={{
-                  shrink: true,
-                }}
+                InputLabelProps={{ shrink: true }}
                 sx={{ flex: 1 }}
               />
               <TextField
@@ -391,20 +171,16 @@ const EditDocument: React.FC<
                 label="Time"
                 type="time"
                 disabled={!isAuthor}
-                value={input.createdAt
-                  ? new Date(input.createdAt).toTimeString().slice(0, 5)
-                  : ""}
+                value={input.createdAt ? new Date(input.createdAt).toTimeString().slice(0, 5) : ""}
                 onChange={(e) => {
                   if (e.target.value && input.createdAt) {
-                    const currentDate = new Date(input.createdAt);
-                    const [hours, minutes] = e.target.value.split(":");
-                    currentDate.setHours(parseInt(hours), parseInt(minutes));
-                    updateInput({ createdAt: currentDate.toISOString() });
+                    const current = new Date(input.createdAt);
+                    const [h, m] = e.target.value.split(":");
+                    current.setHours(parseInt(h), parseInt(m));
+                    updateInput({ createdAt: current.toISOString() });
                   }
                 }}
-                InputLabelProps={{
-                  shrink: true,
-                }}
+                InputLabelProps={{ shrink: true }}
                 sx={{ flex: 1 }}
               />
             </Box>
@@ -412,13 +188,12 @@ const EditDocument: React.FC<
               The date and time when this post was published
             </FormHelperText>
 
-            {/* Post Status Section */}
+            {/* Status */}
             <FormControl fullWidth margin="normal" size="small">
               <InputLabel>Status</InputLabel>
               <Select
                 value={input.status || DocumentStatus.ACTIVE}
-                onChange={(e) =>
-                  updateInput({ status: e.target.value as DocumentStatus })}
+                onChange={(e) => updateInput({ status: e.target.value as DocumentStatus })}
                 label="Status"
                 disabled={!isAuthor}
               >
@@ -432,35 +207,26 @@ const EditDocument: React.FC<
               </FormHelperText>
             </FormControl>
 
-            {/* Background image uploader for directories */}
+            {/* Directory-only: background image */}
             {isDirectory && isAuthor && (
               <>
                 <Divider sx={{ my: 2 }} />
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Directory Options
                 </Typography>
                 <BackgroundImageUploader
                   userDocument={userDocument}
                   onChange={updateBackgroundImage}
-                  currentImage={document?.background_image ||
-                    null}
+                  currentImage={document?.background_image || null}
                 />
               </>
             )}
 
-            {/* Sort order field for both documents and directories */}
+            {/* Sort order */}
             {isAuthor && (
               <>
                 <Divider sx={{ my: 2 }} />
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                   Sort Options
                 </Typography>
                 <TextField
@@ -471,36 +237,23 @@ const EditDocument: React.FC<
                   type="number"
                   inputProps={{ min: 0, step: 1 }}
                   value={input.sort_order === null ? "" : input.sort_order}
-                  onChange={(e) => {
-                    const value = e.target.value === ""
-                      ? null
-                      : Number(e.target.value);
-                    updateInput({ sort_order: value });
-                  }}
-                  helperText="Items with sort order > 0 will appear first, sorted by this value. Leave empty for default sorting."
+                  onChange={(e) =>
+                    updateInput({ sort_order: e.target.value === "" ? null : Number(e.target.value) })
+                  }
+                  helperText="Items with sort order > 0 will appear first. Leave empty for default sorting."
                 />
               </>
             )}
 
             {!cloudDocument && (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  my: 1,
-                  gap: 1,
-                }}
-              >
+              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", my: 1, gap: 1 }}>
                 <FormHelperText>
                   Save the document to cloud to unlock the following options
                 </FormHelperText>
-                <UploadDocument
-                  userDocument={userDocument}
-                  variant="button"
-                />
+                <UploadDocument userDocument={userDocument} variant="button" />
               </Box>
             )}
+
             {isAuthor && (
               <UsersAutocomplete
                 label="Coauthors"
@@ -511,74 +264,20 @@ const EditDocument: React.FC<
                 disabled={!isOnline || !isCloud}
               />
             )}
+
             {isAuthor && (
-              <FormControlLabel
-                label="Private"
-                control={
-                  <Checkbox
-                    checked={input.private}
-                    disabled={!isOnline || !isCloud}
-                    onChange={() =>
-                      updateInput({
-                        private: !input.private,
-                        published: input.published &&
-                          input.private,
-                        collab: input.collab &&
-                          input.private,
-                      })}
-                  />
-                }
+              <DocumentVisibilityFields
+                isPrivate={input.private}
+                isPublished={input.published}
+                isCollab={input.collab}
+                disabled={!isOnline || !isCloud}
+                onChange={updateInput}
               />
             )}
-            <FormHelperText>
-              Private documents are only accessible to authors and coauthors.
-            </FormHelperText>
-            {isAuthor && (
-              <FormControlLabel
-                label="Published"
-                control={
-                  <Checkbox
-                    checked={input.published}
-                    disabled={!isOnline || !isCloud ||
-                      input.private}
-                    onChange={() =>
-                      updateInput({
-                        published: !input.published,
-                      })}
-                  />
-                }
-              />
-            )}
-            <FormHelperText>
-              Published documents are showcased on the homepage, can be forked
-              by anyone, and can be found by search engines.
-            </FormHelperText>
-            {isAuthor && (
-              <FormControlLabel
-                label="Collab"
-                control={
-                  <Checkbox
-                    checked={input.collab}
-                    disabled={!isOnline || !isCloud ||
-                      input.private}
-                    onChange={() =>
-                      updateInput({
-                        collab: !input.collab,
-                      })}
-                  />
-                }
-              />
-            )}
-            <FormHelperText>
-              Collab documents are open for anyone to edit.
-            </FormHelperText>
           </DialogContent>
           <DialogActions>
             <Button onClick={closeEditDialog}>Cancel</Button>
-            <Button
-              type="submit"
-              disabled={validating || hasErrors}
-            >
+            <Button type="submit" disabled={validating || hasErrors}>
               Save
             </Button>
           </DialogActions>

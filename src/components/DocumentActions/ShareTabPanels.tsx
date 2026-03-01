@@ -1,0 +1,260 @@
+"use client";
+import React from "react";
+import {
+  Box,
+  Button,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
+  FormLabel,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  Select,
+  Slider,
+  Switch,
+} from "@mui/material";
+import { ContentCopy } from "@mui/icons-material";
+import { Document, User } from "@/types";
+import UsersAutocomplete from "../User/UsersAutocomplete";
+import { DateDisplay } from "@/components/DateDisplay";
+
+interface SharedPanelProps {
+  cloudDocument: Document;
+  revision: string | null;
+  setRevision: (v: string) => void;
+  isPrivate: boolean;
+  isAuthor: boolean;
+  togglePrivate: () => void;
+}
+
+export const ShareViewPanel: React.FC<SharedPanelProps> = ({
+  cloudDocument,
+  revision,
+  setRevision,
+  isPrivate,
+  isAuthor,
+  togglePrivate,
+}) => (
+  <Box sx={{ p: 2 }}>
+    <FormControl fullWidth sx={{ gap: 1, mb: 2 }}>
+      <FormLabel>Revision</FormLabel>
+      <Select
+        size="small"
+        value={revision}
+        onChange={(e) => setRevision(e.target.value)}
+      >
+        {cloudDocument.revisions.map((r) => (
+          <MenuItem key={r.id} value={r.id}>
+            <DateDisplay date={r.createdAt} variant="full" />
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+    <FormControl fullWidth disabled={!isAuthor}>
+      <FormLabel>Permissions</FormLabel>
+      <FormControlLabel
+        control={<Switch checked={!isPrivate} onChange={togglePrivate} />}
+        label={!isPrivate ? "Anyone with the link" : "Only author and coauthors"}
+      />
+    </FormControl>
+  </Box>
+);
+
+export const ShareEmbedPanel: React.FC<SharedPanelProps> = ({
+  cloudDocument,
+  revision,
+  setRevision,
+  isPrivate,
+  isAuthor,
+  togglePrivate,
+}) => (
+  <Box sx={{ p: 2 }}>
+    <FormControl fullWidth sx={{ gap: 1, mb: 2 }} disabled={isPrivate}>
+      <FormLabel>Revision</FormLabel>
+      <Select
+        size="small"
+        value={revision}
+        onChange={(e) => setRevision(e.target.value)}
+      >
+        {cloudDocument.revisions.map((r) => (
+          <MenuItem key={r.id} value={r.id}>
+            <DateDisplay date={r.createdAt} variant="full" />
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+    <FormControl fullWidth disabled={!isAuthor}>
+      <FormLabel>Permissions</FormLabel>
+      <FormControlLabel
+        control={<Switch checked={!isPrivate} onChange={togglePrivate} />}
+        label={!isPrivate ? "Anyone with the link" : "Only author and coauthors"}
+      />
+      {isPrivate && (
+        <FormHelperText>Private documents can not be embedded</FormHelperText>
+      )}
+    </FormControl>
+  </Box>
+);
+
+export const SharePdfPanel: React.FC<SharedPanelProps> = ({
+  cloudDocument,
+  revision,
+  setRevision,
+  isPrivate,
+  isAuthor,
+  togglePrivate,
+}) => (
+  <Box sx={{ p: 2 }}>
+    <FormControl fullWidth sx={{ gap: 1, mb: 2 }} disabled={isPrivate}>
+      <FormLabel>Revision</FormLabel>
+      <Select
+        size="small"
+        value={revision}
+        onChange={(e) => setRevision(e.target.value)}
+      >
+        {cloudDocument.revisions.map((r) => (
+          <MenuItem key={r.id} value={r.id}>
+            <DateDisplay date={r.createdAt} variant="full" />
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+    <FormControl fullWidth disabled={!isAuthor}>
+      <FormLabel>Permissions</FormLabel>
+      <FormControlLabel
+        control={<Switch checked={!isPrivate} onChange={togglePrivate} />}
+        label={!isPrivate ? "Anyone with the link" : "Only author and coauthors"}
+      />
+      {isPrivate && (
+        <FormHelperText>Private documents can not be shared as PDF</FormHelperText>
+      )}
+    </FormControl>
+    <FormControl fullWidth disabled={isPrivate}>
+      <FormLabel>Scale</FormLabel>
+      <Slider
+        name="scale"
+        aria-label="scale"
+        defaultValue={1}
+        valueLabelDisplay="auto"
+        step={0.1}
+        marks
+        min={0.1}
+        max={2}
+      />
+    </FormControl>
+    <FormControl fullWidth disabled={isPrivate}>
+      <FormLabel>Orientation</FormLabel>
+      <RadioGroup row aria-label="orientation" name="landscape" defaultValue="false">
+        <FormControlLabel value="false" control={<Radio />} label="Portrait" />
+        <FormControlLabel value="true" control={<Radio />} label="Landscape" />
+      </RadioGroup>
+    </FormControl>
+    <FormControl fullWidth disabled={isPrivate}>
+      <FormLabel>Size</FormLabel>
+      <RadioGroup row aria-label="size" name="format" defaultValue="a4">
+        <FormControlLabel value="letter" control={<Radio />} label="Letter" />
+        <FormControlLabel value="a4" control={<Radio />} label="A4" />
+      </RadioGroup>
+    </FormControl>
+  </Box>
+);
+
+export const ShareDocxPanel: React.FC<SharedPanelProps> = ({
+  cloudDocument,
+  revision,
+  setRevision,
+  isPrivate,
+  isAuthor,
+  togglePrivate,
+}) => (
+  <Box sx={{ p: 2 }}>
+    <FormControl fullWidth sx={{ gap: 1, mb: 2 }} disabled={isPrivate}>
+      <FormLabel>Revision</FormLabel>
+      <Select
+        size="small"
+        value={revision}
+        onChange={(e) => setRevision(e.target.value)}
+      >
+        {cloudDocument.revisions.map((r) => (
+          <MenuItem key={r.id} value={r.id}>
+            <DateDisplay date={r.createdAt} variant="full" />
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+    <FormControl fullWidth disabled={!isAuthor}>
+      <FormLabel>Permissions</FormLabel>
+      <FormControlLabel
+        control={<Switch checked={!isPrivate} onChange={togglePrivate} />}
+        label={!isPrivate ? "Anyone with the link" : "Only author and coauthors"}
+      />
+      {isPrivate && (
+        <FormHelperText>Private documents can not be shared as DOCx</FormHelperText>
+      )}
+    </FormControl>
+  </Box>
+);
+
+interface ShareEditPanelProps {
+  cloudDocument: Document;
+  isAuthor: boolean;
+  isCollab: boolean;
+  toggleCollab: () => void;
+  updateCoauthors: (users: (User | string)[]) => void;
+}
+
+export const ShareEditPanel: React.FC<ShareEditPanelProps> = ({
+  cloudDocument,
+  isAuthor,
+  isCollab,
+  toggleCollab,
+  updateCoauthors,
+}) => (
+  <Box sx={{ p: 2 }}>
+    <FormControl fullWidth sx={{ gap: 1, mb: 2 }} disabled={!isAuthor}>
+      <FormLabel sx={{ mb: 0.5 }}>Permissions</FormLabel>
+      <UsersAutocomplete
+        label="Coauthors"
+        placeholder="Email"
+        value={cloudDocument.coauthors ?? []}
+        onChange={updateCoauthors}
+        disabled={!isAuthor}
+      />
+      <FormControlLabel
+        control={<Switch checked={isCollab} onChange={toggleCollab} />}
+        label={isCollab ? "Anyone with the link" : "Only author and coauthors"}
+      />
+    </FormControl>
+  </Box>
+);
+
+interface ShareCopyLinkProps {
+  isCloud: boolean;
+  isPrivate: boolean;
+  format: string;
+  copyLink: () => void;
+}
+
+export const ShareCopyLinkButton: React.FC<ShareCopyLinkProps> = ({
+  isCloud,
+  isPrivate,
+  format,
+  copyLink,
+}) => {
+  const restrictedFormats = ["embed", "pdf", "docx"];
+  const disabled = !isCloud || (isPrivate && restrictedFormats.includes(format));
+  return (
+    <Box sx={{ p: 2 }}>
+      <Button
+        startIcon={<ContentCopy />}
+        variant="outlined"
+        disabled={disabled}
+        onClick={copyLink}
+        fullWidth
+      >
+        Copy Link
+      </Button>
+    </Box>
+  );
+};
