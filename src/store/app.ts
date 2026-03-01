@@ -604,7 +604,15 @@ export const createCloudRevision = createAsyncThunk(
 
 export const syncLocalToCloud = createAsyncThunk(
   "app/syncLocalToCloud",
-  async (payload: { id: string; localHead: string; updatedAt: string | Date; parentId?: string | null }, thunkAPI) => {
+  async (
+    payload: {
+      id: string;
+      localHead: string;
+      updatedAt: string | Date;
+      parentId?: string | null;
+    },
+    thunkAPI,
+  ) => {
     try {
       NProgress.start();
       const { id, localHead, updatedAt, parentId } = payload;
@@ -633,7 +641,10 @@ export const syncLocalToCloud = createAsyncThunk(
       }
 
       const docResponse = await thunkAPI.dispatch(
-        updateCloudDocument({ id, partial: { head: localHead, updatedAt, parentId } }),
+        updateCloudDocument({
+          id,
+          partial: { head: localHead, updatedAt, parentId },
+        }),
       );
       if (docResponse.type !== updateCloudDocument.fulfilled.type) {
         return thunkAPI.rejectWithValue(docResponse.payload);

@@ -1,37 +1,17 @@
 "use client";
-import {
-  Box,
-  IconButton,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
-  Tooltip,
-  Typography,
-} from "@mui/material";
-import { Add, Palette, ZoomIn, ZoomOut } from "@mui/icons-material";
+import { Box, SpeedDial, SpeedDialAction, SpeedDialIcon } from "@mui/material";
+import { Add, Palette } from "@mui/icons-material";
 import { useState } from "react";
 import { NOTE_COLOR_LIST, NOTE_COLORS } from "./noteColors";
 
 interface NotesToolbarProps {
   onAddNote: (color: string) => void;
   onClearAll?: () => void;
-  scale?: number;
-  onZoomIn?: () => void;
-  onZoomOut?: () => void;
-  onResetZoom?: () => void;
-  canZoomIn?: boolean;
-  canZoomOut?: boolean;
 }
 
 export default function NotesToolbar({
   onAddNote,
   onClearAll,
-  scale = 1,
-  onZoomIn,
-  onZoomOut,
-  onResetZoom,
-  canZoomIn = true,
-  canZoomOut = true,
 }: NotesToolbarProps) {
   const [open, setOpen] = useState(false);
 
@@ -48,68 +28,6 @@ export default function NotesToolbar({
         gap: 1,
       }}
     >
-      {/* Zoom controls pill */}
-      {(onZoomIn || onZoomOut) && (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            bgcolor: "background.paper",
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: "20px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-            overflow: "hidden",
-            height: 40,
-            mb: "0px",
-          }}
-        >
-          <Tooltip title="Zoom out (Ctrl + −)">
-            <span>
-              <IconButton
-                size="small"
-                onClick={onZoomOut}
-                disabled={!canZoomOut}
-                sx={{ borderRadius: 0, px: 0.75, height: "100%" }}
-              >
-                <ZoomOut sx={{ fontSize: 16 }} />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="Reset zoom (Ctrl + 0)">
-            <Typography
-              variant="caption"
-              onClick={onResetZoom}
-              sx={{
-                px: 0.5,
-                minWidth: 36,
-                textAlign: "center",
-                fontWeight: 600,
-                fontSize: "11px",
-                color: "text.secondary",
-                cursor: "pointer",
-                userSelect: "none",
-                "&:hover": { color: "text.primary" },
-              }}
-            >
-              {Math.round(scale * 100)}%
-            </Typography>
-          </Tooltip>
-          <Tooltip title="Zoom in (Ctrl + =)">
-            <span>
-              <IconButton
-                size="small"
-                onClick={onZoomIn}
-                disabled={!canZoomIn}
-                sx={{ borderRadius: 0, px: 0.75, height: "100%" }}
-              >
-                <ZoomIn sx={{ fontSize: 16 }} />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
-      )}
-
       {/* Speed Dial for Color Selection */}
       <SpeedDial
         ariaLabel="Add note"

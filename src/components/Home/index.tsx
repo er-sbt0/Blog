@@ -17,6 +17,7 @@ import ReadmeViewer from "./ReadmeViewer";
 import ErrorBoundaryCard from "./ErrorBoundaryCard";
 import { StickyNote2 } from "@mui/icons-material";
 import { useNotesBoards } from "@/hooks/useNotesBoards";
+import { useNotesZoom } from "@/hooks/useNotesZoom";
 import BoardSelector from "../NotesCanvas/BoardSelector";
 import { NotesClipboardProvider } from "../NotesCanvas/NotesClipboardContext";
 
@@ -37,6 +38,7 @@ const Home: React.FC<{
     renameBoard,
     deleteBoard,
   } = useNotesBoards();
+  const zoom = useNotesZoom(activeCanvasId);
   const [notesHeight, setNotesHeight] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("notesCanvasHeight");
@@ -145,6 +147,12 @@ const Home: React.FC<{
                       onCreateBoard={createBoard}
                       onRenameBoard={renameBoard}
                       onDeleteBoard={deleteBoard}
+                      scale={zoom.scale}
+                      onZoomIn={zoom.zoomIn}
+                      onZoomOut={zoom.zoomOut}
+                      onResetZoom={zoom.resetZoom}
+                      canZoomIn={zoom.canZoomIn}
+                      canZoomOut={zoom.canZoomOut}
                     />
                   </Box>
                   <Box
@@ -160,7 +168,7 @@ const Home: React.FC<{
                       },
                     }}
                   >
-                    <NotesCanvas canvasId={activeCanvasId} />
+                    <NotesCanvas canvasId={activeCanvasId} scale={zoom.scale} />
 
                     {/* Resize Handle */}
                     <Box

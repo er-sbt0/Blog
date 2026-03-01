@@ -8,23 +8,26 @@ import StaticNoteCard from "./StaticNoteCard";
 import NotesMigrationBanner from "./NotesMigrationBanner";
 import { useNotesClipboard } from "./NotesClipboardContext";
 import type { Note, NotesCanvas as CanvasData } from "@/types/notes";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 // Virtual canvas dimensions for consistent coordinate system
 const VIRTUAL_CANVAS_WIDTH = 1920;
 const VIRTUAL_CANVAS_HEIGHT = 1080;
 const PREVIEW_HEIGHT = 260;
 
-// Zoom constants
-const MIN_SCALE = 0.25;
-const MAX_SCALE = 2.0;
-const SCALE_STEP = 0.25;
-const DEFAULT_SCALE = 1.0;
+import { NOTES_ZOOM_DEFAULT } from "@/hooks/useNotesZoom";
 
 interface NotesCanvasProps {
   preview?: boolean;
   onViewFull?: () => void;
   canvasId?: string | null;
+  // Controlled zoom — managed by the parent so zoom controls can live next to the board selector
+  scale?: number;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onResetZoom?: () => void;
+  canZoomIn?: boolean;
+  canZoomOut?: boolean;
 }
 
 function PasteButton({
@@ -103,7 +106,17 @@ function PasteButton({
 }
 
 export default function NotesCanvas(
-  { preview = false, onViewFull, canvasId = null }: NotesCanvasProps,
+  {
+    preview = false,
+    onViewFull,
+    canvasId = null,
+    scale: scaleProp,
+    onZoomIn,
+    onZoomOut,
+    onResetZoom,
+    canZoomIn,
+    canZoomOut,
+  }: NotesCanvasProps,
 ) {
   const {
     canvas,
@@ -115,24 +128,8 @@ export default function NotesCanvas(
     refresh,
   } = useNotesStore(canvasId);
 
-  const [scale, setScale] = useState(DEFAULT_SCALE);
+  const scale = scaleProp ?? NOTES_ZOOM_DEFAULT;
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const zoomIn = useCallback(() => {
-    setScale((s) =>
-      Math.min(MAX_SCALE, parseFloat((s + SCALE_STEP).toFixed(2)))
-    );
-  }, []);
-
-  const zoomOut = useCallback(() => {
-    setScale((s) =>
-      Math.max(MIN_SCALE, parseFloat((s - SCALE_STEP).toFixed(2)))
-    );
-  }, []);
-
-  const resetZoom = useCallback(() => {
-    setScale(DEFAULT_SCALE);
-  }, []);
 
   const handleAddNote = useCallback(
     (color: string) => {
@@ -191,19 +188,15 @@ export default function NotesCanvas(
       if (!e.ctrlKey) return;
       e.preventDefault();
       if (e.deltaY < 0) {
-        setScale((s) =>
-          Math.min(MAX_SCALE, parseFloat((s + SCALE_STEP).toFixed(2)))
-        );
+        onZoomIn?.();
       } else {
-        setScale((s) =>
-          Math.max(MIN_SCALE, parseFloat((s - SCALE_STEP).toFixed(2)))
-        );
+        onZoomOut?.();
       }
     };
 
     el.addEventListener("wheel", handleWheel, { passive: false });
     return () => el.removeEventListener("wheel", handleWheel);
-  }, [preview]);
+  }, [preview, onZoomIn, onZoomOut]);
 
   // Keyboard shortcuts: Ctrl+=, Ctrl+-, Ctrl+0 (only in full canvas mode)
   useEffect(() => {
@@ -213,23 +206,19 @@ export default function NotesCanvas(
       if (!e.ctrlKey) return;
       if (e.key === "=" || e.key === "+") {
         e.preventDefault();
-        setScale((s) =>
-          Math.min(MAX_SCALE, parseFloat((s + SCALE_STEP).toFixed(2)))
-        );
+        onZoomIn?.();
       } else if (e.key === "-") {
         e.preventDefault();
-        setScale((s) =>
-          Math.max(MIN_SCALE, parseFloat((s - SCALE_STEP).toFixed(2)))
-        );
+        onZoomOut?.();
       } else if (e.key === "0") {
         e.preventDefault();
-        setScale(DEFAULT_SCALE);
+        onResetZoom?.();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [preview]);
+  }, [preview, onZoomIn, onZoomOut, onResetZoom]);
 
   const previewNotes = preview ? (canvas?.notes.slice(0, 4) || []) : [];
   const remainingCount = preview ? ((canvas?.notes.length || 0) - 4) : 0;
@@ -459,12 +448,6 @@ export default function NotesCanvas(
         <NotesToolbar
           onAddNote={handleAddNote}
           onClearAll={handleClearAll}
-          scale={scale}
-          onZoomIn={zoomIn}
-          onZoomOut={zoomOut}
-          onResetZoom={resetZoom}
-          canZoomIn={scale < MAX_SCALE}
-          canZoomOut={scale > MIN_SCALE}
         />
         <PasteButton addNote={addNote} canvas={canvas} />
 

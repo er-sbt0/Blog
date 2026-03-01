@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import {
   Box,
   Button,
+  Divider,
   IconButton,
   Menu,
   MenuItem,
@@ -10,12 +11,15 @@ import {
   Tabs,
   TextField,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import {
   Add,
   Delete,
   DriveFileRenameOutline,
   MoreHoriz,
+  ZoomIn,
+  ZoomOut,
 } from "@mui/icons-material";
 import { CanvasSummary } from "@/types/notes";
 
@@ -26,6 +30,13 @@ interface BoardSelectorProps {
   onCreateBoard: (name: string) => void;
   onRenameBoard: (id: string, name: string) => void;
   onDeleteBoard: (id: string) => void;
+  // Zoom controls
+  scale?: number;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onResetZoom?: () => void;
+  canZoomIn?: boolean;
+  canZoomOut?: boolean;
 }
 
 export default function BoardSelector({
@@ -35,6 +46,12 @@ export default function BoardSelector({
   onCreateBoard,
   onRenameBoard,
   onDeleteBoard,
+  scale,
+  onZoomIn,
+  onZoomOut,
+  onResetZoom,
+  canZoomIn = true,
+  canZoomOut = true,
 }: BoardSelectorProps) {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuBoardId, setMenuBoardId] = useState<string | null>(null);
@@ -289,6 +306,71 @@ export default function BoardSelector({
             </IconButton>
           </Tooltip>
         )}
+
+      {/* Zoom controls pill — shown when zoom props are provided */}
+      {(onZoomIn || onZoomOut) && (
+        <>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              bgcolor: "action.hover",
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: "14px",
+              overflow: "hidden",
+              height: 28,
+              flexShrink: 0,
+            }}
+          >
+            <Tooltip title="Zoom out (Ctrl + −)">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onZoomOut}
+                  disabled={!canZoomOut}
+                  sx={{ borderRadius: 0, px: 0.5, height: "100%" }}
+                >
+                  <ZoomOut sx={{ fontSize: 15 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Reset zoom (Ctrl + 0)">
+              <Typography
+                variant="caption"
+                onClick={onResetZoom}
+                sx={{
+                  px: 0.25,
+                  minWidth: 32,
+                  textAlign: "center",
+                  fontWeight: 600,
+                  fontSize: "11px",
+                  color: "text.secondary",
+                  cursor: "pointer",
+                  userSelect: "none",
+                  lineHeight: 1,
+                  "&:hover": { color: "text.primary" },
+                }}
+              >
+                {Math.round((scale ?? 1) * 100)}%
+              </Typography>
+            </Tooltip>
+            <Tooltip title="Zoom in (Ctrl + =)">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onZoomIn}
+                  disabled={!canZoomIn}
+                  sx={{ borderRadius: 0, px: 0.5, height: "100%" }}
+                >
+                  <ZoomIn sx={{ fontSize: 15 }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        </>
+      )}
 
       {/* Context menu for active board */}
       <Menu
