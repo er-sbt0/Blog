@@ -121,12 +121,17 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
       head: uuidv4(),
       parentId: document.parentId, // Preserve parentId when saving locally
     };
-    try {
-      const payload = JSON.parse(tags.values().next().value as string);
-      if (payload.id === document.id) {
-        Object.assign(updatedDocument, payload.partial);
+    const tagValue = tags.values().next().value as string | undefined;
+    if (tagValue) {
+      try {
+        const payload = JSON.parse(tagValue);
+        if (payload.id === document.id) {
+          Object.assign(updatedDocument, payload.partial);
+        }
+      } catch (e) {
+        console.error("Failed to parse editor change tag payload:", e);
       }
-    } catch (e) {}
+    }
     debouncedUpdateLocalDocument(document.id, updatedDocument);
   }
 

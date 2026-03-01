@@ -216,14 +216,17 @@ function ToolbarPlugin({ onSave, onDiscard }: ToolbarPluginProps) {
         editorState.read(() => {
           $updateToolbar();
         });
-        try {
-          const revision = JSON.parse(
-            tags.values().next().value as string,
-          );
-          if (revision.id) {
-            isTouched.current = false;
+        const tagValue = tags.values().next().value as string | undefined;
+        if (tagValue) {
+          try {
+            const revision = JSON.parse(tagValue);
+            if (revision.id) {
+              isTouched.current = false;
+            }
+          } catch (e) {
+            console.error("Failed to parse revision tag:", e);
           }
-        } catch (e) {}
+        }
       }),
       activeEditor.registerCommand<boolean>(
         CAN_UNDO_COMMAND,
