@@ -20,7 +20,9 @@ export type AIOptionType =
   | "continue"
   | "shorter"
   | "longer"
-  | "zap";
+  | "zap"
+  | "summarize"
+  | "tone";
 
 export interface AIProviderConfig {
   google: {
@@ -42,6 +44,7 @@ export interface AICompletionRequest {
   prompt: string;
   option: AIOptionType;
   command?: string;
+  tone?: string;
   provider: AIProviderType;
   model: string;
 }

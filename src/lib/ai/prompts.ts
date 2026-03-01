@@ -6,19 +6,25 @@ const BASE_SYSTEM_PROMPT =
   "Write any math formulas in Latex surrounded by $ delimiters. " +
   "Respond directly without any conversation starters.";
 
-export const SYSTEM_PROMPTS: Record<AIOptionType, string> = {
+export const SYSTEM_PROMPTS: Partial<Record<AIOptionType, string>> = {
   improve: BASE_SYSTEM_PROMPT +
-    " You are asked to rewrite what user writes in another way.",
+    " You are asked to rewrite the following text to improve its clarity, flow, and impact while preserving the meaning.",
   continue: BASE_SYSTEM_PROMPT +
-    " You are asked to continue writing more text following user's input.",
+    " You are asked to continue writing text that naturally follows the user's input, maintaining the same tone and style.",
   shorter: BASE_SYSTEM_PROMPT +
-    " You are asked to rewrite what user writes in a shorter form.",
+    " You are asked to rewrite the following text more concisely, removing redundancy while keeping all key information.",
   longer: BASE_SYSTEM_PROMPT +
-    " You are asked to rewrite what user writes in a longer form.",
+    " You are asked to expand the following text with more detail, examples, and explanation while preserving the meaning.",
   zap: BASE_SYSTEM_PROMPT +
-    " You are asked to help the user with his document.",
+    " You are asked to help the user edit their document according to their instructions.",
+  summarize: BASE_SYSTEM_PROMPT +
+    " You are asked to summarize the following text into a concise overview, capturing the key points and main ideas.",
 } as const;
 
 export const getSystemPrompt = (option: AIOptionType): string => {
-  return SYSTEM_PROMPTS[option] ?? SYSTEM_PROMPTS.improve;
+  return SYSTEM_PROMPTS[option] ?? SYSTEM_PROMPTS.improve!;
 };
+
+export const getToneSystemPrompt = (tone: string): string =>
+  BASE_SYSTEM_PROMPT +
+  ` You are asked to rewrite what the user writes in a ${tone} tone, preserving the original meaning and information.`;

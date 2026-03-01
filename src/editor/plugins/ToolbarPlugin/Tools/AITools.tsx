@@ -30,11 +30,14 @@ import {
 import {
   ArrowDropDown,
   ArrowDropUp,
+  ArrowRight,
   AutoAwesome,
   Autorenew,
+  Compress,
   Computer,
   ImageSearch,
   PlayArrow,
+  RecordVoiceOver,
   Send,
   UnfoldLess,
   UnfoldMore,
@@ -77,8 +80,14 @@ export default function AITools(
   const [modelMenuAnchor, setModelMenuAnchor] = useState<null | HTMLElement>(
     null,
   );
+  const [toneMenuAnchor, setToneMenuAnchor] = useState<null | HTMLElement>(
+    null,
+  );
   const open = Boolean(anchorEl);
   const modelMenuOpen = Boolean(modelMenuAnchor);
+  const toneMenuOpen = Boolean(toneMenuAnchor);
+
+  const TONES = ["Professional", "Casual", "Friendly", "Academic", "Persuasive", "Direct"];
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -248,6 +257,35 @@ export default function AITools(
   const handleOCR = () => {
     handleClose();
     editor.dispatchCommand(SET_DIALOGS_COMMAND, { ocr: { open: true } });
+  };
+
+  const handleSummarize = () => {
+    handleClose();
+    editor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) return;
+      const textContent = selection.getTextContent();
+      const { provider, model } = llmConfig;
+      complete(textContent, { body: { option: "summarize", provider, model } });
+    });
+  };
+
+  const handleToneMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setToneMenuAnchor(event.currentTarget);
+  };
+
+  const handleToneMenuClose = () => setToneMenuAnchor(null);
+
+  const handleChangeTone = (tone: string) => {
+    handleToneMenuClose();
+    handleClose();
+    editor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if (!$isRangeSelection(selection)) return;
+      const textContent = selection.getTextContent();
+      const { provider, model } = llmConfig;
+      complete(textContent, { body: { option: "tone", tone, provider, model } });
+    });
   };
 
   const convertMarkdownToJSON = useCallback((markdown: string) => {
@@ -555,6 +593,25 @@ export default function AITools(
           <ListItemText>Longer</ListItemText>
         </MenuItem>
         <MenuItem
+          disabled={isLoading || isCollapsed}
+          onClick={handleSummarize}
+        >
+          <ListItemIcon>
+            <Compress />
+          </ListItemIcon>
+          <ListItemText>Summarize</ListItemText>
+        </MenuItem>
+        <MenuItem
+          disabled={isLoading || isCollapsed}
+          onClick={handleToneMenuOpen}
+        >
+          <ListItemIcon>
+            <RecordVoiceOver />
+          </ListItemIcon>
+          <ListItemText>Change Tone</ListItemText>
+          <ArrowRight fontSize="small" sx={{ ml: "auto" }} />
+        </MenuItem>
+        <MenuItem
           disabled={isLoading || !isCollapsed}
           onClick={handleOCR}
         >
@@ -563,6 +620,19 @@ export default function AITools(
           </ListItemIcon>
           <ListItemText>Image to Text</ListItemText>
         </MenuItem>
+      </Menu>
+      <Menu
+        anchorEl={toneMenuAnchor}
+        open={toneMenuOpen}
+        onClose={handleToneMenuClose}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+      >
+        {TONES.map((tone) => (
+          <MenuItem key={tone} onClick={() => handleChangeTone(tone)}>
+            <ListItemText>{tone}</ListItemText>
+          </MenuItem>
+        ))}
       </Menu>
       <Menu
         id="ai-model-menu"

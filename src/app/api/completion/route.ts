@@ -7,6 +7,7 @@ import {
   createProvider,
   getModelById,
   getSystemPrompt,
+  getToneSystemPrompt,
 } from "@/lib/ai";
 
 export const runtime = "edge";
@@ -19,51 +20,11 @@ export async function POST(req: Request) {
     const body = await req.json();
     provider = body.provider;
     modelId = body.model;
-    const { prompt, option, command } = body;
+    const { prompt, option, command, tone } = body;
 
     const systemPrompt = getSystemPrompt(option as AIOptionType);
 
     const messages = match(option)
-      .with("continue", () => [
-        {
-          role: "system" as const,
-          content: systemPrompt,
-        },
-        {
-          role: "user" as const,
-          content: prompt,
-        },
-      ])
-      .with("improve", () => [
-        {
-          role: "system" as const,
-          content: systemPrompt,
-        },
-        {
-          role: "user" as const,
-          content: prompt,
-        },
-      ])
-      .with("shorter", () => [
-        {
-          role: "system" as const,
-          content: systemPrompt,
-        },
-        {
-          role: "user" as const,
-          content: prompt,
-        },
-      ])
-      .with("longer", () => [
-        {
-          role: "system" as const,
-          content: systemPrompt,
-        },
-        {
-          role: "user" as const,
-          content: prompt,
-        },
-      ])
       .with("zap", () => [
         {
           role: "system" as const,
@@ -74,7 +35,26 @@ export async function POST(req: Request) {
           content: `${command}${prompt ? `\n${prompt}` : ""}`,
         },
       ])
-      .run();
+      .with("tone", () => [
+        {
+          role: "system" as const,
+          content: getToneSystemPrompt(tone ?? "neutral"),
+        },
+        {
+          role: "user" as const,
+          content: prompt,
+        },
+      ])
+      .otherwise(() => [
+        {
+          role: "system" as const,
+          content: systemPrompt,
+        },
+        {
+          role: "user" as const,
+          content: prompt,
+        },
+      ]);
 
     if (!modelId) {
       throw new Error("Model ID is required");
