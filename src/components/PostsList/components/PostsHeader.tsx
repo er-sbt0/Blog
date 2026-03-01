@@ -193,15 +193,6 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
           }}
           aria-label="Search posts"
         />
-        {!loading && totalCount > 0 && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ whiteSpace: "nowrap" }}
-          >
-            {totalCount} posts
-          </Typography>
-        )}
       </Box>
 
       {/* Row 2: Create actions */}
