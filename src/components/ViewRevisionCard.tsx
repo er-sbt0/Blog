@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Document, CloudDocumentRevision } from "@/types";
+import { CloudDocumentRevision, Document } from "@/types";
 import { memo } from "react";
 import { SxProps, Theme } from "@mui/material/styles";
 import {

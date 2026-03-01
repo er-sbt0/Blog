@@ -37,10 +37,10 @@ export default function EditDocumentInfo(
   const isCollab = !!cloudDocument?.collab;
   const collaborators = isCollab
     ? extractCollaborators(
-        cloudDocument!.revisions,
-        cloudDocument!.author.id,
-        cloudDocument!.coauthors.map((u) => u.id),
-      )
+      cloudDocument!.revisions,
+      cloudDocument!.author.id,
+      cloudDocument!.coauthors.map((u) => u.id),
+    )
     : [];
 
   return (
@@ -66,15 +66,13 @@ export default function EditDocumentInfo(
             <IconButton
               aria-label="View"
               onClick={handleViewWithCloudSave}
-              sx={
-                isDiffViewOpen
-                  ? {
-                      color: "primary.contrastText",
-                      backgroundColor: "primary.main",
-                      "&:hover": { backgroundColor: "primary.dark" },
-                    }
-                  : undefined
-              }
+              sx={isDiffViewOpen
+                ? {
+                  color: "primary.contrastText",
+                  backgroundColor: "primary.main",
+                  "&:hover": { backgroundColor: "primary.dark" },
+                }
+                : undefined}
             >
               <Preview />
             </IconButton>
@@ -86,7 +84,10 @@ export default function EditDocumentInfo(
         )}
 
         <Grid container spacing={1}>
-          <Grid size={{ xs: 12 }} sx={{ display: "flex", alignItems: "center" }}>
+          <Grid
+            size={{ xs: 12 }}
+            sx={{ display: "flex", alignItems: "center" }}
+          >
             <History sx={{ mr: 1 }} />
             <Typography variant="h6">Revisions</Typography>
             <Button

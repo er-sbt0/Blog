@@ -20,7 +20,9 @@ interface SeriesViewProps {
   user?: User;
 }
 
-const SeriesView: React.FC<SeriesViewProps> = ({ series, user: serverUser }) => {
+const SeriesView: React.FC<SeriesViewProps> = (
+  { series, user: serverUser },
+) => {
   const router = useRouter();
   const { data: session } = useSession();
   const user = serverUser || (session?.user as User | undefined);
@@ -29,7 +31,9 @@ const SeriesView: React.FC<SeriesViewProps> = ({ series, user: serverUser }) => 
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [createPostDrawerOpen, setCreatePostDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [granularity, setGranularity] = useState<PartitionGranularity>("quarter");
+  const [granularity, setGranularity] = useState<PartitionGranularity>(
+    "quarter",
+  );
   const [viewType, setViewType] = useState<ViewType>("grid");
 
   useEffect(() => {
@@ -67,7 +71,11 @@ const SeriesView: React.FC<SeriesViewProps> = ({ series, user: serverUser }) => 
     );
   }, [sortedPosts, searchQuery]);
 
-  const { timeGroups } = usePostsGrouping({ posts: filteredPosts, granularity, pendingTimeChanges });
+  const { timeGroups } = usePostsGrouping({
+    posts: filteredPosts,
+    granularity,
+    pendingTimeChanges,
+  });
 
   const handlePostsAdded = () => router.refresh();
 
@@ -137,7 +145,13 @@ const SeriesView: React.FC<SeriesViewProps> = ({ series, user: serverUser }) => 
               color: "text.secondary",
             }}
           >
-            <Box sx={{ mb: 3, fontSize: { xs: 40, md: 56 }, filter: "grayscale(0.3)" }}>
+            <Box
+              sx={{
+                mb: 3,
+                fontSize: { xs: 40, md: 56 },
+                filter: "grayscale(0.3)",
+              }}
+            >
               {searchQuery ? "🔍" : "📚"}
             </Box>
             <Box
@@ -151,7 +165,12 @@ const SeriesView: React.FC<SeriesViewProps> = ({ series, user: serverUser }) => 
               {searchQuery ? "No posts found" : "No posts in this series yet"}
             </Box>
             <Box
-              sx={{ fontSize: { xs: "0.875rem", md: "1rem" }, color: "text.secondary", maxWidth: 400, mx: "auto" }}
+              sx={{
+                fontSize: { xs: "0.875rem", md: "1rem" },
+                color: "text.secondary",
+                maxWidth: 400,
+                mx: "auto",
+              }}
             >
               {searchQuery
                 ? `No posts match "${searchQuery}". Try a different search term.`

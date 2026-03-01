@@ -15,12 +15,29 @@ import PostActionMenu from "@/components/DocumentCardNew/PostActionMenu";
 import { PendingTimeChange } from "./PostsCompactListView";
 import { TimeStepperControls } from "./TimeStepperControls";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 function formatDate(dateString: string | Date): string {
-  const date = typeof dateString === "string" ? new Date(dateString) : dateString;
+  const date = typeof dateString === "string"
+    ? new Date(dateString)
+    : dateString;
   const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
+  );
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays}d ago`;
@@ -40,7 +57,11 @@ interface PostCompactListItemProps {
   pendingChange?: PendingTimeChange;
   editingName: string | undefined;
   onNameChange: (postId: string, value: string) => void;
-  onNameCommit: (postId: string, documentId: string, originalName: string) => void;
+  onNameCommit: (
+    postId: string,
+    documentId: string,
+    originalName: string,
+  ) => void;
   onNameCancel: (postId: string) => void;
   onTimeAdjust?: (postId: string, originalDate: Date, days: number) => void;
   onTimeReset?: (postId: string) => void;
@@ -86,7 +107,11 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
           transform: "translateY(-50%)",
           width: 3,
           height: hasRowChanges ? "100%" : isDone ? "100%" : 0,
-          bgcolor: hasRowChanges ? "warning.main" : isDone ? "text.disabled" : "primary.main",
+          bgcolor: hasRowChanges
+            ? "warning.main"
+            : isDone
+            ? "text.disabled"
+            : "primary.main",
           borderRadius: "0 2px 2px 0",
           transition: "height 0.2s ease, background-color 0.2s ease",
         },
@@ -98,7 +123,11 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
     >
       <ListItemButton
         onClick={() => {
-          if (!isTimeEditMode && document?.id) router.push(`/view/${document.id}`);
+          if (!isTimeEditMode && document?.id) {
+            router.push(
+              `/view/${document.id}`,
+            );
+          }
         }}
         sx={{
           py: 1.25,
@@ -112,7 +141,14 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
       >
         {/* Title and Metadata */}
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.5,
+              minWidth: 0,
+            }}
+          >
             {isTimeEditMode && document?.id
               ? (
                 <InputBase
@@ -121,7 +157,8 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
                     e.stopPropagation();
                     onNameChange(post.id, e.target.value);
                   }}
-                  onBlur={() => onNameCommit(post.id, document.id, document?.name || "")}
+                  onBlur={() =>
+                    onNameCommit(post.id, document.id, document?.name || "")}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -176,7 +213,10 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
                     width: 22,
                     height: 22,
                     color: "text.disabled",
-                    "&:hover": { color: "text.secondary", bgcolor: "action.hover" },
+                    "&:hover": {
+                      color: "text.secondary",
+                      bgcolor: "action.hover",
+                    },
                   }}
                 >
                   <DeleteForever sx={{ fontSize: 15 }} />
@@ -186,7 +226,14 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
           </Box>
 
           {/* Metadata */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              width: "100%",
+            }}
+          >
             <Typography
               variant="caption"
               sx={{
@@ -200,13 +247,33 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
               <span>{authorName}</span>
               <Box
                 component="span"
-                sx={{ width: 3, height: 3, borderRadius: "50%", bgcolor: "text.disabled", opacity: 0.5 }}
+                sx={{
+                  width: 3,
+                  height: 3,
+                  borderRadius: "50%",
+                  bgcolor: "text.disabled",
+                  opacity: 0.5,
+                }}
               />
-              <span style={{ color: hasRowChanges ? "inherit" : undefined, fontWeight: hasRowChanges ? 600 : 400 }}>
-                {isTimeEditMode ? formatFullDate(displayDate) : formatDate(displayDate)}
+              <span
+                style={{
+                  color: hasRowChanges ? "inherit" : undefined,
+                  fontWeight: hasRowChanges ? 600 : 400,
+                }}
+              >
+                {isTimeEditMode
+                  ? formatFullDate(displayDate)
+                  : formatDate(displayDate)}
               </span>
               {hasRowChanges && (
-                <Typography component="span" sx={{ fontSize: "0.7rem", color: "warning.main", fontWeight: 500 }}>
+                <Typography
+                  component="span"
+                  sx={{
+                    fontSize: "0.7rem",
+                    color: "warning.main",
+                    fontWeight: 500,
+                  }}
+                >
                   (was {formatFullDate(originalDate)})
                 </Typography>
               )}

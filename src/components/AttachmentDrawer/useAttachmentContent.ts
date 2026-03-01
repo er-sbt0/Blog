@@ -32,9 +32,13 @@ interface UseAttachmentContentParams {
   mimetype: string | undefined;
 }
 
-export function useAttachmentContent({ open, url, filename, mimetype }: UseAttachmentContentParams) {
+export function useAttachmentContent(
+  { open, url, filename, mimetype }: UseAttachmentContentParams,
+) {
   const dispatch = useDispatch();
-  const language = filename && mimetype ? detectLanguage(filename, mimetype) : "text";
+  const language = filename && mimetype
+    ? detectLanguage(filename, mimetype)
+    : "text";
   const cacheKey = url ? extractFilename(url) : null;
 
   const [contentState, setContentState] = useState<ContentState>({
@@ -42,7 +46,9 @@ export function useAttachmentContent({ open, url, filename, mimetype }: UseAttac
     loading: false,
     error: null,
   });
-  const [highlightedContent, setHighlightedContent] = useState<string | null>(null);
+  const [highlightedContent, setHighlightedContent] = useState<string | null>(
+    null,
+  );
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [fileSize, setFileSize] = useState<number | null>(null);
@@ -54,14 +60,20 @@ export function useAttachmentContent({ open, url, filename, mimetype }: UseAttac
     try {
       const cached = await attachmentContentDB.getByID(cacheKey);
       if (cached) {
-        setContentState({ content: cached.content, loading: false, error: null });
+        setContentState({
+          content: cached.content,
+          loading: false,
+          error: null,
+        });
         setFileSize(cached.size);
         return;
       }
       const response = await fetch(`${url}/content`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to load content: ${response.status}`);
+        throw new Error(
+          errorData.error || `Failed to load content: ${response.status}`,
+        );
       }
       const data = await response.json();
       setFileSize(data.size);
@@ -79,7 +91,9 @@ export function useAttachmentContent({ open, url, filename, mimetype }: UseAttac
       setContentState({
         content: null,
         loading: false,
-        error: error instanceof Error ? error.message : "Failed to load content",
+        error: error instanceof Error
+          ? error.message
+          : "Failed to load content",
       });
     }
   }, [url, cacheKey]);
@@ -102,7 +116,9 @@ export function useAttachmentContent({ open, url, filename, mimetype }: UseAttac
       try {
         const grammar = Prism.languages[language];
         if (grammar) {
-          setHighlightedContent(Prism.highlight(contentState.content, grammar, language));
+          setHighlightedContent(
+            Prism.highlight(contentState.content, grammar, language),
+          );
         } else {
           setHighlightedContent(null);
         }
@@ -156,7 +172,9 @@ export function useAttachmentContent({ open, url, filename, mimetype }: UseAttac
     setContentState({ content: newContent, loading: false, error: null });
     setFileSize(data.size);
     setIsEditing(false);
-    if (cacheKey) await attachmentContentDB.deleteByID(cacheKey).catch(() => {});
+    if (cacheKey) {
+      await attachmentContentDB.deleteByID(cacheKey).catch(() => {});
+    }
     dispatch(actions.notifyAttachmentModified({ url }));
   }, [url, cacheKey, dispatch]);
 

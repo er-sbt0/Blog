@@ -20,7 +20,9 @@ interface MoveProps {
   closeMenu?: () => void;
 }
 
-const Move: React.FC<MoveProps> = ({ userDocument, variant = "menuitem", closeMenu }) => {
+const Move: React.FC<MoveProps> = (
+  { userDocument, variant = "menuitem", closeMenu },
+) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const menuItemRef = useRef<HTMLLIElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -56,7 +58,11 @@ const Move: React.FC<MoveProps> = ({ userDocument, variant = "menuitem", closeMe
     <>
       {variant === "menuitem"
         ? (
-          <MenuItem onClick={handleOpen} data-testid="move-menu-item" ref={menuItemRef}>
+          <MenuItem
+            onClick={handleOpen}
+            data-testid="move-menu-item"
+            ref={menuItemRef}
+          >
             <ListItemIcon>
               <DriveFileMove fontSize="small" />
             </ListItemIcon>
@@ -106,7 +112,11 @@ const Move: React.FC<MoveProps> = ({ userDocument, variant = "menuitem", closeMe
         <Divider sx={{ my: 1 }} />
 
         <Box sx={{ mt: 2, display: "flex", justifyContent: "space-between" }}>
-          <Button onClick={handleClose} size="small" data-testid="move-cancel-button">
+          <Button
+            onClick={handleClose}
+            size="small"
+            data-testid="move-cancel-button"
+          >
             Cancel
           </Button>
           <Button

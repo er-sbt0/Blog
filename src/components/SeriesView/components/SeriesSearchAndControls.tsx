@@ -101,7 +101,9 @@ const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
         disabled={filteredPostCount === 0}
       />
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+      <Box
+        sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}
+      >
         {canEdit && viewType === "compact" && (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Button
@@ -136,7 +138,8 @@ const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
                   color="success"
                   startIcon={<Check />}
                   onClick={onSaveTimeChanges}
-                  disabled={pendingTimeChanges.size === 0 || isSavingTimeChanges}
+                  disabled={pendingTimeChanges.size === 0 ||
+                    isSavingTimeChanges}
                   sx={{
                     textTransform: "none",
                     fontWeight: 500,

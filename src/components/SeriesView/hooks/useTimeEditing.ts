@@ -24,11 +24,15 @@ export function useTimeEditing(posts: Document[]) {
       setPendingTimeChanges((prev) => {
         const newMap = new Map(prev);
         const existing = newMap.get(postId);
-        const currentDate = existing ? existing.newDate : new Date(originalDate);
+        const currentDate = existing
+          ? existing.newDate
+          : new Date(originalDate);
         const newDate = new Date(currentDate);
         newDate.setDate(newDate.getDate() + days);
         newMap.set(postId, {
-          originalDate: existing ? existing.originalDate : new Date(originalDate),
+          originalDate: existing
+            ? existing.originalDate
+            : new Date(originalDate),
           newDate,
         });
         return newMap;
@@ -49,7 +53,9 @@ export function useTimeEditing(posts: Document[]) {
     if (pendingTimeChanges.size === 0) return;
     setIsSavingTimeChanges(true);
     try {
-      const updates = Array.from(pendingTimeChanges.entries()).map(([id, change]) => ({
+      const updates = Array.from(pendingTimeChanges.entries()).map((
+        [id, change],
+      ) => ({
         id,
         createdAt: change.newDate,
       }));
@@ -80,8 +86,10 @@ export function useTimeEditing(posts: Document[]) {
       [...posts].sort((a, b) => {
         const pendingA = pendingTimeChanges.get(a.id);
         const pendingB = pendingTimeChanges.get(b.id);
-        const dateA = (pendingA ? pendingA.newDate : new Date(a.createdAt || 0)).getTime();
-        const dateB = (pendingB ? pendingB.newDate : new Date(b.createdAt || 0)).getTime();
+        const dateA = (pendingA ? pendingA.newDate : new Date(a.createdAt || 0))
+          .getTime();
+        const dateB = (pendingB ? pendingB.newDate : new Date(b.createdAt || 0))
+          .getTime();
         return dateB - dateA;
       }),
     [posts, pendingTimeChanges],

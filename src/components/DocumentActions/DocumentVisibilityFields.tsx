@@ -6,7 +6,9 @@ interface DocumentVisibilityFieldsProps {
   isPublished: boolean | undefined;
   isCollab: boolean | undefined;
   disabled?: boolean;
-  onChange: (partial: { private?: boolean; published?: boolean; collab?: boolean }) => void;
+  onChange: (
+    partial: { private?: boolean; published?: boolean; collab?: boolean },
+  ) => void;
 }
 
 /**
@@ -50,8 +52,8 @@ const DocumentVisibilityFields: React.FC<DocumentVisibilityFieldsProps> = ({
       }
     />
     <FormHelperText>
-      Published documents are showcased on the homepage, can be forked by anyone, and can be found
-      by search engines.
+      Published documents are showcased on the homepage, can be forked by
+      anyone, and can be found by search engines.
     </FormHelperText>
     <FormControlLabel
       label="Collab"
@@ -63,7 +65,9 @@ const DocumentVisibilityFields: React.FC<DocumentVisibilityFieldsProps> = ({
         />
       }
     />
-    <FormHelperText>Collab documents are open for anyone to edit.</FormHelperText>
+    <FormHelperText>
+      Collab documents are open for anyone to edit.
+    </FormHelperText>
   </>
 );
 

@@ -8,9 +8,13 @@ interface UseHandleValidationParams {
   updateInput: (partial: Partial<DocumentCreateInput>) => void;
 }
 
-export function useHandleValidation({ updateInput }: UseHandleValidationParams) {
+export function useHandleValidation(
+  { updateInput }: UseHandleValidationParams,
+) {
   const [validating, setValidating] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
   const hasErrors = Object.keys(validationErrors).length > 0;
 
   const checkHandle = useCallback(
@@ -24,7 +28,9 @@ export function useHandleValidation({ updateInput }: UseHandleValidationParams) 
           setValidationErrors({});
         }
       } catch {
-        setValidationErrors({ handle: "Something went wrong: Please try again later" });
+        setValidationErrors({
+          handle: "Something went wrong: Please try again later",
+        });
       }
       setValidating(false);
     }, 500),
@@ -33,17 +39,28 @@ export function useHandleValidation({ updateInput }: UseHandleValidationParams) 
 
   const updateHandle = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const handle = event.target.value.trim().toLowerCase().replace(/[^A-Za-z0-9]/g, "-");
+      const handle = event.target.value.trim().toLowerCase().replace(
+        /[^A-Za-z0-9]/g,
+        "-",
+      );
       updateInput({ handle });
       if (!handle) return setValidationErrors({});
       if (handle.length < 3) {
-        return setValidationErrors({ handle: "Handle is too short: Handle must be at least 3 characters long" });
+        return setValidationErrors({
+          handle:
+            "Handle is too short: Handle must be at least 3 characters long",
+        });
       }
       if (!/^[a-zA-Z0-9-]+$/.test(handle)) {
-        return setValidationErrors({ handle: "Invalid Handle: Handle must only contain letters, numbers, and hyphens" });
+        return setValidationErrors({
+          handle:
+            "Invalid Handle: Handle must only contain letters, numbers, and hyphens",
+        });
       }
       if (validate(handle)) {
-        return setValidationErrors({ handle: "Invalid Handle: Handle must not be a UUID" });
+        return setValidationErrors({
+          handle: "Invalid Handle: Handle must not be a UUID",
+        });
       }
       setValidating(true);
       checkHandle(handle);

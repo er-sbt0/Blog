@@ -35,7 +35,9 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
 }) => {
   const router = useRouter();
   const dispatch = useDispatch();
-  const [editingNames, setEditingNames] = useState<Map<string, string>>(new Map());
+  const [editingNames, setEditingNames] = useState<Map<string, string>>(
+    new Map(),
+  );
 
   const handleRenameCommit = async (
     postId: string,
@@ -49,7 +51,12 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
       return m;
     });
     if (!newName || newName === originalName) return;
-    await dispatch(actions.updateCloudDocument({ id: documentId, partial: { name: newName } }));
+    await dispatch(
+      actions.updateCloudDocument({
+        id: documentId,
+        partial: { name: newName },
+      }),
+    );
     router.refresh();
   };
 
@@ -57,7 +64,8 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
     const name = post.cloud?.name || post.local?.name || "This post";
     const alertPayload = {
       title: "Delete Post",
-      content: `Are you sure you want to delete "${name}"? This cannot be undone.`,
+      content:
+        `Are you sure you want to delete "${name}"? This cannot be undone.`,
       actions: [
         { label: "Cancel", id: uuid() },
         { label: "Delete", id: uuid() },
@@ -94,8 +102,7 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
             pendingChange={pendingChanges.get(post.id)}
             editingName={editingNames.get(post.id)}
             onNameChange={(postId, value) =>
-              setEditingNames((prev) => new Map(prev).set(postId, value))
-            }
+              setEditingNames((prev) => new Map(prev).set(postId, value))}
             onNameCommit={handleRenameCommit}
             onNameCancel={(postId) => {
               setEditingNames((prev) => {

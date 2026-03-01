@@ -11,7 +11,9 @@ import AttachmentContentViewer from "./AttachmentContentViewer";
 
 export default function AttachmentDrawer() {
   const dispatch = useDispatch();
-  const attachmentPreview = useSelector((state: RootState) => state.ui.attachmentPreview);
+  const attachmentPreview = useSelector((state: RootState) =>
+    state.ui.attachmentPreview
+  );
 
   const open = attachmentPreview?.open ?? false;
   const url = attachmentPreview?.url ?? undefined;

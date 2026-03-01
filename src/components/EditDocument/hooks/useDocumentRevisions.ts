@@ -19,16 +19,22 @@ export function useDocumentRevisions(
   const localRevisions = localDocument?.revisions ?? [];
   const cloudRevisions = cloudDocument?.revisions ?? [];
 
-  const isHeadLocalRevision = localRevisions.some((r) => r.id === localDocument?.head);
-  const isHeadCloudRevision = cloudRevisions.some((r) => r.id === localDocument?.head);
+  const isHeadLocalRevision = localRevisions.some((r) =>
+    r.id === localDocument?.head
+  );
+  const isHeadCloudRevision = cloudRevisions.some((r) =>
+    r.id === localDocument?.head
+  );
   const unsavedChanges = !isHeadLocalRevision && !isHeadCloudRevision;
 
-  const revisions: (DocumentRevision | EditorDocumentRevision)[] = [...cloudRevisions];
+  const revisions: (DocumentRevision | EditorDocumentRevision)[] = [
+    ...cloudRevisions,
+  ];
   localRevisions.forEach((r) => {
     if (!cloudRevisions.some((cr) => cr.id === r.id)) revisions.push(r);
   });
   const documentRevisions = [...revisions].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 
   if (unsavedChanges && localDocument) {
@@ -36,7 +42,8 @@ export function useDocumentRevisions(
       id: localDocument.head,
       documentId: localDocument.id,
       createdAt: localDocument.updatedAt,
-      author: user || { id: "", name: "Local User", email: "", handle: null, image: null },
+      author: user ||
+        { id: "", name: "Local User", email: "", handle: null, image: null },
     } as DocumentRevision;
     documentRevisions.unshift(unsavedRevision);
   }
@@ -46,7 +53,7 @@ export function useDocumentRevisions(
 
   const getLocalEditorData = useCallback(
     () => editorRef.current?.getEditorState().toJSON(),
-    [editorRef]
+    [editorRef],
   );
 
   const createLocalRevision = useCallback(async () => {
@@ -60,8 +67,12 @@ export function useDocumentRevisions(
       data,
     };
     const response = await dispatch(actions.createLocalRevision(payload));
-    if (response.type === actions.createLocalRevision.rejected.type) return undefined;
-    return response.payload as ReturnType<typeof actions.createLocalRevision.fulfilled>["payload"];
+    if (response.type === actions.createLocalRevision.rejected.type) {
+      return undefined;
+    }
+    return response.payload as ReturnType<
+      typeof actions.createLocalRevision.fulfilled
+    >["payload"];
   }, [localDocument, getLocalEditorData, dispatch]);
 
   const viewLocalDocument = useCallback(async () => {
@@ -72,14 +83,28 @@ export function useDocumentRevisions(
       old: localDocument?.head,
       new: localDocument?.head,
     }));
-  }, [isDiffViewOpen, unsavedChanges, createLocalRevision, localDocument, dispatch]);
+  }, [
+    isDiffViewOpen,
+    unsavedChanges,
+    createLocalRevision,
+    localDocument,
+    dispatch,
+  ]);
 
   const toggleDiffView = useCallback(async () => {
     if (unsavedChanges) await createLocalRevision();
     const newId = documentRevisions[0]?.id;
     const oldId = documentRevisions[1]?.id ?? newId;
-    dispatch(actions.setDiff({ open: !isDiffViewOpen, old: oldId, new: newId }));
-  }, [unsavedChanges, createLocalRevision, documentRevisions, isDiffViewOpen, dispatch]);
+    dispatch(
+      actions.setDiff({ open: !isDiffViewOpen, old: oldId, new: newId }),
+    );
+  }, [
+    unsavedChanges,
+    createLocalRevision,
+    documentRevisions,
+    isDiffViewOpen,
+    dispatch,
+  ]);
 
   const handleViewWithCloudSave = useCallback(async () => {
     if (isDiffViewOpen) return dispatch(actions.setDiff({ open: false }));
@@ -95,8 +120,13 @@ export function useDocumentRevisions(
               createdAt: localDocument.updatedAt,
               data,
             };
-            const revisionResponse = await dispatch(actions.createCloudRevision(revision));
-            if (revisionResponse.type === actions.createCloudRevision.fulfilled.type) {
+            const revisionResponse = await dispatch(
+              actions.createCloudRevision(revision),
+            );
+            if (
+              revisionResponse.type ===
+                actions.createCloudRevision.fulfilled.type
+            ) {
               await dispatch(actions.updateCloudDocument({
                 id: localDocument.id,
                 partial: {
@@ -113,7 +143,16 @@ export function useDocumentRevisions(
       }
     }
     viewLocalDocument();
-  }, [isDiffViewOpen, unsavedChanges, getLocalEditorData, createLocalRevision, isAuthor, localDocument, dispatch, viewLocalDocument]);
+  }, [
+    isDiffViewOpen,
+    unsavedChanges,
+    getLocalEditorData,
+    createLocalRevision,
+    isAuthor,
+    localDocument,
+    dispatch,
+    viewLocalDocument,
+  ]);
 
   const handleCompareWithCloudSave = useCallback(async () => {
     if (isDiffViewOpen && unsavedChanges && localDocument) {
@@ -126,8 +165,12 @@ export function useDocumentRevisions(
           data: editorData,
         };
         try {
-          const revisionResponse = await dispatch(actions.createCloudRevision(revision));
-          if (revisionResponse.type === actions.createCloudRevision.fulfilled.type) {
+          const revisionResponse = await dispatch(
+            actions.createCloudRevision(revision),
+          );
+          if (
+            revisionResponse.type === actions.createCloudRevision.fulfilled.type
+          ) {
             await dispatch(actions.updateCloudDocument({
               id: localDocument.id,
               partial: {
@@ -143,7 +186,14 @@ export function useDocumentRevisions(
       }
     }
     toggleDiffView();
-  }, [isDiffViewOpen, unsavedChanges, localDocument, getLocalEditorData, dispatch, toggleDiffView]);
+  }, [
+    isDiffViewOpen,
+    unsavedChanges,
+    localDocument,
+    getLocalEditorData,
+    dispatch,
+    toggleDiffView,
+  ]);
 
   return {
     userDocument,

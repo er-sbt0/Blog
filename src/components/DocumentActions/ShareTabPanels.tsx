@@ -55,7 +55,9 @@ export const ShareViewPanel: React.FC<SharedPanelProps> = ({
       <FormLabel>Permissions</FormLabel>
       <FormControlLabel
         control={<Switch checked={!isPrivate} onChange={togglePrivate} />}
-        label={!isPrivate ? "Anyone with the link" : "Only author and coauthors"}
+        label={!isPrivate
+          ? "Anyone with the link"
+          : "Only author and coauthors"}
       />
     </FormControl>
   </Box>
@@ -88,7 +90,9 @@ export const ShareEmbedPanel: React.FC<SharedPanelProps> = ({
       <FormLabel>Permissions</FormLabel>
       <FormControlLabel
         control={<Switch checked={!isPrivate} onChange={togglePrivate} />}
-        label={!isPrivate ? "Anyone with the link" : "Only author and coauthors"}
+        label={!isPrivate
+          ? "Anyone with the link"
+          : "Only author and coauthors"}
       />
       {isPrivate && (
         <FormHelperText>Private documents can not be embedded</FormHelperText>
@@ -124,10 +128,14 @@ export const SharePdfPanel: React.FC<SharedPanelProps> = ({
       <FormLabel>Permissions</FormLabel>
       <FormControlLabel
         control={<Switch checked={!isPrivate} onChange={togglePrivate} />}
-        label={!isPrivate ? "Anyone with the link" : "Only author and coauthors"}
+        label={!isPrivate
+          ? "Anyone with the link"
+          : "Only author and coauthors"}
       />
       {isPrivate && (
-        <FormHelperText>Private documents can not be shared as PDF</FormHelperText>
+        <FormHelperText>
+          Private documents can not be shared as PDF
+        </FormHelperText>
       )}
     </FormControl>
     <FormControl fullWidth disabled={isPrivate}>
@@ -145,7 +153,12 @@ export const SharePdfPanel: React.FC<SharedPanelProps> = ({
     </FormControl>
     <FormControl fullWidth disabled={isPrivate}>
       <FormLabel>Orientation</FormLabel>
-      <RadioGroup row aria-label="orientation" name="landscape" defaultValue="false">
+      <RadioGroup
+        row
+        aria-label="orientation"
+        name="landscape"
+        defaultValue="false"
+      >
         <FormControlLabel value="false" control={<Radio />} label="Portrait" />
         <FormControlLabel value="true" control={<Radio />} label="Landscape" />
       </RadioGroup>
@@ -187,10 +200,14 @@ export const ShareDocxPanel: React.FC<SharedPanelProps> = ({
       <FormLabel>Permissions</FormLabel>
       <FormControlLabel
         control={<Switch checked={!isPrivate} onChange={togglePrivate} />}
-        label={!isPrivate ? "Anyone with the link" : "Only author and coauthors"}
+        label={!isPrivate
+          ? "Anyone with the link"
+          : "Only author and coauthors"}
       />
       {isPrivate && (
-        <FormHelperText>Private documents can not be shared as DOCx</FormHelperText>
+        <FormHelperText>
+          Private documents can not be shared as DOCx
+        </FormHelperText>
       )}
     </FormControl>
   </Box>
@@ -243,7 +260,8 @@ export const ShareCopyLinkButton: React.FC<ShareCopyLinkProps> = ({
   copyLink,
 }) => {
   const restrictedFormats = ["embed", "pdf", "docx"];
-  const disabled = !isCloud || (isPrivate && restrictedFormats.includes(format));
+  const disabled = !isCloud ||
+    (isPrivate && restrictedFormats.includes(format));
   return (
     <Box sx={{ p: 2 }}>
       <Button

@@ -1,5 +1,5 @@
 "use client";
-import { Document, CloudDocumentRevision, User } from "@/types";
+import { CloudDocumentRevision, Document, User } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import Grid from "@mui/material/Grid2";
 import {

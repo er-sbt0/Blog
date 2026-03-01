@@ -83,7 +83,11 @@ const ShareDocument: React.FC<{
           </MenuItem>
         )
         : (
-          <IconButton aria-label="Share Document" onClick={openShareDialog} size="small">
+          <IconButton
+            aria-label="Share Document"
+            onClick={openShareDialog}
+            size="small"
+          >
             <Share />
           </IconButton>
         )}
@@ -100,7 +104,12 @@ const ShareDocument: React.FC<{
           component="form"
           onSubmit={(e) => handleShare(e, closeMenu)}
           ref={shareFormRef}
-          sx={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            height: "100%",
+          }}
         >
           <DialogTitle>Share Document</DialogTitle>
           <DialogContent>
@@ -115,7 +124,13 @@ const ShareDocument: React.FC<{
             </Tabs>
             {!cloudDocument && (
               <Box
-                sx={{ display: "flex", flexDirection: "column", alignItems: "center", my: 5, gap: 2 }}
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  my: 5,
+                  gap: 2,
+                }}
               >
                 <CloudOff sx={{ width: 64, height: 64, fontSize: 64 }} />
                 <Typography variant="overline" component="p">
@@ -154,7 +169,8 @@ const ShareDocument: React.FC<{
             <Button onClick={() => closeShareDialog(closeMenu)}>Cancel</Button>
             <Button
               type="submit"
-              disabled={!cloudDocument || (isPrivate && ["embed", "pdf", "docx"].includes(format))}
+              disabled={!cloudDocument ||
+                (isPrivate && ["embed", "pdf", "docx"].includes(format))}
             >
               Share
             </Button>

@@ -3,22 +3,17 @@ import {
   $addUpdateTag,
   $getSelection,
   $isRangeSelection,
+  BLUR_COMMAND,
+  CLICK_COMMAND,
   COMMAND_PRIORITY_CRITICAL,
   KEY_DOWN_COMMAND,
-  CLICK_COMMAND,
-  BLUR_COMMAND,
   LexicalEditor,
   LexicalNode,
   SerializedParagraphNode,
 } from "lexical";
 import { mergeRegister } from "@lexical/utils";
 import { useCallback, useEffect, useRef } from "react";
-import {
-  CircularProgress,
-  Divider,
-  IconButton,
-  Tooltip,
-} from "@mui/material";
+import { CircularProgress, Divider, IconButton, Tooltip } from "@mui/material";
 import {
   AutoAwesome,
   Autorenew,

@@ -75,7 +75,11 @@ const EditDocument: React.FC<{
           </MenuItem>
         )
         : (
-          <IconButton aria-label="Edit Document" onClick={() => openEditDialog(closeMenu)} size="small">
+          <IconButton
+            aria-label="Edit Document"
+            onClick={() => openEditDialog(closeMenu)}
+            size="small"
+          >
             <Settings />
           </IconButton>
         )}
@@ -92,11 +96,21 @@ const EditDocument: React.FC<{
           noValidate
           autoComplete="off"
           spellCheck="false"
-          sx={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            height: "100%",
+          }}
         >
           <DialogTitle>Edit Post</DialogTitle>
           <DialogContent
-            sx={{ "& .MuiFormHelperText-root": { overflow: "hidden", textOverflow: "ellipsis" } }}
+            sx={{
+              "& .MuiFormHelperText-root": {
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              },
+            }}
           >
             <TextField
               margin="normal"
@@ -120,7 +134,11 @@ const EditDocument: React.FC<{
               onChange={(e) => updateInput({ description: e.target.value })}
               helperText="This description will appear in post previews and help with SEO"
               sx={{
-                "& .MuiInputBase-root": { minHeight: 80, alignItems: "flex-start", padding: "8px 12px" },
+                "& .MuiInputBase-root": {
+                  minHeight: 80,
+                  alignItems: "flex-start",
+                  padding: "8px 12px",
+                },
                 "& .MuiInputBase-input": { resize: "vertical" },
               }}
             />
@@ -133,19 +151,22 @@ const EditDocument: React.FC<{
               value={input.handle || ""}
               onChange={updateHandle}
               error={!validating && !!validationErrors.handle}
-              helperText={
-                validating
-                  ? "Validating..."
-                  : validationErrors.handle
-                  ? validationErrors.handle
-                  : input.handle
-                  ? `https://matheditor.me/view/${input.handle}`
-                  : "This will be used in the URL of your document"
-              }
+              helperText={validating
+                ? "Validating..."
+                : validationErrors.handle
+                ? validationErrors.handle
+                : input.handle
+                ? `https://matheditor.me/view/${input.handle}`
+                : "This will be used in the URL of your document"}
             />
 
             {/* Publication Date */}
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ mt: 2, mb: 1 }}>
+            <Typography
+              variant="subtitle2"
+              color="text.secondary"
+              gutterBottom
+              sx={{ mt: 2, mb: 1 }}
+            >
               Publication Date
             </Typography>
             <Box sx={{ display: "flex", gap: 1 }}>
@@ -154,7 +175,9 @@ const EditDocument: React.FC<{
                 label="Date"
                 type="date"
                 disabled={!isAuthor}
-                value={input.createdAt ? new Date(input.createdAt).toISOString().slice(0, 10) : ""}
+                value={input.createdAt
+                  ? new Date(input.createdAt).toISOString().slice(0, 10)
+                  : ""}
                 onChange={(e) => {
                   if (e.target.value && input.createdAt) {
                     const current = new Date(input.createdAt);
@@ -171,7 +194,9 @@ const EditDocument: React.FC<{
                 label="Time"
                 type="time"
                 disabled={!isAuthor}
-                value={input.createdAt ? new Date(input.createdAt).toTimeString().slice(0, 5) : ""}
+                value={input.createdAt
+                  ? new Date(input.createdAt).toTimeString().slice(0, 5)
+                  : ""}
                 onChange={(e) => {
                   if (e.target.value && input.createdAt) {
                     const current = new Date(input.createdAt);
@@ -193,7 +218,8 @@ const EditDocument: React.FC<{
               <InputLabel>Status</InputLabel>
               <Select
                 value={input.status || DocumentStatus.ACTIVE}
-                onChange={(e) => updateInput({ status: e.target.value as DocumentStatus })}
+                onChange={(e) =>
+                  updateInput({ status: e.target.value as DocumentStatus })}
                 label="Status"
                 disabled={!isAuthor}
               >
@@ -211,7 +237,11 @@ const EditDocument: React.FC<{
             {isDirectory && isAuthor && (
               <>
                 <Divider sx={{ my: 2 }} />
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Directory Options
                 </Typography>
                 <BackgroundImageUploader
@@ -226,7 +256,11 @@ const EditDocument: React.FC<{
             {isAuthor && (
               <>
                 <Divider sx={{ my: 2 }} />
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Sort Options
                 </Typography>
                 <TextField
@@ -238,15 +272,26 @@ const EditDocument: React.FC<{
                   inputProps={{ min: 0, step: 1 }}
                   value={input.sort_order === null ? "" : input.sort_order}
                   onChange={(e) =>
-                    updateInput({ sort_order: e.target.value === "" ? null : Number(e.target.value) })
-                  }
+                    updateInput({
+                      sort_order: e.target.value === ""
+                        ? null
+                        : Number(e.target.value),
+                    })}
                   helperText="Items with sort order > 0 will appear first. Leave empty for default sorting."
                 />
               </>
             )}
 
             {!cloudDocument && (
-              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", my: 1, gap: 1 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  my: 1,
+                  gap: 1,
+                }}
+              >
                 <FormHelperText>
                   Save the document to cloud to unlock the following options
                 </FormHelperText>

@@ -51,7 +51,9 @@ export default function AttachmentToolbar({
         disabled={isDownloading || isEditing}
         title="Download file"
       >
-        {isDownloading ? <CircularProgress size={18} /> : <Download fontSize="small" />}
+        {isDownloading
+          ? <CircularProgress size={18} />
+          : <Download fontSize="small" />}
       </IconButton>
       <IconButton
         size="small"

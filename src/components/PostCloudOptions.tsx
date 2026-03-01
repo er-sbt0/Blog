@@ -1,9 +1,5 @@
 "use client";
-import {
-  Checkbox,
-  FormControlLabel,
-  FormHelperText,
-} from "@mui/material";
+import { Checkbox, FormControlLabel, FormHelperText } from "@mui/material";
 import { DocumentCreateInput, User } from "@/types";
 import UsersAutocomplete from "./User/UsersAutocomplete";
 import DocumentVisibilityFields from "./DocumentActions/DocumentVisibilityFields";
@@ -71,7 +67,9 @@ const PostCloudOptions: React.FC<PostCloudOptionsProps> = ({
           onChange={(partial) => {
             const update: Partial<DocumentCreateInput> = {};
             if (partial.private !== undefined) update.private = partial.private;
-            if (partial.published !== undefined) update.published = partial.published;
+            if (partial.published !== undefined) {
+              update.published = partial.published;
+            }
             if (partial.collab !== undefined) update.collab = partial.collab;
             onUpdateInput(update);
           }}

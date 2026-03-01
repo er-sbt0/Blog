@@ -47,7 +47,9 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
     collab: false,
   });
   const [saveToCloud, setSaveToCloud] = useState(true);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
   const [validating, setValidating] = useState(false);
   const [nextSeriesOrder, setNextSeriesOrder] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,7 +64,8 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
         if (response.ok) {
           const { data: series } = await response.json();
           const maxOrder = series?.posts?.reduce(
-            (max: number, post: { seriesOrder?: number }) => Math.max(max, post.seriesOrder || 0),
+            (max: number, post: { seriesOrder?: number }) =>
+              Math.max(max, post.seriesOrder || 0),
             0,
           ) ?? 0;
           setNextSeriesOrder(maxOrder + 1);
@@ -94,7 +97,9 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
   };
 
   const updateCoauthors = (users: (User | string)[]) => {
-    updateInput({ coauthors: users.map((u) => (typeof u === "string" ? u : u.email)) });
+    updateInput({
+      coauthors: users.map((u) => (typeof u === "string" ? u : u.email)),
+    });
   };
 
   const checkHandle = useCallback(
@@ -102,9 +107,12 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
       setValidating(true);
       try {
         const res = await fetch(`/api/handle?handle=${handle}`);
-        const { data: available, error } = (await res.json()) as CheckHandleResponse;
+        const { data: available, error } =
+          (await res.json()) as CheckHandleResponse;
         setValidationErrors(
-          error || !available ? { handle: error?.title || "Handle is not available" } : {},
+          error || !available
+            ? { handle: error?.title || "Handle is not available" }
+            : {},
         );
       } catch {
         setValidationErrors({ handle: "Failed to check handle availability" });
@@ -116,16 +124,23 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
   );
 
   const updateHandle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const handle = event.target.value.trim().toLowerCase().replace(/[^A-Za-z0-9]/g, "-");
+    const handle = event.target.value.trim().toLowerCase().replace(
+      /[^A-Za-z0-9]/g,
+      "-",
+    );
     updateInput({ handle });
     if (!handle) return setValidationErrors({});
     if (handle.length < 3) {
-      return setValidationErrors({ handle: "Handle must be at least 3 characters long" });
+      return setValidationErrors({
+        handle: "Handle must be at least 3 characters long",
+      });
     }
     checkHandle(handle);
   };
 
-  const hasErrors = useMemo(() => Object.keys(validationErrors).length > 0, [validationErrors]);
+  const hasErrors = useMemo(() => Object.keys(validationErrors).length > 0, [
+    validationErrors,
+  ]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -145,7 +160,8 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
         id: postId,
         head: uuidv4(),
         name,
-        data: input.data ?? (getEditorData(name) as DocumentCreateInput["data"]),
+        data: input.data ??
+          (getEditorData(name) as DocumentCreateInput["data"]),
         type: "DOCUMENT",
         parentId: null,
         seriesId,
@@ -157,8 +173,12 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
       const response = await dispatch(actions.createLocalDocument(payload));
       if (response.type === actions.createLocalDocument.fulfilled.type) {
         if (saveToCloud && isOnline && user) {
-          const cloudResponse = await dispatch(actions.createCloudDocument(payload));
-          if (cloudResponse.type === actions.createCloudDocument.fulfilled.type) {
+          const cloudResponse = await dispatch(
+            actions.createCloudDocument(payload),
+          );
+          if (
+            cloudResponse.type === actions.createCloudDocument.fulfilled.type
+          ) {
             onSuccess?.();
             onClose();
             router.refresh();
@@ -184,9 +204,18 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
       anchor="right"
       open={open}
       onClose={onClose}
-      sx={{ "& .MuiDrawer-paper": { width: { xs: "100%", sm: 600, md: 700 }, maxWidth: "100vw" } }}
+      sx={{
+        "& .MuiDrawer-paper": {
+          width: { xs: "100%", sm: 600, md: 700 },
+          maxWidth: "100vw",
+        },
+      }}
     >
-      <Box component="form" onSubmit={handleSubmit} sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+      >
         {/* Header */}
         <Box
           sx={{
@@ -201,10 +230,17 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
           <Box>
             <Typography variant="h6" component="h2">Create New Post</Typography>
             {seriesTitle && (
-              <Typography variant="body2" color="text.secondary">in {seriesTitle}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                in {seriesTitle}
+              </Typography>
             )}
           </Box>
-          <IconButton onClick={onClose} edge="end" aria-label="close" disabled={isSubmitting}>
+          <IconButton
+            onClick={onClose}
+            edge="end"
+            aria-label="close"
+            disabled={isSubmitting}
+          >
             <Close />
           </IconButton>
         </Box>
@@ -212,7 +248,11 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
         {/* Form Content */}
         <Box sx={{ flex: 1, overflowY: "auto", p: 3 }}>
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+              onClose={() => setError(null)}
+            >
               {error}
             </Alert>
           )}
@@ -234,10 +274,13 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
             value={input.handle || ""}
             onChange={updateHandle}
             error={!!validationErrors.handle}
-            helperText={validationErrors.handle || "Optional: Custom URL for this post"}
+            helperText={validationErrors.handle ||
+              "Optional: Custom URL for this post"}
             sx={{ mb: 2 }}
             disabled={isSubmitting}
-            InputProps={{ endAdornment: validating && <CircularProgress size={20} /> }}
+            InputProps={{
+              endAdornment: validating && <CircularProgress size={20} />,
+            }}
           />
           <PostCloudOptions
             input={input}
@@ -262,7 +305,9 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
             justifyContent: "flex-end",
           }}
         >
-          <Button onClick={onClose} disabled={isSubmitting} variant="outlined">Cancel</Button>
+          <Button onClick={onClose} disabled={isSubmitting} variant="outlined">
+            Cancel
+          </Button>
           <Button
             type="submit"
             variant="contained"

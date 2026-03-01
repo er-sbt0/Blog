@@ -24,7 +24,8 @@ export function useEditDocumentForm(userDocument: UserDocument) {
   const isPrivate = isCloud && cloudDocument.private;
   const isAuthor = isCloud ? cloudDocument.author.id === user?.id : true;
   const id = userDocument.id;
-  const name = cloudDocument?.name ?? localDocument?.name ?? "Untitled Document";
+  const name = cloudDocument?.name ?? localDocument?.name ??
+    "Untitled Document";
   const handle = cloudDocument?.handle ?? localDocument?.handle ?? null;
   const isCloudOnly = !isLocal && isCloud;
   const document = isCloudOnly ? cloudDocument : localDocument;
@@ -43,7 +44,9 @@ export function useEditDocumentForm(userDocument: UserDocument) {
     status: currentStatus,
   });
   const [validating, setValidating] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const hasErrors = Object.keys(validationErrors).length > 0;
@@ -95,7 +98,9 @@ export function useEditDocumentForm(userDocument: UserDocument) {
           setValidationErrors({ handle: `${error.title}: ${error.subtitle}` });
         } else setValidationErrors({});
       } catch {
-        setValidationErrors({ handle: "Something went wrong: Please try again later" });
+        setValidationErrors({
+          handle: "Something went wrong: Please try again later",
+        });
       }
       setValidating(false);
     }, 500),
@@ -103,21 +108,28 @@ export function useEditDocumentForm(userDocument: UserDocument) {
   );
 
   const updateHandle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value.trim().toLowerCase().replace(/[^A-Za-z0-9]/g, "-");
+    const value = event.target.value.trim().toLowerCase().replace(
+      /[^A-Za-z0-9]/g,
+      "-",
+    );
     updateInput({ handle: value });
     if (!value || value === handle) return setValidationErrors({});
     if (value.length < 3) {
       return setValidationErrors({
-        handle: "Handle is too short: Handle must be at least 3 characters long",
+        handle:
+          "Handle is too short: Handle must be at least 3 characters long",
       });
     }
     if (!/^[a-zA-Z0-9-]+$/.test(value)) {
       return setValidationErrors({
-        handle: "Invalid Handle: Handle must only contain letters, numbers, and hyphens",
+        handle:
+          "Invalid Handle: Handle must only contain letters, numbers, and hyphens",
       });
     }
     if (validate(value)) {
-      return setValidationErrors({ handle: "Invalid Handle: Handle must not be a UUID" });
+      return setValidationErrors({
+        handle: "Invalid Handle: Handle must not be a UUID",
+      });
     }
     setValidating(true);
     checkHandle(value);
@@ -132,8 +144,13 @@ export function useEditDocumentForm(userDocument: UserDocument) {
       partial.updatedAt = new Date().toISOString();
     }
     if (input.handle !== handle) partial.handle = input.handle || null;
-    if (input.description !== document?.description) partial.description = input.description || null;
-    if (input.coauthors?.join(",") !== cloudDocument?.coauthors.map((u) => u.email).join(",")) {
+    if (input.description !== document?.description) {
+      partial.description = input.description || null;
+    }
+    if (
+      input.coauthors?.join(",") !==
+        cloudDocument?.coauthors.map((u) => u.email).join(",")
+    ) {
       partial.coauthors = input.coauthors;
     }
     if (input.private !== isPrivate) partial.private = input.private;
@@ -142,8 +159,12 @@ export function useEditDocumentForm(userDocument: UserDocument) {
     if (input.background_image !== document?.background_image) {
       partial.background_image = input.background_image;
     }
-    if (input.sort_order !== document?.sort_order) partial.sort_order = input.sort_order;
-    if (input.createdAt && input.createdAt !== document?.createdAt) partial.createdAt = input.createdAt;
+    if (input.sort_order !== document?.sort_order) {
+      partial.sort_order = input.sort_order;
+    }
+    if (input.createdAt && input.createdAt !== document?.createdAt) {
+      partial.createdAt = input.createdAt;
+    }
     if (input.status !== currentStatus) partial.status = input.status;
     if (document?.parentId) partial.parentId = document.parentId;
 

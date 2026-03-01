@@ -25,12 +25,16 @@ import { getEditorData } from "@/utils/getEditorData";
 import { useHandleValidation } from "@/hooks/useHandleValidation";
 import DocumentVisibilityFields from "./DocumentActions/DocumentVisibilityFields";
 
-const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) => {
+const NewDocument: React.FC<{ cloudDocument?: Document }> = (
+  { cloudDocument },
+) => {
   const initialized = useSelector((state) => state.ui.initialized);
   const user = useSelector((state) => state.user);
   const unauthenticated = initialized && !user;
   const isOnline = useOnlineStatus();
-  const [input, setInput] = useState<Partial<DocumentCreateInput>>({ published: true });
+  const [input, setInput] = useState<Partial<DocumentCreateInput>>({
+    published: true,
+  });
   const [saveToCloud, setSaveToCloud] = useState(true);
   const dispatch = useDispatch();
   const pathname = usePathname();
@@ -48,7 +52,8 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) 
     setInput((prev) => ({ ...prev, ...partial }));
   }, []);
 
-  const { validating, validationErrors, hasErrors, updateHandle } = useHandleValidation({ updateInput });
+  const { validating, validationErrors, hasErrors, updateHandle } =
+    useHandleValidation({ updateInput });
 
   useEffect(() => {
     const fetchSeriesOrder = async () => {
@@ -58,7 +63,8 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) 
         if (response.ok) {
           const { data: series } = await response.json();
           const maxOrder = (series?.posts ?? []).reduce(
-            (max: number, post: { seriesOrder?: number }) => Math.max(max, post.seriesOrder || 0),
+            (max: number, post: { seriesOrder?: number }) =>
+              Math.max(max, post.seriesOrder || 0),
             0,
           );
           setNextSeriesOrder(maxOrder + 1);
@@ -79,16 +85,28 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) 
 
   useEffect(() => {
     const loadDocument = async (id: string) => {
-      const localResponse = await dispatch(actions.forkLocalDocument({ id, revisionId }));
+      const localResponse = await dispatch(
+        actions.forkLocalDocument({ id, revisionId }),
+      );
       if (localResponse.type === actions.forkLocalDocument.fulfilled.type) {
-        const editorDoc = localResponse.payload as ReturnType<typeof actions.forkLocalDocument.fulfilled>["payload"];
+        const editorDoc = localResponse.payload as ReturnType<
+          typeof actions.forkLocalDocument.fulfilled
+        >["payload"];
         const { data, ...rest } = editorDoc;
-        setBase({ ...base, id: editorDoc.id, local: { ...rest, data, revisions: [] } });
+        setBase({
+          ...base,
+          id: editorDoc.id,
+          local: { ...rest, data, revisions: [] },
+        });
         setInput((prev) => ({ ...prev, data, baseId: editorDoc.id }));
       } else {
-        const cloudResponse = await dispatch(actions.forkCloudDocument({ id, revisionId }));
+        const cloudResponse = await dispatch(
+          actions.forkCloudDocument({ id, revisionId }),
+        );
         if (cloudResponse.type === actions.forkCloudDocument.fulfilled.type) {
-          const { data, ...userDocument } = cloudResponse.payload as ReturnType<typeof actions.forkCloudDocument.fulfilled>["payload"];
+          const { data, ...userDocument } = cloudResponse.payload as ReturnType<
+            typeof actions.forkCloudDocument.fulfilled
+          >["payload"];
           setBase(userDocument);
           setInput((prev) => ({ ...prev, data, baseId: userDocument.id }));
         }
@@ -113,14 +131,18 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) 
       type: "DOCUMENT",
       parentId: parentId || null,
       seriesId: seriesId || null,
-      seriesOrder: seriesId && nextSeriesOrder !== null ? nextSeriesOrder : null,
+      seriesOrder: seriesId && nextSeriesOrder !== null
+        ? nextSeriesOrder
+        : null,
       createdAt,
       updatedAt: createdAt,
     };
     const response = await dispatch(actions.createLocalDocument(payload));
     if (response.type === actions.createLocalDocument.fulfilled.type) {
       if (saveToCloud && isOnline && user) {
-        const cloudResponse = await dispatch(actions.createCloudDocument(payload));
+        const cloudResponse = await dispatch(
+          actions.createCloudDocument(payload),
+        );
         if (cloudResponse.type === actions.createCloudDocument.fulfilled.type) {
           router.refresh();
         }
@@ -136,7 +158,14 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) 
 
   return (
     <Container maxWidth="xs" sx={{ flex: 1 }}>
-      <Box sx={{ mt: 5, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <Box
+        sx={{
+          mt: 5,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
         <Avatar sx={{ my: 2, bgcolor: "primary.main" }}>
           <Article />
         </Avatar>
@@ -145,7 +174,10 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) 
         </Typography>
         {baseId && (
           <>
-            <Typography variant="overline" sx={{ color: "text.secondary", my: 1 }}>
+            <Typography
+              variant="overline"
+              sx={{ color: "text.secondary", my: 1 }}
+            >
               Based on
             </Typography>
             <DocumentCard userDocument={base} user={user} sx={{ width: 396 }} />
@@ -181,7 +213,11 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) 
             onChange={(e) => updateInput({ description: e.target.value })}
             helperText="This description will appear in document previews and help with SEO"
             sx={{
-              "& .MuiInputBase-root": { minHeight: 80, alignItems: "flex-start", padding: "8px 12px" },
+              "& .MuiInputBase-root": {
+                minHeight: 80,
+                alignItems: "flex-start",
+                padding: "8px 12px",
+              },
               "& .MuiInputBase-input": { resize: "vertical" },
             }}
           />
@@ -194,15 +230,13 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) 
             value={input.handle || ""}
             onChange={updateHandle}
             error={!validating && !!validationErrors.handle}
-            helperText={
-              validating
-                ? "Validating..."
-                : validationErrors.handle
-                ? validationErrors.handle
-                : input.handle
-                ? `https://matheditor.me/view/${input.handle}`
-                : "This will be used in the URL of your document"
-            }
+            helperText={validating
+              ? "Validating..."
+              : validationErrors.handle
+              ? validationErrors.handle
+              : input.handle
+              ? `https://matheditor.me/view/${input.handle}`
+              : "This will be used in the URL of your document"}
           />
 
           <FormControlLabel
@@ -213,7 +247,9 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = ({ cloudDocument }) 
                 disabled={!isOnline || !user}
               />
             }
-            label={saveToCloud ? "Save to Cloud (Default)" : "Save Locally Only"}
+            label={saveToCloud
+              ? "Save to Cloud (Default)"
+              : "Save Locally Only"}
           />
           <FormHelperText>
             {!isOnline

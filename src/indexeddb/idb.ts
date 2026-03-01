@@ -42,7 +42,9 @@ export function createTransaction(
   abort?: (() => void) | null,
 ): IDBTransaction {
   let tx: IDBTransaction = db.transaction(currentStore, dbMode);
-  tx.onerror = reject ? (ev: Event) => reject((ev.target as IDBTransaction).error) : null;
+  tx.onerror = reject
+    ? (ev: Event) => reject((ev.target as IDBTransaction).error)
+    : null;
   tx.oncomplete = resolve ? () => resolve() : null;
   tx.onabort = abort ? () => abort() : null;
   return tx;

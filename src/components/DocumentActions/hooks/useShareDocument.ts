@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { actions, useDispatch, useSelector } from "@/store";
 import { DocumentUpdateInput, User, UserDocument } from "@/types";
 import { useSearchParams } from "next/navigation";
@@ -14,7 +14,8 @@ export function useShareDocument(userDocument: UserDocument) {
   const isCollab = isCloud && cloudDocument.collab;
   const isPrivate = isCloud && cloudDocument.private;
   const id = userDocument.id;
-  const name = cloudDocument?.name ?? localDocument?.name ?? "Untitled Document";
+  const name = cloudDocument?.name ?? localDocument?.name ??
+    "Untitled Document";
   const handle = cloudDocument?.handle ?? localDocument?.handle ?? null;
 
   const formats = ["view", "embed", "pdf", "docx"];
@@ -63,9 +64,15 @@ export function useShareDocument(userDocument: UserDocument) {
     const url = getShareUrl(new FormData(shareForm));
     try {
       await navigator.clipboard.writeText(url.toString());
-      dispatch(actions.announce({ message: { title: "Link Copied to Clipboard" } }));
+      dispatch(
+        actions.announce({ message: { title: "Link Copied to Clipboard" } }),
+      );
     } catch {
-      dispatch(actions.announce({ message: { title: "Failed to Copy Link to Clipboard" } }));
+      dispatch(
+        actions.announce({
+          message: { title: "Failed to Copy Link to Clipboard" },
+        }),
+      );
     }
   };
 
@@ -110,7 +117,9 @@ export function useShareDocument(userDocument: UserDocument) {
       dispatch(actions.announce({
         message: {
           title: "Document Privacy Updated",
-          subtitle: `Document is now ${payload.partial.private ? "private" : "shared by link"}`,
+          subtitle: `Document is now ${
+            payload.partial.private ? "private" : "shared by link"
+          }`,
         },
       }));
     }
@@ -131,7 +140,9 @@ export function useShareDocument(userDocument: UserDocument) {
       dispatch(actions.announce({
         message: {
           title: "Document Collaboration Updated",
-          subtitle: `Document is now ${payload.partial.collab ? "collaborative" : "shared by link"}`,
+          subtitle: `Document is now ${
+            payload.partial.collab ? "collaborative" : "shared by link"
+          }`,
         },
       }));
     }
@@ -147,7 +158,12 @@ export function useShareDocument(userDocument: UserDocument) {
       }));
     }
     const coauthors = users.map((u) => (typeof u === "string" ? u : u.email));
-    dispatch(actions.updateCloudDocument({ id: cloudDocument.id, partial: { coauthors } }));
+    dispatch(
+      actions.updateCloudDocument({
+        id: cloudDocument.id,
+        partial: { coauthors },
+      }),
+    );
   };
 
   return {

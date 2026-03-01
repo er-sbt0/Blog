@@ -6,8 +6,18 @@ import RouterLink from "next/link";
 
 // Minimal type shapes needed for display
 interface CloudDoc {
-  author: { id: string; name: string; handle: string | null; image: string | null };
-  coauthors: { id: string; name: string; handle: string | null; image: string | null }[];
+  author: {
+    id: string;
+    name: string;
+    handle: string | null;
+    image: string | null;
+  };
+  coauthors: {
+    id: string;
+    name: string;
+    handle: string | null;
+    image: string | null;
+  }[];
 }
 
 interface LocalDoc {
@@ -74,26 +84,43 @@ export default function DocumentMetaSection({
           {localDocument.status && (
             <Chip
               size="small"
-              icon={localDocument.status === DocumentStatus.ACTIVE ? <PlayArrow /> : <CheckCircle />}
-              label={localDocument.status === DocumentStatus.ACTIVE ? "Active" : "Done"}
+              icon={localDocument.status === DocumentStatus.ACTIVE
+                ? <PlayArrow />
+                : <CheckCircle />}
+              label={localDocument.status === DocumentStatus.ACTIVE
+                ? "Active"
+                : "Done"}
               sx={{
-                backgroundColor: localDocument.status === DocumentStatus.ACTIVE ? "#e3f2fd" : "#e8f5e8",
-                color: localDocument.status === DocumentStatus.ACTIVE ? "#1976d2" : "#2e7d32",
-                borderColor: localDocument.status === DocumentStatus.ACTIVE ? "#2196f3" : "#4caf50",
+                backgroundColor: localDocument.status === DocumentStatus.ACTIVE
+                  ? "#e3f2fd"
+                  : "#e8f5e8",
+                color: localDocument.status === DocumentStatus.ACTIVE
+                  ? "#1976d2"
+                  : "#2e7d32",
+                borderColor: localDocument.status === DocumentStatus.ACTIVE
+                  ? "#2196f3"
+                  : "#4caf50",
                 fontWeight: "bold",
               }}
               variant="outlined"
             />
           )}
           <Typography variant="subtitle2" color="text.secondary">
-            Created: <DateDisplay date={localDocument.createdAt} variant="full" />
+            Created:{" "}
+            <DateDisplay date={localDocument.createdAt} variant="full" />
           </Typography>
           <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            Updated: <DateDisplay date={localDocument.updatedAt} variant="full" />
+            Updated:{" "}
+            <DateDisplay date={localDocument.updatedAt} variant="full" />
           </Typography>
           {!cloudDocument && (
             <Typography variant="subtitle2">
-              Author <Chip avatar={<Avatar />} label={user?.name ?? "Local User"} variant="outlined" />
+              Author{" "}
+              <Chip
+                avatar={<Avatar />}
+                label={user?.name ?? "Local User"}
+                variant="outlined"
+              />
             </Typography>
           )}
         </>
@@ -107,15 +134,24 @@ export default function DocumentMetaSection({
               clickable
               component={RouterLink}
               prefetch={false}
-              href={`/user/${cloudDocument.author.handle || cloudDocument.author.id}`}
-              avatar={<Avatar alt={cloudDocument.author.name} src={cloudDocument.author.image || undefined} />}
+              href={`/user/${
+                cloudDocument.author.handle || cloudDocument.author.id
+              }`}
+              avatar={
+                <Avatar
+                  alt={cloudDocument.author.name}
+                  src={cloudDocument.author.image || undefined}
+                />
+              }
               label={cloudDocument.author.name}
               variant="outlined"
             />
           </Typography>
           {cloudDocument.coauthors.length > 0 && (
             <>
-              <Typography component="h3" variant="subtitle2">Coauthors</Typography>
+              <Typography component="h3" variant="subtitle2">
+                Coauthors
+              </Typography>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                 {cloudDocument.coauthors.map((coauthor) => (
                   <Chip
@@ -124,7 +160,12 @@ export default function DocumentMetaSection({
                     prefetch={false}
                     href={`/user/${coauthor.handle || coauthor.id}`}
                     key={coauthor.id}
-                    avatar={<Avatar alt={coauthor.name} src={coauthor.image || undefined} />}
+                    avatar={
+                      <Avatar
+                        alt={coauthor.name}
+                        src={coauthor.image || undefined}
+                      />
+                    }
                     label={coauthor.name}
                     variant="outlined"
                   />
@@ -134,7 +175,9 @@ export default function DocumentMetaSection({
           )}
           {collaborators.length > 0 && (
             <>
-              <Typography component="h3" variant="subtitle2">Collaborators</Typography>
+              <Typography component="h3" variant="subtitle2">
+                Collaborators
+              </Typography>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                 {collaborators.map((collab) => (
                   <Chip
@@ -143,7 +186,12 @@ export default function DocumentMetaSection({
                     prefetch={false}
                     href={`/user/${collab.handle || collab.id}`}
                     key={collab.id}
-                    avatar={<Avatar alt={collab.name} src={collab.image || undefined} />}
+                    avatar={
+                      <Avatar
+                        alt={collab.name}
+                        src={collab.image || undefined}
+                      />
+                    }
                     label={collab.name}
                     variant="outlined"
                   />

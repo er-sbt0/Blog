@@ -15,7 +15,9 @@ export function useDirectoryBrowser(userDocument: UserDocument) {
   const currentParentId = doc?.parentId || null;
 
   const [loading, setLoading] = useState(false);
-  const [currentDirectoryId, setCurrentDirectoryId] = useState<string | null>(null);
+  const [currentDirectoryId, setCurrentDirectoryId] = useState<string | null>(
+    null,
+  );
   const [directories, setDirectories] = useState<UserDocument[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbEntry[]>([]);
 
@@ -30,7 +32,10 @@ export function useDirectoryBrowser(userDocument: UserDocument) {
     );
   };
 
-  const isChildOf = (directoryId: string, potentialParentId: string): boolean => {
+  const isChildOf = (
+    directoryId: string,
+    potentialParentId: string,
+  ): boolean => {
     try {
       if (!Array.isArray(documents)) return false;
       const directory = documents.find((d) => d && d.id === directoryId);
@@ -40,7 +45,11 @@ export function useDirectoryBrowser(userDocument: UserDocument) {
       if (parentId === potentialParentId) return true;
 
       const MAX_DEPTH = 10;
-      const check = (dirId: string, potParentId: string, depth: number): boolean => {
+      const check = (
+        dirId: string,
+        potParentId: string,
+        depth: number,
+      ): boolean => {
         if (depth >= MAX_DEPTH) return false;
         const d = documents.find((x) => x && x.id === dirId);
         if (!d) return false;
@@ -96,7 +105,11 @@ export function useDirectoryBrowser(userDocument: UserDocument) {
       });
 
       setDirectories(directoriesAtLevel);
-      setBreadcrumbs(directoryId ? buildBreadcrumbs(directoryId) : [{ id: null, name: "Root" }]);
+      setBreadcrumbs(
+        directoryId
+          ? buildBreadcrumbs(directoryId)
+          : [{ id: null, name: "Root" }],
+      );
     } catch {
       setDirectories([]);
       setBreadcrumbs([{ id: null, name: "Root" }]);
@@ -114,27 +127,40 @@ export function useDirectoryBrowser(userDocument: UserDocument) {
     try {
       if (userDocument.local) {
         await dispatch(
-          actions.updateLocalDocument({ id: documentId, partial: { parentId: currentDirectoryId } }),
+          actions.updateLocalDocument({
+            id: documentId,
+            partial: { parentId: currentDirectoryId },
+          }),
         );
       }
       if (userDocument.cloud) {
         await dispatch(
-          actions.updateCloudDocument({ id: documentId, partial: { parentId: currentDirectoryId } }),
+          actions.updateCloudDocument({
+            id: documentId,
+            partial: { parentId: currentDirectoryId },
+          }),
         );
       }
       const targetDir = currentDirectoryId
         ? documents.find((d) => d.id === currentDirectoryId)
         : null;
-      const targetDirName =
-        targetDir ? targetDir.local?.name || targetDir.cloud?.name || "directory" : "Root";
+      const targetDirName = targetDir
+        ? targetDir.local?.name || targetDir.cloud?.name || "directory"
+        : "Root";
       dispatch(
-        actions.announce({ message: { title: `Moved ${documentName} to ${targetDirName}` }, timeout: 3000 }),
+        actions.announce({
+          message: { title: `Moved ${documentName} to ${targetDirName}` },
+          timeout: 3000,
+        }),
       );
       onDone();
     } catch {
       dispatch(
         actions.announce({
-          message: { title: "Failed to move item", subtitle: "An error occurred while moving the item" },
+          message: {
+            title: "Failed to move item",
+            subtitle: "An error occurred while moving the item",
+          },
           timeout: 3000,
         }),
       );

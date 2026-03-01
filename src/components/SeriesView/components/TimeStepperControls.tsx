@@ -9,7 +9,14 @@ const TimeAdjustColumn: React.FC<{
   onMinus: () => void;
   onPlus: () => void;
 }> = ({ label, tooltipMinus, tooltipPlus, onMinus, onPlus }) => (
-  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.0 }}>
+  <Box
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 1.0,
+    }}
+  >
     <Typography
       sx={{
         fontSize: "0.6rem",
@@ -26,10 +33,19 @@ const TimeAdjustColumn: React.FC<{
       <Tooltip title={tooltipPlus} arrow placement="left">
         <IconButton
           size="small"
-          onClick={(e) => { e.stopPropagation(); onPlus(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPlus();
+          }}
           sx={{
-            width: 22, height: 18, bgcolor: "action.hover", borderRadius: 0.75,
-            "&:hover": { bgcolor: "success.light", color: "success.contrastText" },
+            width: 22,
+            height: 18,
+            bgcolor: "action.hover",
+            borderRadius: 0.75,
+            "&:hover": {
+              bgcolor: "success.light",
+              color: "success.contrastText",
+            },
           }}
         >
           <Add sx={{ fontSize: 14 }} />
@@ -38,9 +54,15 @@ const TimeAdjustColumn: React.FC<{
       <Tooltip title={tooltipMinus} arrow placement="left">
         <IconButton
           size="small"
-          onClick={(e) => { e.stopPropagation(); onMinus(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onMinus();
+          }}
           sx={{
-            width: 22, height: 18, bgcolor: "action.hover", borderRadius: 0.75,
+            width: 22,
+            height: 18,
+            bgcolor: "action.hover",
+            borderRadius: 0.75,
             "&:hover": { bgcolor: "error.light", color: "error.contrastText" },
           }}
         >
@@ -65,9 +87,14 @@ export const TimeStepperControls: React.FC<{
         <Tooltip title="Reset to original" arrow>
           <IconButton
             size="small"
-            onClick={(e) => { e.stopPropagation(); onReset(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onReset();
+            }}
             sx={{
-              width: 24, height: 24, color: "warning.main",
+              width: 24,
+              height: 24,
+              color: "warning.main",
               "&:hover": { bgcolor: "warning.light", color: "warning.dark" },
             }}
           >
@@ -76,8 +103,26 @@ export const TimeStepperControls: React.FC<{
         </Tooltip>
       )}
     </Box>
-    <TimeAdjustColumn label="D" tooltipMinus="-1 Day" tooltipPlus="+1 Day" onMinus={() => onAdjust(-1)} onPlus={() => onAdjust(1)} />
-    <TimeAdjustColumn label="W" tooltipMinus="-1 Week" tooltipPlus="+1 Week" onMinus={() => onAdjust(-7)} onPlus={() => onAdjust(7)} />
-    <TimeAdjustColumn label="M" tooltipMinus="-1 Month" tooltipPlus="+1 Month" onMinus={() => onAdjust(-30)} onPlus={() => onAdjust(30)} />
+    <TimeAdjustColumn
+      label="D"
+      tooltipMinus="-1 Day"
+      tooltipPlus="+1 Day"
+      onMinus={() => onAdjust(-1)}
+      onPlus={() => onAdjust(1)}
+    />
+    <TimeAdjustColumn
+      label="W"
+      tooltipMinus="-1 Week"
+      tooltipPlus="+1 Week"
+      onMinus={() => onAdjust(-7)}
+      onPlus={() => onAdjust(7)}
+    />
+    <TimeAdjustColumn
+      label="M"
+      tooltipMinus="-1 Month"
+      tooltipPlus="+1 Month"
+      onMinus={() => onAdjust(-30)}
+      onPlus={() => onAdjust(30)}
+    />
   </Box>
 );

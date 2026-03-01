@@ -20,7 +20,9 @@ interface MoveToDialogProps {
   userDocument: UserDocument;
 }
 
-const MoveToDialog: React.FC<MoveToDialogProps> = ({ open, onClose, userDocument }) => {
+const MoveToDialog: React.FC<MoveToDialogProps> = (
+  { open, onClose, userDocument },
+) => {
   const {
     documents,
     documentName,
@@ -51,7 +53,9 @@ const MoveToDialog: React.FC<MoveToDialogProps> = ({ open, onClose, userDocument
       keepMounted
       data-testid="move-dialog"
     >
-      <DialogTitle id="move-dialog-title">Move Document: {documentName}</DialogTitle>
+      <DialogTitle id="move-dialog-title">
+        Move Document: {documentName}
+      </DialogTitle>
 
       <DialogContent dividers>
         <DirectoryBrowserContent
@@ -71,18 +75,19 @@ const MoveToDialog: React.FC<MoveToDialogProps> = ({ open, onClose, userDocument
 
         <Box>
           <Typography variant="body2" color="text.secondary">
-            Current location:{" "}
-            {currentParentId
+            Current location: {currentParentId
               ? documents.find((d) => d.id === currentParentId)?.local?.name ||
                 documents.find((d) => d.id === currentParentId)?.cloud?.name ||
                 "Unknown"
               : "Root"}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            New location:{" "}
-            {currentDirectoryId
-              ? documents.find((d) => d.id === currentDirectoryId)?.local?.name ||
-                documents.find((d) => d.id === currentDirectoryId)?.cloud?.name ||
+            New location: {currentDirectoryId
+              ? documents.find((d) =>
+                d.id === currentDirectoryId
+              )?.local?.name ||
+                documents.find((d) => d.id === currentDirectoryId)?.cloud
+                  ?.name ||
                 "Unknown"
               : "Root"}
           </Typography>
