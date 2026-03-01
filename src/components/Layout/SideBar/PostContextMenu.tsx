@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-} from "@mui/material";
+import { ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
 import { Delete, DriveFileRenameOutline, Edit } from "@mui/icons-material";
 
 interface ContextMenuState {
@@ -48,11 +43,9 @@ export const PostContextMenu: React.FC<PostContextMenuProps> = ({
       open={contextMenu !== null}
       onClose={onClose}
       anchorReference="anchorPosition"
-      anchorPosition={
-        contextMenu !== null
-          ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-          : undefined
-      }
+      anchorPosition={contextMenu !== null
+        ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+        : undefined}
       slotProps={{
         paper: {
           elevation: 2,

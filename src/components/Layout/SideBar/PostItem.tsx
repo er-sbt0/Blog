@@ -43,8 +43,7 @@ export const PostItem = memo(
     const isEditing = pathname === `/edit/${post.id}`;
     const isSelected = isViewing || isEditing;
     const isRenaming = renamingPostId === post.id;
-    const isDirty =
-      Boolean(post.local) &&
+    const isDirty = Boolean(post.local) &&
       Boolean(post.cloud) &&
       post.local!.head !== post.cloud!.head;
 
@@ -87,7 +86,9 @@ export const PostItem = memo(
             sx={{
               minHeight: inSeries ? 30 : 32,
               justifyContent: sidebarOpen ? "initial" : "center",
-              ...(inSeries ? { pl: 2, pr: 2.5 } : { px: sidebarOpen ? 3 : 2.5 }),
+              ...(inSeries
+                ? { pl: 2, pr: 2.5 }
+                : { px: sidebarOpen ? 3 : 2.5 }),
               py: inSeries ? 0.25 : 0.5,
               "&.Mui-selected": {
                 bgcolor: "action.selected",
@@ -108,7 +109,8 @@ export const PostItem = memo(
               }}
             >
               <Article sx={{ fontSize: "0.85em", color: "text.secondary" }} />
-              {post.local && post.cloud && post.local.head !== post.cloud.head && (
+              {post.local && post.cloud &&
+                post.local.head !== post.cloud.head && (
                 <Box
                   component="span"
                   sx={{
@@ -124,38 +126,40 @@ export const PostItem = memo(
               )}
             </ListItemIcon>
             {sidebarOpen &&
-              (isRenaming ? (
-                <TextField
-                  inputRef={renameInputRef}
-                  value={renameValue}
-                  onChange={(e) => setRenameValue(e.target.value)}
-                  onBlur={handleRenameBlur}
-                  onKeyDown={handleRenameKeyDown}
-                  size="small"
-                  variant="standard"
-                  fullWidth
-                  sx={{
-                    "& .MuiInput-input": {
+              (isRenaming
+                ? (
+                  <TextField
+                    inputRef={renameInputRef}
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onBlur={handleRenameBlur}
+                    onKeyDown={handleRenameKeyDown}
+                    size="small"
+                    variant="standard"
+                    fullWidth
+                    sx={{
+                      "& .MuiInput-input": {
+                        fontSize: "0.78em",
+                        fontWeight: isSelected ? 600 : 400,
+                        py: 0,
+                      },
+                    }}
+                  />
+                )
+                : (
+                  <ListItemText
+                    primary={docName}
+                    primaryTypographyProps={{
                       fontSize: "0.78em",
-                      fontWeight: isSelected ? 600 : 400,
-                      py: 0,
-                    },
-                  }}
-                />
-              ) : (
-                <ListItemText
-                  primary={docName}
-                  primaryTypographyProps={{
-                    fontSize: "0.78em",
-                    sx: {
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      fontWeight: isSelected ? 600 : 400,
-                    },
-                  }}
-                />
-              ))}
+                      sx: {
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontWeight: isSelected ? 600 : 400,
+                      },
+                    }}
+                  />
+                ))}
             {sidebarOpen && isDirty && (
               <Tooltip title="Save to cloud" placement="right">
                 <IconButton

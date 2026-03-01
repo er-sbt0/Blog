@@ -42,7 +42,11 @@ export const GET = withApiHandler(async () => {
 export const POST = withApiHandler(async (request) => {
   const session = await getServerSession(authOptions);
   if (!session) {
-    throw new ApiError(401, "Unauthorized", "Please sign in to create a series");
+    throw new ApiError(
+      401,
+      "Unauthorized",
+      "Please sign in to create a series",
+    );
   }
 
   const { user } = session;

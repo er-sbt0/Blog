@@ -1,10 +1,6 @@
 import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { authOptions } from "@/lib/auth";
-import {
-  deleteNote,
-  findNoteById,
-  updateNote,
-} from "@/repositories/notes";
+import { deleteNote, findNoteById, updateNote } from "@/repositories/notes";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 

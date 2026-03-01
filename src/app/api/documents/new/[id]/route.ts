@@ -17,10 +17,9 @@ export const GET = withApiHandler(
       throw new ApiError(404, "Document not found");
     }
     const session = await getServerSession(authOptions);
-    const isAuthor =
-      session?.user && session.user.id === cloudDocument.author.id;
-    const isCoauthor =
-      session?.user &&
+    const isAuthor = session?.user &&
+      session.user.id === cloudDocument.author.id;
+    const isCoauthor = session?.user &&
       cloudDocument.coauthors.some(
         (coauthor) => coauthor.id === session.user.id,
       );

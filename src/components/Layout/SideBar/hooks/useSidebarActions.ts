@@ -30,11 +30,13 @@ export function useSidebarActions(): SidebarActionsResult {
   const router = useRouter();
   const documents = useSelector((state: RootState) => state.documents);
 
-  const [contextMenu, setContextMenu] = useState<{
-    mouseX: number;
-    mouseY: number;
-    postId: string;
-  } | null>(null);
+  const [contextMenu, setContextMenu] = useState<
+    {
+      mouseX: number;
+      mouseY: number;
+      postId: string;
+    } | null
+  >(null);
 
   const [renamingPostId, setRenamingPostId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");

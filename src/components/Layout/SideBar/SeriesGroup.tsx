@@ -70,15 +70,17 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                 cursor: "pointer",
               }}
             >
-              {isExpanded ? (
-                <ExpandLess
-                  sx={{ fontSize: "0.85em", color: "text.secondary" }}
-                />
-              ) : (
-                <ExpandMore
-                  sx={{ fontSize: "0.85em", color: "text.secondary" }}
-                />
-              )}
+              {isExpanded
+                ? (
+                  <ExpandLess
+                    sx={{ fontSize: "0.85em", color: "text.secondary" }}
+                  />
+                )
+                : (
+                  <ExpandMore
+                    sx={{ fontSize: "0.85em", color: "text.secondary" }}
+                  />
+                )}
             </ListItemIcon>
             {sidebarOpen && (
               <ListItemText

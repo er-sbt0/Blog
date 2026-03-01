@@ -8,7 +8,11 @@ import {
 } from "@/types";
 import { actions, useDispatch, useSelector } from "@/store";
 import { usePathname, useRouter } from "next/navigation";
-import type { EditorState, LexicalEditor, SerializedEditorState } from "lexical";
+import type {
+  EditorState,
+  LexicalEditor,
+  SerializedEditorState,
+} from "lexical";
 import { v4 as uuidv4 } from "uuid";
 import dynamic from "next/dynamic";
 import DiffView from "../Diff";

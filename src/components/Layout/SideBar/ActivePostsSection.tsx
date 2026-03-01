@@ -130,7 +130,9 @@ export const ActivePostsSection: React.FC<ActivePostsSectionProps> = ({
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search sx={{ fontSize: "0.9em", color: "text.disabled" }} />
+                    <Search
+                      sx={{ fontSize: "0.9em", color: "text.disabled" }}
+                    />
                   </InputAdornment>
                 ),
                 endAdornment: activePostsSearch && (
@@ -139,7 +141,11 @@ export const ActivePostsSection: React.FC<ActivePostsSectionProps> = ({
                       size="small"
                       onClick={() => setActivePostsSearch("")}
                       edge="end"
-                      sx={{ padding: 0.25, opacity: 0.6, "&:hover": { opacity: 1 } }}
+                      sx={{
+                        padding: 0.25,
+                        opacity: 0.6,
+                        "&:hover": { opacity: 1 },
+                      }}
                     >
                       <Clear sx={{ fontSize: "0.9em" }} />
                     </IconButton>
@@ -174,7 +180,9 @@ export const ActivePostsSection: React.FC<ActivePostsSectionProps> = ({
               return (
                 <SeriesGroup
                   key={`series-${group.series.id}`}
-                  group={group as SeriesGroupItem & { series: NonNullable<SeriesGroupItem["series"]> }}
+                  group={group as SeriesGroupItem & {
+                    series: NonNullable<SeriesGroupItem["series"]>;
+                  }}
                   groupIndex={groupIndex}
                   isExpanded={!collapsedSeries.has(group.series.id)}
                   onToggle={() => toggleSeriesExpanded(group.series!.id)}

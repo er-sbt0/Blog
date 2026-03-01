@@ -40,14 +40,26 @@ export const PATCH = withApiHandler(async (
   }
   const session = await getServerSession(authOptions);
   if (!session) {
-    throw new ApiError(401, "Unauthenticated", "Please sign in to update your profile");
+    throw new ApiError(
+      401,
+      "Unauthenticated",
+      "Please sign in to update your profile",
+    );
   }
   const { user } = session;
   if (user.disabled) {
-    throw new ApiError(403, "Account Disabled", "Account is disabled for violating terms of service");
+    throw new ApiError(
+      403,
+      "Account Disabled",
+      "Account is disabled for violating terms of service",
+    );
   }
   if (user.id !== params.id) {
-    throw new ApiError(403, "Unauthorized", "You are not authorized to update this profile");
+    throw new ApiError(
+      403,
+      "Unauthorized",
+      "You are not authorized to update this profile",
+    );
   }
   const body: UserUpdateInput = await request.json();
   if (!body) {
@@ -86,14 +98,26 @@ export const DELETE = withApiHandler(async (
   }
   const session = await getServerSession(authOptions);
   if (!session) {
-    throw new ApiError(401, "Unauthenticated", "Please sign in to delete this user");
+    throw new ApiError(
+      401,
+      "Unauthenticated",
+      "Please sign in to delete this user",
+    );
   }
   const { user } = session;
   if (user.disabled) {
-    throw new ApiError(403, "Account Disabled", "Account is disabled for violating terms of service");
+    throw new ApiError(
+      403,
+      "Account Disabled",
+      "Account is disabled for violating terms of service",
+    );
   }
   if (user.role !== "admin") {
-    throw new ApiError(403, "Unauthorized", "You are not authorized to delete this user");
+    throw new ApiError(
+      403,
+      "Unauthorized",
+      "You are not authorized to delete this user",
+    );
   }
   await deleteUser(params.id);
   return NextResponse.json({ data: params.id });

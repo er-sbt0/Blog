@@ -188,7 +188,11 @@ export const GET = withApiHandler(async (
 
   // Check file size limit
   if (fileSize > MAX_CONTENT_SIZE) {
-    throw new ApiError(413, "File too large for content preview", `File size ${fileSize} exceeds maximum ${MAX_CONTENT_SIZE}`);
+    throw new ApiError(
+      413,
+      "File too large for content preview",
+      `File size ${fileSize} exceeds maximum ${MAX_CONTENT_SIZE}`,
+    );
   }
 
   // Determine mimetype
@@ -196,7 +200,11 @@ export const GET = withApiHandler(async (
 
   // Check if file is text-based
   if (!isTextFile(mimetype, filename)) {
-    throw new ApiError(415, "Binary files cannot be previewed as text", `MIME type: ${mimetype}`);
+    throw new ApiError(
+      415,
+      "Binary files cannot be previewed as text",
+      `MIME type: ${mimetype}`,
+    );
   }
 
   // Read file content
