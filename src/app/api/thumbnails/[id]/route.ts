@@ -43,6 +43,8 @@ export const GET = withApiHandler(async (_request, { params }) => {
       }
     }
   }
-  const thumbnail = await findRevisionThumbnail(userDocument.head);
+  const thumbnail = userDocument.head
+    ? await findRevisionThumbnail(userDocument.head)
+    : null;
   return NextResponse.json({ data: thumbnail });
 });

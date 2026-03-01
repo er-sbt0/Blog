@@ -196,10 +196,22 @@ const findUserPost = async (
   };
 
   if (revisions !== "all") {
-    const revisionId = revisions ?? (post.head || "");
-    const revision = cloudPost.revisions.find(
-      (revision) => revision.id === revisionId,
-    );
+    const revisionId = revisions ?? post.head;
+    let revision = revisionId
+      ? cloudPost.revisions.find((r) => r.id === revisionId)
+      : undefined;
+
+    if (!revision && !revisions) {
+      // head is null or points to a revision not in the list — recover from latest
+      revision = cloudPost.revisions[0];
+      if (!revision) return null;
+      await prisma.document.update({
+        where: { id: post.id },
+        data: { head: revision.id },
+      });
+      cloudPost.head = revision.id;
+    }
+
     if (!revision) return null;
     cloudPost.revisions = [revision];
     cloudPost.updatedAt = revision.createdAt;
