@@ -17,7 +17,8 @@ export function useDocumentSubmit(
   const document = isCloudOnly ? cloudDocument : localDocument;
   const id = userDocument.id;
 
-  const name = cloudDocument?.name ?? localDocument?.name ?? "Untitled Document";
+  const name = cloudDocument?.name ?? localDocument?.name ??
+    "Untitled Document";
   const handle = cloudDocument?.handle ?? localDocument?.handle ?? null;
   const isPrivate = isCloud && cloudDocument.private;
   const isPublished = isCloud && cloudDocument.published;

@@ -76,9 +76,7 @@ const PermissionsControl: React.FC<PermissionsControlProps> = ({
       control={<Switch checked={!isPrivate} onChange={togglePrivate} />}
       label={!isPrivate ? "Anyone with the link" : "Only author and coauthors"}
     />
-    {isPrivate && helperText && (
-      <FormHelperText>{helperText}</FormHelperText>
-    )}
+    {isPrivate && helperText && <FormHelperText>{helperText}</FormHelperText>}
   </FormControl>
 );
 

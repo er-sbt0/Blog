@@ -1,7 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useSelector } from "@/store";
-import { DocumentStatus, DocumentUpdateInput, User, UserDocument } from "@/types";
+import {
+  DocumentStatus,
+  DocumentUpdateInput,
+  User,
+  UserDocument,
+} from "@/types";
 import { useHandleValidation } from "./useHandleValidation";
 import { useDocumentSubmit } from "./useDocumentSubmit";
 
@@ -19,7 +24,8 @@ export function useEditDocumentForm(userDocument: UserDocument) {
   const document = isCloudOnly ? cloudDocument : localDocument;
   const currentStatus = document?.status || DocumentStatus.ACTIVE;
 
-  const name = cloudDocument?.name ?? localDocument?.name ?? "Untitled Document";
+  const name = cloudDocument?.name ?? localDocument?.name ??
+    "Untitled Document";
   const handle = cloudDocument?.handle ?? localDocument?.handle ?? null;
 
   const [input, setInput] = useState<Partial<DocumentUpdateInput>>({
@@ -40,8 +46,13 @@ export function useEditDocumentForm(userDocument: UserDocument) {
     setInput((prev) => ({ ...prev, ...partial }));
   };
 
-  const { validating, validationErrors, hasErrors, updateHandle, resetValidation } =
-    useHandleValidation(handle, (value) => updateInput({ handle: value }));
+  const {
+    validating,
+    validationErrors,
+    hasErrors,
+    updateHandle,
+    resetValidation,
+  } = useHandleValidation(handle, (value) => updateInput({ handle: value }));
 
   const openEditDialog = (closeMenu?: () => void) => {
     if (closeMenu) closeMenu();
@@ -76,7 +87,11 @@ export function useEditDocumentForm(userDocument: UserDocument) {
     updateInput({ background_image: imagePath });
   };
 
-  const { handleSubmit } = useDocumentSubmit(userDocument, input, closeEditDialog);
+  const { handleSubmit } = useDocumentSubmit(
+    userDocument,
+    input,
+    closeEditDialog,
+  );
 
   return {
     cloudDocument,

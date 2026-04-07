@@ -27,12 +27,12 @@ import BackgroundImageUploader from "../BackgroundImageUploader";
 import { useEditDocumentForm } from "./hooks/useEditDocumentForm";
 import DocumentVisibilityFields from "./DocumentVisibilityFields";
 import {
-  EditTitleField,
+  EditDateFields,
   EditDescriptionField,
   EditHandleField,
-  EditDateFields,
-  EditStatusField,
   EditSortOrderField,
+  EditStatusField,
+  EditTitleField,
 } from "./EditFields";
 
 const EditDocument: React.FC<{

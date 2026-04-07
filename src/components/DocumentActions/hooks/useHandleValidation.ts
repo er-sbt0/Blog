@@ -68,5 +68,11 @@ export function useHandleValidation(
     checkHandle(value);
   };
 
-  return { validating, validationErrors, hasErrors, updateHandle, resetValidation };
+  return {
+    validating,
+    validationErrors,
+    hasErrors,
+    updateHandle,
+    resetValidation,
+  };
 }

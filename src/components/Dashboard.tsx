@@ -30,10 +30,15 @@ type StorageUsage = {
 
 type StorageState = { local: StorageUsage; cloud: StorageUsage };
 
-const initialStorageUsage: StorageUsage = { loading: true, usage: 0, details: [] };
+const initialStorageUsage: StorageUsage = {
+  loading: true,
+  usage: 0,
+  details: [],
+};
 
 function parseStoragePayload(documents: DocumentStorageUsage[]): StorageUsage {
-  const usage = documents.reduce((acc, d) => acc + (d.size ?? 0), 0) / 1024 / 1024;
+  const usage = documents.reduce((acc, d) => acc + (d.size ?? 0), 0) / 1024 /
+    1024;
   const details = documents.map((d) => ({
     value: (d.size ?? 0) / 1024 / 1024,
     label: d.name,
@@ -53,10 +58,16 @@ const StorageChart: React.FC = () => {
 
   useEffect(() => {
     dispatch(actions.getLocalStorageUsage()).unwrap().then((payload) => {
-      setStorageUsage((prev) => ({ ...prev, local: parseStoragePayload(payload) }));
+      setStorageUsage((prev) => ({
+        ...prev,
+        local: parseStoragePayload(payload),
+      }));
     }).catch(() => {});
     dispatch(actions.getCloudStorageUsage()).unwrap().then((payload) => {
-      setStorageUsage((prev) => ({ ...prev, cloud: parseStoragePayload(payload) }));
+      setStorageUsage((prev) => ({
+        ...prev,
+        cloud: parseStoragePayload(payload),
+      }));
     }).catch(() => {});
   }, []);
 

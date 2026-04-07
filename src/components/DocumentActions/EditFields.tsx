@@ -71,15 +71,13 @@ export const EditHandleField: React.FC<{
     value={value}
     onChange={onChange}
     error={!validating && !!error}
-    helperText={
-      validating
-        ? "Validating..."
-        : error
-        ? error
-        : value
-        ? `https://matheditor.me/view/${value}`
-        : "This will be used in the URL of your document"
-    }
+    helperText={validating
+      ? "Validating..."
+      : error
+      ? error
+      : value
+      ? `https://matheditor.me/view/${value}`
+      : "This will be used in the URL of your document"}
   />
 );
 
@@ -150,7 +148,8 @@ export const EditStatusField: React.FC<{
       <InputLabel>Status</InputLabel>
       <Select
         value={status}
-        onChange={(e: SelectChangeEvent) => onChange(e.target.value as DocumentStatus)}
+        onChange={(e: SelectChangeEvent) =>
+          onChange(e.target.value as DocumentStatus)}
         label="Status"
         disabled={disabled}
       >
@@ -179,8 +178,7 @@ export const EditSortOrderField: React.FC<{
     inputProps={{ min: 0, step: 1 }}
     value={value === null || value === undefined ? "" : value}
     onChange={(e) =>
-      onChange(e.target.value === "" ? null : Number(e.target.value))
-    }
+      onChange(e.target.value === "" ? null : Number(e.target.value))}
     helperText="Items with sort order > 0 will appear first. Leave empty for default sorting."
   />
 );
