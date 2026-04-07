@@ -18,10 +18,8 @@ Issues found during April 2026 code review. Sorted by importance level 1–4.
 ### ~~Parallel state duplication in `StorageChart`~~ ✓ resolved
 - Merged into single `StorageState` object with `parseStoragePayload` helper in `Dashboard.tsx` (commit 8d890410)
 
-### `useEditDocumentForm` violates single responsibility
-- **File**: `src/components/DocumentActions/hooks/useEditDocumentForm.ts` (211 lines)
-- **Issue**: One hook handles form validation, async handle-slug checking, timezone-aware date coercion, debounced API calls, and form submission — all mixed together.
-- **Fix**: Split into focused hooks: `useHandleValidation`, `useDateFields`, `useDocumentSubmit`.
+### ~~`useEditDocumentForm` violates single responsibility~~ ✓ resolved
+- Split into `useHandleValidation` (debounce + slug validation) and `useDocumentSubmit` (partial diff + dispatch); `useEditDocumentForm` now orchestrates both (commit pending)
 
 ### `Edit.tsx` god form component
 - **File**: `src/components/DocumentActions/Edit.tsx` (335 lines)
