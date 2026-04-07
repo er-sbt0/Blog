@@ -6,10 +6,7 @@ Issues found during April 2026 code review. Sorted by importance level 1–4.
 
 ## Level 1 — Critical / Bugs / Broken Functionality
 
-### Dead code in `useDirectoryBrowser.ts` breaks Move dialog
-- **File**: `src/components/DocumentActions/hooks/useDirectoryBrowser.ts:97`
-- **Issue**: Directory filter always returns `false` due to `return false && ...`. The Move dialog never shows any selectable directories — the feature is silently broken.
-- **Fix**: Remove the `false &&` prefix and restore the actual filter condition.
+*(All resolved)*
 
 ---
 
