@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SplashScreen from "../SplashScreen";
 import {
   DocumentCreateInput,
@@ -38,11 +38,12 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const lastSavedCloud = useRef<string | null>(null);
 
-  const debouncedUpdateLocalDocument = useCallback(
-    debounce((id: string, partial: Partial<EditorDocument>) => {
-      dispatch(actions.updateLocalDocument({ id, partial }));
-      setHasUnsavedChanges(true);
-    }, 300),
+  const debouncedUpdateLocalDocument = useMemo(
+    () =>
+      debounce((id: string, partial: Partial<EditorDocument>) => {
+        dispatch(actions.updateLocalDocument({ id, partial }));
+        setHasUnsavedChanges(true);
+      }, 300),
     [dispatch],
   );
 

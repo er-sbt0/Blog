@@ -20,24 +20,9 @@ Extracted `src/hooks/useExpandedState.ts`. `PostsGrid` now uses `"postsGridExpan
 
 ---
 
-### 3. `debounce()` called inside `useCallback` — fragile pattern
+### ~~3. `debounce()` called inside `useCallback` — fragile pattern~~ ✅ Fixed
 
-**Files:**
-- `src/components/EditDocument/Editor.tsx:41-47`
-- `src/components/DocumentActions/hooks/useHandleValidation.ts:23-41`
-- `src/components/User/UserActionMenu.tsx:83-94`
-
-```ts
-const fn = useCallback(debounce((val) => { ... }, 300), []);
-```
-
-This works only because the deps array is empty or stable. If a dep ever changes, `useCallback` re-runs its factory, creating a new debounced function mid-flight and silently dropping the pending timer. The correct form is:
-
-```ts
-const fn = useMemo(() => debounce((val) => { ... }, 300), []);
-```
-
-Or hoist to module level if the function has no closure dependencies.
+Replaced `useCallback(debounce(...), deps)` with `useMemo(() => debounce(...), deps)` in `Editor.tsx` and `useHandleValidation.ts`. `UserActionMenu.tsx` no longer had a direct debounce (removed in issue 2 fix).
 
 ---
 

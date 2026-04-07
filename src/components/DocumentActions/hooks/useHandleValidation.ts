@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { debounce } from "@mui/material/utils";
 import { validate } from "uuid";
 import { CheckHandleResponse } from "@/types";
@@ -21,23 +21,26 @@ export function useHandleValidation(
     setValidationErrors({});
   }, []);
 
-  const checkHandle = useCallback(
-    debounce(async (handle: string) => {
-      try {
-        const response = await fetch(`${checkEndpoint}?handle=${handle}`);
-        const { error } = (await response.json()) as CheckHandleResponse;
-        if (error) {
-          setValidationErrors({ handle: `${error.title}: ${error.subtitle}` });
-        } else {
-          setValidationErrors({});
+  const checkHandle = useMemo(
+    () =>
+      debounce(async (handle: string) => {
+        try {
+          const response = await fetch(`${checkEndpoint}?handle=${handle}`);
+          const { error } = (await response.json()) as CheckHandleResponse;
+          if (error) {
+            setValidationErrors({
+              handle: `${error.title}: ${error.subtitle}`,
+            });
+          } else {
+            setValidationErrors({});
+          }
+        } catch {
+          setValidationErrors({
+            handle: "Something went wrong: Please try again later",
+          });
         }
-      } catch {
-        setValidationErrors({
-          handle: "Something went wrong: Please try again later",
-        });
-      }
-      setValidating(false);
-    }, 500),
+        setValidating(false);
+      }, 500),
     [],
   );
 
