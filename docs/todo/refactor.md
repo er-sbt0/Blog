@@ -21,19 +21,15 @@ Issues found during April 2026 code review. Sorted by importance level 1–4.
 ### ~~`useEditDocumentForm` violates single responsibility~~ ✓ resolved
 - Split into `useHandleValidation` (debounce + slug validation) and `useDocumentSubmit` (partial diff + dispatch); `useEditDocumentForm` now orchestrates both (commit pending)
 
-### `Edit.tsx` god form component
-- **File**: `src/components/DocumentActions/Edit.tsx` (335 lines)
-- **Issue**: Manages 8+ distinct field groups (title, description, handle, dates, status, background image, visibility, coauthors) in a single component. No fields are individually reusable. Any change touches this entire file.
-- **Fix**: Split into composed field components: `<EditTitleField>`, `<EditHandleField>`, `<EditDateFields>`, etc.
+### ~~`Edit.tsx` god form component~~ ✓ resolved
+- Extracted `EditTitleField`, `EditDescriptionField`, `EditHandleField`, `EditDateFields`, `EditStatusField`, `EditSortOrderField` into `EditFields.tsx`; `Edit.tsx` reduced from 335 → 229 lines (commit b19bfc3e)
 
-### Unsafe type casts — root cause is unresolved revision type union
-- **Files**:
-  - `src/components/DocumentActions/FilterControl.tsx:46` — `(revision as unknown as CloudDocumentRevision)`
-  - `src/components/SeriesCard/SeriesCardUnified.tsx:46` — `{...(props as any)}`
-  - `src/components/ViewRevisionCard.tsx:279–286` — multiple `as any` on `.author?.image`
-  - `src/components/Dashboard.tsx:53–55` — `ReturnType<typeof actions.getLocalStorageUsage.fulfilled>["payload"]`
-- **Issue**: The local/cloud revision type union is unresolved at the component level, forcing downstream casts to escape the type system.
-- **Fix**: Properly discriminate the union type in `src/types.ts` and eliminate casts at call sites.
+### ~~Unsafe type casts~~ ✓ resolved
+- `FilterControl.tsx`: removed dead `as unknown as CloudDocumentRevision` cast — `DocumentRevision` already has `author: User`
+- `SeriesCardUnified.tsx`: replaced `props as any` in unreachable default branch with exhaustive `never` check
+- `ViewRevisionCard.tsx`: already resolved in a prior commit (file is 95 lines)
+- `Dashboard.tsx`: replaced manual type check + payload cast with `.unwrap()` giving typed `DocumentStorageUsage[]`; tightened `parseStoragePayload` signature
+- (commit b19bfc3e)
 
 ---
 

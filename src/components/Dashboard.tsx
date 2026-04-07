@@ -1,5 +1,6 @@
 "use client";
 import { actions, useDispatch, useSelector } from "@/store";
+import { DocumentStorageUsage } from "@/types";
 import UserCard from "./User/UserCard";
 import Grid from "@mui/material/Grid2";
 import { Box, CircularProgress, Paper, Typography } from "@mui/material";
@@ -31,9 +32,7 @@ type StorageState = { local: StorageUsage; cloud: StorageUsage };
 
 const initialStorageUsage: StorageUsage = { loading: true, usage: 0, details: [] };
 
-function parseStoragePayload(
-  documents: { size?: number; name?: string }[],
-): StorageUsage {
+function parseStoragePayload(documents: DocumentStorageUsage[]): StorageUsage {
   const usage = documents.reduce((acc, d) => acc + (d.size ?? 0), 0) / 1024 / 1024;
   const details = documents.map((d) => ({
     value: (d.size ?? 0) / 1024 / 1024,
@@ -53,22 +52,12 @@ const StorageChart: React.FC = () => {
   });
 
   useEffect(() => {
-    dispatch(actions.getLocalStorageUsage()).then((response) => {
-      if (response.type === actions.getLocalStorageUsage.fulfilled.type) {
-        setStorageUsage((prev) => ({
-          ...prev,
-          local: parseStoragePayload(response.payload as { size?: number; name?: string }[]),
-        }));
-      }
-    });
-    dispatch(actions.getCloudStorageUsage()).then((response) => {
-      if (response.type === actions.getCloudStorageUsage.fulfilled.type) {
-        setStorageUsage((prev) => ({
-          ...prev,
-          cloud: parseStoragePayload(response.payload as { size?: number; name?: string }[]),
-        }));
-      }
-    });
+    dispatch(actions.getLocalStorageUsage()).unwrap().then((payload) => {
+      setStorageUsage((prev) => ({ ...prev, local: parseStoragePayload(payload) }));
+    }).catch(() => {});
+    dispatch(actions.getCloudStorageUsage()).unwrap().then((payload) => {
+      setStorageUsage((prev) => ({ ...prev, cloud: parseStoragePayload(payload) }));
+    }).catch(() => {});
   }, []);
 
   const { local: localStorageUsage, cloud: cloudStorageUsage } = storageUsage;

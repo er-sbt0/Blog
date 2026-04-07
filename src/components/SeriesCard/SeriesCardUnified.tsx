@@ -41,9 +41,10 @@ const SeriesCard: React.FC<SeriesCardProps> = memo((props) => {
       // Future implementation
       return <DetailedVariant {...props} variant="detailed" />;
 
-    default:
-      // TypeScript should prevent this, but handle gracefully
-      return <DetailedVariant {...(props as any)} variant="detailed" />;
+    default: {
+      const _exhaustive: never = props;
+      return null;
+    }
   }
 });
 
