@@ -7,6 +7,7 @@ import { CheckHandleResponse } from "@/types";
 export function useHandleValidation(
   currentHandle: string | null,
   onHandleChange: (value: string) => void,
+  checkEndpoint: string = "/api/documents/check",
 ) {
   const [validating, setValidating] = useState(false);
   const [validationErrors, setValidationErrors] = useState<
@@ -15,15 +16,15 @@ export function useHandleValidation(
 
   const hasErrors = Object.keys(validationErrors).length > 0;
 
-  const resetValidation = () => {
+  const resetValidation = useCallback(() => {
     setValidating(false);
     setValidationErrors({});
-  };
+  }, []);
 
   const checkHandle = useCallback(
     debounce(async (handle: string) => {
       try {
-        const response = await fetch(`/api/documents/check?handle=${handle}`);
+        const response = await fetch(`${checkEndpoint}?handle=${handle}`);
         const { error } = (await response.json()) as CheckHandleResponse;
         if (error) {
           setValidationErrors({ handle: `${error.title}: ${error.subtitle}` });

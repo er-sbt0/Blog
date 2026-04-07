@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Alert,
   Box,
@@ -15,9 +15,9 @@ import { Add, Close } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
 import { actions, useDispatch, useSelector } from "@/store";
-import { debounce } from "@mui/material/utils";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
-import type { CheckHandleResponse, DocumentCreateInput, User } from "@/types";
+import type { DocumentCreateInput, User } from "@/types";
+import { useHandleValidation } from "@/components/DocumentActions/hooks/useHandleValidation";
 import { getEditorData } from "@/utils/getEditorData";
 import PostCloudOptions from "../PostCloudOptions";
 
@@ -47,13 +47,31 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
     collab: false,
   });
   const [saveToCloud, setSaveToCloud] = useState(true);
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
-  const [validating, setValidating] = useState(false);
   const [nextSeriesOrder, setNextSeriesOrder] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const updateInput = (partial: Partial<DocumentCreateInput>) => {
+    setInput((prev) => ({ ...prev, ...partial }));
+  };
+
+  const updateCoauthors = (users: (User | string)[]) => {
+    updateInput({
+      coauthors: users.map((u) => (typeof u === "string" ? u : u.email)),
+    });
+  };
+
+  const {
+    validating,
+    validationErrors,
+    hasErrors,
+    updateHandle,
+    resetValidation,
+  } = useHandleValidation(
+    null,
+    (value) => updateInput({ handle: value }),
+    "/api/handle",
+  );
 
   // Fetch next series order when drawer opens
   React.useEffect(() => {
@@ -81,66 +99,16 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
   React.useEffect(() => {
     if (!open) {
       setInput({ published: true, private: false, collab: false });
-      setValidationErrors({});
+      resetValidation();
       setError(null);
       setSaveToCloud(true);
     }
-  }, [open]);
+  }, [open, resetValidation]);
 
   // Disable cloud saving when offline or logged out
   React.useEffect(() => {
     if (!isOnline || !user) setSaveToCloud(false);
   }, [isOnline, user]);
-
-  const updateInput = (partial: Partial<DocumentCreateInput>) => {
-    setInput((prev) => ({ ...prev, ...partial }));
-  };
-
-  const updateCoauthors = (users: (User | string)[]) => {
-    updateInput({
-      coauthors: users.map((u) => (typeof u === "string" ? u : u.email)),
-    });
-  };
-
-  const checkHandle = useCallback(
-    debounce(async (handle: string) => {
-      setValidating(true);
-      try {
-        const res = await fetch(`/api/handle?handle=${handle}`);
-        const { data: available, error } =
-          (await res.json()) as CheckHandleResponse;
-        setValidationErrors(
-          error || !available
-            ? { handle: error?.title || "Handle is not available" }
-            : {},
-        );
-      } catch {
-        setValidationErrors({ handle: "Failed to check handle availability" });
-      } finally {
-        setValidating(false);
-      }
-    }, 500),
-    [],
-  );
-
-  const updateHandle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const handle = event.target.value.trim().toLowerCase().replace(
-      /[^A-Za-z0-9]/g,
-      "-",
-    );
-    updateInput({ handle });
-    if (!handle) return setValidationErrors({});
-    if (handle.length < 3) {
-      return setValidationErrors({
-        handle: "Handle must be at least 3 characters long",
-      });
-    }
-    checkHandle(handle);
-  };
-
-  const hasErrors = useMemo(() => Object.keys(validationErrors).length > 0, [
-    validationErrors,
-  ]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

@@ -14,16 +14,9 @@ Extracted `src/hooks/useExpandedState.ts`. `PostsGrid` now uses `"postsGridExpan
 
 ## 🟠 High
 
-### 2. Handle validation logic duplicated in three places
+### ~~2. Handle validation logic duplicated in three places~~ ✅ Fixed
 
-**Files:**
-- `src/components/DocumentActions/hooks/useHandleValidation.ts` — extracted hook, most complete
-- `src/components/User/UserActionMenu.tsx:79-100` — inline copy, calls `/api/users/check`
-- `src/components/CreatePostDrawer/index.tsx:105-135` — inline copy, calls `/api/handle`
-
-All three implement the same debounced fetch + error-state logic + validation rules (length, regex, UUID check), with small inconsistencies between them. The centralized hook exists but the other two don't use it.
-
-**Fix:** Generalize `useHandleValidation` to accept the check endpoint as a parameter and use it in all three places.
+`useHandleValidation` now accepts a `checkEndpoint` parameter. `UserActionMenu` passes `"/api/users/check"` and `CreatePostDrawer` passes `"/api/handle"`. Both inline copies removed; `CreatePostDrawer` also gained the missing UUID and regex checks.
 
 ---
 

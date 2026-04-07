@@ -1,11 +1,10 @@
 "use client";
 import * as React from "react";
-import { CheckHandleResponse, User } from "@/types";
+import { User } from "@/types";
 import { actions, useDispatch } from "@/store";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import useFixedBodyScroll from "@/hooks/useFixedBodyScroll";
-import { debounce } from "@mui/material/utils";
 import {
   Button,
   Dialog,
@@ -16,8 +15,8 @@ import {
   TextField,
 } from "@mui/material";
 import { Settings } from "@mui/icons-material";
-import { validate } from "uuid";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { useHandleValidation } from "@/components/DocumentActions/hooks/useHandleValidation";
 
 function UserActionMenu({ user }: { user: User }) {
   const dispatch = useDispatch();
@@ -27,18 +26,28 @@ function UserActionMenu({ user }: { user: User }) {
   const pathname = usePathname();
 
   const [input, setInput] = useState<Partial<User>>({ handle: user.handle });
-  const [validating, setValidating] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
-  const hasErrors = Object.keys(validationErrors).length > 0;
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const updateInput = (partial: Partial<User>) => {
+    setInput((input) => ({ ...input, ...partial }));
+  };
+
+  const {
+    validating,
+    validationErrors,
+    hasErrors,
+    updateHandle,
+    resetValidation,
+  } = useHandleValidation(
+    user.handle,
+    (value) => updateInput({ handle: value }),
+    "/api/users/check",
+  );
 
   useEffect(() => {
     setInput({ handle: user.handle });
-    setValidating(false);
-    setValidationErrors({});
-  }, [user, editDialogOpen]);
+    resetValidation();
+  }, [user, editDialogOpen, resetValidation]);
 
   const openEditDialog = () => {
     setEditDialogOpen(true);
@@ -47,60 +56,6 @@ function UserActionMenu({ user }: { user: User }) {
   const closeEditDialog = () => {
     setEditDialogOpen(false);
   };
-
-  const updateInput = (partial: Partial<User>) => {
-    setInput((input) => ({ ...input, ...partial }));
-  };
-
-  const updateHandle = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value.trim().toLowerCase().replace(
-      /[^A-Za-z0-9]/g,
-      "-",
-    );
-    updateInput({ handle: value });
-    if (!value || value === user.handle) return setValidationErrors({});
-    if (value.length < 3) {
-      return setValidationErrors({
-        handle:
-          "Handle is too short: Handle must be at least 3 characters long",
-      });
-    }
-    if (!/^[a-zA-Z0-9-]+$/.test(value)) {
-      return setValidationErrors({
-        handle:
-          "Invalid Handle: Handle must only contain letters, numbers, and hyphens",
-      });
-    }
-    if (validate(value)) {
-      return setValidationErrors({
-        handle: "Invalid Handle: Handle must not be a UUID",
-      });
-    }
-    setValidating(true);
-    checkHandle(value);
-  };
-
-  const checkHandle = useCallback(
-    debounce(async (handle: string) => {
-      try {
-        const response = await fetch(
-          `/api/users/check?handle=${handle}`,
-        );
-        const { error } = await response.json() as CheckHandleResponse;
-        if (error) {
-          setValidationErrors({
-            handle: `${error.title}: ${error.subtitle}`,
-          });
-        } else setValidationErrors({});
-      } catch (error) {
-        setValidationErrors({
-          handle: `Something went wrong: Please try again later`,
-        });
-      }
-      setValidating(false);
-    }, 500),
-    [],
-  );
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
