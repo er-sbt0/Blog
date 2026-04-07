@@ -2,24 +2,31 @@
 
 ## Problem
 
-Application was throwing **React Error #418** (Minified React error), which is a hydration mismatch error. This occurs when the HTML rendered on the server doesn't match what React expects on the client during hydration.
+Application was throwing **React Error #418** (Minified React error), which is a
+hydration mismatch error. This occurs when the HTML rendered on the server
+doesn't match what React expects on the client during hydration.
 
 ### Error Message
+
 ```
 Uncaught Error: Minified React error #418
 at MessagePort.x (3628-594a94f4dd75a941.js:1:52153)
 ```
 
-Full error explanation: [https://react.dev/errors/418](https://react.dev/errors/418)
+Full error explanation:
+[https://react.dev/errors/418](https://react.dev/errors/418)
 
 ## Root Cause
 
-The hydration mismatch was caused by **date formatting functions** that produce different outputs between server and client:
+The hydration mismatch was caused by **date formatting functions** that produce
+different outputs between server and client:
 
 1. **`toLocaleString()`** - Formats dates based on user's locale
-2. **`toLocaleDateString()`** - Formats dates based on user's locale and timezone
+2. **`toLocaleDateString()`** - Formats dates based on user's locale and
+   timezone
 
 These functions were being called during component render in:
+
 - `ViewDocumentInfo.tsx` - Created/Updated timestamps
 - `RecentPostsPreviewCard.tsx` - Post update dates
 - `ReadmePreviewCard.tsx` - README update dates
@@ -31,13 +38,16 @@ These functions were being called during component render in:
 - **Client**: Renders with user's browser timezone/locale settings
 - **Result**: Different HTML output → React hydration error
 
-Additionally, **stale cookies** can cause the browser to have cached authentication or session state that differs from the server's expectations, leading to additional hydration mismatches.
+Additionally, **stale cookies** can cause the browser to have cached
+authentication or session state that differs from the server's expectations,
+leading to additional hydration mismatches.
 
 ## Solution
 
 ### 1. Created `ClientOnlyDate` Component
 
-Created a new component that prevents hydration mismatches by only rendering dates after client-side hydration:
+Created a new component that prevents hydration mismatches by only rendering
+dates after client-side hydration:
 
 **File**: `src/components/ClientOnlyDate.tsx`
 
@@ -73,6 +83,7 @@ export default function ClientOnlyDate({
 ```
 
 **How it works:**
+
 - During SSR and initial hydration: Shows "Loading..." placeholder
 - After mount: Renders the actual formatted date
 - Ensures consistent output between server and client
@@ -87,25 +98,30 @@ Replaced direct date formatting with `ClientOnlyDate` in:
 - ✅ `KanbanBoard.tsx`
 
 **Before:**
+
 ```tsx
-{new Date(post.updatedAt).toLocaleDateString("en-US", {
-  month: "short",
-  day: "numeric",
-})}
+{
+  new Date(post.updatedAt).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
 ```
 
 **After:**
+
 ```tsx
 <ClientOnlyDate
   date={post.updatedAt}
   customFormat={{ month: "short", day: "numeric" }}
   locale="en-US"
-/>
+/>;
 ```
 
 ### 3. Fixed `HydrationManager` Component
 
-Simplified the `HydrationManager` to avoid creating its own hydration mismatches:
+Simplified the `HydrationManager` to avoid creating its own hydration
+mismatches:
 
 ```tsx
 // Before: Rendered different content during SSR vs client
@@ -120,9 +136,11 @@ return <div suppressHydrationWarning>{children}</div>;
 
 ### 4. Clear Browser Cookies
 
-**Critical Step**: After deploying the fixes, users needed to **clear browser cookies** to resolve cached state that was causing persistent hydration issues.
+**Critical Step**: After deploying the fixes, users needed to **clear browser
+cookies** to resolve cached state that was causing persistent hydration issues.
 
 **Why cookies needed clearing:**
+
 - Old session cookies may have cached authentication state
 - Stale cookies can cause server/client state mismatches
 - Browser extensions may have injected cookies that modify the DOM
@@ -142,6 +160,7 @@ If you encounter this error:
 To prevent hydration errors in the future:
 
 ### ✅ Do's
+
 - Use `ClientOnlyDate` for all date formatting
 - Wrap client-only code in `useEffect`
 - Use `suppressHydrationWarning` sparingly and only when needed
@@ -149,6 +168,7 @@ To prevent hydration errors in the future:
 - Test in incognito mode to rule out cookies/extensions
 
 ### ❌ Don'ts
+
 - Don't use `toLocaleString()` or `toLocaleDateString()` directly in render
 - Don't use `Date.now()` or `Math.random()` during render
 - Don't access `window` or `document` outside of `useEffect`
@@ -158,7 +178,8 @@ To prevent hydration errors in the future:
 
 - [React Hydration Errors](https://react.dev/errors/418)
 - [HYDRATION.md](./HYDRATION.md) - General hydration troubleshooting
-- [NEXTAUTH_SSR_SESSION.md](./NEXTAUTH_SSR_SESSION.md) - Session handling patterns
+- [NEXTAUTH_SSR_SESSION.md](./NEXTAUTH_SSR_SESSION.md) - Session handling
+  patterns
 
 ## Testing
 

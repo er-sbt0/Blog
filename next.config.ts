@@ -157,7 +157,7 @@ const nextConfig: NextConfig = {
   // },
   experimental: {
     serverActions: {
-      bodySizeLimit: '2mb',
+      bodySizeLimit: "2mb",
     },
     // Use webpack for consistency
     webpackBuildWorker: true,
@@ -183,25 +183,32 @@ const nextConfig: NextConfig = {
       type: "asset/resource",
       resourceQuery: /url/,
     });
-    
+
     // Ensure consistent class names between server and client
     if (config.optimization) {
       config.optimization.realContentHash = false;
-      
+
       // Additional optimization settings for consistent builds
       if (config.optimization.minimizer) {
-        config.optimization.minimizer.forEach((plugin: { constructor: { name: string }, options: { terserOptions?: any } }) => {
-          if (plugin.constructor.name === 'TerserPlugin') {
-            plugin.options.terserOptions = {
-              ...plugin.options.terserOptions,
-              keep_classnames: true,
-              keep_fnames: true,
-            };
-          }
-        });
+        config.optimization.minimizer.forEach(
+          (
+            plugin: {
+              constructor: { name: string };
+              options: { terserOptions?: any };
+            },
+          ) => {
+            if (plugin.constructor.name === "TerserPlugin") {
+              plugin.options.terserOptions = {
+                ...plugin.options.terserOptions,
+                keep_classnames: true,
+                keep_fnames: true,
+              };
+            }
+          },
+        );
       }
     }
-    
+
     return config;
   },
   async headers() {

@@ -2,11 +2,14 @@
 
 ## Overview
 
-Implement toolbar controls to adjust code block width, similar to how ImageTools provides controls for images. This approach is simpler and more reliable than drag-to-resize handles.
+Implement toolbar controls to adjust code block width, similar to how ImageTools
+provides controls for images. This approach is simpler and more reliable than
+drag-to-resize handles.
 
 ## Architecture
 
 Follow the existing pattern used by ImageTools:
+
 - **Detection:** Identify when cursor is inside a code block
 - **Toolbar:** Display width control buttons when code block is selected
 - **Update:** Call `node.setWidth()` when user clicks a width option
@@ -76,7 +79,8 @@ export default function CodeTools({
 
 **File:** `src/editor/plugins/ToolbarPlugin/index.tsx`
 
-Look for where ImageTools is conditionally rendered (search for `$isImageNode`), and add similar logic for CodeNode:
+Look for where ImageTools is conditionally rendered (search for `$isImageNode`),
+and add similar logic for CodeNode:
 
 ```typescript
 import { $isCodeNode } from "@/editor/nodes/CodeNode";
@@ -85,17 +89,20 @@ import CodeTools from "./Tools/CodeTools";
 // Inside the toolbar component, after ImageTools section:
 
 // Add this where other node-specific tools are rendered
-{$isCodeNode(selectedNode) && (
-  <CodeTools
-    editor={editor}
-    node={selectedNode as CodeNode}
-  />
-)}
+{
+  $isCodeNode(selectedNode) && (
+    <CodeTools
+      editor={editor}
+      node={selectedNode as CodeNode}
+    />
+  );
+}
 ```
 
 ### Step 3: Ensure Code Block Selection Works
 
-The key is detecting when the cursor is inside a code block. Look at how ToolbarPlugin detects the selected node:
+The key is detecting when the cursor is inside a code block. Look at how
+ToolbarPlugin detects the selected node:
 
 ```typescript
 const updateToolbar = useCallback(() => {
@@ -104,10 +111,9 @@ const updateToolbar = useCallback(() => {
     const anchorNode = selection.anchor.getNode();
 
     // Walk up to find parent code block
-    let element =
-      anchorNode.getKey() === "root"
-        ? anchorNode
-        : anchorNode.getTopLevelElementOrThrow();
+    let element = anchorNode.getKey() === "root"
+      ? anchorNode
+      : anchorNode.getTopLevelElementOrThrow();
 
     // Check if it's a code block
     if ($isCodeNode(element)) {
@@ -120,18 +126,20 @@ const updateToolbar = useCallback(() => {
 
 ### Step 4: Add Width Styling Support
 
-The CodeNode already has width support in `exportDOM()`, but ensure the DOM element receives the width:
+The CodeNode already has width support in `exportDOM()`, but ensure the DOM
+element receives the width:
 
 **File:** `src/editor/nodes/CodeNode/index.tsx` (already implemented)
 
-The current implementation applies width via inline styles in `exportDOM()`, which should work for rendering.
+The current implementation applies width via inline styles in `exportDOM()`,
+which should work for rendering.
 
 ### Step 5: Optional - Add Custom Width Input
 
 Extend CodeTools to include a custom width input:
 
 ```typescript
-import { TextField, InputAdornment } from "@mui/material";
+import { InputAdornment, TextField } from "@mui/material";
 import { useState } from "react";
 
 // Add to CodeTools:
@@ -152,7 +160,7 @@ const [customWidth, setCustomWidth] = useState("");
     endAdornment: <InputAdornment position="end">px/%</InputAdornment>,
   }}
   sx={{ width: 100 }}
-/>
+/>;
 ```
 
 ## Integration Points
@@ -187,17 +195,14 @@ const [customWidth, setCustomWidth] = useState("");
 
 ## Advantages Over Drag Handles
 
-✅ Simpler implementation
-✅ More discoverable UI
-✅ Works consistently across browsers
-✅ Easier to maintain
-✅ Keyboard accessible
-✅ Mobile friendly
-✅ Follows existing patterns in codebase
+✅ Simpler implementation ✅ More discoverable UI ✅ Works consistently across
+browsers ✅ Easier to maintain ✅ Keyboard accessible ✅ Mobile friendly ✅
+Follows existing patterns in codebase
 
 ## Fallback: FloatingToolbar Alternative
 
-If the main ToolbarPlugin is complex to modify, you can alternatively show width controls in the FloatingToolbar (the one that appears on text selection):
+If the main ToolbarPlugin is complex to modify, you can alternatively show width
+controls in the FloatingToolbar (the one that appears on text selection):
 
 **File:** `src/editor/plugins/FloatingToolbar/index.tsx`
 
@@ -205,13 +210,12 @@ Add code block detection and show width controls when inside a code block:
 
 ```typescript
 if ($isCodeNode(parent)) {
-  return (
-    <CodeTools editor={editor} node={parent} />
-  );
+  return <CodeTools editor={editor} node={parent} />;
 }
 ```
 
-This would show width controls in a floating toolbar when text is selected inside a code block.
+This would show width controls in a floating toolbar when text is selected
+inside a code block.
 
 ## Next Steps
 
@@ -223,5 +227,4 @@ This would show width controls in a floating toolbar when text is selected insid
 
 ---
 
-**Date:** January 30, 2026
-**Status:** Implementation Guide
+**Date:** January 30, 2026 **Status:** Implementation Guide

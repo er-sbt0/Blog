@@ -2,21 +2,25 @@
 
 ## The Problem
 
-React hydration errors (#418) occur when the HTML rendered on the server doesn't match what React expects on the client. This commonly happens with date formatting because:
+React hydration errors (#418) occur when the HTML rendered on the server doesn't
+match what React expects on the client. This commonly happens with date
+formatting because:
 
 ### Why Date Formatting Causes Hydration Mismatches
 
 ```tsx
 // ❌ PROBLEM: Different output on server vs client
-<div>{new Date().toLocaleDateString()}</div>
+<div>{new Date().toLocaleDateString()}</div>;
 ```
 
 **Server (e.g., UTC timezone):**
+
 ```
 January 31, 2026
 ```
 
 **Client (e.g., PST timezone):**
+
 ```
 January 30, 2026
 ```
@@ -33,7 +37,8 @@ January 30, 2026
 
 ## The Solution: Consistent Formatting with date-fns
 
-Use a date formatting library with fixed timezone to ensure identical output on server and client.
+Use a date formatting library with fixed timezone to ensure identical output on
+server and client.
 
 ### Installation
 
@@ -48,12 +53,12 @@ npm install date-fns date-fns-tz
 **File:** `src/components/DateDisplay.tsx`
 
 ```tsx
-import { format } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz';
+import { format } from "date-fns";
+import { utcToZonedTime } from "date-fns-tz";
 
 interface DateDisplayProps {
   date: Date | string;
-  variant?: 'short' | 'medium' | 'long' | 'full';
+  variant?: "short" | "medium" | "long" | "full";
   className?: string;
 }
 
@@ -68,20 +73,20 @@ interface DateDisplayProps {
  */
 export function DateDisplay({
   date,
-  variant = 'medium',
-  className
+  variant = "medium",
+  className,
 }: DateDisplayProps) {
   const dateObj = typeof date === "string" ? new Date(date) : date;
 
   // Convert to UTC to ensure consistent formatting everywhere
-  const utcDate = utcToZonedTime(dateObj, 'UTC');
+  const utcDate = utcToZonedTime(dateObj, "UTC");
 
   // Format strings that match across all timezones
   const formats = {
-    short: 'MMM d',              // Jan 31
-    medium: 'MMM d, yyyy',       // Jan 31, 2026
-    long: 'MMMM d, yyyy',        // January 31, 2026
-    full: 'MMMM d, yyyy, h:mm a' // January 31, 2026, 3:45 PM
+    short: "MMM d", // Jan 31
+    medium: "MMM d, yyyy", // Jan 31, 2026
+    long: "MMMM d, yyyy", // January 31, 2026
+    full: "MMMM d, yyyy, h:mm a", // January 31, 2026, 3:45 PM
   };
 
   const formatted = format(utcDate, formats[variant]);
@@ -99,7 +104,7 @@ export function DateDisplay({
 **File:** `src/components/RelativeDate.tsx`
 
 ```tsx
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from "date-fns";
 
 interface RelativeDateProps {
   date: Date | string;
@@ -119,7 +124,7 @@ interface RelativeDateProps {
 export function RelativeDate({
   date,
   addSuffix = true,
-  className
+  className,
 }: RelativeDateProps) {
   const dateObj = typeof date === "string" ? new Date(date) : date;
   const relative = formatDistanceToNow(dateObj, { addSuffix });
@@ -141,7 +146,7 @@ export function RelativeDate({
 #### Basic Usage
 
 ```tsx
-import { DateDisplay } from '@/components/DateDisplay';
+import { DateDisplay } from "@/components/DateDisplay";
 
 export function BlogPost({ post }) {
   return (
@@ -173,10 +178,10 @@ export function BlogPost({ post }) {
 #### Relative Time
 
 ```tsx
-import { RelativeDate } from '@/components/RelativeDate';
+import { RelativeDate } from "@/components/RelativeDate";
 
 // Shows "2 hours ago", "3 days ago", etc.
-<RelativeDate date={comment.createdAt} />
+<RelativeDate date={comment.createdAt} />;
 ```
 
 ## Migration Guide
@@ -195,26 +200,30 @@ grep -r "toLocaleTimeString" src/
 ### Step 2: Replace Existing Code
 
 **Before:**
+
 ```tsx
-{new Date(post.updatedAt).toLocaleDateString("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric"
-})}
+{
+  new Date(post.updatedAt).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 ```
 
 **After:**
+
 ```tsx
-<DateDisplay date={post.updatedAt} variant="medium" />
+<DateDisplay date={post.updatedAt} variant="medium" />;
 ```
 
 ### Step 3: Common Replacements
 
-| Old Code | New Code |
-|----------|----------|
-| `date.toLocaleDateString()` | `<DateDisplay date={date} />` |
+| Old Code                                                               | New Code                                      |
+| ---------------------------------------------------------------------- | --------------------------------------------- |
+| `date.toLocaleDateString()`                                            | `<DateDisplay date={date} />`                 |
 | `date.toLocaleDateString("en-US", { month: "short", day: "numeric" })` | `<DateDisplay date={date} variant="short" />` |
-| `formatDistanceToNow(date)` | `<RelativeDate date={date} />` |
+| `formatDistanceToNow(date)`                                            | `<RelativeDate date={date} />`                |
 
 ### Step 4: Update Components
 
@@ -226,6 +235,7 @@ grep -r "toLocale" src/components/
 ```
 
 Common files to update:
+
 - Post cards/previews
 - Comment sections
 - User profile pages
@@ -249,12 +259,12 @@ Common files to update:
 
 ### 📊 Comparison
 
-| Approach | Hydration Safe | SEO | UX | Performance |
-|----------|----------------|-----|-----|-------------|
-| `toLocaleDateString()` | ❌ | ✅ | ✅ | ✅ |
-| Client-only with "Loading..." | ✅ | ❌ | ❌ | ⚠️ |
-| date-fns with UTC (Recommended) | ✅ | ✅ | ✅ | ✅ |
-| `suppressHydrationWarning` | ✅ | ✅ | ✅ | ✅ |
+| Approach                        | Hydration Safe | SEO | UX | Performance |
+| ------------------------------- | -------------- | --- | -- | ----------- |
+| `toLocaleDateString()`          | ❌             | ✅  | ✅ | ✅          |
+| Client-only with "Loading..."   | ✅             | ❌  | ❌ | ⚠️          |
+| date-fns with UTC (Recommended) | ✅             | ✅  | ✅ | ✅          |
+| `suppressHydrationWarning`      | ✅             | ✅  | ✅ | ✅          |
 
 ## Advanced: Custom Format Strings
 
@@ -263,25 +273,25 @@ You can extend the component with custom format strings:
 ```tsx
 interface DateDisplayProps {
   date: Date | string;
-  variant?: 'short' | 'medium' | 'long' | 'full';
+  variant?: "short" | "medium" | "long" | "full";
   customFormat?: string; // date-fns format string
   className?: string;
 }
 
 export function DateDisplay({
   date,
-  variant = 'medium',
+  variant = "medium",
   customFormat,
-  className
+  className,
 }: DateDisplayProps) {
   const dateObj = typeof date === "string" ? new Date(date) : date;
-  const utcDate = utcToZonedTime(dateObj, 'UTC');
+  const utcDate = utcToZonedTime(dateObj, "UTC");
 
   const formats = {
-    short: 'MMM d',
-    medium: 'MMM d, yyyy',
-    long: 'MMMM d, yyyy',
-    full: 'MMMM d, yyyy, h:mm a'
+    short: "MMM d",
+    medium: "MMM d, yyyy",
+    long: "MMMM d, yyyy",
+    full: "MMMM d, yyyy, h:mm a",
   };
 
   const formatStr = customFormat || formats[variant];
@@ -295,7 +305,7 @@ export function DateDisplay({
 }
 
 // Usage:
-<DateDisplay date={post.createdAt} customFormat="yyyy-MM-dd" />
+<DateDisplay date={post.createdAt} customFormat="yyyy-MM-dd" />;
 ```
 
 ## Testing
@@ -312,16 +322,17 @@ After implementing these changes:
 
 Common format strings:
 
-| Pattern | Result | Description |
-|---------|--------|-------------|
-| `MMM d` | Jan 31 | Short month and day |
-| `MMM d, yyyy` | Jan 31, 2026 | Short month, day, year |
-| `MMMM d, yyyy` | January 31, 2026 | Full month, day, year |
-| `yyyy-MM-dd` | 2026-01-31 | ISO date |
-| `h:mm a` | 3:45 PM | 12-hour time |
-| `HH:mm:ss` | 15:45:30 | 24-hour time |
+| Pattern        | Result           | Description            |
+| -------------- | ---------------- | ---------------------- |
+| `MMM d`        | Jan 31           | Short month and day    |
+| `MMM d, yyyy`  | Jan 31, 2026     | Short month, day, year |
+| `MMMM d, yyyy` | January 31, 2026 | Full month, day, year  |
+| `yyyy-MM-dd`   | 2026-01-31       | ISO date               |
+| `h:mm a`       | 3:45 PM          | 12-hour time           |
+| `HH:mm:ss`     | 15:45:30         | 24-hour time           |
 
-Full reference: [date-fns format documentation](https://date-fns.org/docs/format)
+Full reference:
+[date-fns format documentation](https://date-fns.org/docs/format)
 
 ## Related Documentation
 
@@ -331,9 +342,11 @@ Full reference: [date-fns format documentation](https://date-fns.org/docs/format
 
 ## When You Need Localized Dates
 
-If you absolutely need dates in user's timezone/locale, see [LOCALIZED_DATES.md](./LOCALIZED_DATES.md) for progressive enhancement approach.
+If you absolutely need dates in user's timezone/locale, see
+[LOCALIZED_DATES.md](./LOCALIZED_DATES.md) for progressive enhancement approach.
 
-For most blog/content sites, **UTC-based consistent dates are preferable** to avoid complexity.
+For most blog/content sites, **UTC-based consistent dates are preferable** to
+avoid complexity.
 
 ---
 

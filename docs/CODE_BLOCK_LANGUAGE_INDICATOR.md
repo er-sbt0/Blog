@@ -2,19 +2,26 @@
 
 ## Feature Request
 
-Add a visual CSS/UI indicator to code blocks that displays the file type/programming language. This would improve user experience by making it immediately clear what language is being shown in each code block.
+Add a visual CSS/UI indicator to code blocks that displays the file
+type/programming language. This would improve user experience by making it
+immediately clear what language is being shown in each code block.
 
 ## Current State
 
-The CodeNode supports language syntax highlighting and has a `__language` property that stores the programming language, but there's no visual indicator showing the language to users.
+The CodeNode supports language syntax highlighting and has a `__language`
+property that stores the programming language, but there's no visual indicator
+showing the language to users.
 
 ## Implementation Approaches
 
 ### Approach 1: Language Badge (Recommended) ⭐
 
-Add a small language badge in the top-right corner of the code block. This is clean, non-intrusive, and commonly used in popular documentation sites like GitHub, MDN, and Stack Overflow.
+Add a small language badge in the top-right corner of the code block. This is
+clean, non-intrusive, and commonly used in popular documentation sites like
+GitHub, MDN, and Stack Overflow.
 
 #### Benefits
+
 - ✅ Clear and professional appearance
 - ✅ Non-intrusive design
 - ✅ Easy to implement with CSS
@@ -194,11 +201,13 @@ pre[data-language="sql"]::before {
 Make the language indicator look like an IDE tab at the top of the code block.
 
 #### Benefits
+
 - ✅ Familiar IDE-like appearance
 - ✅ Clear visual separation
 - ✅ Good for users coming from IDEs
 
 #### Drawbacks
+
 - ❌ Takes more vertical space
 - ❌ May conflict with code block toolbar
 
@@ -221,7 +230,7 @@ pre[data-language]::before {
   border-top-left-radius: 0.5rem;
   border-top-right-radius: 0.5rem;
   font-size: 0.8rem;
-  font-family: 'Monaco', 'Courier New', monospace;
+  font-family: "Monaco", "Courier New", monospace;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: 2px solid #3178c6; /* Language-specific color */
 }
@@ -234,11 +243,13 @@ pre[data-language]::before {
 Subtle colored border on the left side indicating the language type.
 
 #### Benefits
+
 - ✅ Very subtle and clean
 - ✅ No space overhead
 - ✅ Color-coding at a glance
 
 #### Drawbacks
+
 - ❌ Not immediately obvious what language it is
 - ❌ Requires learning the color scheme
 
@@ -295,11 +306,13 @@ pre[data-language]:hover::after {
 Use language-specific icons (emoji or SVG icons).
 
 #### Benefits
+
 - ✅ Fun and engaging
 - ✅ Recognizable at a glance
 - ✅ Space-efficient
 
 #### Drawbacks
+
 - ❌ Requires icon library or emoji (not all languages have obvious icons)
 - ❌ May not be professional enough for some contexts
 - ❌ Accessibility concerns
@@ -309,33 +322,33 @@ Use language-specific icons (emoji or SVG icons).
 ```typescript
 // Language to icon mapping
 const LANGUAGE_ICONS: Record<string, string> = {
-  javascript: '📜',
-  typescript: '🔷',
-  python: '🐍',
-  rust: '🦀',
-  go: '🐹',
-  java: '☕',
-  ruby: '💎',
-  php: '🐘',
-  swift: '🦅',
-  kotlin: '🅺',
-  csharp: '#️⃣',
-  bash: '🐚',
-  sql: '🗄️',
+  javascript: "📜",
+  typescript: "🔷",
+  python: "🐍",
+  rust: "🦀",
+  go: "🐹",
+  java: "☕",
+  ruby: "💎",
+  php: "🐘",
+  swift: "🦅",
+  kotlin: "🅺",
+  csharp: "#️⃣",
+  bash: "🐚",
+  sql: "🗄️",
 };
 
 // In createDOM:
 if (this.__language) {
-  element.setAttribute('data-language', this.__language);
+  element.setAttribute("data-language", this.__language);
   if (LANGUAGE_ICONS[this.__language]) {
-    element.setAttribute('data-icon', LANGUAGE_ICONS[this.__language]);
+    element.setAttribute("data-icon", LANGUAGE_ICONS[this.__language]);
   }
 }
 ```
 
 ```css
 pre[data-icon]::before {
-  content: attr(data-icon) ' ' attr(data-language);
+  content: attr(data-icon) " " attr(data-language);
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
@@ -354,6 +367,7 @@ pre[data-icon]::before {
 **Implement Approach 1: Language Badge**
 
 This approach offers the best balance of:
+
 - Professional appearance
 - Clear communication
 - Easy implementation

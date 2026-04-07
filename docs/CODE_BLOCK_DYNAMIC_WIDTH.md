@@ -2,11 +2,15 @@
 
 ## Overview
 
-Enable dynamic width adjustment for code blocks in the Lexical editor. Currently, code blocks have a fixed width of 100%, which may not be optimal for all use cases (e.g., short command snippets, narrow code examples, or wide data tables).
+Enable dynamic width adjustment for code blocks in the Lexical editor.
+Currently, code blocks have a fixed width of 100%, which may not be optimal for
+all use cases (e.g., short command snippets, narrow code examples, or wide data
+tables).
 
 ## Current Implementation
 
-The code block is implemented via a custom `CodeNode` that extends Lexical's `CodeNode`:
+The code block is implemented via a custom `CodeNode` that extends Lexical's
+`CodeNode`:
 
 - **Location:** `src/editor/nodes/CodeNode/index.tsx`
 - **Current Features:**
@@ -19,9 +23,11 @@ The code block is implemented via a custom `CodeNode` that extends Lexical's `Co
 
 ### Option 1: Width Property in Node Data ⭐ Recommended
 
-**Description:** Extend the `CodeNode` to store width as part of its serialized data.
+**Description:** Extend the `CodeNode` to store width as part of its serialized
+data.
 
 **Pros:**
+
 - Width persists in the document JSON
 - Survives page reloads, exports, and copy/paste operations
 - Clean separation of concerns (data vs. presentation)
@@ -29,11 +35,13 @@ The code block is implemented via a custom `CodeNode` that extends Lexical's `Co
 - Easy to implement undo/redo
 
 **Cons:**
+
 - Requires extending the serialization format
 - Need to handle migration for existing code blocks
 - Slightly more complex implementation
 
 **Implementation Details:**
+
 ```typescript
 // Extend SerializedCodeNode interface
 interface SerializedCodeNodeWithWidth extends SerializedCodeNode {
@@ -44,15 +52,16 @@ interface SerializedCodeNodeWithWidth extends SerializedCodeNode {
 class CodeNode extends LexicalCodeNode {
   __width?: string;
 
-  setWidth(width: string): void
-  getWidth(): string | undefined
-  exportJSON(): SerializedCodeNodeWithWidth
-  static importJSON(serializedNode: SerializedCodeNodeWithWidth): CodeNode
-  exportDOM(editor: LexicalEditor): DOMExportOutput // Apply width via inline styles
+  setWidth(width: string): void;
+  getWidth(): string | undefined;
+  exportJSON(): SerializedCodeNodeWithWidth;
+  static importJSON(serializedNode: SerializedCodeNodeWithWidth): CodeNode;
+  exportDOM(editor: LexicalEditor): DOMExportOutput; // Apply width via inline styles
 }
 ```
 
 **Migration Strategy:**
+
 - Default to `100%` for existing code blocks
 - Gradually add width controls to UI
 
@@ -60,21 +69,25 @@ class CodeNode extends LexicalCodeNode {
 
 ### Option 2: CSS Custom Properties with Inline Styles
 
-**Description:** Apply width directly as inline styles or CSS custom properties on the DOM element.
+**Description:** Apply width directly as inline styles or CSS custom properties
+on the DOM element.
 
 **Pros:**
+
 - Simple and straightforward implementation
 - No schema changes needed
 - Flexible - supports any CSS width value
 - Responsive and works with existing CSS
 
 **Cons:**
+
 - Width not persisted in document data (lost on copy/paste)
 - Harder to track in version history
 - May conflict with global styles
 - No undo/redo support without additional work
 
 **Implementation Details:**
+
 ```typescript
 exportDOM(editor: LexicalEditor): DOMExportOutput {
   const output = super.exportDOM(editor);
@@ -96,9 +109,11 @@ exportDOM(editor: LexicalEditor): DOMExportOutput {
 
 ### Option 3: Preset Width Classes
 
-**Description:** Define a set of preset width classes (e.g., small, medium, large, full) instead of arbitrary values.
+**Description:** Define a set of preset width classes (e.g., small, medium,
+large, full) instead of arbitrary values.
 
 **Pros:**
+
 - Consistent sizing across all code blocks
 - Easy to maintain and update globally
 - Simpler UI (dropdown instead of free input)
@@ -106,11 +121,13 @@ exportDOM(editor: LexicalEditor): DOMExportOutput {
 - Easy theme support
 
 **Cons:**
+
 - Less flexible than arbitrary width values
 - Users cannot set custom exact widths
 - May not cover all use cases
 
 **Implementation Details:**
+
 ```css
 /* theme.css */
 .LexicalTheme__code.code-width-small {
@@ -141,9 +158,11 @@ __widthClass?: 'small' | 'medium' | 'large' | 'full';
 
 ### Option 4: Decorator Pattern with Resize Handle
 
-**Description:** Add interactive resize handles (similar to image resizing) using Lexical's decorator system.
+**Description:** Add interactive resize handles (similar to image resizing)
+using Lexical's decorator system.
 
 **Pros:**
+
 - Intuitive and familiar UX (drag-to-resize)
 - Visual feedback during resizing
 - Direct manipulation feels natural
@@ -151,20 +170,22 @@ __widthClass?: 'small' | 'medium' | 'large' | 'full';
 - Works well with Option 1 for persistence
 
 **Cons:**
+
 - More complex implementation
 - Requires handling drag events and edge cases
 - May have performance considerations
 - Touch device support needed
 
 **Implementation Details:**
+
 ```typescript
 // Create ResizableCodeDecorator component
 const ResizableCodeDecorator: React.FC = () => {
   const [isResizing, setIsResizing] = useState(false);
-  const [width, setWidth] = useState('100%');
+  const [width, setWidth] = useState("100%");
 
   return (
-    <div style={{ width, position: 'relative' }}>
+    <div style={{ width, position: "relative" }}>
       <code>{/* code content */}</code>
       <div
         className="resize-handle-left"
@@ -186,6 +207,7 @@ const ResizableCodeDecorator: React.FC = () => {
 **Description:** Add width controls to the code block toolbar or context menu.
 
 **Pros:**
+
 - Discoverable and accessible interface
 - Can combine with other code block options (language, line numbers, theme)
 - No visual clutter when not editing
@@ -193,11 +215,13 @@ const ResizableCodeDecorator: React.FC = () => {
 - Can provide both presets and custom input
 
 **Cons:**
+
 - Requires additional UI components
 - Takes up toolbar space
 - Less immediate than drag handles
 
 **Implementation Details:**
+
 ```typescript
 // Add to CodePlugin toolbar
 <ToolbarButton
@@ -250,6 +274,7 @@ const ResizableCodeDecorator: React.FC = () => {
 ### Width Value Format
 
 Support multiple formats:
+
 - **Percentage:** `"80%"`, `"100%"`
 - **Pixels:** `"600px"`, `"1200px"`
 - **Keywords:** `"auto"`, `"fit-content"`
@@ -269,10 +294,15 @@ Support multiple formats:
 ## Alternative Considerations
 
 ### Container-Based Width
-Instead of per-block width, could use container/column layouts where code blocks respect their parent width. This would be more in line with modern layout systems but requires broader architectural changes.
+
+Instead of per-block width, could use container/column layouts where code blocks
+respect their parent width. This would be more in line with modern layout
+systems but requires broader architectural changes.
 
 ### Breakpoint-Specific Widths
-Allow setting different widths for different screen sizes (mobile, tablet, desktop). More complex but more responsive.
+
+Allow setting different widths for different screen sizes (mobile, tablet,
+desktop). More complex but more responsive.
 
 ---
 
@@ -296,5 +326,4 @@ Allow setting different widths for different screen sizes (mobile, tablet, deskt
 
 ---
 
-**Date Created:** January 30, 2026
-**Status:** Planning / Design Phase
+**Date Created:** January 30, 2026 **Status:** Planning / Design Phase

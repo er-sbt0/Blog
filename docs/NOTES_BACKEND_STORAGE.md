@@ -3,16 +3,21 @@
 ## Problem Statement
 
 ### Current Implementation
-Notes are currently stored in **IndexedDB** (browser-local storage) with the following characteristics:
+
+Notes are currently stored in **IndexedDB** (browser-local storage) with the
+following characteristics:
+
 - Database name: `matheditor`
 - Store name: `notesCanvas`
-- Storage location: Browser-specific, origin-specific (protocol + hostname + port)
+- Storage location: Browser-specific, origin-specific (protocol + hostname +
+  port)
 
 ### Issues Encountered
 
 1. **Port-Based Data Loss**
    - Development server (`npm run dev`): `http://localhost:3000`
-   - Production server (`npm run build + start`): `http://localhost:3001` (or different port)
+   - Production server (`npm run build + start`): `http://localhost:3001` (or
+     different port)
    - Each port represents a different origin → separate IndexedDB instances
    - Notes created in one environment are invisible in the other
    - **Result**: Data appears "lost" when switching environments
@@ -31,6 +36,7 @@ Notes are currently stored in **IndexedDB** (browser-local storage) with the fol
    - No migration path between environments
 
 ### Affected Code
+
 - `src/indexeddb/index.ts` - IndexedDB configuration
 - `src/hooks/useNotesStore.ts` - Notes storage hook using IndexedDB
 - `src/components/NotesCanvas/` - Notes UI components
@@ -39,7 +45,9 @@ Notes are currently stored in **IndexedDB** (browser-local storage) with the fol
 ## Proposed Solution: Full Backend Storage (PostgreSQL)
 
 ### Overview
-Migrate notes from IndexedDB to PostgreSQL database storage, treating notes as first-class user data similar to documents and series.
+
+Migrate notes from IndexedDB to PostgreSQL database storage, treating notes as
+first-class user data similar to documents and series.
 
 ### Architecture
 
@@ -48,6 +56,7 @@ Migrate notes from IndexedDB to PostgreSQL database storage, treating notes as f
 Add two new Prisma models:
 
 **NotesCanvas Model**
+
 ```prisma
 model NotesCanvas {
   id        String   @id @default(uuid()) @db.Uuid
@@ -65,6 +74,7 @@ model NotesCanvas {
 ```
 
 **Note Model**
+
 ```prisma
 model Note {
   id           String   @id @default(uuid()) @db.Uuid
@@ -89,6 +99,7 @@ model Note {
 ```
 
 **User Model Update**
+
 ```prisma
 model User {
   // ... existing fields
@@ -120,12 +131,14 @@ Create `src/repositories/notes.ts`:
 #### 3. API Routes
 
 **Canvas Routes**
+
 - `GET /api/notes/canvas` - Get user's default canvas (create if not exists)
 - `POST /api/notes/canvas` - Create new canvas
 - `PATCH /api/notes/canvas/[id]` - Update canvas
 - `DELETE /api/notes/canvas/[id]` - Delete canvas
 
 **Note Routes**
+
 - `GET /api/notes` - Get all notes for user's canvas
 - `POST /api/notes` - Create new note
 - `PATCH /api/notes/[id]` - Update note (position, content, etc.)
@@ -135,6 +148,7 @@ Create `src/repositories/notes.ts`:
 #### 4. Frontend Update
 
 Update `src/hooks/useNotesStore.ts`:
+
 - Replace IndexedDB calls with API fetch calls
 - Add optimistic updates for better UX
 - Add debouncing for frequent updates (drag, resize)
@@ -145,12 +159,13 @@ Update `src/hooks/useNotesStore.ts`:
 #### 5. Migration Strategy
 
 **Phase 1: Add Migration UI Banner**
+
 - Detect if user has IndexedDB notes
 - Show banner: "Import your local notes to the cloud?"
 - Provide one-click migration button
 
-**Phase 2: Migration Utility**
-Create `src/utils/migrateNotes.ts`:
+**Phase 2: Migration Utility** Create `src/utils/migrateNotes.ts`:
+
 ```typescript
 async function migrateNotesFromIndexedDB() {
   1. Read all notes from IndexedDB
@@ -164,6 +179,7 @@ async function migrateNotesFromIndexedDB() {
 ```
 
 **Phase 3: Cleanup**
+
 - After 7-30 days, remove IndexedDB notes
 - Remove migration banner for migrated users
 - Keep IndexedDB fallback for offline support (optional)
@@ -252,4 +268,7 @@ async function migrateNotesFromIndexedDB() {
 
 ## Conclusion
 
-Moving notes to backend storage aligns with the application's architecture, provides a better user experience, and eliminates the data loss issues encountered with IndexedDB. The migration path ensures existing users don't lose data while transitioning to the new system.
+Moving notes to backend storage aligns with the application's architecture,
+provides a better user experience, and eliminates the data loss issues
+encountered with IndexedDB. The migration path ensures existing users don't lose
+data while transitioning to the new system.

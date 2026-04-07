@@ -3,6 +3,24 @@
     "useTabs": false,
     "lineWidth": 80,
     "singleQuote": false,
-    "proseWrap": "always"
+    "proseWrap": "always",
+    "include": [
+      "src/",
+      "prisma/",
+      "docs/",
+      "*.md",
+      "*.ts",
+      "*.json"
+    ],
+    "exclude": [
+      "node_modules/",
+      "public/",
+      "patches/",
+      "content/",
+      "next-pwa/",
+      ".next/",
+      "package-lock.json",
+      "tsconfig.tsbuildinfo"
+    ]
   }
 }
