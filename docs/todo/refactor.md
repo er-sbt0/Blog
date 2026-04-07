@@ -12,15 +12,11 @@ Issues found during April 2026 code review. Sorted by importance level 1–4.
 
 ## Level 2 — High Impact / Structural Debt
 
-### Duplicated revision selector across 4 Share panels
-- **File**: `src/components/DocumentActions/ShareTabPanels.tsx` (~lines 38–52, 74–88, 113–126, 184–198)
-- **Issue**: `ShareViewPanel`, `ShareEmbedPanel`, `SharePdfPanel`, `ShareDocxPanel` each repeat the same revision dropdown + permission toggle pattern. 100+ lines of near-identical code.
-- **Fix**: Extract a shared `<RevisionSelector>` component.
+### ~~Duplicated revision selector across 4 Share panels~~ ✓ resolved
+- Extracted `RevisionSelector` and `PermissionsControl` components in `ShareTabPanels.tsx` (commit 8d890410)
 
-### Parallel state duplication in `StorageChart`
-- **File**: `src/components/Dashboard.tsx:51–90`
-- **Issue**: `localStorageUsage` and `cloudStorageUsage` use identical shapes, `.reduce()`, `.map()`, and loading logic written out twice. Adding a third storage type requires a third copy.
-- **Fix**: Merge into a single state object with a generic `loadStorageData(type)` handler.
+### ~~Parallel state duplication in `StorageChart`~~ ✓ resolved
+- Merged into single `StorageState` object with `parseStoragePayload` helper in `Dashboard.tsx` (commit 8d890410)
 
 ### `useEditDocumentForm` violates single responsibility
 - **File**: `src/components/DocumentActions/hooks/useEditDocumentForm.ts` (211 lines)

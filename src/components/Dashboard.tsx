@@ -21,74 +21,57 @@ const Dashboard: React.FC = () => {
 
 export default Dashboard;
 
-type storageUsage = {
+type StorageUsage = {
   loading: boolean;
   usage: number;
-  details: {
-    value: number;
-    label?: string;
-    color?: string;
-  }[];
+  details: { value: number; label?: string; color?: string }[];
 };
+
+type StorageState = { local: StorageUsage; cloud: StorageUsage };
+
+const initialStorageUsage: StorageUsage = { loading: true, usage: 0, details: [] };
+
+function parseStoragePayload(
+  documents: { size?: number; name?: string }[],
+): StorageUsage {
+  const usage = documents.reduce((acc, d) => acc + (d.size ?? 0), 0) / 1024 / 1024;
+  const details = documents.map((d) => ({
+    value: (d.size ?? 0) / 1024 / 1024,
+    label: d.name,
+  }));
+  return { loading: false, usage, details };
+}
 
 const StorageChart: React.FC = () => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
   const initialized = useSelector((state) => state.ui.initialized);
 
-  const [localStorageUsage, setLocalStorageUsage] = useState<storageUsage>({
-    loading: true,
-    usage: 0,
-    details: [],
-  });
-  const [cloudStorageUsage, setCloudStorageUsage] = useState<storageUsage>({
-    loading: true,
-    usage: 0,
-    details: [],
+  const [storageUsage, setStorageUsage] = useState<StorageState>({
+    local: initialStorageUsage,
+    cloud: initialStorageUsage,
   });
 
   useEffect(() => {
     dispatch(actions.getLocalStorageUsage()).then((response) => {
       if (response.type === actions.getLocalStorageUsage.fulfilled.type) {
-        const localStorageUsage = response.payload as ReturnType<
-          typeof actions.getLocalStorageUsage.fulfilled
-        >["payload"];
-        const localUsage = localStorageUsage.reduce((acc, document) =>
-          acc + document.size, 0) / 1024 / 1024;
-        const localUsageDetails = localStorageUsage.map((document) => {
-          return {
-            value: document.size / 1024 / 1024,
-            label: document.name,
-          };
-        });
-        setLocalStorageUsage({
-          loading: false,
-          usage: localUsage,
-          details: localUsageDetails,
-        });
+        setStorageUsage((prev) => ({
+          ...prev,
+          local: parseStoragePayload(response.payload as { size?: number; name?: string }[]),
+        }));
       }
     });
     dispatch(actions.getCloudStorageUsage()).then((response) => {
       if (response.type === actions.getCloudStorageUsage.fulfilled.type) {
-        const cloudStorageUsage = response.payload as ReturnType<
-          typeof actions.getCloudStorageUsage.fulfilled
-        >["payload"];
-        const cloudUsage = cloudStorageUsage.reduce((acc, document) =>
-          acc + document.size, 0) / 1024 / 1024;
-        const cloudUsageDetails = cloudStorageUsage.map((document) => {
-          return {
-            value: (document.size ?? 0) / 1024 / 1024,
-            label: document.name,
-          };
-        });
-        setCloudStorageUsage({
-          loading: false,
-          usage: cloudUsage,
-          details: cloudUsageDetails,
-        });
+        setStorageUsage((prev) => ({
+          ...prev,
+          cloud: parseStoragePayload(response.payload as { size?: number; name?: string }[]),
+        }));
       }
     });
   }, []);
+
+  const { local: localStorageUsage, cloud: cloudStorageUsage } = storageUsage;
 
   return (
     <Grid container spacing={2}>
