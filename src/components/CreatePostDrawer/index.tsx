@@ -182,7 +182,7 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
             onSuccess?.();
             onClose();
             router.refresh();
-            router.push(`/view/${postId}`);
+            router.push(`/edit/${postId}`);
             return;
           }
         }

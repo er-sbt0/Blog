@@ -25,7 +25,7 @@ export function getEditorData(title: string) {
   const heading: SerializedHeadingNode = {
     children: [headingText],
     direction: "ltr",
-    format: "",
+    format: "center",
     indent: 0,
     tag: "h1",
     type: "heading",

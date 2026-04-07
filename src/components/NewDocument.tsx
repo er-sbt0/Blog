@@ -147,7 +147,7 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
           router.refresh();
         }
       }
-      router.push(seriesId ? `/series/${seriesId}` : "/posts");
+      router.push(`/edit/${payload.id}`);
     }
   };
 
