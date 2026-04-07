@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React from "react";
 import {
   Box,
   Collapse,
@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { v4 as uuid } from "uuid";
 import PostCompactListItem from "./PostCompactListItem";
 import { SeriesGroupItem } from "@/components/PostsList/utils/seriesGrouping";
+import { useExpandedState } from "@/hooks/useExpandedState";
 
 export interface PendingTimeChange {
   originalDate: Date;
@@ -51,35 +52,9 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
     new Map(),
   );
 
-  // Shared expand state with the grid view (same localStorage key)
-  const [expandedSeries, setExpandedSeries] = useState<Set<string>>(() => {
-    const saved = typeof window !== "undefined"
-      ? localStorage.getItem("seriesExpandedState")
-      : null;
-    if (saved) {
-      try {
-        return new Set<string>(JSON.parse(saved));
-      } catch {
-        // ignore parse errors
-      }
-    }
-    return new Set<string>();
-  });
-
-  const toggleSeries = useCallback((seriesId: string) => {
-    setExpandedSeries((prev) => {
-      const next = new Set(prev);
-      if (next.has(seriesId)) {
-        next.delete(seriesId);
-      } else {
-        next.add(seriesId);
-      }
-      if (typeof window !== "undefined") {
-        localStorage.setItem("seriesExpandedState", JSON.stringify([...next]));
-      }
-      return next;
-    });
-  }, []);
+  const { expandedSeries, toggleSeries } = useExpandedState(
+    "seriesViewExpandedState",
+  );
 
   const handleRenameCommit = async (
     postId: string,

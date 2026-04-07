@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Grid from "@mui/material/Grid2";
 import { Series, UserDocument } from "@/types";
 import { useSelector } from "@/store";
@@ -11,6 +11,7 @@ import {
 } from "../utils/seriesGrouping";
 import { ViewType } from "@/components/SeriesView/components/ViewToggle";
 import { PostsCompactListView } from "@/components/SeriesView/components/PostsCompactListView";
+import { useExpandedState } from "@/hooks/useExpandedState";
 
 interface PostsGridProps {
   posts?: UserDocument[];
@@ -81,47 +82,8 @@ const PostsGrid: React.FC<PostsGridProps> = ({
     );
   }, [groupedPosts, showPosts, showSeries, emptySeries]);
 
-  // Track expanded series (series NOT in this set are collapsed)
-  // This way new series default to collapsed automatically
-  const [expandedSeries, setExpandedSeries] = useState<Set<string>>(() => {
-    // Try to load saved state from localStorage
-    const savedState = typeof window !== "undefined"
-      ? localStorage.getItem("seriesExpandedState")
-      : null;
-
-    if (savedState) {
-      try {
-        const parsed: string[] = JSON.parse(savedState);
-        return new Set<string>(parsed);
-      } catch (e) {
-        console.error("Failed to parse series expanded state:", e);
-      }
-    }
-
-    // Default: no series are expanded (all start collapsed)
-    return new Set<string>();
-  });
-
-  const toggleSeriesCollapsed = useCallback((seriesId: string) => {
-    setExpandedSeries((prev) => {
-      const next = new Set(prev);
-      if (next.has(seriesId)) {
-        next.delete(seriesId);
-      } else {
-        next.add(seriesId);
-      }
-
-      // Save to localStorage
-      if (typeof window !== "undefined") {
-        localStorage.setItem("seriesExpandedState", JSON.stringify([...next]));
-      }
-
-      return next;
-    });
-  }, []);
-
-  // No useEffect needed! New series automatically default to collapsed
-  // since they're not in the expandedSeries set
+  const { expandedSeries, toggleSeries: toggleSeriesCollapsed } =
+    useExpandedState("postsGridExpandedState");
 
   // Compact list mode
   if (viewType === "compact") {

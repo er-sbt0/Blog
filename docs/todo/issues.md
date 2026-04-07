@@ -6,15 +6,9 @@ Findings from code review of `src/components/`. Sorted by severity.
 
 ## 🔴 Bug
 
-### 1. Shared `seriesExpandedState` localStorage key collision
+### 1. ~~Shared `seriesExpandedState` localStorage key collision~~ ✅ Fixed
 
-**Files:**
-- `src/components/PostsList/components/PostsGrid.tsx:89,116`
-- `src/components/SeriesView/components/PostsCompactListView.tsx:57,78`
-
-Both components independently read and write the key `"seriesExpandedState"`. They represent different views in different contexts, so sharing state is unintentional. Opening/closing series in the `SeriesView` will affect the expansion state in `PostsList` and vice versa.
-
-**Fix:** Use distinct keys (e.g. `"postsGridExpandedState"` vs `"seriesViewExpandedState"`), or extract a shared `useExpandedState(key)` hook and pass the correct key at each call site.
+Extracted `src/hooks/useExpandedState.ts`. `PostsGrid` now uses `"postsGridExpandedState"`, `PostsCompactListView` uses `"seriesViewExpandedState"`.
 
 ---
 
