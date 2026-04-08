@@ -1,5 +1,6 @@
 "use client";
-import { actions, useDispatch, useSelector } from "@/store";
+import { useSelector } from "@/store";
+import { fetchCloudStorageUsage, fetchLocalStorageUsage } from "@/store/app";
 import { DocumentStorageUsage } from "@/types";
 import UserCard from "./User/UserCard";
 import Grid from "@mui/material/Grid2";
@@ -79,7 +80,6 @@ const StorageEmptyState: React.FC<{
 );
 
 const StorageChart: React.FC = () => {
-  const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
   const initialized = useSelector((state) => state.ui.initialized);
 
@@ -89,19 +89,34 @@ const StorageChart: React.FC = () => {
   });
 
   useEffect(() => {
-    dispatch(actions.getLocalStorageUsage()).unwrap().then((payload) => {
+    fetchLocalStorageUsage().then((payload) => {
       setStorageUsage((prev) => ({
         ...prev,
         local: parseStoragePayload(payload),
       }));
-    }).catch(() => {});
-    dispatch(actions.getCloudStorageUsage()).unwrap().then((payload) => {
+    }).catch((error: unknown) =>
+      console.error("Failed to load local storage usage", error)
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setStorageUsage((prev) => ({
+        ...prev,
+        cloud: { ...initialStorageUsage, loading: false },
+      }));
+      return;
+    }
+    setStorageUsage((prev) => ({ ...prev, cloud: initialStorageUsage }));
+    fetchCloudStorageUsage().then((payload) => {
       setStorageUsage((prev) => ({
         ...prev,
         cloud: parseStoragePayload(payload),
       }));
-    }).catch(() => {});
-  }, []);
+    }).catch((error: unknown) =>
+      console.error("Failed to load cloud storage usage", error)
+    );
+  }, [user]);
 
   const { local: localStorageUsage, cloud: cloudStorageUsage } = storageUsage;
 

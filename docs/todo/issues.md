@@ -1,17 +1,5 @@
 # Component Issues
 
-## P2 — Architectural / Structural
-
-### 5. `Dashboard.tsx` — Mixed state ownership in `StorageChart`
-
-Storage data is fetched via Redux thunks
-(`dispatch(actions.getLocalStorageUsage())`) but the result is stored in local
-`useState` — never lands in Redux. Errors are swallowed silently
-(`.catch(() => {})`). **Fix:** Store storage usage in Redux slice, or skip
-dispatch and fetch directly with proper error handling.
-
----
-
 ## P3 — Duplicated Logic
 
 ### 7. Duplicated delete + menu logic — `SeriesCard/variants/CompactVariant.tsx` & `DetailedVariant.tsx`
