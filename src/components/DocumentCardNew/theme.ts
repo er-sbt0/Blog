@@ -63,53 +63,53 @@ export const cardTheme = {
       focus: "0 0 0 3px rgba(59,130,246,0.25)", // Modern blue focus ring
     },
 
-    // Refined status colors with better contrast
+    // Refined status colors — solid values use MUI sx palette tokens
     status: {
       draft: {
         bg: "linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)",
-        border: "#f97316",
-        text: "#ea580c",
-        icon: "#f97316",
+        border: "warning.main",
+        text: "warning.dark",
+        icon: "warning.main",
       },
       published: {
         bg: "linear-gradient(135deg, #f0fdf4 0%, #bbf7d0 100%)",
-        border: "#22c55e",
-        text: "#16a34a",
-        icon: "#22c55e",
+        border: "success.main",
+        text: "success.dark",
+        icon: "success.main",
       },
       active: {
         bg: "linear-gradient(135deg, #eff6ff 0%, #bfdbfe 100%)",
-        border: "#3b82f6",
-        text: "#2563eb",
-        icon: "#3b82f6",
+        border: "info.main",
+        text: "info.dark",
+        icon: "info.main",
       },
       done: {
         bg: "linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%)",
-        border: "#64748b",
-        text: "#475569",
-        icon: "#64748b",
+        border: "text.secondary",
+        text: "text.secondary",
+        icon: "text.secondary",
       },
     },
 
-    // Enhanced series colors
+    // Series colors — secondary palette (purple)
     series: {
       bg: "linear-gradient(135deg, #faf5ff 0%, #e9d5ff 100%)",
-      border: "#a855f7",
-      text: "#9333ea",
-      icon: "#a855f7",
+      border: "secondary.main",
+      text: "secondary.dark",
+      icon: "secondary.main",
     },
 
     // Author chip colors
     author: {
       bg: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
-      border: "#64748b",
-      text: "#475569",
+      border: "text.secondary",
+      text: "text.secondary",
     },
 
     // Hover states
     hover: {
-      cardBackground: "#fafbfc",
-      borderColor: "#e5e7eb",
+      cardBackground: "background.default",
+      borderColor: "divider",
     },
   },
 

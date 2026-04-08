@@ -5,6 +5,7 @@ import { DocumentStorageUsage } from "@/types";
 import UserCard from "./User/UserCard";
 import Grid from "@mui/material/Grid2";
 import { Box, CircularProgress, Paper, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { useEffect, useState } from "react";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { Cloud, Login, Storage } from "@mui/icons-material";
@@ -82,6 +83,7 @@ const StorageEmptyState: React.FC<{
 const StorageChart: React.FC = () => {
   const user = useSelector((state) => state.user);
   const initialized = useSelector((state) => state.ui.initialized);
+  const theme = useTheme();
 
   const [storageUsage, setStorageUsage] = useState<StorageState>({
     local: initialStorageUsage,
@@ -156,7 +158,7 @@ const StorageChart: React.FC = () => {
                     id: "local",
                     label: "Local",
                     value: localStorageUsage.usage,
-                    color: "#72CCFF",
+                    color: theme.palette.info.light,
                   }],
                   valueFormatter: (item) => `${item.value.toFixed(2)} MB`,
                 },
@@ -219,7 +221,7 @@ const StorageChart: React.FC = () => {
                     id: "cloud",
                     label: "Cloud",
                     value: cloudStorageUsage.usage,
-                    color: "#FFBB28",
+                    color: theme.palette.warning.light,
                   }],
                   valueFormatter: (item) => `${item.value.toFixed(2)} MB`,
                 },

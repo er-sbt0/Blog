@@ -1,7 +1,7 @@
 "use client";
 import * as React from "react";
 import { ReactNode } from "react";
-import { SxProps, Theme } from "@mui/material/styles";
+import { alpha, SxProps, Theme } from "@mui/material/styles";
 import { Box, Card, CardActionArea, Tooltip } from "@mui/material";
 import { EditNote } from "@mui/icons-material";
 import Link from "next/link";
@@ -57,20 +57,21 @@ const CardBase: React.FC<SimplifiedCardBaseProps> = ({
     borderRadius: 2,
     backgroundColor: "background.paper",
     border: "2px solid",
-    borderColor: isDone ? "#424242" : "divider",
+    borderColor: isDone ? "grey.800" : "divider",
     overflow: "hidden",
     transition: "box-shadow 0.2s ease, border-color 0.2s ease",
 
     // Simple hover effects for blog cards
     "&:hover": {
       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-      borderColor: isDone ? "#616161" : "primary.light",
+      borderColor: isDone ? "grey.600" : "primary.light",
     },
 
     // Simple focus states
     "&:focus-within": {
-      boxShadow: "0 0 0 2px rgba(25, 118, 210, 0.2)",
-      borderColor: isDone ? "#616161" : "primary.main",
+      boxShadow: (theme: Theme) =>
+        `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+      borderColor: isDone ? "grey.600" : "primary.main",
     },
 
     ...sx,

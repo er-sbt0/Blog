@@ -1,42 +1,4 @@
-> **Scope note**: Mobile support is **out of scope** for the current phase. All
-> mobile/touch-specific items are excluded from the active backlog.
-
----
-
-## Executive Summary
-
-This blog platform has strong technical foundations — a Lexical-based editor
-with math/graph support, a dual local/cloud storage model, and solid server-side
-rendering. However, it suffers from **critical mobile navigation breakage** (no
-way to open the sidebar after it closes), **competing/dead layout systems**
-(unused CSS variables, an orphaned TopAppBar component), and **insufficient
-save-state feedback** in the editor. The visual design leans heavily on default
-MUI with minimal customization — the theme has no custom palette, no custom
-typography scale, and no brand identity beyond "Editor." The reading experience
-on the view page uses hardcoded inline styles (`paddingRight: "80px"`) instead
-of responsive MUI layout, and scrollbar hiding globally harms usability. The
-information architecture is reasonable for an author dashboard, but confusing
-for public readers — there is no discoverable sign-in path for unauthenticated
-visitors. The card system (PostCard, SeriesCard) is well-abstracted but the home
-page is author-centric (Kanban board, sticky notes, README viewer) when it
-should prioritize content discovery. Accessibility gaps include missing ARIA
-labels on several interactive elements, the drag-to-resize sidebar being
-keyboard-inaccessible, and the floating toolbar being entirely hidden on mobile.
-
----
-
 ## Dimension Reviews
-
-### 1. INFORMATION ARCHITECTURE & NAVIGATION
-
-**1.1** ~~🔴 **Mobile users have no way to open the sidebar.**~~ _(OUT OF SCOPE
-— mobile not supported)_ The sidebar uses `variant="temporary"` on mobile and
-auto-closes on navigation, but there is no hamburger menu, FAB, or any other UI
-affordance to reopen it. `TopAppBar` (which would provide a top-bar with
-navigation) exists in source but is **not mounted anywhere** — it is dead code.
-The only toggle is the keyboard shortcut `Ctrl+Alt+S`, which is undiscoverable
-and unavailable on phones. This makes the app essentially navigation-dead on
-mobile after any route change.
 
 **1.2** 🟠 **The home page is a personal dashboard, not a blog landing page.** A
 first-time visitor sees a notes canvas, a Kanban board, a README viewer, and

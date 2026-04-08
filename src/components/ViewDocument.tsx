@@ -34,7 +34,8 @@ const ViewDocument: React.FC<
           <Button
             size="small"
             startIcon={<EditIcon />}
-            onClick={() => router.push(`/edit/${handle}`)}
+            onClick={() =>
+              router.push(`/edit/${handle}`)}
           >
             Edit
           </Button>
