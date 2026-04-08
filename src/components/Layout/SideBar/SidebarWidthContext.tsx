@@ -55,16 +55,18 @@ export const useSidebarWidth = () => {
 export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [width, setWidth] = useState(() => {
-    if (typeof window === "undefined") return SIDEBAR_DEFAULT_WIDTH;
-    const saved = localStorage.getItem(SIDEBAR_STORAGE_KEY);
-    if (!saved) return SIDEBAR_DEFAULT_WIDTH;
-    const parsed = parseInt(saved, 10);
-    return parsed >= SIDEBAR_MIN_WIDTH && parsed <= SIDEBAR_MAX_WIDTH
-      ? parsed
-      : SIDEBAR_DEFAULT_WIDTH;
-  });
+  const [width, setWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
+
+  // Read persisted width from localStorage after mount (can't do this during SSR)
+  useEffect(() => {
+    const saved = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    if (!saved) return;
+    const parsed = parseInt(saved, 10);
+    if (parsed >= SIDEBAR_MIN_WIDTH && parsed <= SIDEBAR_MAX_WIDTH) {
+      setWidth(parsed);
+    }
+  }, []);
 
   // Refs to track resize state without stale closures
   const startXRef = useRef(0);
