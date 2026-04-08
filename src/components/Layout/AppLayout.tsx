@@ -21,7 +21,7 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { open } = useSidebarState();
-  const { getEffectiveWidth } = useSidebarWidth();
+  const { getEffectiveWidth, isResizing } = useSidebarWidth();
   const actualSidebarWidth = isMobile ? 0 : getEffectiveWidth(open);
 
   return (
@@ -37,13 +37,12 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
           ml: { sm: `${actualSidebarWidth}px` },
           pr: { sm: `${CONTENT_RIGHT_PADDING}px` },
           overflow: "auto", /* Allow scrolling but scrollbar is hidden by CSS */
-          transition: theme.transitions.create([
-            "margin",
-            "width",
-          ], {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.leavingScreen,
-          }),
+          transition: isResizing
+            ? "none"
+            : theme.transitions.create(["margin", "width"], {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.leavingScreen,
+              }),
         }}
       >
         <Toolbar
