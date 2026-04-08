@@ -16,6 +16,8 @@ import { Article, Delete, Edit, MoreVert, NoteAdd } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import CardBase from "../../DocumentCardNew/CardBase";
 import { DetailedVariantProps } from "../types";
+import { useDispatch } from "@/store";
+import { deleteSeries } from "@/store/app";
 
 /**
  * Format date to readable string
@@ -62,6 +64,7 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
   onCreatePost,
 }) => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const menuOpen = Boolean(anchorEl);
 
@@ -107,20 +110,8 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
     handleCloseMenu();
     if (!series) return;
     if (!confirm("Delete this series? Posts will not be deleted.")) return;
-
-    try {
-      const response = await fetch(`/api/series/${series.id}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        router.refresh();
-      } else {
-        const { error } = await response.json();
-        alert(error?.title || "Failed to delete series");
-      }
-    } catch (err) {
-      alert("Failed to delete series");
-    }
+    await dispatch(deleteSeries(series.id));
+    router.refresh();
   };
 
   // Memoize top content - blog-style with title and meta

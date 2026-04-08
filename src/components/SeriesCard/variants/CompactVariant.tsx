@@ -14,6 +14,8 @@ import { Article, Delete, Edit, MoreVert } from "@mui/icons-material";
 import { CompactVariantProps } from "../types";
 import { UserDocument } from "@/types";
 import { cardTheme } from "../../DocumentCardNew/theme";
+import { useDispatch } from "@/store";
+import { deleteSeries } from "@/store/app";
 
 /** * Format date to readable string
  */
@@ -113,6 +115,7 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   sx,
 }) => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const menuOpen = Boolean(anchorEl);
@@ -138,20 +141,8 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   const handleDelete = async () => {
     handleCloseMenu();
     if (!confirm("Delete this series? Posts will not be deleted.")) return;
-
-    try {
-      const response = await fetch(`/api/series/${series.id}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        router.refresh();
-      } else {
-        const { error } = await response.json();
-        alert(error?.title || "Failed to delete series");
-      }
-    } catch (err) {
-      alert("Failed to delete series");
-    }
+    await dispatch(deleteSeries(series.id));
+    router.refresh();
   };
 
   // Sort posts by creation date (newest first)

@@ -2,13 +2,6 @@
 
 ## P2 — Architectural / Structural
 
-### 3. Raw `fetch` vs Redux `dispatch` inconsistency — `SeriesCard/variants/*.tsx`
-
-Series delete operations call `fetch('/api/series/{id}')` directly inside
-component handlers. All document operations go through Redux thunks. Series
-bypasses Redux entirely — no loading state, no store update, no consistent error
-handling. **Fix:** Add series delete thunk in the Redux slice and dispatch it.
-
 ### 4. `NotesCanvas/index.tsx` — God component (508 lines)
 
 Single file handles: canvas rendering, zoom controls, keyboard shortcuts,
