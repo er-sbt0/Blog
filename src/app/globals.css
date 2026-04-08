@@ -1,7 +1,5 @@
 :root {
   --keyboard-inset-height: 0px;
-  --sidebar-width: 72px;
-  --sidebar-width-expanded: 240px;
 }
 
 /* Hide scrollbars while keeping scrolling functionality */

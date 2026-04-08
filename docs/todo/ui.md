@@ -323,22 +323,6 @@ visually inconsistent card if accidentally used. **Severity: 🟡 Minor.**
 
 ### Quick Wins (S effort, high impact)
 
-#### [QW-2] Fix nprogress color to match theme (🟡 Minor)
-
-**Problem**: Red progress bar clashes with MUI blue primary and signals errors.
-**Solution**: Change `#nprogress .bar { background: red }` and `box-shadow`
-values in `globals.css` lines 60–67 to use the MUI primary color (`#1976d2`) or
-a CSS variable from the MUI theme (`var(--mui-palette-primary-main)`). **Files
-affected**: `src/app/globals.css` **Effort**: S
-
-#### [QW-3] Remove dead CSS sidebar variables (🟡 Minor)
-
-**Problem**: `--sidebar-width` and `--sidebar-width-expanded` CSS custom
-properties in globals.css are never consumed, yet contradict the actual TS
-constants (240px vs 130px). Confusing for developers. **Solution**: Delete lines
-3–4 of `globals.css`. The authoritative source is `constants.ts`. **Files
-affected**: `src/app/globals.css` **Effort**: S
-
 #### [QW-5] Add `beforeunload` warning in editor (🟡 Minor)
 
 **Problem**: Closing the browser tab with unsaved cloud changes causes silent
