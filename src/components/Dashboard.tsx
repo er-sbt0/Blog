@@ -61,22 +61,20 @@ const StorageEmptyState: React.FC<{
       gap: 2,
     }}
   >
-    {loading
-      ? <CircularProgress disableShrink />
-      : (
-        <>
-          {icon}
-          {label && (
-            <Typography
-              variant="overline"
-              component="p"
-              sx={{ userSelect: "none" }}
-            >
-              {label}
-            </Typography>
-          )}
-        </>
-      )}
+    {loading ? <CircularProgress disableShrink /> : (
+      <>
+        {icon}
+        {label && (
+          <Typography
+            variant="overline"
+            component="p"
+            sx={{ userSelect: "none" }}
+          >
+            {label}
+          </Typography>
+        )}
+      </>
+    )}
   </Box>
 );
 

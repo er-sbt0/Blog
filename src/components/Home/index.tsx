@@ -40,7 +40,10 @@ const Home: React.FC<{
     deleteBoard,
   } = useNotesBoards();
   const zoom = useNotesZoom(activeCanvasId);
-  const [notesHeight, setNotesHeight] = useLocalStorage("notesCanvasHeight", 400);
+  const [notesHeight, setNotesHeight] = useLocalStorage(
+    "notesCanvasHeight",
+    400,
+  );
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartRef = useRef<{ startY: number; startHeight: number } | null>(
     null,

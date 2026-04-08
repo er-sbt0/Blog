@@ -34,6 +34,7 @@ export interface AppState {
     drawer: boolean;
     page: number;
     diff: { open: boolean; old?: string; new?: string };
+    isDirty: boolean;
     attachmentPreview: AttachmentPreviewState | null;
     attachmentModified: { url: string; timestamp: number } | null;
   };

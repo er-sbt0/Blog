@@ -57,6 +57,7 @@ const initialState: AppState = {
     diff: {
       open: false,
     },
+    isDirty: false,
     attachmentPreview: null,
     attachmentModified: null,
   },
@@ -897,6 +898,9 @@ export const appSlice = createSlice({
       action: PayloadAction<Partial<AppState["ui"]["diff"]>>,
     ) => {
       state.ui.diff = { ...state.ui.diff, ...action.payload };
+    },
+    setDirty: (state, action: PayloadAction<boolean>) => {
+      state.ui.isDirty = action.payload;
     },
     openAttachmentPreview: (
       state,

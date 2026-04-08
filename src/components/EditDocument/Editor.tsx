@@ -34,15 +34,15 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
   const id = pathname.split("/")[2]?.toLowerCase();
   const editorRef = useRef<LexicalEditor>(null);
   const showDiff = useSelector((state) => state.ui.diff.open);
+  const isDirty = useSelector((state) => state.ui.isDirty);
   const user = useSelector((state) => state.user);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const lastSavedCloud = useRef<string | null>(null);
 
   const debouncedUpdateLocalDocument = useMemo(
     () =>
       debounce((id: string, partial: Partial<EditorDocument>) => {
         dispatch(actions.updateLocalDocument({ id, partial }));
-        setHasUnsavedChanges(true);
+        dispatch(actions.setDirty(true));
       }, 300),
     [dispatch],
   );
@@ -101,7 +101,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
 
         if (docResponse.type === actions.updateCloudDocument.fulfilled.type) {
           lastSavedCloud.current = serializedData;
-          setHasUnsavedChanges(false);
+          dispatch(actions.setDirty(false));
           return true;
         }
       }
@@ -212,14 +212,14 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
               >["payload"];
             if (editorDocument.head !== cloudEditorDocument.head) {
               // Local has been modified since last cloud save
-              setHasUnsavedChanges(true);
+              dispatch(actions.setDirty(true));
             } else {
               // In sync — seed lastSavedCloud so save deduplication works correctly
               lastSavedCloud.current = JSON.stringify(editorDocument.data);
             }
           } else {
             // Cloud fetch failed — conservatively treat local as potentially dirty
-            setHasUnsavedChanges(true);
+            dispatch(actions.setDirty(true));
           }
         }
       } else {
@@ -347,6 +347,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
     id ? loadDocument(id) : setError({ title: "Document Not Found" });
     return () => {
       dispatch(actions.setDiff({ open: false }));
+      dispatch(actions.setDirty(false));
     };
   }, [dispatch, user]);
 
@@ -388,7 +389,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
       <SaveDiscardActions
         onSave={handleSaveAndNavigate}
         onDiscard={handleDiscard}
-        isDirty={hasUnsavedChanges}
+        isDirty={isDirty}
       />
     </>
   );

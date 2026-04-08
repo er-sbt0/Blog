@@ -35,7 +35,10 @@ const SeriesView: React.FC<SeriesViewProps> = (
   const [granularity, setGranularity] = useState<PartitionGranularity>(
     "quarter",
   );
-  const [viewType, setViewType] = useLocalStorage<ViewType>("seriesPostsView", "grid");
+  const [viewType, setViewType] = useLocalStorage<ViewType>(
+    "seriesPostsView",
+    "grid",
+  );
 
   const handleViewChange = (v: ViewType) => setViewType(v);
 

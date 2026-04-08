@@ -110,7 +110,10 @@ const PostsList: React.FC<PostsListProps> = () => {
   const [createSeriesDrawerOpen, setCreateSeriesDrawerOpen] = useState(false);
 
   // Layout and content filter state (persisted to localStorage)
-  const [viewType, setViewType] = useLocalStorage<ViewType>("postsView", "grid");
+  const [viewType, setViewType] = useLocalStorage<ViewType>(
+    "postsView",
+    "grid",
+  );
   const [showPosts, setShowPosts] = useLocalStorage("postsShowPosts", true);
   const [showSeries, setShowSeries] = useLocalStorage("postsShowSeries", true);
 
