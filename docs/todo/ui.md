@@ -370,17 +370,6 @@ FAB via FloatingActionButton on the Home and Posts pages. **Files affected**:
 `src/components/Layout/SideBar.tsx`, `src/components/Layout/FloatingActions.tsx`
 **Effort**: M
 
-#### [CUX-5] Improve document info drawer discoverability (🟡 Minor)
-
-**Problem**: The DocumentInfoDrawerArrow is a 4px-wide arrow at the right
-viewport edge — almost invisible. It contains critical actions (share,
-revisions, edit metadata). **Solution**: Replace or supplement the arrow with a
-visible `IconButton` (e.g., `Info` or `ArticleOutlined`) rendered in the
-breadcrumbs area or toolbar on edit/view pages. Keep the edge-swipe gesture as a
-secondary interaction. **Files affected**:
-`src/components/Layout/DocumentInfoDrawerArrow.tsx`,
-`src/components/Layout/Breadcrumbs.tsx` **Effort**: M
-
 #### [CUX-6] Restore scrollbar visibility with custom styling (🟡 Minor)
 
 **Problem**: Hidden scrollbars remove scroll-position awareness across all
@@ -435,14 +424,6 @@ content area `marginLeft` dynamic, derived from `getEffectiveWidth(open)` in
 actual computed width. **Files affected**:
 `src/components/Layout/AppLayout.tsx`,
 `src/components/Layout/SideBar/constants.ts` **Effort**: M
-
-#### [DS-4] Delete TopAppBar.tsx (🟡 Minor)
-
-**Problem**: `TopAppBar.tsx` is 112 lines of dead code. It references old
-branding ("Math Editor") and old navigation patterns, and confuses developers.
-**Solution**: Delete the file entirely. Mobile navigation is out of scope so
-there is no repurposing use case. **Files affected**:
-`src/components/Layout/TopAppBar.tsx` **Effort**: S
 
 #### [DS-5] Add ARIA labels to all icon-only buttons (🟡 Minor)
 
