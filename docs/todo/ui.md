@@ -321,12 +321,6 @@ visually inconsistent card if accidentally used. **Severity: 🟡 Minor.**
 
 ## Prioritised Recommendations
 
-### Quick Wins (S effort, high impact)
-
-#### [QW-6] Fix view page responsive padding (🟠 Major)
-
-### Core UX Improvements (M/L effort)
-
 #### [CUX-1] Add explicit save-state feedback in editor (🟠 Major)
 
 **Problem**: The save FAB color change is too subtle. Users get no confirmation

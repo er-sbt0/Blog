@@ -3,9 +3,12 @@ import { Document, User } from "@/types";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import ViewAttachmentEnhancer from "./ViewAttachmentEnhancer";
 import SyncToCloudFab from "./SyncToCloudFab";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import EditIcon from "@mui/icons-material/Edit";
 
 const ViewDocumentInfo = dynamic(
   () => import("@/components/ViewDocumentInfo"),
@@ -24,30 +27,26 @@ const ViewDocument: React.FC<
   const isEditable = isAuthor || isCollab;
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    if (isEditable) {
-      router.push(`/edit/${handle}`);
-    }
-  };
-
   return (
-    <div
-      onDoubleClick={handleDoubleClick}
-      style={{
-        minHeight: "100vh",
-        paddingLeft: "5px",
-        paddingRight: "80px",
-        cursor: isEditable ? "pointer" : undefined,
-      }}
-      title={isEditable ? "Double-click to edit document" : undefined}
-    >
+    <Box sx={{ minHeight: "100vh", px: { xs: 2, sm: 3, md: 6 } }}>
+      {isEditable && (
+        <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 1 }}>
+          <Button
+            size="small"
+            startIcon={<EditIcon />}
+            onClick={() => router.push(`/edit/${handle}`)}
+          >
+            Edit
+          </Button>
+        </Box>
+      )}
       <div className="document-container" ref={containerRef}>
         {children}
         <ViewAttachmentEnhancer containerRef={containerRef} />
       </div>
       <ViewDocumentInfo cloudDocument={cloudDocument} user={user} />
       <SyncToCloudFab documentId={cloudDocument.id} />
-    </div>
+    </Box>
   );
 };
 
