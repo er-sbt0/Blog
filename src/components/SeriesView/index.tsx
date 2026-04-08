@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Series, User } from "@/types";
 import { useSession } from "next-auth/react";
 import { PartitionGranularity } from "@/types/partitioning";
@@ -14,6 +14,7 @@ import { type ViewType } from "./components/ViewToggle";
 import { useTimeEditing } from "./hooks/useTimeEditing";
 import SeriesHeader from "./components/SeriesHeader";
 import SeriesSearchAndControls from "./components/SeriesSearchAndControls";
+import useLocalStorage from "@/hooks/useLocalStorage";
 
 interface SeriesViewProps {
   series: Series;
@@ -34,19 +35,9 @@ const SeriesView: React.FC<SeriesViewProps> = (
   const [granularity, setGranularity] = useState<PartitionGranularity>(
     "quarter",
   );
-  const [viewType, setViewType] = useState<ViewType>("grid");
+  const [viewType, setViewType] = useLocalStorage<ViewType>("seriesPostsView", "grid");
 
-  useEffect(() => {
-    const saved = localStorage.getItem("seriesPostsView");
-    if (saved && ["grid", "compact", "detailed"].includes(saved)) {
-      setViewType(saved as ViewType);
-    }
-  }, []);
-
-  const handleViewChange = (v: ViewType) => {
-    setViewType(v);
-    localStorage.setItem("seriesPostsView", v);
-  };
+  const handleViewChange = (v: ViewType) => setViewType(v);
 
   const {
     isTimeEditMode,

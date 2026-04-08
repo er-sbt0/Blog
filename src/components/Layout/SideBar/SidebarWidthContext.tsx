@@ -55,31 +55,26 @@ export const useSidebarWidth = () => {
 export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [width, setWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+  const [width, setWidth] = useState(() => {
+    if (typeof window === "undefined") return SIDEBAR_DEFAULT_WIDTH;
+    const saved = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    if (!saved) return SIDEBAR_DEFAULT_WIDTH;
+    const parsed = parseInt(saved, 10);
+    return parsed >= SIDEBAR_MIN_WIDTH && parsed <= SIDEBAR_MAX_WIDTH
+      ? parsed
+      : SIDEBAR_DEFAULT_WIDTH;
+  });
   const [isResizing, setIsResizing] = useState(false);
 
   // Refs to track resize state without stale closures
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
-  const currentWidthRef = useRef(SIDEBAR_DEFAULT_WIDTH);
+  const currentWidthRef = useRef(width);
 
   // Keep ref in sync with state
   useEffect(() => {
     currentWidthRef.current = width;
   }, [width]);
-
-  // Load saved width from localStorage on mount
-  useEffect(() => {
-    const savedWidth = localStorage.getItem(SIDEBAR_STORAGE_KEY);
-    if (savedWidth) {
-      const parsedWidth = parseInt(savedWidth, 10);
-      if (
-        parsedWidth >= SIDEBAR_MIN_WIDTH && parsedWidth <= SIDEBAR_MAX_WIDTH
-      ) {
-        setWidth(parsedWidth);
-      }
-    }
-  }, []);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     const delta = e.clientX - startXRef.current;

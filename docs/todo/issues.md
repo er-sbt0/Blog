@@ -34,26 +34,25 @@ Replaced `useCallback(debounce(...), deps)` with
 
 ---
 
-### 4. Raw `localStorage` scattered across components — no shared abstraction
+### ~~4. Raw `localStorage` scattered across components — no shared abstraction~~ ✅ Fixed
 
-**Locations:**
+`useLocalStorage<T>` already existed at `src/hooks/useLocalStorage.ts`.
+Migrated all ad-hoc patterns to use it:
 
-| File                                          | Keys                                             |
-| --------------------------------------------- | ------------------------------------------------ |
-| `PostsList/index.tsx:117-139`                 | `postsView`, `postsShowPosts`, `postsShowSeries` |
-| `SeriesView/index.tsx:40-48`                  | `seriesPostsView`                                |
-| `SeriesView/PostsCompactListView.tsx:57-78`   | `seriesExpandedState`                            |
-| `PostsList/PostsGrid.tsx:89-116`              | `seriesExpandedState` (collision with above)     |
-| `Home/index.tsx:44-85`                        | `notesCanvasHeight`                              |
-| `Layout/SideBar/ActivePostsSection.tsx:32-57` | `sidebarSeriesCollapsedState`                    |
+- `PostsList/index.tsx` — `postsView`, `postsShowPosts`, `postsShowSeries`:
+  replaced `useState` + `useEffect` hydration with `useLocalStorage`
+- `SeriesView/index.tsx` — `seriesPostsView`: same pattern, same fix
+- `Home/index.tsx` — `notesCanvasHeight`: replaced lazy initializer +
+  persist-on-change `useEffect` with `useLocalStorage`
+- `ActivePostsSection.tsx` — `sidebarSeriesCollapsedState`: replaced ~30-line
+  `Set<string>` state + manual toggle callback with `useExpandedState`
+- `SidebarWidthContext.tsx` — `sidebarWidth`: replaced hydration `useEffect`
+  with a lazy initializer; explicit save-on-mouseup kept intentional for drag
+  performance
 
-Each uses an ad-hoc `useEffect` to hydrate on mount + manual sync in event
-handlers. This causes hydration flicker (SSR renders default, client reads
-localStorage, React re-renders). The sidebar already has the right pattern
-(`useSidebarFontSize`, `SidebarWidthContext`).
-
-**Fix:** Create a shared `useLocalStorageState<T>(key, defaultValue)` hook and
-replace all ad-hoc read/write pairs.
+**Note:** `postsView` and `seriesPostsView` were stored as plain strings
+previously; `useLocalStorage` uses JSON serialization so existing users lose
+those two preferences once on first load.
 
 ---
 

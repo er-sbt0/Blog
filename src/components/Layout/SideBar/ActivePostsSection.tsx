@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Box,
   IconButton,
@@ -12,6 +12,7 @@ import type { PostItemActions } from "./hooks/useSidebarActions";
 import { PostItem } from "./PostItem";
 import { SeriesGroup } from "./SeriesGroup";
 import { styles } from "../styles";
+import { useExpandedState } from "@/hooks/useExpandedState";
 
 interface ActivePostsSectionProps {
   groupedActivePosts: SeriesGroupItem[];
@@ -27,41 +28,16 @@ export const ActivePostsSection: React.FC<ActivePostsSectionProps> = ({
   itemActions,
 }) => {
   const [activePostsSearch, setActivePostsSearch] = useState("");
-  const [collapsedSeries, setCollapsedSeries] = useState<Set<string>>(() => {
-    if (typeof window !== "undefined") {
-      const savedState = localStorage.getItem("sidebarSeriesCollapsedState");
-      if (savedState) {
-        try {
-          const parsed: string[] = JSON.parse(savedState);
-          return new Set<string>(parsed);
-        } catch (e) {
-          console.error("Failed to parse sidebar series collapsed state:", e);
-        }
-      }
-    }
-    return new Set<string>();
-  });
+  const {
+    expandedSeries: collapsedSeries,
+    toggleSeries: toggleSeriesExpanded,
+  } = useExpandedState("sidebarSeriesCollapsedState");
 
   const totalPosts = groupedActivePosts.reduce(
     (sum, g) => sum + g.posts.length,
     0,
   );
   const showSearch = totalPosts >= 5;
-
-  const toggleSeriesExpanded = useCallback((seriesId: string) => {
-    setCollapsedSeries((prev) => {
-      const next = new Set(prev);
-      if (next.has(seriesId)) next.delete(seriesId);
-      else next.add(seriesId);
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "sidebarSeriesCollapsedState",
-          JSON.stringify([...next]),
-        );
-      }
-      return next;
-    });
-  }, []);
 
   const filteredGroups = useMemo((): SeriesGroupItem[] => {
     if (!activePostsSearch.trim()) return groupedActivePosts;

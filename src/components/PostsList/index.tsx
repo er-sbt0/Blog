@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Box, Skeleton, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Grid from "@mui/material/Grid2";
@@ -15,6 +15,7 @@ import { getPostSeriesId } from "./utils/seriesGrouping";
 
 // Import custom hooks
 import { usePostsData } from "./hooks/usePostsData";
+import useLocalStorage from "@/hooks/useLocalStorage";
 
 interface PostsListProps {
   // No props needed for now
@@ -109,35 +110,13 @@ const PostsList: React.FC<PostsListProps> = () => {
   const [createSeriesDrawerOpen, setCreateSeriesDrawerOpen] = useState(false);
 
   // Layout and content filter state (persisted to localStorage)
-  const [viewType, setViewType] = useState<ViewType>("grid");
-  const [showPosts, setShowPosts] = useState(true);
-  const [showSeries, setShowSeries] = useState(true);
+  const [viewType, setViewType] = useLocalStorage<ViewType>("postsView", "grid");
+  const [showPosts, setShowPosts] = useLocalStorage("postsShowPosts", true);
+  const [showSeries, setShowSeries] = useLocalStorage("postsShowSeries", true);
 
-  useEffect(() => {
-    const savedView = localStorage.getItem("postsView");
-    if (savedView && ["grid", "compact"].includes(savedView)) {
-      setViewType(savedView as ViewType);
-    }
-    const savedShowPosts = localStorage.getItem("postsShowPosts");
-    if (savedShowPosts !== null) setShowPosts(savedShowPosts === "true");
-    const savedShowSeries = localStorage.getItem("postsShowSeries");
-    if (savedShowSeries !== null) setShowSeries(savedShowSeries === "true");
-  }, []);
-
-  const handleViewTypeChange = (view: ViewType) => {
-    setViewType(view);
-    localStorage.setItem("postsView", view);
-  };
-
-  const handleShowPostsChange = (show: boolean) => {
-    setShowPosts(show);
-    localStorage.setItem("postsShowPosts", String(show));
-  };
-
-  const handleShowSeriesChange = (show: boolean) => {
-    setShowSeries(show);
-    localStorage.setItem("postsShowSeries", String(show));
-  };
+  const handleViewTypeChange = (view: ViewType) => setViewType(view);
+  const handleShowPostsChange = (show: boolean) => setShowPosts(show);
+  const handleShowSeriesChange = (show: boolean) => setShowSeries(show);
 
   // Use custom hook to get posts data with search, filtering, and partitioning
   const {

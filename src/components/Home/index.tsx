@@ -7,6 +7,7 @@ import { DragProvider } from "../DragContext";
 import TrashBin from "../TrashBin";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDocuments } from "@/hooks/useDocuments";
+import useLocalStorage from "@/hooks/useLocalStorage";
 import KanbanPreviewCard from "./KanbanPreviewCard";
 import ReadmePreviewCard from "./ReadmePreviewCard";
 import RecentPostsPreviewCard from "./RecentPostsPreviewCard";
@@ -39,13 +40,7 @@ const Home: React.FC<{
     deleteBoard,
   } = useNotesBoards();
   const zoom = useNotesZoom(activeCanvasId);
-  const [notesHeight, setNotesHeight] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("notesCanvasHeight");
-      return saved ? parseInt(saved, 10) : 400;
-    }
-    return 400;
-  }); // Default height in pixels
+  const [notesHeight, setNotesHeight] = useLocalStorage("notesCanvasHeight", 400);
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartRef = useRef<{ startY: number; startHeight: number } | null>(
     null,
@@ -78,13 +73,6 @@ const Home: React.FC<{
     setIsResizing(false);
     resizeStartRef.current = null;
   }, []);
-
-  // Save height to localStorage whenever it changes
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("notesCanvasHeight", notesHeight.toString());
-    }
-  }, [notesHeight]);
 
   // Add/remove global event listeners for resize
   useEffect(() => {
