@@ -50,7 +50,7 @@ header {
 }
 
 #nprogress .bar {
-  background: red;
+  background: #1976d2;
   position: fixed;
   z-index: 99999;
   top: 0;
@@ -65,7 +65,7 @@ header {
   right: 0px;
   width: 100px;
   height: 100%;
-  box-shadow: 0 0 10px red, 0 0 5px red;
+  box-shadow: 0 0 10px #1976d2, 0 0 5px #1976d2;
   opacity: 1.0;
   -webkit-transform: rotate(3deg) translate(0px, -4px);
   -ms-transform: rotate(3deg) translate(0px, -4px);
