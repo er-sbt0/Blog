@@ -1,7 +1,6 @@
 "use client";
 import * as React from "react";
 import { memo, useMemo } from "react";
-import { useMenuState } from "@/hooks/useMenuState";
 import {
   Box,
   Button,
@@ -14,35 +13,9 @@ import {
   Typography,
 } from "@mui/material";
 import { Article, Delete, Edit, MoreVert, NoteAdd } from "@mui/icons-material";
-import { useRouter } from "next/navigation";
 import CardBase from "../../DocumentCardNew/CardBase";
 import { DetailedVariantProps } from "../types";
-import { useDispatch } from "@/store";
-import { deleteSeries } from "@/store/app";
-
-/**
- * Format date to readable string
- */
-const formatDate = (dateString: string | Date): string => {
-  const date = typeof dateString === "string"
-    ? new Date(dateString)
-    : dateString;
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-};
+import { formatDate, useSeriesActions } from "../seriesCardUtils";
 
 /**
  * Detailed variant of SeriesCard
@@ -64,9 +37,14 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
   showActions = true,
   onCreatePost,
 }) => {
-  const router = useRouter();
-  const dispatch = useDispatch();
-  const { anchorEl, menuOpen, openMenu, closeMenu } = useMenuState();
+  const {
+    anchorEl,
+    menuOpen,
+    handleOpenMenu,
+    handleCloseMenu,
+    handleEdit,
+    handleDelete,
+  } = useSeriesActions(series);
 
   // Navigation and metadata
   const href = series ? `/series/${series.id}` : "/";
@@ -87,30 +65,6 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
   }, [series?.posts]);
 
   const postCount = sortedPosts.length;
-
-  // Menu handlers
-  const handleOpenMenu = (e: React.MouseEvent<HTMLElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    openMenu(e);
-  };
-
-  const handleCloseMenu = closeMenu;
-
-  const handleEdit = () => {
-    handleCloseMenu();
-    if (series) {
-      router.push(`/series/${series.id}/edit`);
-    }
-  };
-
-  const handleDelete = async () => {
-    handleCloseMenu();
-    if (!series) return;
-    if (!confirm("Delete this series? Posts will not be deleted.")) return;
-    await dispatch(deleteSeries(series.id));
-    router.refresh();
-  };
 
   // Memoize top content - blog-style with title and meta
   const topContent = useMemo(

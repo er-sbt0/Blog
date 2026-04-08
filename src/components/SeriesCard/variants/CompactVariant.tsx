@@ -1,6 +1,5 @@
 "use client";
 import React, { memo, useMemo, useState } from "react";
-import { useMenuState } from "@/hooks/useMenuState";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -16,31 +15,7 @@ import { Article, Delete, Edit, MoreVert } from "@mui/icons-material";
 import { CompactVariantProps } from "../types";
 import { UserDocument } from "@/types";
 import { createCardTheme } from "../../DocumentCardNew/theme";
-import { useDispatch } from "@/store";
-import { deleteSeries } from "@/store/app";
-
-/** * Format date to readable string
- */
-const formatDate = (dateString: string | Date): string => {
-  const date = typeof dateString === "string"
-    ? new Date(dateString)
-    : dateString;
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-};
+import { formatDate, useSeriesActions } from "../seriesCardUtils";
 
 /** * Individual document item within an expanded series card
  */
@@ -117,34 +92,20 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   sx,
 }) => {
   const router = useRouter();
-  const dispatch = useDispatch();
   const theme = useTheme();
   const cardTheme = createCardTheme(theme);
   const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
-  const { anchorEl, menuOpen, openMenu, closeMenu } = useMenuState();
+  const {
+    anchorEl,
+    menuOpen,
+    handleOpenMenu,
+    handleCloseMenu,
+    handleEdit,
+    handleDelete,
+  } = useSeriesActions(series);
 
   // Check if current user is the author
   const isAuthor = !!user && user.id === series.authorId;
-
-  const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
-    event.preventDefault();
-    event.stopPropagation(); // Prevent card click
-    openMenu(event);
-  };
-
-  const handleCloseMenu = closeMenu;
-
-  const handleEdit = () => {
-    handleCloseMenu();
-    router.push(`/series/${series.id}/edit`);
-  };
-
-  const handleDelete = async () => {
-    handleCloseMenu();
-    if (!confirm("Delete this series? Posts will not be deleted.")) return;
-    await dispatch(deleteSeries(series.id));
-    router.refresh();
-  };
 
   // Sort posts by creation date (newest first)
   const sortedPosts = useMemo(() => {

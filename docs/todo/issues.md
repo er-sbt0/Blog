@@ -1,22 +1,5 @@
 # Component Issues
 
-## P3 — Duplicated Logic
-
-### 7. Duplicated delete + menu logic — `SeriesCard/variants/CompactVariant.tsx` & `DetailedVariant.tsx`
-
-Both variants independently implement:
-
-- `anchorEl`/`menuOpen` state pattern
-- Delete handler with `window.confirm` + `fetch` + `router.refresh()`
-- `formatDate` utility function (copy-pasted identically)
-- `useMemo` post-sorting block
-
-Any bug fix or behavior change must be applied in both places. **Fix:** Extract
-`useSeriesActions` hook, `useSortedPosts` hook, and a shared `formatDate`
-utility.
-
----
-
 ## P4 — Type Safety
 
 ### 9. Double cast in `EditRevisionCard.tsx:75, 108`
