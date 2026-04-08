@@ -355,14 +355,3 @@ content area `marginLeft` dynamic, derived from `getEffectiveWidth(open)` in
 actual computed width. **Files affected**:
 `src/components/Layout/AppLayout.tsx`,
 `src/components/Layout/SideBar/constants.ts` **Effort**: M
-
-#### [DS-5] Add ARIA labels to all icon-only buttons (🟡 Minor)
-
-**Problem**: Several icon-only buttons (sidebar toggle, font size controls, drag
-handles, drawer close) lack `aria-label` attributes. **Solution**: Audit all
-`<IconButton>` usages that don't have an `aria-label`. Add descriptive labels:
-"Collapse sidebar", "Expand sidebar", "Increase font size", "Decrease font
-size", "Reset font size", "Close drawer", etc. **Files affected**:
-`src/components/Layout/SideBar/SidebarHeader.tsx`,
-`src/components/AppDrawer.tsx`,
-`src/components/Layout/DocumentInfoDrawerArrow.tsx` **Effort**: S

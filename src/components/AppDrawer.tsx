@@ -95,7 +95,7 @@ const AppDrawer: React.FC<React.PropsWithChildren<{ title: string }>> = (
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Article sx={{ mr: 1 }} />
             <Typography variant="h6">{title}</Typography>
-            <IconButton onClick={toggleDrawer} sx={{ ml: "auto" }}>
+            <IconButton onClick={toggleDrawer} sx={{ ml: "auto" }} aria-label="Close drawer">
               <Close />
             </IconButton>
           </Box>

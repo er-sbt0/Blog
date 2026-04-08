@@ -127,7 +127,8 @@ const DocumentInfoDrawerArrow: React.FC = () => {
         },
         displayPrint: "none",
       }}
-      aria-label="document info"
+      role="button"
+      aria-label={drawerOpen ? "Close document info" : "Open document info"}
     >
       <ChevronLeft
         fontSize="medium"
