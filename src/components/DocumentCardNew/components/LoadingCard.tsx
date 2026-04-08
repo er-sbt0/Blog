@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Card, Chip, IconButton, Skeleton } from "@mui/material";
 import { MoreVert, Share } from "@mui/icons-material";
 import { alpha, SxProps, Theme, useTheme } from "@mui/material/styles";
-import { cardTheme } from "../theme";
+import { createCardTheme } from "../theme";
 
 /**
  * Props for LoadingCard component
@@ -20,6 +20,7 @@ interface LoadingCardProps {
  */
 export const LoadingCard: React.FC<LoadingCardProps> = ({ sx }) => {
   const theme = useTheme();
+  const cardTheme = createCardTheme(theme);
 
   const shimmerStyles = {
     background: `linear-gradient(90deg, 
@@ -98,7 +99,7 @@ interface SkeletonProps {
 const ContentSkeleton: React.FC<SkeletonProps> = ({ shimmerStyles }) => (
   <Box
     sx={{
-      height: cardTheme.contentRatio.top,
+      height: "70%", // cardTheme.contentRatio.top
       width: "100%",
       display: "flex",
       alignItems: "center",

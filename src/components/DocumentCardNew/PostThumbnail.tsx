@@ -3,8 +3,9 @@ import { UserDocument } from "@/types";
 import { memo } from "react";
 import { Alert, Box, IconButton, Skeleton } from "@mui/material";
 import { Refresh } from "@mui/icons-material";
+import { useTheme } from "@mui/material/styles";
 import { usePostContent } from "./hooks/usePostContent";
-import { cardTheme } from "./theme";
+import { createCardTheme } from "./theme";
 
 /**
  * Simple inline skeleton for thumbnail loading
@@ -44,6 +45,8 @@ const ThumbnailError: React.FC<{ onRetry: () => void }> = ({ onRetry }) => (
  */
 const PostThumbnail: React.FC<{ userDocument?: UserDocument }> = memo(
   ({ userDocument }) => {
+    const theme = useTheme();
+    const cardTheme = createCardTheme(theme);
     // Use the consolidated content loading hook
     const { thumbnail, isLoading, error, retry } = usePostContent(userDocument);
 

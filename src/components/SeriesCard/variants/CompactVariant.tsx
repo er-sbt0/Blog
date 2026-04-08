@@ -11,10 +11,11 @@ import {
   MenuItem,
   Typography,
 } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { Article, Delete, Edit, MoreVert } from "@mui/icons-material";
 import { CompactVariantProps } from "../types";
 import { UserDocument } from "@/types";
-import { cardTheme } from "../../DocumentCardNew/theme";
+import { createCardTheme } from "../../DocumentCardNew/theme";
 import { useDispatch } from "@/store";
 import { deleteSeries } from "@/store/app";
 
@@ -62,7 +63,7 @@ const DocItem: React.FC<DocItemProps> = ({ document }) => {
         width: "100%",
         flexShrink: 0,
         border: "1px solid",
-        borderColor: cardTheme.colors.border,
+        borderColor: "divider",
         borderRadius: "4px",
         p: 1.5,
         bgcolor: "background.paper",
@@ -117,6 +118,8 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
 }) => {
   const router = useRouter();
   const dispatch = useDispatch();
+  const theme = useTheme();
+  const cardTheme = createCardTheme(theme);
   const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
   const { anchorEl, menuOpen, openMenu, closeMenu } = useMenuState();
 

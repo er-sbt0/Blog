@@ -1,10 +1,11 @@
-import { alpha } from "@mui/material/styles";
+import { alpha, type Theme } from "@mui/material/styles";
 
 /**
- * Modern blog-oriented card theme with magazine-style design
- * Focused on readability, visual hierarchy, and contemporary aesthetics
+ * Modern blog-oriented card theme with magazine-style design.
+ * Derives values from the MUI theme so palette/typography changes propagate
+ * automatically (e.g. dark-mode palette, custom brand fonts).
  */
-export const cardTheme = {
+export const createCardTheme = (theme: Theme) => ({
   // Layout - modern blog proportions with better aspect ratios
   borderRadius: 6, // Reduced from 12px for less rounded appearance
   minHeight: {
@@ -21,101 +22,100 @@ export const cardTheme = {
     bottom: "30%", // Streamlined metadata area
   },
 
-  // Spacing - refined for modern design
+  // Spacing - refined for modern design (MUI spacing units)
   spacing: {
-    contentPadding: 3.5, // Increased padding for better breathing room
+    contentPadding: 3.5,
     chipGap: 1.25,
     titleMargin: 2,
     sectionGap: 2.5,
     cardGap: 2, // Gap between cards in grid
   },
 
-  // Typography - modern blog hierarchy
+  // Typography - derived from MUI theme scale
   typography: {
-    titleSize: "1.375rem", // Larger, more impactful titles
-    titleWeight: 600, // Slightly lighter for modern feel
-    titleLineHeight: 1.25, // Optimal line height for readability
-    excerptSize: "0.9rem", // Slightly larger for better readability
-    excerptLineHeight: 1.6, // Improved line spacing
-    metaSize: "0.8rem", // Better metadata readability
-    authorSize: "0.85rem", // Distinct author text size
+    titleSize: theme.typography.h5.fontSize, // ~1.25rem
+    titleWeight: theme.typography.h5.fontWeight ?? 600,
+    titleLineHeight: theme.typography.h5.lineHeight ?? 1.25,
+    excerptSize: theme.typography.body2.fontSize, // ~0.875rem
+    excerptLineHeight: theme.typography.body2.lineHeight ?? 1.6,
+    metaSize: theme.typography.caption.fontSize, // ~0.75rem
+    authorSize: theme.typography.body2.fontSize,
   },
 
-  // Colors - modern blog palette with subtle gradients
+  // Colors - derived from MUI theme palette
   colors: {
-    border: "divider",
-    cardBackground: "background.paper",
-    textPrimary: "text.primary",
-    textSecondary: "text.secondary",
+    border: theme.palette.divider,
+    cardBackground: theme.palette.background.paper,
+    textPrimary: theme.palette.text.primary,
+    textSecondary: theme.palette.text.secondary,
 
-    // Unified hover blue - consistent across all interactive elements
-    // Using MUI's primary.main equivalent for consistency
+    // Unified hover blue - follows primary palette
     hoverBlue: {
-      text: "primary.main", // #1976d2 - for text color on hover
-      border: "rgba(25, 118, 210, 0.5)", // primary.main with 50% opacity for borders
-      borderActive: "rgba(25, 118, 210, 0.7)", // primary.main with 70% opacity for active state
+      text: theme.palette.primary.main,
+      border: alpha(theme.palette.primary.main, 0.5),
+      borderActive: alpha(theme.palette.primary.main, 0.7),
     },
 
     // Enhanced shadows with subtle depth
     shadow: {
       default: "0 4px 12px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04)",
       hover: "0 12px 32px rgba(0,0,0,0.15), 0 6px 16px rgba(0,0,0,0.1)",
-      focus: "0 0 0 3px rgba(59,130,246,0.25)", // Modern blue focus ring
+      focus: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.25)}`,
     },
 
-    // Refined status colors — solid values use MUI sx palette tokens
+    // Status colors - solid values from theme palette; gradients use theme-adjacent hues
     status: {
       draft: {
         bg: "linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)",
-        border: "warning.main",
-        text: "warning.dark",
-        icon: "warning.main",
+        border: theme.palette.warning.main,
+        text: theme.palette.warning.dark,
+        icon: theme.palette.warning.main,
       },
       published: {
         bg: "linear-gradient(135deg, #f0fdf4 0%, #bbf7d0 100%)",
-        border: "success.main",
-        text: "success.dark",
-        icon: "success.main",
+        border: theme.palette.success.main,
+        text: theme.palette.success.dark,
+        icon: theme.palette.success.main,
       },
       active: {
         bg: "linear-gradient(135deg, #eff6ff 0%, #bfdbfe 100%)",
-        border: "info.main",
-        text: "info.dark",
-        icon: "info.main",
+        border: theme.palette.info.main,
+        text: theme.palette.info.dark,
+        icon: theme.palette.info.main,
       },
       done: {
         bg: "linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%)",
-        border: "text.secondary",
-        text: "text.secondary",
-        icon: "text.secondary",
+        border: theme.palette.text.secondary,
+        text: theme.palette.text.secondary,
+        icon: theme.palette.text.secondary,
       },
     },
 
-    // Series colors — secondary palette (purple)
+    // Series colors - secondary palette (purple)
     series: {
       bg: "linear-gradient(135deg, #faf5ff 0%, #e9d5ff 100%)",
-      border: "secondary.main",
-      text: "secondary.dark",
-      icon: "secondary.main",
+      border: theme.palette.secondary.main,
+      text: theme.palette.secondary.dark,
+      icon: theme.palette.secondary.main,
     },
 
     // Author chip colors
     author: {
       bg: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
-      border: "text.secondary",
-      text: "text.secondary",
+      border: theme.palette.text.secondary,
+      text: theme.palette.text.secondary,
     },
 
     // Hover states
     hover: {
-      cardBackground: "background.default",
-      borderColor: "divider",
+      cardBackground: theme.palette.background.default,
+      borderColor: theme.palette.divider,
     },
   },
 
   // Simplified animations (removed)
   animation: {
-    transition: "none", // Animations disabled
+    transition: "none",
     hoverTransform: "none",
     hoverDuration: "0ms",
     focusTransition: "none",
@@ -123,17 +123,17 @@ export const cardTheme = {
 
   // Simplified action bar design
   actionBar: {
-    height: "48px", // Content height
-    totalHeight: "60px", // Content height + padding (48px + 12px)
-    minHeight: "40px", // Reduced minimum height
-    backgroundColor: "transparent", // No background
-    backdropFilter: "none", // No backdrop filter
-    borderTop: "1px solid rgba(226, 232, 240, 0.6)",
+    height: "48px",
+    totalHeight: "60px",
+    minHeight: "40px",
+    backgroundColor: "transparent",
+    backdropFilter: "none",
+    borderTop: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
   },
 
   // Enhanced accessibility
   accessibility: {
-    minimumTouchTarget: 48, // Larger touch targets
+    minimumTouchTarget: 48,
     focusRingWidth: 3,
     focusRingOffset: 2,
   },
@@ -141,8 +141,11 @@ export const cardTheme = {
   // Image handling for blog posts
   image: {
     aspectRatio: "16:9",
-    borderRadius: 4, // Reduced from 8px for less rounded images
+    borderRadius: 4,
     objectFit: "cover",
     fallbackBackground: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
   },
-};
+});
+
+/** Inferred return type — use this when you need to type a destructured cardTheme. */
+export type CardTheme = ReturnType<typeof createCardTheme>;

@@ -2,7 +2,7 @@ import React from "react";
 import { Avatar, Chip, Skeleton } from "@mui/material";
 import { Edit, LibraryBooks, Person } from "@mui/icons-material";
 import { DocumentStatus, Series, User } from "@/types";
-import { cardTheme } from "./theme";
+import { createCardTheme } from "./theme";
 
 /**
  * Simplified post state for blog
@@ -29,21 +29,18 @@ export const createStatusChip = (postState: PostState) => {
         variant="filled"
         icon={<Edit sx={{ fontSize: 14 }} />}
         label="Draft"
-        sx={{
-          background: cardTheme.colors.status.draft.bg,
-          borderColor: cardTheme.colors.status.draft.border,
-          color: cardTheme.colors.status.draft.text,
-          fontWeight: 600,
-          fontSize: cardTheme.typography.metaSize,
-          height: 28,
-
-          "& .MuiChip-icon": {
-            color: cardTheme.colors.status.draft.icon,
-          },
-
-          "&:hover": {
-            background: cardTheme.colors.status.draft.bg,
-          },
+        sx={(theme) => {
+          const ct = createCardTheme(theme);
+          return {
+            background: ct.colors.status.draft.bg,
+            borderColor: ct.colors.status.draft.border,
+            color: ct.colors.status.draft.text,
+            fontWeight: 600,
+            fontSize: ct.typography.metaSize,
+            height: 28,
+            "& .MuiChip-icon": { color: ct.colors.status.draft.icon },
+            "&:hover": { background: ct.colors.status.draft.bg },
+          };
         }}
       />
     );
@@ -207,26 +204,19 @@ export const createSeriesChip = (
       onClick={() => {
         window.location.href = `/series/${series.id}`;
       }}
-      sx={{
-        background: cardTheme.colors.series.bg,
-        borderColor: cardTheme.colors.series.border,
-        color: cardTheme.colors.series.text,
-        fontWeight: 600,
-        fontSize: cardTheme.typography.metaSize,
-        height: 28,
-        cursor: "pointer",
-
-        "& .MuiChip-icon": {
-          color: cardTheme.colors.series.icon,
-        },
-
-        "&:hover": {
-          background: cardTheme.colors.series.bg,
-        },
-
-        "&:active": {
-          // No transform effects
-        },
+      sx={(theme) => {
+        const ct = createCardTheme(theme);
+        return {
+          background: ct.colors.series.bg,
+          borderColor: ct.colors.series.border,
+          color: ct.colors.series.text,
+          fontWeight: 600,
+          fontSize: ct.typography.metaSize,
+          height: 28,
+          cursor: "pointer",
+          "& .MuiChip-icon": { color: ct.colors.series.icon },
+          "&:hover": { background: ct.colors.series.bg },
+        };
       }}
     />
   );

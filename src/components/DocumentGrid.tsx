@@ -8,7 +8,7 @@ import { User, UserDocument } from "@/types";
 import DraggableDocumentCard from "./DocumentCardNew/DraggablePostCard";
 import SkeletonCard from "./DocumentCardNew/components/LoadingCard";
 import { SxProps, Theme } from "@mui/material/styles";
-import { cardTheme } from "./DocumentCardNew/theme";
+import { createCardTheme } from "./DocumentCardNew/theme";
 import { useResponsiveDocumentGrid } from "./DocumentGrid/hooks/useResponsiveDocumentGrid";
 import { useDocumentGridPerformance } from "./DocumentGrid/hooks/useDocumentGridPerformance";
 import DocumentGridHeader from "./DocumentGrid/DocumentGridHeader";
@@ -90,6 +90,7 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
   onEmptyAction,
 }) => {
   const theme = useTheme();
+  const cardTheme = createCardTheme(theme);
   const prefersReducedMotion = useMediaQuery(
     "(prefers-reduced-motion: reduce)",
   );
