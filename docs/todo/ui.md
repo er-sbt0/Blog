@@ -344,14 +344,3 @@ object and derives values from it: `cardTheme.typography.titleSize` →
 `theme.palette.divider`, etc. This ensures theme changes propagate
 automatically. **Files affected**: `src/components/DocumentCardNew/theme.ts`,
 consumers of `cardTheme` **Effort**: M
-
-#### [DS-3] Fix content area `SIDEBAR_CONTENT_MARGIN` to track sidebar width (🟠 Major)
-
-**Problem**: The content area left margin is a **fixed 105px** constant that
-doesn't respond to the sidebar's actual width (72px collapsed, 130–450px
-expanded). This creates overlapping or gap issues. **Solution**: Make the
-content area `marginLeft` dynamic, derived from `getEffectiveWidth(open)` in
-`AppLayoutContent`. Replace the fixed `SIDEBAR_CONTENT_MARGIN` import with the
-actual computed width. **Files affected**:
-`src/components/Layout/AppLayout.tsx`,
-`src/components/Layout/SideBar/constants.ts` **Effort**: M
