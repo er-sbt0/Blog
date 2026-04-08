@@ -46,6 +46,40 @@ function parseStoragePayload(documents: DocumentStorageUsage[]): StorageUsage {
   return { loading: false, usage, details };
 }
 
+const StorageEmptyState: React.FC<{
+  icon?: React.ReactNode;
+  label?: string;
+  loading?: boolean;
+}> = ({ icon, label, loading }) => (
+  <Box
+    sx={{
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      alignItems: "center",
+      height: 300,
+      gap: 2,
+    }}
+  >
+    {loading
+      ? <CircularProgress disableShrink />
+      : (
+        <>
+          {icon}
+          {label && (
+            <Typography
+              variant="overline"
+              component="p"
+              sx={{ userSelect: "none" }}
+            >
+              {label}
+            </Typography>
+          )}
+        </>
+      )}
+  </Box>
+);
+
 const StorageChart: React.FC = () => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
@@ -91,42 +125,12 @@ const StorageChart: React.FC = () => {
           >
             Local Storage
           </Typography>
-          {localStorageUsage.loading && (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                height: 300,
-                gap: 2,
-              }}
-            >
-              <CircularProgress disableShrink />
-            </Box>
-          )}
+          {localStorageUsage.loading && <StorageEmptyState loading />}
           {!localStorageUsage.loading && !localStorageUsage.usage && (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                height: 300,
-                gap: 2,
-              }}
-            >
-              <Storage
-                sx={{ width: 64, height: 64, fontSize: 64 }}
-              />
-              <Typography
-                variant="overline"
-                component="p"
-                sx={{ userSelect: "none" }}
-              >
-                Local storage is empty
-              </Typography>
-            </Box>
+            <StorageEmptyState
+              icon={<Storage sx={{ width: 64, height: 64, fontSize: 64 }} />}
+              label="Local storage is empty"
+            />
           )}
           {!!localStorageUsage.usage && (
             <PieChart
@@ -177,65 +181,19 @@ const StorageChart: React.FC = () => {
           </Typography>
           {(cloudStorageUsage.loading ||
             (!initialized && !cloudStorageUsage.usage)) && (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                height: 300,
-                gap: 2,
-              }}
-            >
-              <CircularProgress disableShrink />
-            </Box>
+            <StorageEmptyState loading />
           )}
           {initialized && !user && !cloudStorageUsage.loading && (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                height: 300,
-                gap: 2,
-              }}
-            >
-              <Login
-                sx={{ width: 64, height: 64, fontSize: 64 }}
-              />
-              <Typography
-                variant="overline"
-                component="p"
-                sx={{ userSelect: "none" }}
-              >
-                Please login to use cloud storage
-              </Typography>
-            </Box>
+            <StorageEmptyState
+              icon={<Login sx={{ width: 64, height: 64, fontSize: 64 }} />}
+              label="Please login to use cloud storage"
+            />
           )}
-          {user && !cloudStorageUsage.loading &&
-            !cloudStorageUsage.usage && (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                height: 300,
-                gap: 2,
-              }}
-            >
-              <Cloud
-                sx={{ width: 64, height: 64, fontSize: 64 }}
-              />
-              <Typography
-                variant="overline"
-                component="p"
-                sx={{ userSelect: "none" }}
-              >
-                Cloud storage is empty
-              </Typography>
-            </Box>
+          {user && !cloudStorageUsage.loading && !cloudStorageUsage.usage && (
+            <StorageEmptyState
+              icon={<Cloud sx={{ width: 64, height: 64, fontSize: 64 }} />}
+              label="Cloud storage is empty"
+            />
           )}
           {!!cloudStorageUsage.usage && (
             <PieChart
