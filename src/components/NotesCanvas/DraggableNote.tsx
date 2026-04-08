@@ -1,6 +1,6 @@
 "use client";
 import { Note } from "@/types/notes";
-import { Rnd } from "react-rnd";
+import { DraggableData, Rnd, RndDragEvent, RndResizeCallback } from "react-rnd";
 import { EditorState, LexicalEditor } from "lexical";
 import { editorConfig } from "@/editor/config";
 import { useRef, useState } from "react";
@@ -68,16 +68,16 @@ export default function DraggableNote({
     editorState: note.content || undefined,
   };
 
-  const handleDragStop = (_e: any, d: { x: number; y: number }) => {
+  const handleDragStop = (_e: RndDragEvent, d: DraggableData) => {
     onUpdate(note.id, { position: { x: d.x, y: d.y } });
   };
 
-  const handleResizeStop = (
-    _e: any,
-    _direction: any,
-    ref: HTMLElement,
-    _delta: any,
-    position: { x: number; y: number },
+  const handleResizeStop: RndResizeCallback = (
+    _e,
+    _direction,
+    ref,
+    _delta,
+    position,
   ) => {
     onUpdate(note.id, {
       size: { width: ref.offsetWidth, height: ref.offsetHeight },
