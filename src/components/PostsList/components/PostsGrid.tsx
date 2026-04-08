@@ -85,6 +85,18 @@ const PostsGrid: React.FC<PostsGridProps> = ({
   const { expandedSeries, toggleSeries: toggleSeriesCollapsed } =
     useExpandedState("postsGridExpandedState");
 
+  // Stable toggle handlers per series ID, so memoized SeriesCard children don't re-render
+  const seriesToggleHandlers = useMemo(() => {
+    const map = new Map<string, () => void>();
+    filteredGroupedPosts.forEach((group) => {
+      if (group.type === "series" && group.series) {
+        const id = group.series.id;
+        map.set(id, () => toggleSeriesCollapsed(id));
+      }
+    });
+    return map;
+  }, [filteredGroupedPosts, toggleSeriesCollapsed]);
+
   // Compact list mode
   if (viewType === "compact") {
     return (
@@ -136,8 +148,8 @@ const PostsGrid: React.FC<PostsGridProps> = ({
                 user={user}
                 collapsible={true}
                 defaultExpanded={!isCollapsed}
-                onExpand={() => toggleSeriesCollapsed(group.series!.id)}
-                onCollapse={() => toggleSeriesCollapsed(group.series!.id)}
+                onExpand={seriesToggleHandlers.get(group.series.id)}
+                onCollapse={seriesToggleHandlers.get(group.series.id)}
               />
             </Grid>
           );

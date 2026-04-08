@@ -36,9 +36,3 @@ standard: log via `console.error` + show non-blocking toast/snackbar. Remove
 
 Only class component in an otherwise fully functional codebase. **Fix:** Replace
 with `react-error-boundary` or a functional wrapper using error context.
-
-### 15. Missing `useCallback` on handlers passed to memoized children
-
-Handlers (`handleEdit`, `handleDelete`, `handleToggle`, etc.) are recreated on
-every render in multiple components, defeating child `memo()` wrappers. **Fix:**
-Wrap handlers in `useCallback` wherever they are passed to memoized children.
