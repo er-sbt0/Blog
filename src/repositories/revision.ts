@@ -36,7 +36,11 @@ const findRevisionAuthorId = async (id: string) => {
 };
 
 const createRevision = async (data: Prisma.RevisionUncheckedCreateInput) => {
-  return prisma.revision.create({ data });
+  return prisma.revision.upsert({
+    where: { id: data.id as string },
+    create: data,
+    update: {}, // no-op: if the revision already exists, keep it as-is
+  });
 };
 
 const updateRevision = async (id: string, data: Prisma.RevisionUpdateInput) => {
