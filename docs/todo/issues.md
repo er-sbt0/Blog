@@ -2,14 +2,6 @@
 
 ## P2 — Architectural / Structural
 
-### 4. `NotesCanvas/index.tsx` — God component (508 lines)
-
-Single file handles: canvas rendering, zoom controls, keyboard shortcuts,
-drag/drop, clipboard, preview mode, full-canvas mode, and contains an inline
-`PasteButton` sub-component (lines 33–106). **Fix:** Extract `PasteButton` to
-its own file; extract `useNotesZoom` hook; split preview/full-canvas into
-sub-components.
-
 ### 5. `Dashboard.tsx` — Mixed state ownership in `StorageChart`
 
 Storage data is fetched via Redux thunks
@@ -17,12 +9,6 @@ Storage data is fetched via Redux thunks
 `useState` — never lands in Redux. Errors are swallowed silently
 (`.catch(() => {})`). **Fix:** Store storage usage in Redux slice, or skip
 dispatch and fetch directly with proper error handling.
-
-### 6. Prop drilling zoom state — `Home/index.tsx`
-
-The zoom object (`scale`, `zoomIn`, `zoomOut`, `resetZoom`, `canZoomIn`,
-`canZoomOut`) is drilled from `Home` down to `NotesCanvas`. **Fix:** Move zoom
-state into a context or a hook consumed directly by `NotesCanvas`.
 
 ---
 
