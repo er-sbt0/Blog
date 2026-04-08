@@ -351,6 +351,15 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
     };
   }, [dispatch, user]);
 
+  useEffect(() => {
+    if (!isDirty) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isDirty]);
+
   const handleSaveAndNavigate = useCallback(async () => {
     const success = await saveToCloud();
     if (success && document) {

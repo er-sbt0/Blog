@@ -323,22 +323,7 @@ visually inconsistent card if accidentally used. **Severity: 🟡 Minor.**
 
 ### Quick Wins (S effort, high impact)
 
-#### [QW-5] Add `beforeunload` warning in editor (🟡 Minor)
-
-**Problem**: Closing the browser tab with unsaved cloud changes causes silent
-data loss. **Solution**: Add a `useEffect` in `Editor.tsx` that attaches a
-`beforeunload` listener when `isDirty` is true, using the standard
-`event.preventDefault()` pattern. **Files affected**:
-`src/components/EditDocument/Editor.tsx` **Effort**: S
-
 #### [QW-6] Fix view page responsive padding (🟠 Major)
-
-**Problem**: `ViewDocument.tsx` hardcodes `paddingRight: "80px"` and
-`paddingLeft: "5px"` via inline styles, creating cramped mobile layout and
-asymmetric desktop padding. **Solution**: Replace inline styles with MUI `sx`
-prop using responsive values: `px: { xs: 2, sm: 3, md: 6 }`. Remove the
-`cursor: pointer` on the entire container (add a visible Edit button instead).
-**Files affected**: `src/components/ViewDocument.tsx` **Effort**: S
 
 ### Core UX Improvements (M/L effort)
 
