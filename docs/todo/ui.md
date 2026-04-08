@@ -370,24 +370,6 @@ FAB via FloatingActionButton on the Home and Posts pages. **Files affected**:
 `src/components/Layout/SideBar.tsx`, `src/components/Layout/FloatingActions.tsx`
 **Effort**: M
 
-#### [CUX-6] Restore scrollbar visibility with custom styling (🟡 Minor)
-
-**Problem**: Hidden scrollbars remove scroll-position awareness across all
-scrollable areas. **Solution**: Remove the global `scrollbar-width: none` rule.
-Instead, apply thin, auto-hiding scrollbar styling using `scrollbar-width: thin`
-(Firefox) and custom `::-webkit-scrollbar` with a 6px width, transparent track,
-and subtle thumb color. Apply per-element where overflow occurs, or globally if
-the aesthetic is important. **Files affected**: `src/app/globals.css`
-**Effort**: S
-
-#### [CUX-7] Use MUI AlertDialog instead of `window.confirm` for sidebar delete (🟡 Minor)
-
-**Problem**: Sidebar post deletion uses native `window.confirm`, inconsistent
-with the app's MUI AlertDialog pattern. **Solution**: Dispatch the existing
-Redux `actions.alert()` pattern (used by `Alert.tsx`) instead of
-`window.confirm` in `useSidebarActions.ts`. **Files affected**:
-`src/components/Layout/SideBar/hooks/useSidebarActions.ts` **Effort**: S
-
 ### Design System Cleanup
 
 #### [DS-1] Create a meaningful MUI theme (🟠 Major)

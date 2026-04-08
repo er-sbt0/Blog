@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { v4 as uuid } from "uuid";
 import { actions, type RootState, useDispatch, useSelector } from "@/store";
 
 export interface PostItemActions {
@@ -82,17 +83,28 @@ export function useSidebarActions(): SidebarActionsResult {
   const handleDeletePost = useCallback(
     async (postId: string) => {
       handleCloseContextMenu();
-      if (confirm("Are you sure you want to delete this post?")) {
-        const doc = documents?.find((d) => d.id === postId);
-        if (doc) {
-          if (doc.cloud) {
-            const result = await dispatch(actions.deleteCloudDocument(postId));
-            if (result.type === actions.deleteCloudDocument.fulfilled.type) {
-              router.refresh();
-            }
-          } else if (doc.local) {
-            dispatch(actions.deleteLocalDocument(postId));
+      const cancelId = uuid();
+      const confirmId = uuid();
+      const response = await dispatch(
+        actions.alert({
+          title: "Delete Post",
+          content: "Are you sure you want to delete this post?",
+          actions: [
+            { label: "Cancel", id: cancelId },
+            { label: "Delete", id: confirmId },
+          ],
+        }),
+      );
+      if (response.payload !== confirmId) return;
+      const doc = documents?.find((d) => d.id === postId);
+      if (doc) {
+        if (doc.cloud) {
+          const result = await dispatch(actions.deleteCloudDocument(postId));
+          if (result.type === actions.deleteCloudDocument.fulfilled.type) {
+            router.refresh();
           }
+        } else if (doc.local) {
+          dispatch(actions.deleteLocalDocument(postId));
         }
       }
     },
