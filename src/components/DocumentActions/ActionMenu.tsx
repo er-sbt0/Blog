@@ -1,5 +1,5 @@
 "use client";
-import * as React from "react";
+import { useMenuState } from "@/hooks/useMenuState";
 import {
   IconButton,
   ListItemIcon,
@@ -21,14 +21,7 @@ function DocumentActionMenu(
   { userDocument, user }: { userDocument: UserDocument; user?: User },
 ) {
   const router = useRouter();
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const openMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const closeMenu = () => {
-    setAnchorEl(null);
-  };
+  const { anchorEl, menuOpen: open, openMenu, closeMenu } = useMenuState();
 
   const localDocument = userDocument?.local;
   const cloudDocument = userDocument?.cloud;

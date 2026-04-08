@@ -7,8 +7,8 @@ import {
   MenuItem,
 } from "@mui/material";
 import { Delete, Edit, MoreVert } from "@mui/icons-material";
-import { useState } from "react";
 import Link from "next/link";
+import { useMenuState } from "@/hooks/useMenuState";
 
 interface SeriesActionsProps {
   seriesId: string;
@@ -18,16 +18,12 @@ interface SeriesActionsProps {
 export default function SeriesActions(
   { seriesId, onDelete }: SeriesActionsProps,
 ) {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const {
+    anchorEl,
+    menuOpen: open,
+    openMenu: handleClick,
+    closeMenu: handleClose,
+  } = useMenuState();
 
   const handleDelete = () => {
     handleClose();

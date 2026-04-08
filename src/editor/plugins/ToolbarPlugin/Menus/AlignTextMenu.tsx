@@ -1,5 +1,4 @@
 "use client";
-import * as React from "react";
 import {
   $getPreviousSelection,
   $getSelection,
@@ -33,19 +32,17 @@ import {
   FormatIndentIncrease,
 } from "@mui/icons-material";
 import { useCallback, useEffect, useState } from "react";
+import { useMenuState } from "@/hooks/useMenuState";
 import { getSelectedNode } from "@/editor/utils/getSelectedNode";
 import { $findMatchingParent, mergeRegister } from "@lexical/utils";
 
 export default function AlignTextMenu(
   { editor, isRTL }: { editor: LexicalEditor; isRTL: boolean },
 ) {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const { anchorEl, menuOpen: open, openMenu: handleClick, closeMenu } =
+    useMenuState();
   const handleClose = useCallback(() => {
-    setAnchorEl(null);
+    closeMenu();
     setTimeout(() => {
       editor.update(() => {
         const selection = $getSelection() || $getPreviousSelection();
@@ -58,7 +55,7 @@ export default function AlignTextMenu(
         },
       });
     }, 0);
-  }, [editor]);
+  }, [editor, closeMenu]);
 
   const [formatType, setFormatType] = useState<ElementFormatType>("left");
   const [indentationLevel, setIndentationLevel] = useState<number>(0);

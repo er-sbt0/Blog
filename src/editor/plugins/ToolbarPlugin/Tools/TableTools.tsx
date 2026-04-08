@@ -13,6 +13,7 @@ import {
   LexicalEditor,
 } from "lexical";
 import { useCallback, useEffect, useState } from "react";
+import { useMenuState } from "@/hooks/useMenuState";
 import {
   Button,
   Divider,
@@ -282,8 +283,7 @@ export default function TableTools(
   const [tableCellStyle, setTableCellStyle] = useState<
     Record<string, string> | null
   >(null);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
+  const { anchorEl, menuOpen: open, openMenu, closeMenu } = useMenuState();
   const textColor = tableCellStyle?.color;
   const backgroundColor = tableCellStyle?.["background-color"];
 
@@ -678,7 +678,7 @@ export default function TableTools(
   }
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+    openMenu(event);
     editor.getEditorState().read(() => {
       const tableCell = $getSelectedTableCell(editor);
       setTableCellNode(tableCell);
@@ -701,9 +701,9 @@ export default function TableTools(
   }, [editor]);
 
   const handleClose = useCallback(() => {
-    setAnchorEl(null);
+    closeMenu();
     restoreFocus();
-  }, [editor]);
+  }, [closeMenu, restoreFocus]);
 
   return (
     <>

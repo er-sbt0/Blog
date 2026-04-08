@@ -1,5 +1,6 @@
 "use client";
 import React, { memo, useMemo, useState } from "react";
+import { useMenuState } from "@/hooks/useMenuState";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -117,8 +118,7 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   const router = useRouter();
   const dispatch = useDispatch();
   const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const menuOpen = Boolean(anchorEl);
+  const { anchorEl, menuOpen, openMenu, closeMenu } = useMenuState();
 
   // Check if current user is the author
   const isAuthor = !!user && user.id === series.authorId;
@@ -126,12 +126,10 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation(); // Prevent card click
-    setAnchorEl(event.currentTarget);
+    openMenu(event);
   };
 
-  const handleCloseMenu = () => {
-    setAnchorEl(null);
-  };
+  const handleCloseMenu = closeMenu;
 
   const handleEdit = () => {
     handleCloseMenu();

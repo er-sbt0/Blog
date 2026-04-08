@@ -15,13 +15,6 @@ Any bug fix or behavior change must be applied in both places. **Fix:** Extract
 `useSeriesActions` hook, `useSortedPosts` hook, and a shared `formatDate`
 utility.
 
-### 8. `anchorEl`/`menuOpen` pattern duplicated broadly
-
-Same boilerplate
-(`const [anchorEl, setAnchorEl] = useState(null); const menuOpen = Boolean(anchorEl)`)
-appears in at least 3 components. **Fix:** Extract `useMenuState()` hook
-returning `{ anchorEl, menuOpen, openMenu, closeMenu }`.
-
 ---
 
 ## P4 — Type Safety

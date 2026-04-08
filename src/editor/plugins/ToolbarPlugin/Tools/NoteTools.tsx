@@ -1,6 +1,7 @@
 "use client";
 import { LexicalEditor } from "lexical";
 import { useEffect, useState } from "react";
+import { useMenuState } from "@/hooks/useMenuState";
 import {
   Button,
   Divider,
@@ -45,8 +46,7 @@ export default function NoteTools(
   const [float, setFloat] = useState<string>();
   const [textColor, setTextColor] = useState<string>();
   const [backgroundColor, setBackgroundColor] = useState<string>();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
+  const { anchorEl, menuOpen: open, openMenu, closeMenu } = useMenuState();
 
   useEffect(() => {
     editor.getEditorState().read(() => {
@@ -91,16 +91,14 @@ export default function NoteTools(
     });
   }
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const handleClick = openMenu;
 
   const restoreFocus = () => {
     setTimeout(() => node.focus(), 0);
   };
 
   const handleClose = () => {
-    setAnchorEl(null);
+    closeMenu();
     restoreFocus();
   };
 

@@ -15,6 +15,7 @@ import {
 import { actions, useDispatch } from "@/store";
 import { DocumentStatus, UserDocument } from "@/types";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { useMenuState } from "@/hooks/useMenuState";
 
 interface StatusActionsProps {
   userDocument: UserDocument;
@@ -29,8 +30,8 @@ const StatusActions: React.FC<StatusActionsProps> = ({
 }) => {
   const dispatch = useDispatch();
   const isOnline = useOnlineStatus();
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
+  const { anchorEl, menuOpen: open, openMenu, closeMenu: closeStatusMenu } =
+    useMenuState();
 
   const localDocument = userDocument?.local;
   const cloudDocument = userDocument?.cloud;
@@ -45,16 +46,14 @@ const StatusActions: React.FC<StatusActionsProps> = ({
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     if (variant === "iconbutton") {
-      setAnchorEl(event.currentTarget);
+      openMenu(event);
     }
   };
 
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const handleClose = closeStatusMenu;
 
   const updateStatus = async (newStatus: DocumentStatus) => {
-    handleClose();
+    closeStatusMenu();
     if (closeMenu) closeMenu();
 
     try {

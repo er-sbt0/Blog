@@ -1,5 +1,6 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
+import { useMenuState } from "@/hooks/useMenuState";
 import { LexicalEditor } from "lexical";
 import {
   HorizontalRuleNode,
@@ -53,14 +54,12 @@ const Graph = () => (
 );
 
 export default function InsertToolMenu({ editor }: { editor: LexicalEditor }) {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const {
+    anchorEl,
+    menuOpen: open,
+    openMenu: handleClick,
+    closeMenu: handleClose,
+  } = useMenuState();
 
   const openImageDialog = () =>
     editor.dispatchCommand(SET_DIALOGS_COMMAND, { image: { open: true } });

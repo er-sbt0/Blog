@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
+import { useMenuState } from "@/hooks/useMenuState";
 import {
   Box,
   Button,
@@ -65,8 +66,7 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
 }) => {
   const router = useRouter();
   const dispatch = useDispatch();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const menuOpen = Boolean(anchorEl);
+  const { anchorEl, menuOpen, openMenu, closeMenu } = useMenuState();
 
   // Navigation and metadata
   const href = series ? `/series/${series.id}` : "/";
@@ -92,12 +92,10 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
   const handleOpenMenu = (e: React.MouseEvent<HTMLElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    setAnchorEl(e.currentTarget);
+    openMenu(e);
   };
 
-  const handleCloseMenu = () => {
-    setAnchorEl(null);
-  };
+  const handleCloseMenu = closeMenu;
 
   const handleEdit = () => {
     handleCloseMenu();

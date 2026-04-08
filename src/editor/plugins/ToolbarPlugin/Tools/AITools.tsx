@@ -16,6 +16,7 @@ import {
 } from "lexical";
 import { mergeRegister } from "@lexical/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useMenuState } from "@/hooks/useMenuState";
 import {
   Button,
   CircularProgress,
@@ -76,16 +77,19 @@ export default function AITools(
     model: "gemini-2.5-flash",
   });
 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [modelMenuAnchor, setModelMenuAnchor] = useState<null | HTMLElement>(
-    null,
-  );
-  const [toneMenuAnchor, setToneMenuAnchor] = useState<null | HTMLElement>(
-    null,
-  );
-  const open = Boolean(anchorEl);
-  const modelMenuOpen = Boolean(modelMenuAnchor);
-  const toneMenuOpen = Boolean(toneMenuAnchor);
+  const { anchorEl, menuOpen: open, openMenu, closeMenu } = useMenuState();
+  const {
+    anchorEl: modelMenuAnchor,
+    menuOpen: modelMenuOpen,
+    openMenu: handleModelMenuClick,
+    closeMenu: handleModelMenuClose,
+  } = useMenuState();
+  const {
+    anchorEl: toneMenuAnchor,
+    menuOpen: toneMenuOpen,
+    openMenu: handleToneMenuOpen,
+    closeMenu: handleToneMenuClose,
+  } = useMenuState();
 
   const TONES = [
     "Professional",
@@ -96,18 +100,6 @@ export default function AITools(
     "Direct",
   ];
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleModelMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-    setModelMenuAnchor(event.currentTarget);
-  };
-
-  const handleModelMenuClose = () => {
-    setModelMenuAnchor(null);
-  };
-
   const handleModelSelect = (modelId: string) => {
     const model = getModelById(modelId);
     if (model) {
@@ -117,7 +109,7 @@ export default function AITools(
   };
 
   const handleClose = useCallback(() => {
-    setAnchorEl(null);
+    closeMenu();
     setTimeout(() => {
       editor.update(() => {
         const selection = $getSelection() || $getPreviousSelection();
@@ -130,7 +122,7 @@ export default function AITools(
         },
       });
     }, 0);
-  }, [editor]);
+  }, [editor, closeMenu]);
 
   const promptRef = useRef<HTMLTextAreaElement>(null);
 
@@ -276,12 +268,6 @@ export default function AITools(
       complete(textContent, { body: { option: "summarize", provider, model } });
     });
   };
-
-  const handleToneMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setToneMenuAnchor(event.currentTarget);
-  };
-
-  const handleToneMenuClose = () => setToneMenuAnchor(null);
 
   const handleChangeTone = (tone: string) => {
     handleToneMenuClose();
@@ -437,7 +423,7 @@ export default function AITools(
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
         variant="outlined"
-        onClick={handleClick}
+        onClick={openMenu}
         startIcon={<AutoAwesome color={isLoading ? "disabled" : "action"} />}
         endIcon={isLoading
           ? <CircularProgress size={16} color="inherit" />
