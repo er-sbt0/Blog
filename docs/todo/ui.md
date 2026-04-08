@@ -372,19 +372,6 @@ FAB via FloatingActionButton on the Home and Posts pages. **Files affected**:
 
 ### Design System Cleanup
 
-#### [DS-1] Create a meaningful MUI theme (🟠 Major)
-
-**Problem**: The theme has no custom palette, typography, or component
-overrides. The app looks like stock MUI. **Solution**: Define a brand palette
-(primary, secondary, accent), custom typography scale (heading sizes, body text,
-captions), and component defaults (Card radius, Button size, Chip style) in
-`ThemeProvider.tsx`. Remove hardcoded color values from `Dashboard.tsx`,
-`CardBase.tsx`, and `theme.ts`, replacing them with `theme.palette` references.
-**Files affected**: `src/components/Layout/ThemeProvider.tsx`,
-`src/components/DocumentCardNew/theme.ts`,
-`src/components/DocumentCardNew/CardBase.tsx`, `src/components/Dashboard.tsx`
-**Effort**: L
-
 #### [DS-2] Unify card theme tokens with MUI theme (🟡 Minor)
 
 **Problem**: `cardTheme` in `theme.ts` is a standalone object with 100+ lines of
