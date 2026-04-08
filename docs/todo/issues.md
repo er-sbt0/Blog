@@ -2,19 +2,6 @@
 
 ## P4 — Type Safety
 
-### 9. Double cast in `EditRevisionCard.tsx:75, 108`
-
-Two different casting strategies used for the same object on adjacent lines:
-
-```ts
-(cloudRevision as unknown as CloudDocumentRevision).author?.id(
-  cloudRevision as any,
-)?.author?.name;
-```
-
-Indicates an unresolved type mismatch papered over with casts. **Fix:** Fix the
-`CloudDocumentRevision` type definition so no cast is needed.
-
 ### 10. `extractText(node: any)` — `StaticNoteCard.tsx`
 
 Recursive Lexical node traversal typed as `any`, losing all type safety.

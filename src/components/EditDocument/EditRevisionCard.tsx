@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { CloudDocumentRevision, DocumentRevision } from "@/types";
+import { DocumentRevision } from "@/types";
 import { memo } from "react";
 import { SxProps, Theme } from "@mui/material/styles";
 import {
@@ -71,8 +71,7 @@ const RevisionCard: React.FC<{
     ? user?.id === cloudDocument.author.id
     : true;
   const isRevisionAuthor = isCloudRevision
-    ? user?.id ===
-      (cloudRevision as unknown as CloudDocumentRevision).author?.id
+    ? user?.id === cloudRevision?.author.id
     : true;
   const diff = useSelector((state) => state.ui.diff);
   const showLocal = !diff.open && (isLocalRevision || isLocalHead);
@@ -276,14 +275,14 @@ const RevisionCard: React.FC<{
             },
           }}
           title={<DateDisplay date={revision.createdAt} variant="full" />}
-          subheader={(cloudRevision as any)?.author?.name ??
+          subheader={cloudRevision?.author.name ??
             user?.name ?? "Local User"}
           avatar={
             <Avatar
               sx={{ bgcolor: "primary.main" }}
-              src={(cloudRevision as any)?.author?.image ??
+              src={cloudRevision?.author.image ??
                 user?.image ?? undefined}
-              alt={(cloudRevision as any)?.author?.name ??
+              alt={cloudRevision?.author.name ??
                 user?.name ?? "Local User"}
             >
             </Avatar>
