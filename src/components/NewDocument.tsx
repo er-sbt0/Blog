@@ -93,11 +93,11 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
           typeof actions.forkLocalDocument.fulfilled
         >["payload"];
         const { data, ...rest } = editorDoc;
-        setBase({
-          ...base,
+        setBase((prev) => ({
+          ...prev,
           id: editorDoc.id,
           local: { ...rest, data, revisions: [] },
-        });
+        }));
         setInput((prev) => ({ ...prev, data, baseId: editorDoc.id }));
       } else {
         const cloudResponse = await dispatch(
@@ -113,7 +113,7 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
       }
     };
     if (baseId) loadDocument(baseId);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [baseId, revisionId, dispatch]);
 
   const router = useRouter();
 

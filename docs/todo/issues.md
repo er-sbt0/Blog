@@ -2,9 +2,9 @@
 
 ## P1 — Latent Bugs / Correctness
 
-### 1. `useEffect` with suppressed dependency — `NewDocument.tsx:116`
-`baseId` is used inside a `useEffect` with an empty dep array, bypassed with `eslint-disable-next-line react-hooks/exhaustive-deps`. If `baseId` changes after mount, the document won't reload.
-**Fix:** Add `baseId` to dependency array, or explicitly document why it must run once.
+### ~~1. `useEffect` with suppressed dependency — `NewDocument.tsx:116`~~ ✓ Fixed (60191aff)
+~~`baseId` is used inside a `useEffect` with an empty dep array, bypassed with `eslint-disable-next-line react-hooks/exhaustive-deps`. If `baseId` changes after mount, the document won't reload.~~
+~~**Fix:** Add `baseId` to dependency array, or explicitly document why it must run once.~~
 
 ### 2. Multiple sources of truth for saved state — `EditDocument/Editor.tsx`
 Three parallel mechanisms track whether content is saved: `hasUnsavedChanges` local state, `lastSavedCloud` ref, and Redux document state. Divergence between them can cause silent data loss or incorrect dirty indicators.
