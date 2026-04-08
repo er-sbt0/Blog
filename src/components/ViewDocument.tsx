@@ -28,7 +28,7 @@ const ViewDocument: React.FC<
   const containerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <Box sx={{ minHeight: "100vh", px: { xs: 2, sm: 3, md: 6 } }}>
+    <Box sx={{ minHeight: "100vh", px: { xs: 1, sm: 2, md: 2 } }}>
       {isEditable && (
         <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 1 }}>
           <Button

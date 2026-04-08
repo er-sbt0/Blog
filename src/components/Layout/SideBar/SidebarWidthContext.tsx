@@ -117,7 +117,11 @@ export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
   const startResize = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
-    startXRef.current = e.clientX;
+    // Use the current sidebar width as the anchor rather than e.clientX.
+    // This ensures the sidebar's right edge snaps directly to the cursor
+    // regardless of where within the 4px handle the user clicked, preventing
+    // the handle from jumping away on drag start.
+    startXRef.current = width;
     startWidthRef.current = width;
   }, [width]);
 
