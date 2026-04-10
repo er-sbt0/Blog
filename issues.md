@@ -3,29 +3,6 @@
 > Review date: 2026-04-10. Focused on: god components, anti-patterns, TypeScript
 > safety, state management, consistency.
 
----
-
-### C3 — `require()` + untyped `as any` in seriesGrouping.ts
-
-**File**: `src/components/PostsList/utils/seriesGrouping.ts` ~lines 159, 282
-
-```ts
-const { getTimeKey } = require("./dateHelpers"); // CommonJS in ESM file
-const granularity = timeGroups[0].granularity as any; // type erasure
-```
-
-**Why it matters**: `require()` in an ESM module works coincidentally in webpack
-but breaks type inference. `as any` hides real type mismatches.
-
-**Fix**:
-
-```ts
-import { getTimeKey } from "./dateHelpers";
-const granularity = timeGroups[0].granularity as PartitionGranularity;
-```
-
----
-
 ## High
 
 ### H1 — God components (>350 lines, multiple responsibilities)

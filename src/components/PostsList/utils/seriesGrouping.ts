@@ -1,5 +1,6 @@
 import { Series, UserDocument } from "@/types";
 import { PartitionGranularity } from "@/types/partitioning";
+import { formatTimeHeader, getTimeKey } from "./dateHelpers";
 
 /**
  * Represents either a series group (with posts) or a standalone post
@@ -156,9 +157,6 @@ export const ensureSeriesPartitions = <
   seriesMap: Map<string, Series>,
   granularity: PartitionGranularity,
 ): T[] => {
-  const { getTimeKey } = require("./dateHelpers");
-  const { formatTimeHeader } = require("./dateHelpers");
-
   const existingTimeKeys = new Set(timeGroups.map((g) => g.timeKey));
   const newPartitions: T[] = [];
 
@@ -263,9 +261,6 @@ export const deduplicateSeriesAcrossPartitions = <
     seriesAllPostsMap.set(seriesId, uniquePosts);
   });
 
-  // Import dateHelpers for time key calculation
-  const { getTimeKey } = require("./dateHelpers");
-
   // Build a map of seriesId -> correct timeKey based on series.createdAt
   // Only include series whose creation time partition exists in the filtered results
   const seriesToTimeKeyMap = new Map<string, string>();
@@ -279,7 +274,7 @@ export const deduplicateSeriesAcrossPartitions = <
       // Get the time key for this series based on its creation date and granularity
       // Use the granularity from the first timeGroup (they all have the same granularity)
       const granularity = timeGroups.length > 0
-        ? timeGroups[0].granularity as any
+        ? timeGroups[0].granularity as PartitionGranularity
         : "month";
       const idealTimeKey = getTimeKey(seriesCreatedAt, granularity);
 
