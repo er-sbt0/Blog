@@ -185,16 +185,14 @@ const SideBar: React.FC = () => {
 
       <Divider sx={styles.divider} />
 
-      {user && activeDocuments.length > 0 && (
+      {user && activeDocuments.length > 0 ? (
         <ActivePostsSection
           groupedActivePosts={groupedActivePosts}
           sidebarOpen={open}
           pathname={pathname}
           itemActions={postItemActions}
         />
-      )}
-
-      {(!user || activeDocuments.length === 0) && (
+      ) : (
         <Box sx={{ flex: "1 1 auto", minHeight: 0 }} />
       )}
 

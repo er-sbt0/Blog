@@ -1,32 +1,5 @@
 # Layout Component Issues
 
-## 9. Complement conditions instead of ternary
-
-**File:** `SideBar.tsx:193-204`
-
-```tsx
-{user && activeDocuments.length > 0 && (
-  <ActivePostsSection ... />
-)}
-{(!user || activeDocuments.length === 0) && (
-  <Box sx={{ flex: "1 1 auto", minHeight: 0 }} />
-)}
-```
-
-These two blocks are exact logical complements. They should be a single ternary `{condition ? <ActivePostsSection /> : <Box />}`. The current pattern is non-idiomatic and requires reading both conditions mentally to understand they're mutually exclusive.
-
----
-
-## 10. Unused ref in `DocumentInfoDrawerArrow`
-
-**File:** `DocumentInfoDrawerArrow.tsx:21`
-
-```tsx
-const arrowRef = useRef<HTMLDivElement>(null);
-```
-
-`arrowRef` is attached to `<Paper ref={arrowRef}>` but its `.current` value is never read anywhere in the component. It's dead code.
-
 ---
 
 ## 11. `useKeyboardShortcuts` returns a value no caller uses
@@ -83,8 +56,6 @@ The theme parameter is typed as a hand-rolled partial object instead of the MUI 
 
 | # | File | Severity | Category |
 |---|------|----------|----------|
-| 9 | `SideBar.tsx` | Low | Complement conditions instead of ternary |
-| 10 | `DocumentInfoDrawerArrow.tsx` | Low | Unused `arrowRef` |
 | 11 | `useKeyboardShortcuts.ts` | Low | Unused return value |
 | 12 | `AppLayout.tsx` | Low | Redundant `maxWidth` + identical breakpoints |
 | 13 | `PostContextMenu.tsx` | Low | Manual partial type instead of `Theme` |
