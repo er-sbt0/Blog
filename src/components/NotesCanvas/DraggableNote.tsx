@@ -58,70 +58,76 @@ export default function DraggableNote({
   const [colorAnchor, setColorAnchor] = useState<null | HTMLElement>(null);
   const { copyNote, cutNote } = useNotesClipboard();
 
-  const handleEditorChange = (
-    editorState: EditorState,
-    editor: LexicalEditor,
-  ) => {
-    const serialized = JSON.stringify(editorState);
-    onUpdate(note.id, { content: serialized });
-  };
+  const handleEditorChange = useCallback(
+    (editorState: EditorState, _editor: LexicalEditor) => {
+      const serialized = JSON.stringify(editorState);
+      onUpdate(note.id, { content: serialized });
+    },
+    [onUpdate, note.id],
+  );
 
   const initialConfig = {
     ...editorConfig,
     editorState: note.content || undefined,
   };
 
-  const handleDragStop = (_e: RndDragEvent, d: DraggableData) => {
-    onUpdate(note.id, { position: { x: d.x, y: d.y } });
-  };
+  const handleDragStop = useCallback(
+    (_e: RndDragEvent, d: DraggableData) => {
+      onUpdate(note.id, { position: { x: d.x, y: d.y } });
+    },
+    [onUpdate, note.id],
+  );
 
-  const handleResizeStop: RndResizeCallback = (
-    _e,
-    _direction,
-    ref,
-    _delta,
-    position,
-  ) => {
-    onUpdate(note.id, {
-      size: { width: ref.offsetWidth, height: ref.offsetHeight },
-      position,
-    });
-  };
+  const handleResizeStop = useCallback<RndResizeCallback>(
+    (_e, _direction, ref, _delta, position) => {
+      onUpdate(note.id, {
+        size: { width: ref.offsetWidth, height: ref.offsetHeight },
+        position,
+      });
+    },
+    [onUpdate, note.id],
+  );
 
-  const handleFocus = () => {
+  const handleFocus = useCallback(() => {
     setIsFocused(true);
     onFocus(note.id);
-  };
+  }, [onFocus, note.id]);
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     setIsFocused(false);
-  };
+  }, []);
 
-  const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = event.target.value;
-    setTitle(newTitle);
-    onUpdate(note.id, { title: newTitle });
-  };
+  const handleTitleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const newTitle = event.target.value;
+      setTitle(newTitle);
+      onUpdate(note.id, { title: newTitle });
+    },
+    [onUpdate, note.id],
+  );
 
-  const handleCut = () => {
+  const handleCut = useCallback(() => {
     cutNote(note, onDelete);
     setMoreAnchor(null);
-  };
+  }, [cutNote, note, onDelete]);
 
-  const handleCopy = () => {
+  const handleCopy = useCallback(() => {
     copyNote(note);
     setMoreAnchor(null);
-  };
+  }, [copyNote, note]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     onDelete(note.id);
     setMoreAnchor(null);
-  };
+  }, [onDelete, note.id]);
 
-  const handleColorChange = (color: NoteColorKey) => {
-    onUpdate(note.id, { color });
-    setColorAnchor(null);
-  };
+  const handleColorChange = useCallback(
+    (color: NoteColorKey) => {
+      onUpdate(note.id, { color });
+      setColorAnchor(null);
+    },
+    [onUpdate, note.id],
+  );
 
   const handleOpenColorMenu = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {

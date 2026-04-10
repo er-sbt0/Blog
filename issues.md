@@ -39,29 +39,6 @@ and a single refactor point if routes change.
 
 ## Medium
 
-### M1 — Inline JSX callbacks without useCallback causing unnecessary re-renders
-
-**Files**:
-
-- `src/components/NotesCanvas/DraggableNote.tsx` lines 216–218, 233–235, 305,
-  327
-- `src/components/SeriesView/components/PostCompactListItem.tsx` lines 107–112,
-  138–150
-- `src/components/PostsList/components/PostsHeader.tsx` lines 120–122, 184–192
-
-Pattern:
-
-```tsx
-<IconButton onClick={(e) => { e.stopPropagation(); setAnchor(e.currentTarget); }}>
-```
-
-Each render creates a new function reference. Memo on child components becomes
-ineffective.
-
-**Fix**: Wrap in `useCallback` with stable deps.
-
----
-
 ### M2 — Missing `useMemo` for derived theme values
 
 **File**: `src/components/DocumentGrid.tsx` ~line 93
@@ -197,6 +174,6 @@ assert the type on `.json()`.
 | --------- | ------ | ----- | ------ |
 | Critical  | 3      | 0     | 3      |
 | High      | 2      | 3     | 5      |
-| Medium    | 6      | 2     | 8      |
+| Medium    | 5      | 3     | 8      |
 | Low       | 2      | 1     | 3      |
-| **Total** | **14** | **5** | **19** |
+| **Total** | **13** | **6** | **19** |

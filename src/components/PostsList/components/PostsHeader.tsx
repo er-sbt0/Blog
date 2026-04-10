@@ -117,23 +117,34 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
     { value: "last6Months", label: "Last 6 Months", icon: <CalendarMonth /> },
   ];
 
-  const handleNewPost = () => {
+  const handleNewPost = useCallback(() => {
     if (onNewPost) onNewPost();
     else router.push("/new");
-  };
+  }, [onNewPost, router]);
 
-  const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
-    setFilterAnchorEl(event.currentTarget);
-  };
+  const handleFilterClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      setFilterAnchorEl(event.currentTarget);
+    },
+    [],
+  );
 
-  const handleFilterClose = () => setFilterAnchorEl(null);
+  const handleFilterClose = useCallback(() => setFilterAnchorEl(null), []);
 
-  const handleTimeFilterSelect = (value: string) => {
-    onTimeFilterChange?.(value as TimeFilterValue);
-    handleFilterClose();
-  };
+  const handleTimeFilterSelect = useCallback(
+    (value: string) => {
+      onTimeFilterChange?.(value as TimeFilterValue);
+      setFilterAnchorEl(null);
+    },
+    [onTimeFilterChange],
+  );
 
-  const clearSearch = () => onSearchChange?.("");
+  const clearSearch = useCallback(() => onSearchChange?.(""), [onSearchChange]);
+
+  const handleClearTimeFilter = useCallback(
+    () => onTimeFilterChange?.("all"),
+    [onTimeFilterChange],
+  );
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -160,13 +171,13 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
     ...(showSeries ? ["series"] : []),
   ];
 
-  const handleContentFilterChange = (
-    _: React.MouseEvent,
-    newValues: string[],
-  ) => {
-    onShowPostsChange?.(newValues.includes("posts"));
-    onShowSeriesChange?.(newValues.includes("series"));
-  };
+  const handleContentFilterChange = useCallback(
+    (_: React.MouseEvent, newValues: string[]) => {
+      onShowPostsChange?.(newValues.includes("posts"));
+      onShowSeriesChange?.(newValues.includes("series"));
+    },
+    [onShowPostsChange, onShowSeriesChange],
+  );
 
   return (
     <Box component="header" sx={{ mb: 4, pt: 2, pb: 3 }}>
@@ -322,7 +333,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
           {timeFilter !== "all" && (
             <Chip
               label={activeTimeFilter?.label}
-              onDelete={() => onTimeFilterChange?.("all")}
+              onDelete={handleClearTimeFilter}
               size="small"
               color="primary"
               variant="outlined"
