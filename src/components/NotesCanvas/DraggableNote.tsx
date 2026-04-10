@@ -222,6 +222,7 @@ export default function DraggableNote({
             padding: "6px 8px",
             backgroundColor: "rgba(255, 255, 255, 0.25)",
             cursor: "move",
+            userSelect: "none",
             borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
             minHeight: "28px",
             transition: "background-color 0.2s ease",
