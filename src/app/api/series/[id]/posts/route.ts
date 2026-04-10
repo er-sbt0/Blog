@@ -2,6 +2,7 @@ import { authOptions } from "@/lib/auth";
 import { ApiError, withApiHandler } from "@/lib/api-utils";
 import {
   addPostToSeries,
+  batchUpdateSeriesPosts,
   findSeriesById,
   removePostFromSeries,
 } from "@/repositories/series";
@@ -108,6 +109,78 @@ export const POST = withApiHandler(
 
     return NextResponse.json({
       data: { seriesId: params.id, postId, order: order || 0 },
+    });
+  },
+);
+
+// PATCH /api/series/[id]/posts → batch add/remove posts atomically
+export const PATCH = withApiHandler(
+  async (request, props: { params: Promise<{ id: string }> }) => {
+    const params = await props.params;
+
+    if (!validate(params.id)) {
+      throw new ApiError(400, "Bad Request", "Invalid series id");
+    }
+
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      throw new ApiError(
+        401,
+        "Unauthorized",
+        "Please sign in to update series posts",
+      );
+    }
+
+    const { user } = session;
+    if (user.disabled) {
+      throw new ApiError(
+        403,
+        "Account Disabled",
+        "Account is disabled for violating terms of service",
+      );
+    }
+
+    const series = await findSeriesById(params.id);
+    if (!series) {
+      throw new ApiError(404, "Series not found");
+    }
+
+    if (user.id !== series.authorId) {
+      throw new ApiError(
+        403,
+        "Unauthorized",
+        "You can only update posts in your own series",
+      );
+    }
+
+    const body = await request.json();
+    const postsToAdd: { postId: string; order: number }[] = body.postsToAdd ??
+      [];
+    const postsToRemove: string[] = body.postsToRemove ?? [];
+
+    for (const { postId } of postsToAdd) {
+      if (!validate(postId)) {
+        throw new ApiError(400, "Bad Request", `Invalid post id: ${postId}`);
+      }
+    }
+    for (const postId of postsToRemove) {
+      if (!validate(postId)) {
+        throw new ApiError(400, "Bad Request", `Invalid post id: ${postId}`);
+      }
+    }
+
+    await batchUpdateSeriesPosts(params.id, postsToAdd, postsToRemove);
+
+    revalidatePath("/series");
+    revalidatePath(`/series/${params.id}`);
+    revalidatePath("/");
+
+    return NextResponse.json({
+      data: {
+        seriesId: params.id,
+        added: postsToAdd.length,
+        removed: postsToRemove.length,
+      },
     });
   },
 );

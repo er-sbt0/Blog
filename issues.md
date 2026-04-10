@@ -5,19 +5,6 @@
 
 ---
 
-### C2 — Sequential API calls in AddPostsDialog.tsx
-
-**File**: `src/components/SeriesView/AddPostsDialog.tsx` ~lines 117–145
-
-Posts are added/removed to a series via sequential `await fetch(...)` calls in a
-loop. If any call fails mid-way the series is left in a partial state. No
-rollback.
-
-**Fix**: Batch with `Promise.all()`, or add a dedicated bulk-update API
-endpoint.
-
----
-
 ### C3 — `require()` + untyped `as any` in seriesGrouping.ts
 
 **File**: `src/components/PostsList/utils/seriesGrouping.ts` ~lines 159, 282

@@ -104,44 +104,24 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
       const currentlySelected = Array.from(selectedPosts);
 
       // Find posts to add (selected but not in existing)
-      const postsToAdd = currentlySelected.filter(
-        (id) => !existingPostIds.has(id),
-      );
+      const postsToAdd = currentlySelected
+        .filter((id) => !existingPostIds.has(id))
+        .map((postId, i) => ({ postId, order: i + 1000 }));
 
       // Find posts to remove (in existing but not selected)
       const postsToRemove = existingPosts
         .map((p) => p.id)
         .filter((id) => !selectedPosts.has(id));
 
-      // Remove posts
-      for (const postId of postsToRemove) {
-        const response = await fetch(`/api/series/${seriesId}/posts`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ postId }),
-        });
+      const response = await fetch(`/api/series/${seriesId}/posts`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postsToAdd, postsToRemove }),
+      });
 
-        if (!response.ok) {
-          const { error } = await response.json();
-          throw new Error(error?.title || "Failed to remove post");
-        }
-      }
-
-      // Add new posts
-      for (let i = 0; i < postsToAdd.length; i++) {
-        const response = await fetch(`/api/series/${seriesId}/posts`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            postId: postsToAdd[i],
-            order: i + 1000, // Start from 1000 to append at end
-          }),
-        });
-
-        if (!response.ok) {
-          const { error } = await response.json();
-          throw new Error(error?.title || "Failed to add post");
-        }
+      if (!response.ok) {
+        const { error } = await response.json();
+        throw new Error(error?.title || "Failed to update posts");
       }
 
       onPostsAdded();

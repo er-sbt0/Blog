@@ -353,6 +353,28 @@ export async function removePostFromSeries(postId: string): Promise<void> {
   });
 }
 
+// Batch add/remove posts from a series in a single transaction
+export async function batchUpdateSeriesPosts(
+  seriesId: string,
+  postsToAdd: { postId: string; order: number }[],
+  postsToRemove: string[],
+): Promise<void> {
+  await prisma.$transaction([
+    ...postsToRemove.map((postId) =>
+      prisma.document.update({
+        where: { id: postId },
+        data: { seriesId: null, seriesOrder: null },
+      })
+    ),
+    ...postsToAdd.map(({ postId, order }) =>
+      prisma.document.update({
+        where: { id: postId },
+        data: { seriesId, seriesOrder: order },
+      })
+    ),
+  ]);
+}
+
 // Update the order of posts within a series
 export async function updateSeriesPostOrder(
   seriesId: string,
