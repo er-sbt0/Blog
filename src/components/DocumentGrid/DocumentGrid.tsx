@@ -4,15 +4,15 @@ import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import { useMediaQuery } from "@mui/material";
 import { User, UserDocument } from "@/types";
-import DraggableDocumentCard from "./DocumentCardNew/DraggablePostCard";
-import SkeletonCard from "./DocumentCardNew/components/LoadingCard";
+import DraggableDocumentCard from "../DocumentCardNew/DraggablePostCard";
+import SkeletonCard from "../DocumentCardNew/components/LoadingCard";
 import { SxProps, Theme } from "@mui/material/styles";
-import { createCardTheme } from "./DocumentCardNew/theme";
-import { useResponsiveDocumentGrid } from "./DocumentGrid/hooks/useResponsiveDocumentGrid";
-import { useDocumentGridPerformance } from "./DocumentGrid/hooks/useDocumentGridPerformance";
-import DocumentGridHeader from "./DocumentGrid/DocumentGridHeader";
-import DocumentGridError from "./DocumentGrid/DocumentGridError";
-import DocumentGridEmpty from "./DocumentGrid/DocumentGridEmpty";
+import { createCardTheme } from "../DocumentCardNew/theme";
+import { useResponsiveDocumentGrid } from "./hooks/useResponsiveDocumentGrid";
+import { useDocumentGridPerformance } from "./hooks/useDocumentGridPerformance";
+import DocumentGridHeader from "./DocumentGridHeader";
+import DocumentGridError from "./DocumentGridError";
+import DocumentGridEmpty from "./DocumentGridEmpty";
 
 interface DocumentGridProps {
   /** The documents to display in the grid */

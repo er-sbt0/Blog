@@ -1,5 +1,5 @@
-// Main component - Re-export from parent directory
-export { default } from "../DocumentGrid";
+// Main component
+export { default } from "./DocumentGrid";
 
 // Sub-components
 export { default as DocumentGridHeader } from "./DocumentGridHeader";
