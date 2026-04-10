@@ -1,7 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { v4 as uuid } from "uuid";
 import documentDB, { revisionDB } from "@/indexeddb";
-import { BackupDocument, UserDocument } from "@/types";
 
 /**
  * Duplicates an existing blog post
@@ -51,7 +50,7 @@ export const duplicateDocument = createAsyncThunk(
 
       // Return the duplicated document
       return duplicatedDoc;
-    } catch (error) {
+    } catch (_error) {
       return rejectWithValue("Failed to duplicate document");
     }
   },

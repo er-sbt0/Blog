@@ -9,7 +9,6 @@ import {
 import NProgress from "nprogress";
 import documentDB, { revisionDB } from "@/indexeddb";
 import {
-  Alert,
   Announcement,
   AppState,
   BackupDocument,
@@ -23,7 +22,7 @@ import {
   EMPTY_EDITOR_STATE,
   UserDocument,
 } from "../types";
-import { Series } from "@/types";
+
 import { apiClient } from "@/api";
 import { validate } from "uuid";
 import { duplicateDocument } from "./app/duplicateDocument";
@@ -126,7 +125,7 @@ export const loadLocalDocuments = createAsyncThunk(
       const revisions = await revisionDB.getAll();
       const localDocuments: EditorDocument[] = await Promise.all(
         documents.map(async (document) => {
-          const { data, ...rest } = document;
+          const { data: _data, ...rest } = document;
           const backupDocument: BackupDocument = {
             ...document,
             revisions: revisions.filter((revision) =>
@@ -134,7 +133,7 @@ export const loadLocalDocuments = createAsyncThunk(
             ),
           };
           const localRevisions = backupDocument.revisions.map((
-            { data, ...rest },
+            { data: _data, ...rest },
           ) => ({
             ...rest,
             // Ensure dates are serialized to strings
@@ -477,10 +476,10 @@ export const createLocalDocument = createAsyncThunk(
   async (arg: DocumentCreateInput, thunkAPI) => {
     try {
       const {
-        coauthors,
-        published,
-        collab,
-        private: isPrivate,
+        coauthors: _coauthors,
+        published: _published,
+        collab: _collab,
+        private: _isPrivate,
         revisions,
         ...document
       } = arg;
@@ -491,10 +490,10 @@ export const createLocalDocument = createAsyncThunk(
           subtitle: "failed to create document",
         });
       }
-      const { data, ...rest } = document;
+      const { data: _data, ...rest } = document;
       if (revisions) await revisionDB.addMany(revisions);
       const localDocumentRevisions = (revisions ?? []).map((
-        { data, ...rest },
+        { data: _data, ...rest },
       ) => rest);
       const localDocument: EditorDocument = {
         ...rest,
@@ -526,7 +525,7 @@ export const createLocalRevision = createAsyncThunk(
           subtitle: "failed to create revision",
         });
       }
-      const { data, ...rest } = revision;
+      const { data: _data, ...rest } = revision;
       return thunkAPI.fulfillWithValue(rest);
     } catch (error: unknown) {
       console.error(error);
@@ -658,10 +657,10 @@ export const updateLocalDocument = createAsyncThunk(
     try {
       const { id, partial } = arg;
       const {
-        coauthors,
-        published,
-        collab,
-        private: isPrivate,
+        coauthors: _coauthors,
+        published: _published,
+        collab: _collab,
+        private: _isPrivate,
         revisions,
         ...document
       } = partial;
@@ -679,7 +678,7 @@ export const updateLocalDocument = createAsyncThunk(
       if (revisions) {
         await revisionDB.addMany(revisions);
         const localDocumentRevisions = (revisions ?? []).map((
-          { data, ...rest },
+          { data: _data, ...rest },
         ) => rest);
         payload.partial.revisions = localDocumentRevisions.map((rev) => ({
           ...rev,
@@ -905,7 +904,7 @@ export const appSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(load.fulfilled, (state, action) => {
+      .addCase(load.fulfilled, (state, _action) => {
         const sorted =
           (Object.values(state.documents.entities) as UserDocument[])
             .sort((a, b) => {
