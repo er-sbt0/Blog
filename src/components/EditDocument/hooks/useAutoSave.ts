@@ -1,4 +1,3 @@
-"use client";
 import { useMemo } from "react";
 import { actions, useDispatch } from "@/store";
 import type { EditorDocument } from "@/types";

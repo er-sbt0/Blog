@@ -129,14 +129,6 @@ Thunks like `createLocalDocument`, `updateCloudDocument`, `forkLocalDocument` us
 
 ---
 
-## 13. `"use client"` Directive on Pure Logic Hook Files
-
-**Severity: Low**
-
-`src/components/EditDocument/hooks/useAutoSave.ts` and `useCloudSave.ts` carry `"use client"` at the top. Custom hooks don't need this directive — it is meant for component files. Since these hooks call no Server Component APIs, the directive is incorrect and misleading.
-
----
-
 ## Summary Table
 
 | # | Issue | File | Severity |
@@ -153,4 +145,3 @@ Thunks like `createLocalDocument`, `updateCloudDocument`, `forkLocalDocument` us
 | 10 | No error boundary reset mechanism | `src/components/EditDocument/index.tsx` | Medium |
 | 11 | Derived data in hook chains vs. selectors | `src/components/PostsList/hooks/usePostsData.ts` | Medium |
 | 12 | Misleading `payloadCreator` param name | `src/store/app.ts` | Low |
-| 13 | `"use client"` on hook files | `src/components/EditDocument/hooks/` | Low |
