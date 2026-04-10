@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 import { UserDocument } from "@/types";
 import htmr from "htmr";
 import { DateDisplay } from "@/components/DateDisplay";
+import { actions, useDispatch } from "@/store";
 
 interface ReadmePreviewCardProps {
   documents: UserDocument[];
@@ -24,6 +25,7 @@ export default function ReadmePreviewCard({
   documents,
   onViewFull,
 }: ReadmePreviewCardProps) {
+  const dispatch = useDispatch();
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [html, setHtml] = useState<string | null>(null);
@@ -191,10 +193,8 @@ export default function ReadmePreviewCard({
         },
       };
 
-      const response = await fetch("/api/documents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const result = await dispatch(
+        actions.createCloudDocument({
           id,
           name: "README",
           description: "Welcome to my blog",
@@ -206,18 +206,12 @@ export default function ReadmePreviewCard({
           collab: false,
           private: false,
         }),
-      });
+      );
 
-      if (response.ok) {
-        // Reload to trigger useDocuments refresh
-        window.location.reload();
-      } else {
-        const errorData = await response.json();
-        const errorMessage = errorData?.error?.subtitle ||
-          errorData?.error?.title ||
-          "Failed to create README";
+      if (actions.createCloudDocument.rejected.match(result)) {
+        const payload = result.payload as { title?: string; subtitle?: string } | undefined;
+        const errorMessage = payload?.subtitle || payload?.title || "Failed to create README";
         setError(errorMessage);
-        console.error("Failed to create README:", errorMessage);
       }
     } catch (err) {
       setError("Network error - please try again");
@@ -225,7 +219,7 @@ export default function ReadmePreviewCard({
     } finally {
       setCreating(false);
     }
-  }, []);
+  }, [dispatch]);
 
   const handleClick = () => {
     if (readme) {
