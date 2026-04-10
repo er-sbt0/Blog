@@ -3,6 +3,11 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
+## Design System
+
+**For all UI work, follow [DESIGN.md](./DESIGN.md).**  
+It documents color tokens, typography scale, spacing grid, border radii, component naming conventions, required states (loading/empty/error/disabled), and accessibility rules. Always include `"Follow DESIGN.md conventions"` in any UI-related prompt or sub-agent instruction.
+
 ## Project Overview
 
 This is a modern blog platform built with Next.js 15, featuring a rich
