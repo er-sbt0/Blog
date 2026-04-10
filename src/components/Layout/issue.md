@@ -1,25 +1,5 @@
 # Layout Component Issues
 
----
-
-## 7. Hydration mismatch risk in `useSidebarFontSize`
-
-**File:** `SideBar/hooks/useSidebarFontSize.ts:9-14`
-
-```ts
-const [sidebarFontSize, setSidebarFontSize] = useState<number>(() => {
-  if (typeof window !== "undefined") {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? parseInt(saved, 10) : DEFAULT_FONT_SIZE;
-  }
-  return DEFAULT_FONT_SIZE;
-});
-```
-
-Reading `localStorage` inside `useState`'s initializer causes a hydration mismatch: the server renders with `DEFAULT_FONT_SIZE`, but the client immediately renders with the persisted value. This is the exact pattern `SidebarWidthContext` correctly avoids by reading in a `useEffect`. Both should follow the same approach.
-
----
-
 ## 8. `navigationItems` in `useMemo` with empty deps — should be a module constant
 
 **File:** `SideBar.tsx:92-98`
@@ -121,8 +101,6 @@ The theme parameter is typed as a hand-rolled partial object instead of the MUI 
 
 | # | File | Severity | Category |
 |---|------|----------|----------|
-| 5 | `SideBar.tsx` | Low | Redundant wrapper `getWidth` |
-| 6 | `PostItem.tsx` | Medium | `isDirty` variable not used for dot indicator |
 | 7 | `useSidebarFontSize.ts` | Medium | Hydration mismatch pattern |
 | 8 | `SideBar.tsx` | Low | `useMemo([])` instead of module constant |
 | 9 | `SideBar.tsx` | Low | Complement conditions instead of ternary |

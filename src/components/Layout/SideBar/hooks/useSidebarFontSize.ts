@@ -6,13 +6,14 @@ const MIN_FONT_SIZE = 10;
 const MAX_FONT_SIZE = 24;
 
 export function useSidebarFontSize() {
-  const [sidebarFontSize, setSidebarFontSize] = useState<number>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? parseInt(saved, 10) : DEFAULT_FONT_SIZE;
+  const [sidebarFontSize, setSidebarFontSize] = useState<number>(DEFAULT_FONT_SIZE);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      setSidebarFontSize(parseInt(saved, 10));
     }
-    return DEFAULT_FONT_SIZE;
-  });
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, sidebarFontSize.toString());
