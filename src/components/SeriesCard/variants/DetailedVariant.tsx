@@ -143,7 +143,7 @@ const DetailedVariant: React.FC<DetailedVariantProps> = memo(({
         )}
       </Box>
     ),
-    [series, formattedDate, postCount, showMetadata],
+    [series, formattedDate, showMetadata],
   );
 
   // Memoize chip content - post count with icon and New Post button for authors

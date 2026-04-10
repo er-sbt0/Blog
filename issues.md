@@ -92,35 +92,3 @@ Three different patterns in use for the same concept:
   hook
 
 A `useMenuState` hook likely already exists. Use it consistently everywhere.
-
----
-
-### M7 — Over-specified `useMemo` dependencies
-
-**File**: `src/components/SeriesCard/variants/DetailedVariant.tsx` ~line 159
-
-```tsx
-const topContent = useMemo(
-  () => (...),
-  [series, formattedDate, postCount, showMetadata], // postCount derives from series
-);
-```
-
-`postCount` is `series.posts.length` — redundant when `series` is already a dep.
-Clutters the deps array and makes reasoning harder.
-
----
-
-### ~~M8 — `window.location.reload()` in async callback~~ ✅ Fixed (46db9680)
-
-**File**: `src/components/Home/ReadmePreviewCard.tsx`
-
-~~Hard page reload after creating a README document. All in-memory state is lost
-and the user experiences a flash.~~
-
-Replaced manual `fetch` + `window.location.reload()` with
-`dispatch(actions.createCloudDocument(...))`. The
-`createCloudDocument.fulfilled` reducer adds the document to Redux state,
-triggering a natural re-render with no flash or state loss.
-
----
