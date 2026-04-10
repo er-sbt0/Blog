@@ -2,10 +2,10 @@
 
 > ✅ **Committed** — `fix(lint): remove unused vars in store`
 
-> ⚠️ **Residual:** `src/store/app/duplicateDocument.ts` L53 — the catch
-> variable was prefixed `_error` but the rule still flags it because catch
-> bindings need `catch {` (bare), not `catch (_error)`. Fix: change
-> `catch (_error)` → `catch {` in that file.
+> ⚠️ **Residual:** `src/store/app/duplicateDocument.ts` L53 — the catch variable
+> was prefixed `_error` but the rule still flags it because catch bindings need
+> `catch {` (bare), not `catch (_error)`. Fix: change `catch (_error)` →
+> `catch {` in that file.
 
 > ~~Errors: **20**~~
 

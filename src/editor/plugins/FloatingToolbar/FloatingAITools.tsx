@@ -8,18 +8,12 @@ import {
   COMMAND_PRIORITY_CRITICAL,
   KEY_DOWN_COMMAND,
   LexicalEditor,
-  LexicalNode,
   SerializedParagraphNode,
 } from "lexical";
 import { mergeRegister } from "@lexical/utils";
 import { useCallback, useEffect, useRef } from "react";
 import { CircularProgress, Divider, IconButton, Tooltip } from "@mui/material";
-import {
-  AutoAwesome,
-  Autorenew,
-  UnfoldLess,
-  UnfoldMore,
-} from "@mui/icons-material";
+import { Autorenew, UnfoldLess, UnfoldMore } from "@mui/icons-material";
 import { useCompletion } from "@ai-sdk/react";
 import { ANNOUNCE_COMMAND, UPDATE_DOCUMENT_COMMAND } from "@/editor/commands";
 import { Announcement } from "@/types";

@@ -3,9 +3,7 @@ import {
   $getPreviousSelection,
   $getSelection,
   $isElementNode,
-  $isParagraphNode,
   $isRangeSelection,
-  $isTextNode,
   $setSelection,
   COMMAND_PRIORITY_CRITICAL,
   ElementFormatType,
@@ -84,7 +82,7 @@ export default function AlignTextMenu(
         },
         COMMAND_PRIORITY_CRITICAL,
       ),
-      editor.registerUpdateListener(({ editorState, tags }) => {
+      editor.registerUpdateListener(({ editorState, tags: _tags }) => {
         editorState.read(() => {
           $updateToolbar();
         });

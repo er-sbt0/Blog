@@ -70,7 +70,7 @@ const serializedParagraph: SerializedParagraphNode = {
 };
 
 export default function AITools(
-  { editor, sx }: { editor: LexicalEditor; sx?: SxProps<Theme> },
+  { editor, sx: _sx }: { editor: LexicalEditor; sx?: SxProps<Theme> },
 ) {
   const [llmConfig, setLlmConfig] = useLocalStorage("llm", {
     provider: "google",

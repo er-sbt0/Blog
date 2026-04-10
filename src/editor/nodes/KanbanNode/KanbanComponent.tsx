@@ -35,7 +35,9 @@ export default function KanbanComponent({
       const node = $getNodeByKey(nodeKey);
       if (node && node.getType() === "kanban") {
         // Cast via unknown to avoid circular import of KanbanNode
-        const kanbanNode = node as unknown as { getWritable: () => { __tasks: Task[] } };
+        const kanbanNode = node as unknown as {
+          getWritable: () => { __tasks: Task[] };
+        };
         const writableNode = kanbanNode.getWritable();
         writableNode.__tasks = newTasks;
       }

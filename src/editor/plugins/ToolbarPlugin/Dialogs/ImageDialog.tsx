@@ -80,7 +80,7 @@ function ImageDialog(
       try {
         const dimensions = await getImageDimensions(value);
         setFormData({ ...formData, ...dimensions, [name]: value });
-      } catch (e) {
+      } catch {
         setFormData({ ...formData, [name]: value });
       }
     } else if (name === "showCaption") {
@@ -106,7 +106,7 @@ function ImageDialog(
             altText: files![0].name.replace(/\.[^/.]+$/, ""),
             ...dimensions,
           });
-        } catch (e) {
+        } catch {
           setFormData({
             ...formData,
             src: result,

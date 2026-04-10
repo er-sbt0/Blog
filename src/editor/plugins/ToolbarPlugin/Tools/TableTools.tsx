@@ -47,8 +47,6 @@ import {
   $isTableRowNode,
   $isTableSelection,
   $unmergeCell,
-  getTableObserverFromTableElement,
-  HTMLTableElementWithWithTableSelectionState,
   TableCellHeaderStates,
   TableCellNode,
   TableNode,
@@ -335,31 +333,6 @@ export default function TableTools(
       setCanUnmergeCell($canUnmerge());
     });
   }, [editor, open, tableCellNode]);
-
-  const clearTableSelection = useCallback(() => {
-    if (tableCellNode === null) return;
-    editor.update(() => {
-      if (tableCellNode.isAttached()) {
-        const tableElement = editor.getElementByKey(
-          node.getKey(),
-        ) as HTMLTableElementWithWithTableSelectionState;
-
-        if (!tableElement) {
-          throw new Error("Expected to find tableElement in DOM");
-        }
-
-        const tableObserver = getTableObserverFromTableElement(
-          tableElement,
-        );
-        if (tableObserver !== null) {
-          tableObserver.$clearHighlight();
-        }
-
-        node.markDirty();
-        setTableCellNode(tableCellNode.getLatest());
-      }
-    });
-  }, [editor, node, tableCellNode]);
 
   const mergeTableCellsAtSelection = () => {
     editor.update(() => {

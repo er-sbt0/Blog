@@ -53,7 +53,7 @@ export default function MathPlugin() {
       // workaround for arrow up and arrow down key events
       editor.registerCommand<KeyboardEvent>(
         KEY_ARROW_UP_COMMAND,
-        (event) => {
+        (_event) => {
           const rootElement = editor.getRootElement();
           if (!rootElement) return false;
           const mathfields = rootElement.querySelectorAll(
@@ -76,7 +76,7 @@ export default function MathPlugin() {
       ),
       editor.registerCommand<KeyboardEvent>(
         KEY_ARROW_DOWN_COMMAND,
-        (event) => {
+        (_event) => {
           const rootElement = editor.getRootElement();
           if (!rootElement) return false;
           const mathfields = rootElement.querySelectorAll(

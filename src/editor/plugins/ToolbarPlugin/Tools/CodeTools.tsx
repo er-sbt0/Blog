@@ -3,7 +3,6 @@ import {
   $getPreviousSelection,
   $getSelection,
   $setSelection,
-  ElementFormatType,
   LexicalEditor,
 } from "lexical";
 import { useCallback, useEffect, useState } from "react";
@@ -18,7 +17,6 @@ import {
   $isCodeNode,
   CodeNode as CustomCodeNode,
 } from "@/editor/nodes/CodeNode";
-import { $patchStyle } from "@/editor/nodes/utils";
 import {
   CODE_LANGUAGE_FRIENDLY_NAME_MAP,
   CODE_LANGUAGE_MAP,

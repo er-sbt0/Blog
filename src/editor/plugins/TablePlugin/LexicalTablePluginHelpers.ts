@@ -16,7 +16,6 @@ import {
   $isTextNode,
   COMMAND_PRIORITY_EDITOR,
   LexicalEditor,
-  LexicalNode,
   NodeKey,
 } from "lexical";
 import invariant from "@/shared/invariant";
@@ -38,7 +37,6 @@ import {
   InsertTableCommandPayload,
   LexicalTableCellNode,
   TableCellNode,
-  TableDOMCell,
   TableNode,
   TableObserver,
   TableRowNode,
@@ -183,40 +181,6 @@ export function registerTableCellUnmergeTransform(
       }
     }
   });
-}
-
-function $findParentTableCellNodeInTable(
-  tableNode: LexicalNode,
-  node: LexicalNode | null,
-): TableCellNode | null {
-  for (
-    let currentNode = node, lastTableCellNode: TableCellNode | null = null;
-    currentNode !== null;
-    currentNode = currentNode.getParent()
-  ) {
-    if (tableNode.is(currentNode)) {
-      return lastTableCellNode;
-    } else if ($isTableCellNode(currentNode)) {
-      lastTableCellNode = currentNode;
-    }
-  }
-  return null;
-}
-
-function $getObserverCellFromCellNodeOrThrow(
-  tableObserver: TableObserver,
-  tableCellNode: TableCellNode,
-): TableDOMCell {
-  const { tableNode } = tableObserver.$lookup();
-  const currentCords = tableNode.getCordsFromCellNode(
-    tableCellNode,
-    tableObserver.table,
-  );
-  return tableNode.getDOMCellFromCordsOrThrow(
-    currentCords.x,
-    currentCords.y,
-    tableObserver.table,
-  );
 }
 
 export function registerTableSelectionObserver(

@@ -240,7 +240,7 @@ export default function FontSelect({ editor }: { editor: LexicalEditor }) {
           <MenuItem
             key={option}
             value={option}
-            onFocusVisible={(e) => {
+            onFocusVisible={(_e) => {
               if (fontFamily !== option) {
                 updateFontFamily(
                   option,

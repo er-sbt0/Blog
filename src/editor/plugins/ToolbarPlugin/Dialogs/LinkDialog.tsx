@@ -9,7 +9,6 @@ import {
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { SET_DIALOGS_COMMAND } from "./commands";
 import {
-  Box,
   Button,
   Dialog,
   DialogActions,
@@ -71,7 +70,7 @@ function LinkDialog(
     setTarget(node?.__target ?? "_blank");
     if (node?.__rel === "bookmark") {
       const id = node.__url.slice(1);
-      const figureKey = [...figures.entries()].find(([key, element]) =>
+      const figureKey = [...figures.entries()].find(([_key, element]) =>
         element.id === id
       )?.[0];
       const target = node.__target;

@@ -71,21 +71,20 @@ const H4 = () => (
   </SvgIcon>
 );
 
-const blockTypeToBlockName = {
-  bullet: "Bulleted List",
-  check: "Check List",
-  code: "Code Block",
-  quote: "Quote",
-  h1: "Heading 1",
-  h2: "Heading 2",
-  h3: "Heading 3",
-  h4: "Heading 4",
-  number: "Numbered List",
-  paragraph: "Normal",
-};
+export type BlockType =
+  | "bullet"
+  | "check"
+  | "code"
+  | "quote"
+  | "h1"
+  | "h2"
+  | "h3"
+  | "h4"
+  | "number"
+  | "paragraph";
 
 export function BlockFormatSelect({ editor, blockType }: {
-  blockType: keyof typeof blockTypeToBlockName;
+  blockType: BlockType;
   editor: LexicalEditor;
 }) {
   const formatParagraph = () => {

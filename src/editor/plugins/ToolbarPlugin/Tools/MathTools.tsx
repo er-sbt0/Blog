@@ -20,10 +20,7 @@ import {
   DialogTitle,
   IconButton,
   LinearProgress,
-  MenuItem,
   Paper,
-  Select,
-  SelectChangeEvent,
   SvgIcon,
   TextField,
   ToggleButton,
@@ -34,7 +31,6 @@ import { Delete, Draw, Edit, Menu, Save } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import { ANNOUNCE_COMMAND } from "@/editor/commands";
 import { Announcement } from "@/types";
-import { FloatingActionButton } from "@/components/Layout/FloatingActionsContainer";
 
 import dynamic from "next/dynamic";
 import type {

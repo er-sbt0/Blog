@@ -16,14 +16,14 @@ categories — use the one that fits the context:
 
 ## Commit groups
 
-| File                                                   | Scope                                | Errors (original) | Status                              |
-| ------------------------------------------------------ | ------------------------------------ | ----------------- | ----------------------------------- |
+| File                                                   | Scope                                | Errors (original) | Status                               |
+| ------------------------------------------------------ | ------------------------------------ | ----------------- | ------------------------------------ |
 | [group-1-store.md](group-1-store.md)                   | `src/store/`                         | 20                | ✅ committed — 1 residual (see file) |
 | [group-2-components.md](group-2-components.md)         | `src/components/`                    | 67                | ✅ committed — 0 remaining           |
 | [group-3-editor-nodes.md](group-3-editor-nodes.md)     | `src/editor/nodes/`                  | 41                | ✅ committed — 0 remaining           |
-| [group-4-editor-plugins.md](group-4-editor-plugins.md) | `src/editor/plugins/`                | 47                | ⏳ pending — all 47 remain          |
-| [group-5-mathml2omml.md](group-5-mathml2omml.md)       | `src/editor/utils/docx/mathml2omml/` | 32                | ⏳ pending — all 32 remain          |
-| [group-6-misc.md](group-6-misc.md)                     | everything else                      | 31                | ⏳ pending — ~21 remain             |
+| [group-4-editor-plugins.md](group-4-editor-plugins.md) | `src/editor/plugins/`                | 47                | ⏳ pending — all 47 remain           |
+| [group-5-mathml2omml.md](group-5-mathml2omml.md)       | `src/editor/utils/docx/mathml2omml/` | 32                | ⏳ pending — all 32 remain           |
+| [group-6-misc.md](group-6-misc.md)                     | everything else                      | 31                | ⏳ pending — ~21 remain              |
 
 ---
 

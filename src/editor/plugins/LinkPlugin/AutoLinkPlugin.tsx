@@ -15,7 +15,7 @@ const isLookbehindSupported = (() => {
   try {
     new RegExp("(?<=x)");
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 })();

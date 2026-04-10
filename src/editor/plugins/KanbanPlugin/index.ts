@@ -12,15 +12,10 @@ import {
   $insertNodes,
   $isRootNode,
   LexicalCommand,
-  LexicalEditor,
 } from "lexical";
 import { useEffect } from "react";
 import { $wrapNodeInElement, mergeRegister } from "@lexical/utils";
 import {
-  $createRangeSelection,
-  $getSelection,
-  $isNodeSelection,
-  $setSelection,
   COMMAND_PRIORITY_EDITOR,
   COMMAND_PRIORITY_HIGH,
   COMMAND_PRIORITY_LOW,

@@ -105,7 +105,7 @@ const OCRDialog: React.FC<{ editor: LexicalEditor }> = ({ editor }) => {
         throw new Error("Clipboard is empty");
       }
       const data = await clipboardItem[0].getType("image/png").catch(
-        (err) => {
+        (_err) => {
           throw new Error("Clipboard item is not an image");
         },
       );

@@ -34,7 +34,6 @@ import {
   Functions,
   HorizontalRule,
   Image as ImageIcon,
-  ImageSearch,
   InsertPageBreak,
   StickyNote2,
   TableChart,

@@ -20,10 +20,7 @@ import {
   DialogTitle,
   IconButton,
   LinearProgress,
-  MenuItem,
   Paper,
-  Select,
-  SelectChangeEvent,
   SvgIcon,
   TextField,
   ToggleButton,
@@ -76,7 +73,7 @@ export const useCallbackRefState = () => {
 };
 
 export default function MathToolsFloating(
-  { editor, node, sx }: {
+  { editor, node, sx: _sx }: {
     editor: LexicalEditor;
     node: MathNode;
     sx?: SxProps<Theme> | undefined;

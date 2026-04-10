@@ -124,7 +124,7 @@ function GraphDialog(
   };
 
   const getBase64Src = () =>
-    new Promise<string>((resolve, reject) => {
+    new Promise<string>((resolve, _reject) => {
       const app = geogebraAPI;
       const xml = app.getXML();
       const subApp = xml.match(/subApp="(.+?)"/)?.[1];

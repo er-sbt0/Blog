@@ -8,10 +8,7 @@ import {
   Skeleton,
   Typography,
 } from "@mui/material";
-import {
-  OpenInNew,
-  Refresh,
-} from "@mui/icons-material";
+import { OpenInNew, Refresh } from "@mui/icons-material";
 import { NodeKey } from "lexical";
 import { detectLanguage } from "@/utils/languageDetection";
 import { AttachmentContentCache, attachmentContentDB } from "@/indexeddb";

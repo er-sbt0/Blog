@@ -89,7 +89,9 @@ interface ToolbarPluginProps {
   onDiscard?: () => void;
 }
 
-function ToolbarPlugin({ onSave, onDiscard }: ToolbarPluginProps) {
+function ToolbarPlugin(
+  { onSave: _onSave, onDiscard: _onDiscard }: ToolbarPluginProps,
+) {
   const [editor] = useLexicalComposerContext();
   const [activeEditor, setActiveEditor] = useState(editor);
   const [blockType, setBlockType] = useState<

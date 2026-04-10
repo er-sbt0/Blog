@@ -2,7 +2,6 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { COMMAND_PRIORITY_HIGH, KEY_MODIFIER_COMMAND } from "lexical";
 import { useEffect } from "react";
-import { IS_APPLE } from "@lexical/utils";
 
 export default function SavePlugin({ onSave }: { onSave?: () => void }) {
   const [editor] = useLexicalComposerContext();

@@ -124,7 +124,7 @@ export default function ColorPicker(
         {textPalette.map((color, index) => (
           <MenuItem
             key={index}
-            onClick={(e) => {
+            onClick={(_e) => {
               onChange("text", color);
             }}
             selected={color === textColor}
@@ -134,7 +134,7 @@ export default function ColorPicker(
         ))}
         <MenuItem
           key="clear-color"
-          onClick={(e) => {
+          onClick={(_e) => {
             onChange("text", "inherit");
           }}
           selected={textColor === "inherit"}
@@ -144,7 +144,7 @@ export default function ColorPicker(
         {backgroundPalette.map((color, index) => (
           <MenuItem
             key={index}
-            onClick={(e) => {
+            onClick={(_e) => {
               onChange("background", color);
             }}
             selected={color === backgroundColor}
@@ -159,7 +159,7 @@ export default function ColorPicker(
         ))}
         <MenuItem
           key="clear-background"
-          onClick={(e) => {
+          onClick={(_e) => {
             onChange("background", "inherit");
           }}
           selected={backgroundColor === "inherit"}

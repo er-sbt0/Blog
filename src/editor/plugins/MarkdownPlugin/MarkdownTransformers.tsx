@@ -30,11 +30,9 @@ import {
   $createLineBreakNode,
   $createParagraphNode,
   $createTextNode,
-  $isRootNode,
   ElementNode,
   Klass,
   LexicalNode,
-  ParagraphNode,
   TextFormatType,
   TextNode,
 } from "lexical";
@@ -544,7 +542,7 @@ export const ITALIC_UNDERSCORE: TextFormatTransformer = {
 // - then longer tags match (e.g. ** or __ should go before * or _)
 export const LINK: TextMatchTransformer = {
   dependencies: [LinkNode],
-  export: (node, exportChildren, exportFormat) => {
+  export: (node, exportChildren, _exportFormat) => {
     if (!$isLinkNode(node)) {
       return null;
     }
@@ -805,7 +803,7 @@ export const STICKY: TextMatchTransformer = {
   },
   importRegExp: /<sticky\s?\/>\s?/,
   regExp: /<sticky\s?\/>\s?/,
-  replace: (textNode, match) => {
+  replace: (textNode, _match) => {
     const stickyNode = $createStickyNode();
     textNode.replace(stickyNode);
   },
@@ -862,7 +860,7 @@ export const MULTILINE_MATH: MultilineElementTransformer = {
     startMatch,
     endMatch,
     linesInBetween,
-    isImport,
+    _isImport,
   ) => {
     if (!children && linesInBetween) {
       // skip if joined text partially matches single line math
