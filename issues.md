@@ -137,20 +137,6 @@ Thunks like `createLocalDocument`, `updateCloudDocument`, `forkLocalDocument` us
 
 ---
 
-## 14. `as unknown as SerializedEditorState` Type Escape
-
-**Severity: Low**
-
-In `src/components/EditDocument/hooks/useDocumentLoader.ts`:
-
-```ts
-} as unknown as SerializedEditorState,
-```
-
-This double-cast is used because the inline hardcoded editor state literal doesn't satisfy the type. The fix is to use the already-defined `EMPTY_EDITOR_STATE` constant from `src/types.ts` (or define a named constant for "welcome" content), rather than casting through `unknown`.
-
----
-
 ## Summary Table
 
 | # | Issue | File | Severity |
@@ -168,4 +154,3 @@ This double-cast is used because the inline hardcoded editor state literal doesn
 | 11 | Derived data in hook chains vs. selectors | `src/components/PostsList/hooks/usePostsData.ts` | Medium |
 | 12 | Misleading `payloadCreator` param name | `src/store/app.ts` | Low |
 | 13 | `"use client"` on hook files | `src/components/EditDocument/hooks/` | Low |
-| 14 | `as unknown as` type cast | `src/components/EditDocument/hooks/useDocumentLoader.ts` | Low |

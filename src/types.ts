@@ -175,6 +175,36 @@ export const EMPTY_EDITOR_STATE: SerializedEditorState = {
   },
 };
 
+export const WELCOME_NOTES_EDITOR_STATE: SerializedEditorState = {
+  root: {
+    children: [
+      {
+        children: [
+          {
+            detail: 0,
+            format: 0,
+            mode: "normal",
+            style: "",
+            text: "Welcome to your personal notes! This document will automatically save your changes.",
+            type: "text",
+            version: 1,
+          },
+        ],
+        direction: "ltr",
+        format: "",
+        indent: 0,
+        type: "paragraph",
+        version: 1,
+      },
+    ],
+    direction: "ltr",
+    format: "",
+    indent: 0,
+    type: "root",
+    version: 1,
+  },
+};
+
 export interface User {
   id: string;
   handle: string | null;

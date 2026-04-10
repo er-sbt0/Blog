@@ -3,9 +3,7 @@ import { useState } from "react";
 import { useAsyncEffect } from "@/hooks/useAsyncEffect";
 import { actions, useDispatch, useSelector } from "@/store";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
-import type { EditorDocument, DocumentCreateInput } from "@/types";
-import type { SerializedEditorState } from "lexical";
-import { v4 as uuidv4 } from "uuid";
+import { type EditorDocument, type DocumentCreateInput, WELCOME_NOTES_EDITOR_STATE } from "@/types";import { v4 as uuidv4 } from "uuid";
 
 export function useDocumentLoader(
   id: string | undefined,
@@ -77,35 +75,7 @@ export function useDocumentLoader(
                 updatedAt: now,
                 head: revisionId,
                 type: "DOCUMENT",
-                data: {
-                  root: {
-                    children: [
-                      {
-                        children: [
-                          {
-                            detail: 0,
-                            format: 0,
-                            mode: "normal",
-                            style: "",
-                            text: "Welcome to your personal notes! This document will automatically save your changes.",
-                            type: "text",
-                            version: 1,
-                          },
-                        ],
-                        direction: "ltr",
-                        format: "",
-                        indent: 0,
-                        type: "paragraph",
-                        version: 1,
-                      },
-                    ],
-                    direction: "ltr",
-                    format: "",
-                    indent: 0,
-                    type: "root",
-                    version: 1,
-                  },
-                } as unknown as SerializedEditorState,
+                data: WELCOME_NOTES_EDITOR_STATE,
               };
 
               await dispatch(actions.createLocalDocument(newDocument));
