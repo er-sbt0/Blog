@@ -90,7 +90,7 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
   onEmptyAction,
 }) => {
   const theme = useTheme();
-  const cardTheme = createCardTheme(theme);
+  const cardTheme = useMemo(() => createCardTheme(theme), [theme]);
   const prefersReducedMotion = useMediaQuery(
     "(prefers-reduced-motion: reduce)",
   );

@@ -18,22 +18,3 @@
 **Pattern fix**: Extract logic into custom hooks (`useDocumentLoader`,
 `useAutoSave`, `useAvailablePostsSelector`) and split large render trees into
 smaller subcomponents.
-
----
-
-## Medium
-
-### M2 — Missing `useMemo` for derived theme values
-
-**File**: `src/components/DocumentGrid.tsx` ~line 93
-
-```tsx
-const theme = useTheme();
-const cardTheme = createCardTheme(theme); // re-created every render
-```
-
-**Fix**:
-
-```tsx
-const cardTheme = useMemo(() => createCardTheme(theme), [theme]);
-```
