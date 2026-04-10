@@ -28,24 +28,6 @@ pattern repeated ~20 times.
 
 ---
 
-## 3. Non-idiomatic RTK: Manual `.type` String Comparison
-
-**Severity: High**
-
-In `src/components/EditDocument/hooks/useCloudSave.ts`:
-
-```ts
-if (revisionResponse.type === actions.createCloudRevision.fulfilled.type) {
-```
-
-The RTK-idiomatic pattern is `dispatch(action).unwrap()` — which throws on
-rejection and returns the payload on success. Manual `.type` comparison is
-fragile (brittle strings), loses type safety, and is an anti-pattern explicitly
-called out in RTK docs. The same pattern appears in `useDocumentLoader.ts` and
-`syncLocalToCloud` in `store/app.ts`.
-
----
-
 ## 5. Direct Mutation of IDB-Fetched Object in `forkLocalDocument`
 
 **Severity: High**
@@ -103,20 +85,3 @@ should be created with `createAction()` outside the slice for this purpose.
 `getDerivedStateFromProps` for recovery. Once the error boundary triggers, it
 permanently shows the error screen — navigating to a different document won't
 recover it since `hasError` is never reset to `false`.
-
----
-
-## Summary Table
-
-| #  | Issue                                           | File                                                | Severity |
-| -- | ----------------------------------------------- | --------------------------------------------------- | -------- |
-| 1  | God-file `store/app.ts` (1258 lines)            | `src/store/app.ts`                                  | Critical |
-| 2  | O(n) reducer lookups, no entity adapter         | `src/store/app.ts`                                  | High     |
-| 3  | `.type` string comparison instead of `unwrap()` | `src/components/EditDocument/hooks/useCloudSave.ts` | High     |
-| 4  | `string \| Date` union type                     | `src/types.ts`                                      | High     |
-| 5  | Mutation of IDB object in thunk                 | `src/store/app.ts`                                  | High     |
-| 6  | Global singleton save registry                  | `src/components/EditDocument/saveRegistry.ts`       | Medium   |
-| 7  | `isClient` + `dynamic(ssr:false)` double guard  | `src/components/EditDocument/index.tsx`             | Medium   |
-| 8  | Empty reducer as action signal                  | `src/store/app.ts`                                  | Medium   |
-| 9  | `errorInfo: any` in error boundary              | `src/components/EditDocument/index.tsx`             | Medium   |
-| 10 | No error boundary reset mechanism               | `src/components/EditDocument/index.tsx`             | Medium   |

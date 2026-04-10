@@ -34,17 +34,22 @@ const RestoreDocument: React.FC<
   const handleRestore = async () => {
     if (closeMenu) closeMenu();
     if (!isLocalHeadLocalRevision) {
-      const localResponse = await dispatch(actions.getLocalDocument(id));
-      if (localResponse.type === actions.getLocalDocument.rejected.type) {
+      let localEditorDocument: ReturnType<
+        typeof actions.getLocalDocument.fulfilled
+      >["payload"];
+      try {
+        localEditorDocument = await dispatch(
+          actions.getLocalDocument(id),
+        ).unwrap() as ReturnType<
+          typeof actions.getLocalDocument.fulfilled
+        >["payload"];
+      } catch {
         return dispatch(
           actions.announce({
             message: { title: "Document Not Found" },
           }),
         );
       }
-      const localEditorDocument = localResponse.payload as ReturnType<
-        typeof actions.getLocalDocument.fulfilled
-      >["payload"];
       const editorDocumentRevision = {
         id: localEditorDocument.head,
         documentId: localEditorDocument.id,
@@ -55,57 +60,56 @@ const RestoreDocument: React.FC<
     }
     if (isCloudHeadLocalRevision) {
       const cloudDocument = userDocument.cloud!;
-      const localRevisionResponse = await dispatch(
-        actions.getLocalRevision(cloudDocument.head),
-      );
-      if (
-        localRevisionResponse.type ===
-          actions.getLocalRevision.rejected.type
-      ) {
+      try {
+        const localRevision = await dispatch(
+          actions.getLocalRevision(cloudDocument.head),
+        ).unwrap() as ReturnType<
+          typeof actions.getLocalRevision.fulfilled
+        >["payload"];
+        return dispatch(
+          actions.updateLocalDocument({
+            id,
+            partial: {
+              head: cloudDocument.head,
+              updatedAt: cloudDocument.updatedAt,
+              data: localRevision.data,
+              parentId: localDocument.parentId, // Preserve parentId when restoring
+            },
+          }),
+        );
+      } catch {
         return dispatch(
           actions.announce({
             message: { title: "Local Revision Not Found" },
           }),
         );
       }
-      const localRevision = localRevisionResponse.payload as ReturnType<
-        typeof actions.getLocalRevision.fulfilled
+    }
+    try {
+      const cloudPayload = await dispatch(
+        actions.getCloudDocument(id),
+      ).unwrap() as ReturnType<
+        typeof actions.getCloudDocument.fulfilled
       >["payload"];
-      return dispatch(
-        actions.updateLocalDocument({
-          id,
-          partial: {
-            head: cloudDocument.head,
-            updatedAt: cloudDocument.updatedAt,
-            data: localRevision.data,
-            parentId: localDocument.parentId, // Preserve parentId when restoring
-          },
+      const { cloudDocument, ...editorDocument } = cloudPayload;
+      await dispatch(
+        actions.createLocalRevision({
+          id: editorDocument.head,
+          documentId: editorDocument.id,
+          createdAt: editorDocument.updatedAt,
+          data: editorDocument.data,
         }),
       );
-    }
-    const cloudResponse = await dispatch(actions.getCloudDocument(id));
-    if (cloudResponse.type === actions.getCloudDocument.rejected.type) {
+      return dispatch(
+        actions.updateLocalDocument({ id, partial: editorDocument }),
+      );
+    } catch {
       return dispatch(
         actions.announce({
           message: { title: "Cloud Document Not Found" },
         }),
       );
     }
-    const { cloudDocument, ...editorDocument } = cloudResponse
-      .payload as ReturnType<
-        typeof actions.getCloudDocument.fulfilled
-      >["payload"];
-    await dispatch(
-      actions.createLocalRevision({
-        id: editorDocument.head,
-        documentId: editorDocument.id,
-        createdAt: editorDocument.updatedAt,
-        data: editorDocument.data,
-      }),
-    );
-    return dispatch(
-      actions.updateLocalDocument({ id, partial: editorDocument }),
-    );
   };
 
   if (variant === "menuitem") {

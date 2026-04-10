@@ -112,8 +112,8 @@ export function useShareDocument(userDocument: UserDocument) {
       if (cloudDocument?.published) payload.partial.published = false;
       if (cloudDocument?.collab) payload.partial.collab = false;
     }
-    const response = await dispatch(actions.updateCloudDocument(payload));
-    if (response.type === actions.updateCloudDocument.fulfilled.type) {
+    try {
+      await dispatch(actions.updateCloudDocument(payload)).unwrap();
       dispatch(actions.announce({
         message: {
           title: "Document Privacy Updated",
@@ -122,6 +122,8 @@ export function useShareDocument(userDocument: UserDocument) {
           }`,
         },
       }));
+    } catch {
+      // update failed
     }
   };
 
@@ -135,8 +137,8 @@ export function useShareDocument(userDocument: UserDocument) {
       }));
     }
     const payload = { id, partial: { collab: !isCollab } };
-    const response = await dispatch(actions.updateCloudDocument(payload));
-    if (response.type === actions.updateCloudDocument.fulfilled.type) {
+    try {
+      await dispatch(actions.updateCloudDocument(payload)).unwrap();
       dispatch(actions.announce({
         message: {
           title: "Document Collaboration Updated",
@@ -145,6 +147,8 @@ export function useShareDocument(userDocument: UserDocument) {
           }`,
         },
       }));
+    } catch {
+      // update failed
     }
   };
 

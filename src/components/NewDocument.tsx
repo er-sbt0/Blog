@@ -82,11 +82,10 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
 
   useEffect(() => {
     const loadDocument = async (id: string) => {
-      const localResponse = await dispatch(
-        actions.forkLocalDocument({ id, revisionId }),
-      );
-      if (localResponse.type === actions.forkLocalDocument.fulfilled.type) {
-        const editorDoc = localResponse.payload as ReturnType<
+      try {
+        const editorDoc = await dispatch(
+          actions.forkLocalDocument({ id, revisionId }),
+        ).unwrap() as ReturnType<
           typeof actions.forkLocalDocument.fulfilled
         >["payload"];
         const { data, ...rest } = editorDoc;
@@ -96,16 +95,17 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
           local: { ...rest, data, revisions: [] },
         }));
         setInput((prev) => ({ ...prev, data, baseId: editorDoc.id }));
-      } else {
-        const cloudResponse = await dispatch(
-          actions.forkCloudDocument({ id, revisionId }),
-        );
-        if (cloudResponse.type === actions.forkCloudDocument.fulfilled.type) {
-          const { data, ...userDocument } = cloudResponse.payload as ReturnType<
+      } catch {
+        try {
+          const { data, ...userDocument } = await dispatch(
+            actions.forkCloudDocument({ id, revisionId }),
+          ).unwrap() as ReturnType<
             typeof actions.forkCloudDocument.fulfilled
           >["payload"];
           setBase(userDocument);
           setInput((prev) => ({ ...prev, data, baseId: userDocument.id }));
+        } catch {
+          // fork from both sources failed
         }
       }
     };
@@ -134,17 +134,19 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
       createdAt,
       updatedAt: createdAt,
     };
-    const response = await dispatch(actions.createLocalDocument(payload));
-    if (response.type === actions.createLocalDocument.fulfilled.type) {
+    try {
+      await dispatch(actions.createLocalDocument(payload)).unwrap();
       if (saveToCloud && isOnline && user) {
-        const cloudResponse = await dispatch(
-          actions.createCloudDocument(payload),
-        );
-        if (cloudResponse.type === actions.createCloudDocument.fulfilled.type) {
+        try {
+          await dispatch(actions.createCloudDocument(payload)).unwrap();
           router.refresh();
+        } catch {
+          // cloud save is optional
         }
       }
       router.push(`/edit/${payload.id}`);
+    } catch {
+      // local document creation failed
     }
   };
 

@@ -48,25 +48,11 @@ export function useCloudSave(
         },
       };
 
-      const revisionResponse = await dispatch(
-        actions.createCloudRevision(revision),
-      );
-
-      if (
-        revisionResponse.type === actions.createCloudRevision.fulfilled.type
-      ) {
-        const docResponse = await dispatch(
-          actions.updateCloudDocument(documentUpdate),
-        );
-
-        if (docResponse.type === actions.updateCloudDocument.fulfilled.type) {
-          lastSavedCloud.current = serializedData;
-          dispatch(actions.setDirty(false));
-          return true;
-        }
-      }
-
-      return false;
+      await dispatch(actions.createCloudRevision(revision)).unwrap();
+      await dispatch(actions.updateCloudDocument(documentUpdate)).unwrap();
+      lastSavedCloud.current = serializedData;
+      dispatch(actions.setDirty(false));
+      return true;
     } catch (err) {
       errorAnnounce("Failed to auto-save document to cloud", err);
       return false;

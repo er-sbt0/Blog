@@ -64,11 +64,11 @@ function UserActionMenu({ user }: { user: User }) {
     const partial: Partial<User> = {};
     if (input.handle !== user.handle) partial.handle = input.handle || null;
     if (Object.keys(partial).length === 0) return;
-    const result = await dispatch(
-      actions.updateUser({ id: user.id, partial }),
-    );
-    if (result.type === actions.updateUser.fulfilled.type) {
+    try {
+      await dispatch(actions.updateUser({ id: user.id, partial })).unwrap();
       if (shouldNavigate) navigate(`/user/${input.handle || user.id}`);
+    } catch {
+      // update failed
     }
   };
 

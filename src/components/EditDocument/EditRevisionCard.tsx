@@ -89,28 +89,25 @@ const RevisionCard: React.FC<{
   const setAsNew = () => dispatch(actions.setDiff({ new: revision.id }));
 
   const getEditorDocumentRevision = async () => {
-    const localResponse = await dispatch(
-      actions.getLocalRevision(revision.id),
-    );
-    if (localResponse.type === actions.getLocalRevision.fulfilled.type) {
-      const editorDocumentRevision = localResponse.payload as ReturnType<
+    try {
+      return await dispatch(
+        actions.getLocalRevision(revision.id),
+      ).unwrap() as ReturnType<
         typeof actions.getLocalRevision.fulfilled
       >["payload"];
-      return editorDocumentRevision;
-    } else {
-      const cloudResponse = await dispatch(
+    } catch {
+      // not local, try cloud
+    }
+    try {
+      const editorDocumentRevision = await dispatch(
         actions.getCloudRevision(revision.id),
-      );
-      if (
-        cloudResponse.type === actions.getCloudRevision.fulfilled.type
-      ) {
-        const editorDocumentRevision = cloudResponse
-          .payload as ReturnType<
-            typeof actions.getCloudRevision.fulfilled
-          >["payload"];
-        dispatch(actions.createLocalRevision(editorDocumentRevision));
-        return editorDocumentRevision;
-      }
+      ).unwrap() as ReturnType<
+        typeof actions.getCloudRevision.fulfilled
+      >["payload"];
+      dispatch(actions.createLocalRevision(editorDocumentRevision));
+      return editorDocumentRevision;
+    } catch {
+      return undefined;
     }
   };
 
@@ -126,11 +123,14 @@ const RevisionCard: React.FC<{
       createdAt: localDocument.updatedAt,
       data,
     };
-    const response = await dispatch(actions.createLocalRevision(payload));
-    if (response.type === actions.createLocalRevision.rejected.type) return;
-    return response.payload as ReturnType<
-      typeof actions.createLocalRevision.fulfilled
-    >["payload"];
+    try {
+      return await dispatch(actions.createLocalRevision(payload))
+        .unwrap() as ReturnType<
+          typeof actions.createLocalRevision.fulfilled
+        >["payload"];
+    } catch {
+      return undefined;
+    }
   };
 
   const createRevision = async () => {
@@ -176,13 +176,15 @@ const RevisionCard: React.FC<{
       };
       return dispatch(actions.createCloudDocument(editorDocument));
     }
-    const response = await dispatch(
-      actions.createCloudRevision(editorDocumentRevision),
-    );
-    if (response.type === actions.createCloudRevision.rejected.type) return;
-    return response.payload as ReturnType<
-      typeof actions.createCloudRevision.fulfilled
-    >["payload"];
+    try {
+      return await dispatch(
+        actions.createCloudRevision(editorDocumentRevision),
+      ).unwrap() as ReturnType<
+        typeof actions.createCloudRevision.fulfilled
+      >["payload"];
+    } catch {
+      return undefined;
+    }
   };
 
   const viewRevision = async () => {

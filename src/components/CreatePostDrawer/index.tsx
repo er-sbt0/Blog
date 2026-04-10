@@ -134,26 +134,24 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
         updatedAt: createdAt,
       };
 
-      const response = await dispatch(actions.createLocalDocument(payload));
-      if (response.type === actions.createLocalDocument.fulfilled.type) {
+      try {
+        await dispatch(actions.createLocalDocument(payload)).unwrap();
         if (saveToCloud && isOnline && user) {
-          const cloudResponse = await dispatch(
-            actions.createCloudDocument(payload),
-          );
-          if (
-            cloudResponse.type === actions.createCloudDocument.fulfilled.type
-          ) {
+          try {
+            await dispatch(actions.createCloudDocument(payload)).unwrap();
             onSuccess?.();
             onClose();
             router.refresh();
             router.push(`/edit/${postId}`);
             return;
+          } catch {
+            // cloud save is optional
           }
         }
         onSuccess?.();
         onClose();
         router.refresh();
-      } else {
+      } catch {
         setError("Failed to create post. Please try again.");
       }
     } catch {

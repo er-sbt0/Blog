@@ -22,23 +22,22 @@ const DownloadDocument: React.FC<
   const id = userDocument.id;
 
   const getEditorDocument = async () => {
-    if (isLocal) {
-      const response = await dispatch(actions.getLocalDocument(id));
-      if (response.type === actions.getLocalDocument.fulfilled.type) {
-        const editorDocument = response.payload as ReturnType<
-          typeof actions.getLocalDocument.fulfilled
+    try {
+      if (isLocal) {
+        return await dispatch(actions.getLocalDocument(id))
+          .unwrap() as ReturnType<
+            typeof actions.getLocalDocument.fulfilled
+          >["payload"];
+      } else {
+        const { cloudDocument: _cloud, ...editorDocument } = await dispatch(
+          actions.getCloudDocument(id),
+        ).unwrap() as ReturnType<
+          typeof actions.getCloudDocument.fulfilled
         >["payload"];
         return editorDocument;
       }
-    } else {
-      const response = await dispatch(actions.getCloudDocument(id));
-      if (response.type === actions.getCloudDocument.fulfilled.type) {
-        const { cloudDocument, ...editorDocument } = response
-          .payload as ReturnType<
-            typeof actions.getCloudDocument.fulfilled
-          >["payload"];
-        return editorDocument;
-      }
+    } catch {
+      return undefined;
     }
   };
 
@@ -49,19 +48,17 @@ const DownloadDocument: React.FC<
       ...editorDocument,
       revisions: [],
     };
-    const revisionsResponse = await dispatch(
-      actions.getLocalDocumentRevisions(id),
-    );
-    if (
-      revisionsResponse.type ===
-        actions.getLocalDocumentRevisions.fulfilled.type
-    ) {
-      const revisions = revisionsResponse.payload as ReturnType<
+    try {
+      const revisions = await dispatch(
+        actions.getLocalDocumentRevisions(id),
+      ).unwrap() as ReturnType<
         typeof actions.getLocalDocumentRevisions.fulfilled
       >["payload"];
       backupDocument.revisions = revisions.filter((revision) =>
         revision.id !== editorDocument.head
       );
+    } catch {
+      // no revisions available
     }
     return backupDocument;
   };

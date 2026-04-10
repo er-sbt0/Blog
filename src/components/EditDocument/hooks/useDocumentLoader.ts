@@ -22,17 +22,26 @@ export function useDocumentLoader(
 
   useAsyncEffect(async (isCancelled) => {
     const loadDocument = async (docId: string) => {
-      const localResponse = await dispatch(actions.getLocalDocument(docId));
-      if (localResponse.type === actions.getLocalDocument.fulfilled.type) {
-        const editorDocument = localResponse.payload as EditorDocument;
+      let editorDocument: EditorDocument | undefined;
+      try {
+        editorDocument = await dispatch(
+          actions.getLocalDocument(docId),
+        ).unwrap();
+      } catch {
+        // not found locally — will try cloud
+      }
+
+      if (editorDocument) {
         if (!isCancelled()) setIsLoading(false);
 
         if (user) {
-          const cloudResponse = await dispatch(actions.getCloudDocument(docId));
-          if (isCancelled()) return;
-          if (cloudResponse.type === actions.getCloudDocument.fulfilled.type) {
+          try {
+            const cloudPayload = await dispatch(
+              actions.getCloudDocument(docId),
+            ).unwrap();
+            if (isCancelled()) return;
             const { cloudDocument: _cloud, ...cloudEditorDocument } =
-              cloudResponse.payload as ReturnType<
+              cloudPayload as ReturnType<
                 typeof actions.getCloudDocument.fulfilled
               >["payload"];
             if (editorDocument.head !== cloudEditorDocument.head) {
@@ -40,31 +49,32 @@ export function useDocumentLoader(
             } else {
               lastSavedCloud.current = JSON.stringify(editorDocument.data);
             }
-          } else {
+          } catch {
+            if (isCancelled()) return;
             dispatch(actions.setDirty(true));
           }
         }
       } else {
-        const cloudResponse = await dispatch(actions.getCloudDocument(docId));
-        if (isCancelled()) return;
-        if (cloudResponse.type === actions.getCloudDocument.fulfilled.type) {
-          const { cloudDocument: _cloud, ...editorDocument } = cloudResponse
-            .payload as ReturnType<
-              typeof actions.getCloudDocument.fulfilled
-            >["payload"];
-          lastSavedCloud.current = JSON.stringify(editorDocument.data);
-          await dispatch(actions.createLocalDocument(editorDocument));
+        try {
+          const cloudPayload = await dispatch(
+            actions.getCloudDocument(docId),
+          ).unwrap() as ReturnType<
+            typeof actions.getCloudDocument.fulfilled
+          >["payload"];
+          if (isCancelled()) return;
+          const { cloudDocument: _cloud, ...cloudEditorDoc } = cloudPayload;
+          lastSavedCloud.current = JSON.stringify(cloudEditorDoc.data);
+          await dispatch(actions.createLocalDocument(cloudEditorDoc));
           if (!isCancelled()) setIsLoading(false);
           const editorDocumentRevision = {
-            id: editorDocument.head,
-            documentId: editorDocument.id,
-            createdAt: editorDocument.updatedAt,
-            data: editorDocument.data,
+            id: cloudEditorDoc.head,
+            documentId: cloudEditorDoc.id,
+            createdAt: cloudEditorDoc.updatedAt,
+            data: cloudEditorDoc.data,
           };
           dispatch(actions.createLocalRevision(editorDocumentRevision));
-        } else if (
-          cloudResponse.type === actions.getCloudDocument.rejected.type
-        ) {
+        } catch (err) {
+          if (isCancelled()) return;
           if (docId === "notes" && user) {
             try {
               const now = new Date().toISOString();
@@ -105,8 +115,8 @@ export function useDocumentLoader(
               await dispatch(actions.createCloudRevision(revision));
 
               if (!isCancelled()) setIsLoading(false);
-            } catch (err) {
-              errorAnnounce("Failed to create notes document", err);
+            } catch (createErr) {
+              errorAnnounce("Failed to create notes document", createErr);
               if (!isCancelled()) {
                 setError({
                   title: "Failed to Create Notes",
@@ -116,9 +126,7 @@ export function useDocumentLoader(
             }
           } else {
             if (!isCancelled()) {
-              setError(
-                cloudResponse.payload as { title: string; subtitle?: string },
-              );
+              setError(err as { title: string; subtitle?: string });
             }
           }
         }

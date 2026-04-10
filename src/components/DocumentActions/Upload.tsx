@@ -50,13 +50,15 @@ const UploadDocument: React.FC<
         action: { label: "Login", onClick: "login()" },
       }));
     }
-    const localResponse = await dispatch(actions.getLocalDocument(id));
-    if (localResponse.type === actions.getLocalDocument.rejected.type) {
+    let editorDocument: EditorDocument;
+    try {
+      editorDocument = await dispatch(actions.getLocalDocument(id))
+        .unwrap() as EditorDocument;
+    } catch {
       return dispatch(
         actions.announce({ message: { title: "Document Not Found" } }),
       );
     }
-    const editorDocument = localResponse.payload as EditorDocument;
     if (!isHeadLocalRevision) {
       const editorDocumentRevision = {
         id: editorDocument.head,
@@ -99,15 +101,19 @@ const UploadDocument: React.FC<
         }),
       );
     }
-    const localResponse = await dispatch(actions.getLocalDocument(id));
-    if (localResponse.type === actions.getLocalDocument.rejected.type) {
+    let editorDocument: ReturnType<
+      typeof actions.getLocalDocument.fulfilled
+    >["payload"];
+    try {
+      editorDocument = await dispatch(actions.getLocalDocument(id))
+        .unwrap() as ReturnType<
+          typeof actions.getLocalDocument.fulfilled
+        >["payload"];
+    } catch {
       return dispatch(
         actions.announce({ message: { title: "Document Not Found" } }),
       );
     }
-    const editorDocument = localResponse.payload as ReturnType<
-      typeof actions.getLocalDocument.fulfilled
-    >["payload"];
     if (!isHeadLocalRevision) {
       const editorDocumentRevision = {
         id: editorDocument.head,

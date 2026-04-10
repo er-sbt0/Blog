@@ -12,28 +12,24 @@ const DiffView = () => {
   const [html, setHtml] = useState<string>("");
 
   const getEditorDocumentRevision = async (revisionId: string) => {
-    const localResponse = await dispatch(
-      actions.getLocalRevision(revisionId),
-    );
-    if (localResponse.type === actions.getLocalRevision.fulfilled.type) {
-      const editorDocumentRevision = localResponse.payload as ReturnType<
-        typeof actions.getLocalRevision.fulfilled
-      >["payload"];
-      return editorDocumentRevision;
-    } else {
-      const cloudResponse = await dispatch(
+    try {
+      return await dispatch(actions.getLocalRevision(revisionId))
+        .unwrap() as ReturnType<
+          typeof actions.getLocalRevision.fulfilled
+        >["payload"];
+    } catch {
+      // not in local, try cloud
+    }
+    try {
+      const editorDocumentRevision = await dispatch(
         actions.getCloudRevision(revisionId),
-      );
-      if (
-        cloudResponse.type === actions.getCloudRevision.fulfilled.type
-      ) {
-        const editorDocumentRevision = cloudResponse
-          .payload as ReturnType<
-            typeof actions.getCloudRevision.fulfilled
-          >["payload"];
-        dispatch(actions.createLocalRevision(editorDocumentRevision));
-        return editorDocumentRevision;
-      }
+      ).unwrap() as ReturnType<
+        typeof actions.getCloudRevision.fulfilled
+      >["payload"];
+      dispatch(actions.createLocalRevision(editorDocumentRevision));
+      return editorDocumentRevision;
+    } catch {
+      return undefined;
     }
   };
 

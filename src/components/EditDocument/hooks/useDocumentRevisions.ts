@@ -68,13 +68,11 @@ export function useDocumentRevisions(
       createdAt: localDocument.updatedAt,
       data,
     };
-    const response = await dispatch(actions.createLocalRevision(payload));
-    if (response.type === actions.createLocalRevision.rejected.type) {
+    try {
+      return await dispatch(actions.createLocalRevision(payload)).unwrap();
+    } catch {
       return undefined;
     }
-    return response.payload as ReturnType<
-      typeof actions.createLocalRevision.fulfilled
-    >["payload"];
   }, [localDocument, getLocalEditorData, dispatch]);
 
   const viewLocalDocument = useCallback(async () => {
@@ -122,22 +120,17 @@ export function useDocumentRevisions(
               createdAt: localDocument.updatedAt,
               data,
             };
-            const revisionResponse = await dispatch(
+            await dispatch(
               actions.createCloudRevision(revision),
-            );
-            if (
-              revisionResponse.type ===
-                actions.createCloudRevision.fulfilled.type
-            ) {
-              await dispatch(actions.updateCloudDocument({
-                id: localDocument.id,
-                partial: {
-                  head: localDocument.head,
-                  updatedAt: localDocument.updatedAt,
-                  parentId: localDocument.parentId,
-                },
-              }));
-            }
+            ).unwrap();
+            await dispatch(actions.updateCloudDocument({
+              id: localDocument.id,
+              partial: {
+                head: localDocument.head,
+                updatedAt: localDocument.updatedAt,
+                parentId: localDocument.parentId,
+              },
+            }));
           } catch (error) {
             errorAnnounce("Failed to save to cloud before viewing", error);
           }
@@ -167,21 +160,17 @@ export function useDocumentRevisions(
           data: editorData,
         };
         try {
-          const revisionResponse = await dispatch(
+          await dispatch(
             actions.createCloudRevision(revision),
-          );
-          if (
-            revisionResponse.type === actions.createCloudRevision.fulfilled.type
-          ) {
-            await dispatch(actions.updateCloudDocument({
-              id: localDocument.id,
-              partial: {
-                head: localDocument.head,
-                updatedAt: localDocument.updatedAt,
-                parentId: localDocument.parentId,
-              },
-            }));
-          }
+          ).unwrap();
+          await dispatch(actions.updateCloudDocument({
+            id: localDocument.id,
+            partial: {
+              head: localDocument.head,
+              updatedAt: localDocument.updatedAt,
+              parentId: localDocument.parentId,
+            },
+          }));
         } catch (error) {
           errorAnnounce("Failed to save to cloud", error);
         }

@@ -591,21 +591,21 @@ export const syncLocalToCloud = createAsyncThunk(
         createdAt: updatedAt,
       };
 
-      const revisionResponse = await thunkAPI.dispatch(
-        createCloudRevision(revision),
-      );
-      if (revisionResponse.type !== createCloudRevision.fulfilled.type) {
-        return thunkAPI.rejectWithValue(revisionResponse.payload);
+      try {
+        await thunkAPI.dispatch(createCloudRevision(revision)).unwrap();
+      } catch (e) {
+        return thunkAPI.rejectWithValue(e);
       }
 
-      const docResponse = await thunkAPI.dispatch(
-        updateCloudDocument({
-          id,
-          partial: { head: localHead, updatedAt, parentId },
-        }),
-      );
-      if (docResponse.type !== updateCloudDocument.fulfilled.type) {
-        return thunkAPI.rejectWithValue(docResponse.payload);
+      try {
+        await thunkAPI.dispatch(
+          updateCloudDocument({
+            id,
+            partial: { head: localHead, updatedAt, parentId },
+          }),
+        ).unwrap();
+      } catch (e) {
+        return thunkAPI.rejectWithValue(e);
       }
 
       return thunkAPI.fulfillWithValue(undefined);

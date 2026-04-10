@@ -99,9 +99,11 @@ export function useSidebarActions(): SidebarActionsResult {
       const doc = documents?.find((d) => d.id === postId);
       if (doc) {
         if (doc.cloud) {
-          const result = await dispatch(actions.deleteCloudDocument(postId));
-          if (result.type === actions.deleteCloudDocument.fulfilled.type) {
+          try {
+            await dispatch(actions.deleteCloudDocument(postId)).unwrap();
             router.refresh();
+          } catch {
+            // delete failed, skip refresh
           }
         } else if (doc.local) {
           dispatch(actions.deleteLocalDocument(postId));
