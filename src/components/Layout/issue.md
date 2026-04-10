@@ -1,19 +1,5 @@
 # Layout Component Issues
 
-Critical and notable code-quality findings across `src/components/Layout/`.
-
----
-
-## 3. `setTimeout` navigation hack in `SafeNavigationLink` — data-loss risk
-
-**File:** `SideBar/SafeNavigationLink.tsx:36`
-
-```tsx
-setTimeout(() => router.push(href), 100);
-```
-
-The autosave action is dispatched and then navigation is scheduled 100 ms later with no guarantee the save has completed. If the save is async (network call), the navigation will race and potentially lose content. This is a fundamentally incorrect pattern — the correct approach is to `await` the dispatched thunk before navigating.
-
 ---
 
 ## 4. Deprecated no-op API kept in `SidebarWidthContext`

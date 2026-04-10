@@ -2,7 +2,7 @@
 import { useCallback } from "react";
 import RouterLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useDispatch } from "@/store";
+import { triggerSave } from "@/components/EditDocument/saveRegistry";
 
 // SafeNavigationLink is a Next.js Link that triggers autosave when the editor
 // is active before navigating away. It must be a stable top-level component
@@ -20,7 +20,6 @@ export const SafeNavigationLink = ({
 }: SafeNavigationLinkProps) => {
   const pathname = usePathname();
   const router = useRouter();
-  const dispatch = useDispatch();
 
   const inEditMode = pathname.startsWith("/edit/");
 
@@ -28,15 +27,13 @@ export const SafeNavigationLink = ({
     (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (inEditMode) {
         e.preventDefault();
-        dispatch({
-          type: "TRIGGER_AUTOSAVE_BEFORE_NAVIGATION",
-          payload: { targetUrl: href },
+        triggerSave().then(() => {
+          router.push(href);
         });
-        setTimeout(() => router.push(href), 100);
       }
       onClick?.(e);
     },
-    [inEditMode, href, dispatch, router, onClick],
+    [inEditMode, href, router, onClick],
   );
 
   return (

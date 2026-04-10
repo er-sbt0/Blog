@@ -1,5 +1,9 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  registerSaveCallback,
+  unregisterSaveCallback,
+} from "./saveRegistry";
 import SplashScreen from "../SplashScreen";
 import {
   DocumentCreateInput,
@@ -112,6 +116,13 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
       return false;
     }
   }, [document, user, dispatch, editorRef]);
+
+  useEffect(() => {
+    registerSaveCallback(saveToCloud);
+    return () => {
+      unregisterSaveCallback();
+    };
+  }, [saveToCloud]);
 
   function handleChange(
     editorState: EditorState,
