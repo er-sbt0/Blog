@@ -1,6 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
-import { Component, ReactNode, useEffect, useState } from "react";
+import { Component, ReactNode, Suspense, useEffect, useState } from "react";
 import { EditorSkeleton } from "../EditorSkeleton";
 import SplashScreen from "../SplashScreen";
 
@@ -42,6 +42,8 @@ class EditorErrorBoundary extends Component<
   }
 }
 
+const DocumentEditor = dynamic(() => import("./Editor"), { ssr: false });
+
 const EditDocument: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -52,14 +54,11 @@ const EditDocument: React.FC<React.PropsWithChildren> = ({ children }) => {
     : <SplashScreen title="Loading Document" />;
   if (!isClient) return fallback;
 
-  const DocumentEditor = dynamic(() => import("./Editor"), {
-    ssr: false,
-    loading: () => fallback,
-  });
-
   return (
     <EditorErrorBoundary>
-      <DocumentEditor>{children}</DocumentEditor>
+      <Suspense fallback={fallback}>
+        <DocumentEditor>{children}</DocumentEditor>
+      </Suspense>
     </EditorErrorBoundary>
   );
 };

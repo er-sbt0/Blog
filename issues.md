@@ -175,5 +175,5 @@ assert the type on `.json()`.
 | Critical  | 3      | 0     | 3      |
 | High      | 2      | 3     | 5      |
 | Medium    | 5      | 3     | 8      |
-| Low       | 2      | 1     | 3      |
-| **Total** | **13** | **6** | **19** |
+| Low       | 1      | 2     | 3      |
+| **Total** | **12** | **7** | **19** |
