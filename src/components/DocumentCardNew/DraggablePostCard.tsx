@@ -5,7 +5,7 @@ import { Box, SxProps, useMediaQuery } from "@mui/material";
 import { Theme, useTheme } from "@mui/material/styles";
 import PostCard from "./index";
 
-import { DragContext } from "../DragContext";
+import { DragContext } from "@/contexts/DragContext";
 
 interface DraggablePostCardProps {
   userDocument: UserDocument;

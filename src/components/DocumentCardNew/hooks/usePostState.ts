@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { User, UserDocument } from "@/types";
 import { PostState } from "../PostChips";
-import { useDocumentURL } from "../../DocumentURLContext";
+import { useDocumentURL } from "@/contexts/DocumentURLContext";
 
 /**
  * Consolidated state management hook for PostCard component

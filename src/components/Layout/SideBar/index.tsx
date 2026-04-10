@@ -20,7 +20,7 @@ import { styles } from "../styles";
 import { DocumentStatus, type UserDocument } from "@/types";
 import { useSidebarState } from "./hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
-import { useSidebarWidth } from "./SidebarWidthContext";
+import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
 import { useSidebarFontSize } from "./hooks/useSidebarFontSize";
 import { useSidebarActions } from "./hooks/useSidebarActions";
 import { SidebarHeader } from "./SidebarHeader";

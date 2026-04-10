@@ -5,7 +5,7 @@ import { useNotesBoards } from "@/hooks/useNotesBoards";
 import { useNotesZoom } from "@/hooks/useNotesZoom";
 import { Box } from "@mui/material";
 import { StickyNote2 } from "@mui/icons-material";
-import { NotesClipboardProvider } from "@/components/NotesCanvas/NotesClipboardContext";
+import { NotesClipboardProvider } from "@/contexts/NotesClipboardContext";
 
 export default function NotesPage() {
   const {

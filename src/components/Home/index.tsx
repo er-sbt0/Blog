@@ -3,7 +3,7 @@ import { Box, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { useRouter } from "next/navigation";
 import { Series, User, UserDocument } from "@/types";
-import { DragProvider } from "../DragContext";
+import { DragProvider } from "@/contexts/DragContext";
 import TrashBin from "../TrashBin";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDocuments } from "@/hooks/useDocuments";
@@ -20,7 +20,7 @@ import { StickyNote2 } from "@mui/icons-material";
 import { useNotesBoards } from "@/hooks/useNotesBoards";
 import { useNotesZoom } from "@/hooks/useNotesZoom";
 import BoardSelector from "../NotesCanvas/BoardSelector";
-import { NotesClipboardProvider } from "../NotesCanvas/NotesClipboardContext";
+import { NotesClipboardProvider } from "@/contexts/NotesClipboardContext";
 
 type ViewType = "notes" | "kanban" | "readme" | "posts" | null;
 

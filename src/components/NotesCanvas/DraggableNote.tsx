@@ -22,7 +22,7 @@ import {
   MoreHoriz,
   Palette,
 } from "@mui/icons-material";
-import { useNotesClipboard } from "./NotesClipboardContext";
+import { useNotesClipboard } from "@/contexts/NotesClipboardContext";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { EditorPlugins } from "@/editor/plugins";

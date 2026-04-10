@@ -13,7 +13,7 @@ import {
   SIDEBAR_MAX_WIDTH,
   SIDEBAR_MIN_WIDTH,
   SIDEBAR_STORAGE_KEY,
-} from "./constants";
+} from "@/components/Layout/SideBar/constants";
 
 interface SidebarWidthContextType {
   /** The user's preferred expanded width (persisted to localStorage) */

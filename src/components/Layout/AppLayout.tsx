@@ -5,7 +5,7 @@ import Announcer from "./Announcer";
 import ProgressBar from "./ProgressBar";
 import AppLayoutContent from "./AppLayoutContent";
 import { Suspense } from "react";
-import { SidebarWidthProvider } from "./SideBar/SidebarWidthContext";
+import { SidebarWidthProvider } from "@/contexts/SidebarWidthContext";
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   return (

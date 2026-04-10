@@ -1,6 +1,6 @@
 "use client";
 import { useSidebarState } from "@/components/Layout/SideBar/hooks/useSidebarState";
-import { useSidebarWidth } from "@/components/Layout/SideBar/SidebarWidthContext";
+import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
 import { Box, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 

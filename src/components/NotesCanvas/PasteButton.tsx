@@ -1,7 +1,7 @@
 "use client";
 import { Box, Button } from "@mui/material";
 import { ContentPaste } from "@mui/icons-material";
-import { useNotesClipboard } from "./NotesClipboardContext";
+import { useNotesClipboard } from "@/contexts/NotesClipboardContext";
 import type { Note, NotesCanvas as CanvasData } from "@/types/notes";
 
 const VIRTUAL_CANVAS_WIDTH = 1920;

@@ -1,42 +1,19 @@
 "use client";
 import React, {
-  createContext,
   ReactNode,
   useCallback,
-  useContext,
   useEffect,
   useRef,
   useState,
 } from "react";
 import { Box } from "@mui/material";
+import {
+  FloatingActionsContext,
+  FloatingButtonInfo,
+  useFloatingActions,
+} from "@/contexts/FloatingActionsContext";
 
-// Define the structure for a registered floating action button
-interface FloatingButtonInfo {
-  id: string;
-  element: ReactNode;
-  priority: number; // Higher priority buttons will be shown at the bottom (closer to the user)
-}
-
-// Create context for managing floating buttons
-interface FloatingActionsContextType {
-  registerButton: (id: string, element: ReactNode, priority?: number) => void;
-  unregisterButton: (id: string) => void;
-}
-
-const FloatingActionsContext = createContext<FloatingActionsContextType | null>(
-  null,
-);
-
-// Custom hook to use the floating actions context
-export function useFloatingActions() {
-  const context = useContext(FloatingActionsContext);
-  if (!context) {
-    throw new Error(
-      "useFloatingActions must be used within a FloatingActionsProvider",
-    );
-  }
-  return context;
-}
+export { useFloatingActions };
 
 export function FloatingActionsContainer(
   { children }: { children: ReactNode },
