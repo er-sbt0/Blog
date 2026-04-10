@@ -1,29 +1,20 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAsyncEffect } from "@/hooks/useAsyncEffect";
-import { registerSaveCallback, unregisterSaveCallback } from "./saveRegistry";
+import { useMemo, useRef } from "react";
 import SplashScreen from "../SplashScreen";
-import {
-  DocumentCreateInput,
-  EditorDocument,
-  EditorDocumentRevision,
-} from "@/types";
+import { EditorDocument } from "@/types";
 import { useSelector as useReduxSelector } from "react-redux";
-import { actions, useDispatch, useSelector } from "@/store";
-import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
+import { useSelector } from "@/store";
 import type { RootState } from "@/store";
-import { usePathname, useRouter } from "next/navigation";
-import type {
-  EditorState,
-  LexicalEditor,
-  SerializedEditorState,
-} from "lexical";
-import { v4 as uuidv4 } from "uuid";
+import { usePathname } from "next/navigation";
+import type { LexicalEditor, SerializedEditorState } from "lexical";
 import dynamic from "next/dynamic";
 import DiffView from "../Diff";
-import { debounce } from "@mui/material/utils";
 import Editor from "../Editor";
 import SaveDiscardActions from "./SaveDiscardActions";
+import { useCloudSave } from "./hooks/useCloudSave";
+import { useDocumentLoader } from "./hooks/useDocumentLoader";
+import { useAutoSave } from "./hooks/useAutoSave";
+import { useDocumentNavigation } from "./hooks/useDocumentNavigation";
 
 const EditDocumentInfo = dynamic(
   () => import("@/components/EditDocument/EditDocumentInfo"),
@@ -50,12 +41,10 @@ function ensureValidDocumentData(doc: EditorDocument): EditorDocument {
     },
   };
 
-  // If data is missing or invalid, create a default state
   if (!doc.data || typeof doc.data !== "object") {
     return { ...doc, data: defaultRoot };
   }
 
-  // Validate that root exists and has the required structure
   if (
     !doc.data.root || !doc.data.root.children ||
     !Array.isArray(doc.data.root.children)
@@ -63,7 +52,6 @@ function ensureValidDocumentData(doc: EditorDocument): EditorDocument {
     return { ...doc, data: defaultRoot };
   }
 
-  // If root has no children, add an empty paragraph
   if (doc.data.root.children.length === 0) {
     return {
       ...doc,
@@ -81,17 +69,12 @@ function ensureValidDocumentData(doc: EditorDocument): EditorDocument {
 }
 
 const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<{ title: string; subtitle?: string }>();
-  const dispatch = useDispatch();
-  const errorAnnounce = useErrorAnnounce();
   const pathname = usePathname();
-  const router = useRouter();
   const id = pathname.split("/")[2]?.toLowerCase();
   const editorRef = useRef<LexicalEditor>(null);
   const showDiff = useSelector((state) => state.ui.diff.open);
   const isDirty = useSelector((state) => state.ui.isDirty);
-  const user = useSelector((state) => state.user);
+
   // Single source of truth: document lives in Redux. Custom equality prevents
   // re-renders from data changes on every edit (only re-render on identity change).
   const document = useReduxSelector(
@@ -100,7 +83,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
         ?.local,
     (a, b) => a?.id === b?.id,
   );
-  const lastSavedCloud = useRef<string | null>(null);
+
   // Apply data normalization once when the document first loads (not on every edit)
   const documentForEditor = useMemo(
     () => (document ? ensureValidDocumentData(document) : undefined),
@@ -108,312 +91,13 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
     [document?.id],
   );
 
-  const debouncedUpdateLocalDocument = useMemo(
-    () =>
-      debounce((id: string, partial: Partial<EditorDocument>) => {
-        dispatch(actions.updateLocalDocument({ id, partial }));
-        dispatch(actions.setDirty(true));
-      }, 300),
-    [dispatch],
+  const { saveToCloud, lastSavedCloud } = useCloudSave(document, editorRef);
+  const { isLoading, error } = useDocumentLoader(id, lastSavedCloud);
+  const { handleChange } = useAutoSave(document);
+  const { handleSaveAndNavigate, handleDiscard } = useDocumentNavigation(
+    document,
+    saveToCloud,
   );
-
-  // Function to save current document to cloud
-  const saveToCloud = useCallback(async () => {
-    if (!document || !user) return false;
-
-    try {
-      // Get the current editor state
-      const editorState = editorRef.current?.getEditorState();
-      if (!editorState) return false;
-
-      const data = editorState.toJSON();
-      const serializedData = JSON.stringify(data);
-
-      // Check if the content has changed since last cloud save
-      if (lastSavedCloud.current === serializedData) {
-        return true; // No changes to save
-      }
-
-      // Create a new revision ID
-      const revisionId = uuidv4();
-      const now = new Date().toISOString();
-
-      // Create a new revision
-      const revision: EditorDocumentRevision = {
-        id: revisionId,
-        documentId: document.id,
-        createdAt: now,
-        data,
-      };
-
-      // Update the document with the new head, preserving parentId
-      const documentUpdate = {
-        id: document.id,
-        partial: {
-          head: revisionId,
-          updatedAt: now,
-          parentId: document.parentId, // Preserve parentId when saving to cloud
-        },
-      };
-
-      // Save to cloud
-      const revisionResponse = await dispatch(
-        actions.createCloudRevision(revision),
-      );
-
-      if (
-        revisionResponse.type === actions.createCloudRevision.fulfilled.type
-      ) {
-        // Then update the document to point to the new revision
-        const docResponse = await dispatch(
-          actions.updateCloudDocument(documentUpdate),
-        );
-
-        if (docResponse.type === actions.updateCloudDocument.fulfilled.type) {
-          lastSavedCloud.current = serializedData;
-          dispatch(actions.setDirty(false));
-          return true;
-        }
-      }
-
-      return false;
-    } catch (error) {
-      errorAnnounce("Failed to auto-save document to cloud", error);
-      return false;
-    }
-  }, [document, user, dispatch, editorRef]);
-
-  useEffect(() => {
-    registerSaveCallback(saveToCloud);
-    return () => {
-      unregisterSaveCallback();
-    };
-  }, [saveToCloud]);
-
-  function handleChange(
-    editorState: EditorState,
-    editor: LexicalEditor,
-    tags: Set<string>,
-  ) {
-    if (!document) return;
-    const data = editorState.toJSON();
-    const updatedDocument: Partial<EditorDocument> = {
-      data,
-      updatedAt: new Date().toISOString(),
-      head: uuidv4(),
-      parentId: document.parentId, // Preserve parentId when saving locally
-    };
-    const tagValue = tags.values().next().value as string | undefined;
-    if (tagValue) {
-      try {
-        const payload = JSON.parse(tagValue);
-        if (payload.id === document.id) {
-          Object.assign(updatedDocument, payload.partial);
-        }
-      } catch (e) {
-        console.error("Failed to parse editor change tag payload:", e);
-      }
-    }
-    debouncedUpdateLocalDocument(document.id, updatedDocument);
-  }
-
-  useAsyncEffect(async (isCancelled) => {
-    const loadDocument = async (id: string) => {
-      const localResponse = await dispatch(actions.getLocalDocument(id));
-      if (
-        localResponse.type === actions.getLocalDocument.fulfilled.type
-      ) {
-        const editorDocument = localResponse.payload as EditorDocument;
-        if (!isCancelled()) setIsLoading(false);
-
-        // Check if local is ahead of cloud by comparing head revision IDs.
-        // This detects the case where the user edited locally, closed the tab
-        // before saving to cloud, and has now re-opened the document.
-        if (user) {
-          const cloudResponse = await dispatch(actions.getCloudDocument(id));
-          if (isCancelled()) return;
-          if (cloudResponse.type === actions.getCloudDocument.fulfilled.type) {
-            const { cloudDocument, ...cloudEditorDocument } = cloudResponse
-              .payload as ReturnType<
-                typeof actions.getCloudDocument.fulfilled
-              >["payload"];
-            if (editorDocument.head !== cloudEditorDocument.head) {
-              // Local has been modified since last cloud save
-              dispatch(actions.setDirty(true));
-            } else {
-              // In sync — seed lastSavedCloud so save deduplication works correctly
-              lastSavedCloud.current = JSON.stringify(editorDocument.data);
-            }
-          } else {
-            // Cloud fetch failed — conservatively treat local as potentially dirty
-            dispatch(actions.setDirty(true));
-          }
-        }
-      } else {
-        const cloudResponse = await dispatch(
-          actions.getCloudDocument(id),
-        );
-        if (isCancelled()) return;
-        if (
-          cloudResponse.type ===
-            actions.getCloudDocument.fulfilled.type
-        ) {
-          const { cloudDocument, ...editorDocument } = cloudResponse
-            .payload as ReturnType<
-              typeof actions.getCloudDocument.fulfilled
-            >["payload"];
-          // Seed lastSavedCloud — local was just created from cloud, they're in sync
-          lastSavedCloud.current = JSON.stringify(editorDocument.data);
-          // Await so the local document is in Redux before the selector fires
-          await dispatch(actions.createLocalDocument(editorDocument));
-          if (!isCancelled()) setIsLoading(false);
-          const editorDocumentRevision = {
-            id: editorDocument.head,
-            documentId: editorDocument.id,
-            createdAt: editorDocument.updatedAt,
-            data: editorDocument.data,
-          };
-          dispatch(
-            actions.createLocalRevision(editorDocumentRevision),
-          );
-        } else if (
-          cloudResponse.type ===
-            actions.getCloudDocument.rejected.type
-        ) {
-          // Special handling for "notes" - auto-create if it doesn't exist
-          if (id === "notes" && user) {
-            try {
-              const now = new Date().toISOString();
-              const documentId = uuidv4();
-              const revisionId = uuidv4();
-
-              const newDocument: EditorDocument = {
-                id: documentId,
-                name: "My Notes",
-                description: "Your personal notes document",
-                handle: "notes",
-                createdAt: now,
-                updatedAt: now,
-                head: revisionId,
-                type: "DOCUMENT",
-                data: {
-                  root: {
-                    children: [
-                      {
-                        children: [
-                          {
-                            detail: 0,
-                            format: 0,
-                            mode: "normal",
-                            style: "",
-                            text:
-                              "Welcome to your personal notes! This document will automatically save your changes.",
-                            type: "text",
-                            version: 1,
-                          },
-                        ],
-                        direction: "ltr",
-                        format: "",
-                        indent: 0,
-                        type: "paragraph",
-                        version: 1,
-                      },
-                    ],
-                    direction: "ltr",
-                    format: "",
-                    indent: 0,
-                    type: "root",
-                    version: 1,
-                  },
-                } as unknown as SerializedEditorState,
-              };
-
-              // Create the document locally first
-              await dispatch(actions.createLocalDocument(newDocument));
-
-              // Create the initial revision
-              const revision = {
-                id: revisionId,
-                documentId: documentId,
-                createdAt: now,
-                data: newDocument.data,
-              };
-
-              await dispatch(actions.createLocalRevision(revision));
-
-              // Then save to cloud with additional properties
-              const cloudDocumentPayload: DocumentCreateInput = {
-                ...newDocument,
-                published: false,
-                private: true,
-                collab: false,
-              };
-
-              await dispatch(actions.createCloudDocument(cloudDocumentPayload));
-
-              // Create the revision in cloud
-              await dispatch(actions.createCloudRevision(revision));
-
-              if (!isCancelled()) setIsLoading(false);
-            } catch (error) {
-              errorAnnounce("Failed to create notes document", error);
-              if (!isCancelled()) {
-                setError({
-                  title: "Failed to Create Notes",
-                  subtitle: "Please try again",
-                });
-              }
-            }
-          } else {
-            if (!isCancelled()) {
-              setError(
-                cloudResponse.payload as {
-                  title: string;
-                  subtitle?: string;
-                },
-              );
-            }
-          }
-        }
-      }
-    };
-    if (id) {
-      await loadDocument(id);
-    } else if (!isCancelled()) {
-      setError({ title: "Document Not Found" });
-    }
-    return () => {
-      dispatch(actions.setDiff({ open: false }));
-      dispatch(actions.setDirty(false));
-    };
-  }, [dispatch, user]);
-
-  useEffect(() => {
-    if (!isDirty) return;
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
-
-  const handleSaveAndNavigate = useCallback(async () => {
-    const success = await saveToCloud();
-    if (success && document) {
-      // Navigate to the view route after saving
-      const handle = document.handle || document.id;
-      router.push(`/view/${handle}`);
-    }
-    return success;
-  }, [saveToCloud, document, router]);
-
-  const handleDiscard = useCallback(() => {
-    if (document) {
-      // Navigate back to the view route without saving
-      const handle = document.handle || document.id;
-      router.push(`/view/${handle}`);
-    }
-  }, [document, router]);
 
   if (error) {
     return <SplashScreen title={error.title} subtitle={error.subtitle} />;

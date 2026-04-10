@@ -1,6 +1,5 @@
 "use client";
-import React, { memo, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { memo } from "react";
 import {
   Box,
   IconButton,
@@ -11,64 +10,248 @@ import {
   Typography,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Article, Delete, Edit, MoreVert } from "@mui/icons-material";
+import { Delete, Edit, MoreVert } from "@mui/icons-material";
 import { CompactVariantProps } from "../types";
 import { UserDocument } from "@/types";
+import { Series } from "@/types";
 import { createCardTheme } from "../../DocumentCardNew/theme";
 import { formatDate, useSeriesActions } from "../seriesCardUtils";
+import DocItem from "../DocItem";
+import { useCompactVariantState } from "../hooks/useCompactVariantState";
 
-/** * Individual document item within an expanded series card
- */
-interface DocItemProps {
-  document: UserDocument;
+interface CollapsedViewProps {
+  series: Series;
+  showActions: boolean;
+  isAuthor: boolean;
+  menuOpen: boolean;
+  onToggle: () => void;
+  onMenuOpen: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
-const DocItem: React.FC<DocItemProps> = ({ document }) => {
-  // Get document name from local or cloud version
-  const doc = document.local || document.cloud;
-  const title = doc?.name || "Untitled";
-  const docId = document.id;
-
+function CollapsedView({
+  series,
+  showActions,
+  isAuthor,
+  menuOpen,
+  onToggle,
+  onMenuOpen,
+}: CollapsedViewProps) {
   return (
     <Box
-      component="a"
-      href={`/view/${docId}`}
-      onClick={(e) => e.stopPropagation()}
-      sx={{
-        width: "100%",
-        flexShrink: 0,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: "4px",
-        p: 1.5,
-        bgcolor: "background.paper",
-        textDecoration: "none",
-        transition:
-          "box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease",
-        "&:hover": {
-          bgcolor: "action.hover",
-          borderColor: "primary.light",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-        },
-      }}
+      onClick={onToggle}
+      sx={{ display: "flex", flexDirection: "column", height: "100%", cursor: "pointer" }}
     >
-      {/* Post title */}
-      <Typography
-        variant="body2"
+      <Box
         sx={{
-          color: "text.primary",
-          fontWeight: 500,
-          lineHeight: 1.3,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: 200,
+          p: { xs: 2, sm: 3 },
+          gap: 1.5,
         }}
       >
-        {title}
-      </Typography>
+        <Typography
+          variant="h5"
+          component="h2"
+          sx={{
+            fontWeight: 700,
+            fontSize: { xs: "1.25rem", sm: "1.5rem" },
+            lineHeight: 1.2,
+            color: "text.primary",
+            textAlign: "center",
+            transition: "color 0.2s ease",
+            "&:hover": { color: "primary.main" },
+          }}
+        >
+          {series.title}
+        </Typography>
+        {series.createdAt && (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontSize: "0.875rem", fontWeight: 600 }}
+            >
+              {formatDate(series.createdAt)}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+
+      <Box
+        sx={{
+          px: 2,
+          py: 1,
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          borderTop: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "background.default",
+          minHeight: 48,
+        }}
+      >
+        {showActions && isAuthor && (
+          <IconButton
+            aria-label="Series Actions"
+            aria-controls={menuOpen ? "series-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={menuOpen ? "true" : undefined}
+            size="small"
+            onClick={onMenuOpen}
+          >
+            <MoreVert />
+          </IconButton>
+        )}
+      </Box>
     </Box>
   );
-};
+}
+
+interface ExpandedViewProps {
+  series: Series;
+  sortedPosts: UserDocument[];
+  collapsible: boolean;
+  showActions: boolean;
+  isAuthor: boolean;
+  menuOpen: boolean;
+  onToggle: () => void;
+  onCardClick: (e: React.MouseEvent) => void;
+  onMenuOpen: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
+function ExpandedView({
+  series,
+  sortedPosts,
+  collapsible,
+  showActions,
+  isAuthor,
+  menuOpen,
+  onToggle,
+  onCardClick,
+  onMenuOpen,
+}: ExpandedViewProps) {
+  return (
+    <>
+      <Box
+        onClick={onCardClick}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          p: { xs: 2, sm: 3 },
+          height: 200,
+          overflow: "hidden",
+          cursor: "pointer",
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            flex: 1,
+            overflowY: "auto",
+            "&::-webkit-scrollbar": { width: 4 },
+            "&::-webkit-scrollbar-thumb": { bgcolor: "divider", borderRadius: 2 },
+          }}
+        >
+          {sortedPosts.map((doc) => (
+            <DocItem key={doc.id} document={doc} />
+          ))}
+        </Box>
+      </Box>
+
+      <Box
+        onClick={collapsible ? onToggle : undefined}
+        sx={{
+          px: 2,
+          py: 1,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderTop: "1px solid",
+          borderColor: "divider",
+          backgroundColor: "background.default",
+          minHeight: 48,
+          cursor: collapsible ? "pointer" : "default",
+          transition: "background-color 0.2s ease",
+          ...(collapsible && {
+            "&:hover": {
+              bgcolor: (t) =>
+                t.palette.mode === "dark"
+                  ? "rgba(144, 202, 249, 0.08)"
+                  : "rgba(25, 118, 210, 0.05)",
+            },
+          }),
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+          {series.title}
+        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {collapsible && (
+            <Typography
+              variant="body2"
+              sx={{ color: "primary.main", fontWeight: 500, fontSize: "0.8rem" }}
+            >
+              Collapse
+            </Typography>
+          )}
+          {showActions && isAuthor && (
+            <IconButton
+              aria-label="Series Actions"
+              aria-controls={menuOpen ? "series-menu" : undefined}
+              aria-haspopup="true"
+              aria-expanded={menuOpen ? "true" : undefined}
+              size="small"
+              onClick={onMenuOpen}
+            >
+              <MoreVert />
+            </IconButton>
+          )}
+        </Box>
+      </Box>
+    </>
+  );
+}
+
+interface SeriesContextMenuProps {
+  anchorEl: HTMLElement | null;
+  menuOpen: boolean;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function SeriesContextMenu({
+  anchorEl,
+  menuOpen,
+  onClose,
+  onEdit,
+  onDelete,
+}: SeriesContextMenuProps) {
+  return (
+    <Menu
+      id="series-menu"
+      anchorEl={anchorEl}
+      open={menuOpen}
+      onClose={onClose}
+      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      transformOrigin={{ vertical: "top", horizontal: "right" }}
+    >
+      <MenuItem onClick={onEdit}>
+        <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
+        <ListItemText>Edit</ListItemText>
+      </MenuItem>
+      <MenuItem onClick={onDelete} sx={{ color: "error.main" }}>
+        <ListItemIcon><Delete fontSize="small" sx={{ color: "error.main" }} /></ListItemIcon>
+        <ListItemText>Delete</ListItemText>
+      </MenuItem>
+    </Menu>
+  );
+}
 
 /**
  * Compact variant of SeriesCard
@@ -76,8 +259,6 @@ const DocItem: React.FC<DocItemProps> = ({ document }) => {
  * Collapsible card showing:
  * - Collapsed: Series title centered with post count
  * - Expanded: Scrollable list of posts with series title in footer
- *
- * Used in posts timeline (/posts route) to group series posts
  */
 const CompactVariant: React.FC<CompactVariantProps> = memo(({
   series,
@@ -88,59 +269,17 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   defaultExpanded = false,
   onExpand,
   onCollapse,
-  animationIndex = 0,
   sx,
 }) => {
-  const router = useRouter();
   const theme = useTheme();
   const cardTheme = createCardTheme(theme);
-  const [isCollapsed, setIsCollapsed] = useState(!defaultExpanded);
-  const {
-    anchorEl,
-    menuOpen,
-    handleOpenMenu,
-    handleCloseMenu,
-    handleEdit,
-    handleDelete,
-  } = useSeriesActions(series);
-
-  // Check if current user is the author
   const isAuthor = !!user && user.id === series.authorId;
 
-  // Sort posts by creation date (newest first)
-  const sortedPosts = useMemo(() => {
-    return [...posts].sort((a, b) => {
-      const dateA = new Date(a.cloud?.createdAt || a.local?.createdAt || 0)
-        .getTime();
-      const dateB = new Date(b.cloud?.createdAt || b.local?.createdAt || 0)
-        .getTime();
-      return dateB - dateA; // Newest first
-    });
-  }, [posts]);
+  const { isCollapsed, sortedPosts, handleToggle, handleCardClick } =
+    useCompactVariantState(posts, defaultExpanded, series.id, onExpand, onCollapse);
 
-  const postCount = sortedPosts.length;
-
-  const handleToggle = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-
-    if (newState) {
-      onCollapse?.();
-    } else {
-      onExpand?.();
-    }
-  };
-
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Check if the click is on a link or inside a link
-    const target = e.target as HTMLElement;
-    const isLinkClick = target.closest("a");
-
-    // Only navigate if not clicking on a link (post item)
-    if (!isLinkClick) {
-      router.push(`/series/${series.id}`);
-    }
-  };
+  const { anchorEl, menuOpen, handleOpenMenu, handleCloseMenu, handleEdit, handleDelete } =
+    useSeriesActions(series);
 
   return (
     <Box
@@ -168,231 +307,36 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
     >
       {isCollapsed && collapsible
         ? (
-          // Collapsed State: Click anywhere to expand
-          <Box
-            onClick={handleToggle}
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              height: "100%",
-              cursor: "pointer",
-            }}
-          >
-            {/* Top content area - matches PostContent height */}
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                height: 200,
-                p: { xs: 2, sm: 3 },
-                gap: 1.5,
-              }}
-            >
-              {/* Series title */}
-              <Typography
-                variant="h5"
-                component="h2"
-                sx={{
-                  fontWeight: 700,
-                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
-                  lineHeight: 1.2,
-                  color: "text.primary",
-                  textAlign: "center",
-                  transition: "color 0.2s ease",
-                  "&:hover": {
-                    color: "primary.main",
-                  },
-                }}
-              >
-                {series.title}
-              </Typography>
-
-              {/* Creation date and post count */}
-              {series.createdAt && (
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ fontSize: "0.875rem", fontWeight: 600 }}
-                  >
-                    {formatDate(series.createdAt)}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-
-            {/* Bottom bar - matches CardBase action bar */}
-            <Box
-              sx={{
-                px: 2,
-                py: 1,
-                display: "flex",
-                justifyContent: "flex-end",
-                alignItems: "center",
-                borderTop: "1px solid",
-                borderColor: "divider",
-                backgroundColor: "background.default",
-                minHeight: 48,
-              }}
-            >
-              {/* Actions menu */}
-              {showActions && isAuthor && (
-                <IconButton
-                  aria-label="Series Actions"
-                  aria-controls={menuOpen ? "series-menu" : undefined}
-                  aria-haspopup="true"
-                  aria-expanded={menuOpen ? "true" : undefined}
-                  size="small"
-                  onClick={handleOpenMenu}
-                >
-                  <MoreVert />
-                </IconButton>
-              )}
-            </Box>
-          </Box>
+          <CollapsedView
+            series={series}
+            showActions={showActions}
+            isAuthor={isAuthor}
+            menuOpen={menuOpen}
+            onToggle={handleToggle}
+            onMenuOpen={handleOpenMenu}
+          />
         )
         : (
-          // Expanded State: Post list + series title in bottom bar
-          <>
-            {/* Content area with post list */}
-            <Box
-              onClick={handleCardClick}
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                p: { xs: 2, sm: 3 },
-                height: 200,
-                overflow: "hidden",
-                cursor: "pointer",
-              }}
-            >
-              {/* Scrollable post list */}
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1,
-                  flex: 1,
-                  overflowY: "auto",
-                  // Custom scrollbar
-                  "&::-webkit-scrollbar": {
-                    width: 4,
-                  },
-                  "&::-webkit-scrollbar-thumb": {
-                    bgcolor: "divider",
-                    borderRadius: 2,
-                  },
-                }}
-              >
-                {sortedPosts.map((doc) => (
-                  <DocItem key={doc.id} document={doc} />
-                ))}
-              </Box>
-            </Box>
-
-            {/* Bottom bar with series title and collapse action */}
-            <Box
-              onClick={collapsible ? handleToggle : undefined}
-              sx={{
-                px: 2,
-                py: 1,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                borderTop: "1px solid",
-                borderColor: "divider",
-                backgroundColor: "background.default",
-                minHeight: 48,
-                cursor: collapsible ? "pointer" : "default",
-                transition: "background-color 0.2s ease",
-                ...(collapsible && {
-                  "&:hover": {
-                    bgcolor: (t) =>
-                      t.palette.mode === "dark"
-                        ? "rgba(144, 202, 249, 0.08)"
-                        : "rgba(25, 118, 210, 0.05)",
-                  },
-                }),
-              }}
-            >
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 600,
-                  color: "text.primary",
-                }}
-              >
-                {series.title}
-              </Typography>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                {collapsible && (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "primary.main",
-                      fontWeight: 500,
-                      fontSize: "0.8rem",
-                    }}
-                  >
-                    Collapse
-                  </Typography>
-                )}
-
-                {/* Actions menu */}
-                {showActions && isAuthor && (
-                  <IconButton
-                    aria-label="Series Actions"
-                    aria-controls={menuOpen ? "series-menu" : undefined}
-                    aria-haspopup="true"
-                    aria-expanded={menuOpen ? "true" : undefined}
-                    size="small"
-                    onClick={handleOpenMenu}
-                  >
-                    <MoreVert />
-                  </IconButton>
-                )}
-              </Box>
-            </Box>
-          </>
+          <ExpandedView
+            series={series}
+            sortedPosts={sortedPosts}
+            collapsible={collapsible}
+            showActions={showActions}
+            isAuthor={isAuthor}
+            menuOpen={menuOpen}
+            onToggle={handleToggle}
+            onCardClick={handleCardClick}
+            onMenuOpen={handleOpenMenu}
+          />
         )}
 
-      {/* Actions Menu */}
-      <Menu
-        id="series-menu"
+      <SeriesContextMenu
         anchorEl={anchorEl}
-        open={menuOpen}
+        menuOpen={menuOpen}
         onClose={handleCloseMenu}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "right",
-        }}
-      >
-        <MenuItem onClick={handleEdit}>
-          <ListItemIcon>
-            <Edit fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Edit</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
-          <ListItemIcon>
-            <Delete fontSize="small" sx={{ color: "error.main" }} />
-          </ListItemIcon>
-          <ListItemText>Delete</ListItemText>
-        </MenuItem>
-      </Menu>
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
     </Box>
   );
 });

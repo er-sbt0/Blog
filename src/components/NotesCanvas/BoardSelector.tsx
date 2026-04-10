@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useMenuState } from "@/hooks/useMenuState";
 import {
   Box,
@@ -23,6 +23,8 @@ import {
   ZoomOut,
 } from "@mui/icons-material";
 import { CanvasSummary } from "@/types/notes";
+import { useRenameBoardState } from "./hooks/useRenameBoardState";
+import { useAddBoardState } from "./hooks/useAddBoardState";
 
 interface BoardSelectorProps {
   boards: CanvasSummary[];
@@ -31,13 +33,229 @@ interface BoardSelectorProps {
   onCreateBoard: (name: string) => void;
   onRenameBoard: (id: string, name: string) => void;
   onDeleteBoard: (id: string) => void;
-  // Zoom controls
   scale?: number;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
   onResetZoom?: () => void;
   canZoomIn?: boolean;
   canZoomOut?: boolean;
+}
+
+interface ZoomControlsProps {
+  scale?: number;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onResetZoom?: () => void;
+  canZoomIn?: boolean;
+  canZoomOut?: boolean;
+}
+
+function ZoomControls({
+  scale,
+  onZoomIn,
+  onZoomOut,
+  onResetZoom,
+  canZoomIn = true,
+  canZoomOut = true,
+}: ZoomControlsProps) {
+  return (
+    <>
+      <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          bgcolor: "action.hover",
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: "14px",
+          overflow: "hidden",
+          height: 28,
+          flexShrink: 0,
+        }}
+      >
+        <Tooltip title="Zoom out (Ctrl + −)">
+          <span>
+            <IconButton
+              size="small"
+              onClick={onZoomOut}
+              disabled={!canZoomOut}
+              sx={{ borderRadius: 0, px: 0.5, height: "100%" }}
+            >
+              <ZoomOut sx={{ fontSize: 15 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Tooltip title="Reset zoom (Ctrl + 0)">
+          <Typography
+            variant="caption"
+            onClick={onResetZoom}
+            sx={{
+              px: 0.25,
+              minWidth: 32,
+              textAlign: "center",
+              fontWeight: 600,
+              fontSize: "11px",
+              color: "text.secondary",
+              cursor: "pointer",
+              userSelect: "none",
+              lineHeight: 1,
+              "&:hover": { color: "text.primary" },
+            }}
+          >
+            {Math.round((scale ?? 1) * 100)}%
+          </Typography>
+        </Tooltip>
+        <Tooltip title="Zoom in (Ctrl + =)">
+          <span>
+            <IconButton
+              size="small"
+              onClick={onZoomIn}
+              disabled={!canZoomIn}
+              sx={{ borderRadius: 0, px: 0.5, height: "100%" }}
+            >
+              <ZoomIn sx={{ fontSize: 15 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+      </Box>
+    </>
+  );
+}
+
+interface BoardContextMenuProps {
+  anchorEl: HTMLElement | null;
+  open: boolean;
+  onClose: () => void;
+  onRenameClick: () => void;
+  onDeleteClick: () => void;
+  canDelete: boolean;
+}
+
+function BoardContextMenu({
+  anchorEl,
+  open,
+  onClose,
+  onRenameClick,
+  onDeleteClick,
+  canDelete,
+}: BoardContextMenuProps) {
+  return (
+    <Menu
+      anchorEl={anchorEl}
+      open={open}
+      onClose={onClose}
+      slotProps={{ paper: { elevation: 2 } }}
+    >
+      <MenuItem onClick={onRenameClick} dense>
+        <DriveFileRenameOutline sx={{ fontSize: 16, mr: 1 }} />
+        Rename
+      </MenuItem>
+      <MenuItem
+        onClick={onDeleteClick}
+        dense
+        disabled={!canDelete}
+        sx={{ color: canDelete ? "error.main" : undefined }}
+      >
+        <Delete sx={{ fontSize: 16, mr: 1 }} />
+        Delete
+      </MenuItem>
+    </Menu>
+  );
+}
+
+interface AddBoardSectionProps {
+  addingBoard: boolean;
+  newBoardName: string;
+  newBoardError: string;
+  addInputRef: React.RefObject<HTMLInputElement | null>;
+  onNameChange: (v: string) => void;
+  onErrorClear: () => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  onAddClick: () => void;
+}
+
+function AddBoardSection({
+  addingBoard,
+  newBoardName,
+  newBoardError,
+  addInputRef,
+  onNameChange,
+  onErrorClear,
+  onSubmit,
+  onCancel,
+  onAddClick,
+}: AddBoardSectionProps) {
+  if (addingBoard) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          flexShrink: 0,
+          ml: 0.5,
+        }}
+      >
+        <TextField
+          inputRef={addInputRef}
+          value={newBoardName}
+          size="small"
+          placeholder="Board name"
+          error={!!newBoardError}
+          autoFocus
+          onChange={(e) => {
+            onNameChange(e.target.value);
+            if (newBoardError) onErrorClear();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onSubmit();
+            if (e.key === "Escape") onCancel();
+          }}
+          sx={{
+            width: 140,
+            "& .MuiInputBase-input": { py: 0.5, fontSize: "0.8125rem" },
+          }}
+        />
+        <Button
+          size="small"
+          variant="contained"
+          disableElevation
+          onClick={onSubmit}
+          sx={{
+            minWidth: "auto",
+            px: 1.5,
+            py: 0.5,
+            fontSize: "0.75rem",
+            lineHeight: 1.5,
+          }}
+        >
+          Add
+        </Button>
+        <Button
+          size="small"
+          onClick={onCancel}
+          sx={{
+            minWidth: "auto",
+            px: 1,
+            py: 0.5,
+            fontSize: "0.75rem",
+            lineHeight: 1.5,
+          }}
+        >
+          Cancel
+        </Button>
+      </Box>
+    );
+  }
+  return (
+    <Tooltip title="New board">
+      <IconButton size="small" onClick={onAddClick} sx={{ flexShrink: 0 }}>
+        <Add sx={{ fontSize: 18 }} />
+      </IconButton>
+    </Tooltip>
+  );
 }
 
 export default function BoardSelector({
@@ -54,21 +272,10 @@ export default function BoardSelector({
   canZoomIn = true,
   canZoomOut = true,
 }: BoardSelectorProps) {
-  const { anchorEl: menuAnchor, menuOpen, openMenu, closeMenu } =
-    useMenuState();
+  const { anchorEl: menuAnchor, menuOpen, openMenu, closeMenu } = useMenuState();
   const [menuBoardId, setMenuBoardId] = useState<string | null>(null);
-  const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const [addingBoard, setAddingBoard] = useState(false);
-  const [newBoardName, setNewBoardName] = useState("");
-  const [newBoardError, setNewBoardError] = useState("");
-  const addInputRef = useRef<HTMLInputElement>(null);
-  const renameInputRef = useRef<HTMLInputElement>(null);
 
-  const handleMenuOpen = (
-    e: React.MouseEvent<HTMLElement>,
-    boardId: string,
-  ) => {
+  const handleMenuOpen = (e: React.MouseEvent<HTMLElement>, boardId: string) => {
     e.stopPropagation();
     openMenu(e);
     setMenuBoardId(boardId);
@@ -79,25 +286,27 @@ export default function BoardSelector({
     setMenuBoardId(null);
   };
 
-  const handleRenameClick = () => {
-    const board = boards.find((b) => b.id === menuBoardId);
-    if (board) {
-      setRenamingId(board.id);
-      setRenameValue(board.name);
-    }
-    handleMenuClose();
-    setTimeout(() => renameInputRef.current?.focus(), 50);
-  };
+  const {
+    renamingId,
+    renameValue,
+    renameInputRef,
+    setRenameValue,
+    handleRenameClick,
+    handleRenameSubmit,
+    cancelRename,
+  } = useRenameBoardState(onRenameBoard, handleMenuClose);
 
-  const handleRenameSubmit = () => {
-    if (!renamingId) return;
-    const trimmed = renameValue.trim();
-    if (trimmed) {
-      onRenameBoard(renamingId, trimmed);
-    }
-    setRenamingId(null);
-    setRenameValue("");
-  };
+  const {
+    addingBoard,
+    newBoardName,
+    newBoardError,
+    addInputRef,
+    setNewBoardName,
+    setNewBoardError,
+    handleAddClick,
+    handleAddSubmit,
+    handleAddCancel,
+  } = useAddBoardState(onCreateBoard);
 
   const handleDeleteClick = () => {
     if (menuBoardId && boards.length > 1) {
@@ -112,31 +321,6 @@ export default function BoardSelector({
       }
     }
     handleMenuClose();
-  };
-
-  const handleAddClick = () => {
-    setAddingBoard(true);
-    setNewBoardName("");
-    setNewBoardError("");
-    setTimeout(() => addInputRef.current?.focus(), 50);
-  };
-
-  const handleAddSubmit = () => {
-    const trimmed = newBoardName.trim();
-    if (!trimmed) {
-      setNewBoardError("Name cannot be empty");
-      return;
-    }
-    onCreateBoard(trimmed);
-    setAddingBoard(false);
-    setNewBoardName("");
-    setNewBoardError("");
-  };
-
-  const handleAddCancel = () => {
-    setAddingBoard(false);
-    setNewBoardName("");
-    setNewBoardError("");
   };
 
   return (
@@ -190,27 +374,18 @@ export default function BoardSelector({
                   onChange={(e) => setRenameValue(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleRenameSubmit();
-                    if (e.key === "Escape") {
-                      setRenamingId(null);
-                      setRenameValue("");
-                    }
+                    if (e.key === "Escape") cancelRename();
                     e.stopPropagation();
                   }}
                   onBlur={handleRenameSubmit}
                   InputProps={{
                     disableUnderline: false,
-                    sx: {
-                      fontSize: "0.8125rem",
-                      fontWeight: 500,
-                      width: 100,
-                    },
+                    sx: { fontSize: "0.8125rem", fontWeight: 500, width: 100 },
                   }}
                 />
               )
               : (
-                <Box
-                  sx={{ display: "flex", alignItems: "center", gap: 0.25 }}
-                >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.25 }}>
                   <span>{board.name}</span>
                   {activeCanvasId === board.id && (
                     <IconButton
@@ -232,169 +407,37 @@ export default function BoardSelector({
         ))}
       </Tabs>
 
-      {/* Add board inline */}
-      {addingBoard
-        ? (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.5,
-              flexShrink: 0,
-              ml: 0.5,
-            }}
-          >
-            <TextField
-              inputRef={addInputRef}
-              value={newBoardName}
-              size="small"
-              placeholder="Board name"
-              error={!!newBoardError}
-              autoFocus
-              onChange={(e) => {
-                setNewBoardName(e.target.value);
-                if (newBoardError) setNewBoardError("");
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddSubmit();
-                if (e.key === "Escape") handleAddCancel();
-              }}
-              sx={{
-                width: 140,
-                "& .MuiInputBase-input": {
-                  py: 0.5,
-                  fontSize: "0.8125rem",
-                },
-              }}
-            />
-            <Button
-              size="small"
-              variant="contained"
-              disableElevation
-              onClick={handleAddSubmit}
-              sx={{
-                minWidth: "auto",
-                px: 1.5,
-                py: 0.5,
-                fontSize: "0.75rem",
-                lineHeight: 1.5,
-              }}
-            >
-              Add
-            </Button>
-            <Button
-              size="small"
-              onClick={handleAddCancel}
-              sx={{
-                minWidth: "auto",
-                px: 1,
-                py: 0.5,
-                fontSize: "0.75rem",
-                lineHeight: 1.5,
-              }}
-            >
-              Cancel
-            </Button>
-          </Box>
-        )
-        : (
-          <Tooltip title="New board">
-            <IconButton
-              size="small"
-              onClick={handleAddClick}
-              sx={{ flexShrink: 0 }}
-            >
-              <Add sx={{ fontSize: 18 }} />
-            </IconButton>
-          </Tooltip>
-        )}
+      <AddBoardSection
+        addingBoard={addingBoard}
+        newBoardName={newBoardName}
+        newBoardError={newBoardError}
+        addInputRef={addInputRef}
+        onNameChange={setNewBoardName}
+        onErrorClear={() => setNewBoardError("")}
+        onSubmit={handleAddSubmit}
+        onCancel={handleAddCancel}
+        onAddClick={handleAddClick}
+      />
 
-      {/* Zoom controls pill — shown when zoom props are provided */}
       {(onZoomIn || onZoomOut) && (
-        <>
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              bgcolor: "action.hover",
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: "14px",
-              overflow: "hidden",
-              height: 28,
-              flexShrink: 0,
-            }}
-          >
-            <Tooltip title="Zoom out (Ctrl + −)">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={onZoomOut}
-                  disabled={!canZoomOut}
-                  sx={{ borderRadius: 0, px: 0.5, height: "100%" }}
-                >
-                  <ZoomOut sx={{ fontSize: 15 }} />
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Tooltip title="Reset zoom (Ctrl + 0)">
-              <Typography
-                variant="caption"
-                onClick={onResetZoom}
-                sx={{
-                  px: 0.25,
-                  minWidth: 32,
-                  textAlign: "center",
-                  fontWeight: 600,
-                  fontSize: "11px",
-                  color: "text.secondary",
-                  cursor: "pointer",
-                  userSelect: "none",
-                  lineHeight: 1,
-                  "&:hover": { color: "text.primary" },
-                }}
-              >
-                {Math.round((scale ?? 1) * 100)}%
-              </Typography>
-            </Tooltip>
-            <Tooltip title="Zoom in (Ctrl + =)">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={onZoomIn}
-                  disabled={!canZoomIn}
-                  sx={{ borderRadius: 0, px: 0.5, height: "100%" }}
-                >
-                  <ZoomIn sx={{ fontSize: 15 }} />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </Box>
-        </>
+        <ZoomControls
+          scale={scale}
+          onZoomIn={onZoomIn}
+          onZoomOut={onZoomOut}
+          onResetZoom={onResetZoom}
+          canZoomIn={canZoomIn}
+          canZoomOut={canZoomOut}
+        />
       )}
 
-      {/* Context menu for active board */}
-      <Menu
+      <BoardContextMenu
         anchorEl={menuAnchor}
         open={menuOpen}
         onClose={handleMenuClose}
-        slotProps={{ paper: { elevation: 2 } }}
-      >
-        <MenuItem onClick={handleRenameClick} dense>
-          <DriveFileRenameOutline sx={{ fontSize: 16, mr: 1 }} />
-          Rename
-        </MenuItem>
-        <MenuItem
-          onClick={handleDeleteClick}
-          dense
-          disabled={boards.length <= 1}
-          sx={{ color: boards.length > 1 ? "error.main" : undefined }}
-        >
-          <Delete sx={{ fontSize: 16, mr: 1 }} />
-          Delete
-        </MenuItem>
-      </Menu>
+        onRenameClick={() => handleRenameClick(boards, menuBoardId)}
+        onDeleteClick={handleDeleteClick}
+        canDelete={boards.length > 1}
+      />
     </Box>
   );
 }
