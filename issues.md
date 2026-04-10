@@ -121,21 +121,6 @@ should be created with `createAction()` outside the slice for this purpose.
 
 ---
 
-## 9. `errorInfo: any` in Error Boundary
-
-**Severity: Medium**
-
-In `src/components/EditDocument/index.tsx`:
-
-```ts
-componentDidCatch(error: Error, errorInfo: any)
-```
-
-`React.ErrorInfo` is the correct type. Using `any` defeats TypeScript and
-violates the project's own ESLint rule `@typescript-eslint/no-explicit-any`.
-
----
-
 ## 10. No Error Recovery in `EditorErrorBoundary`
 
 **Severity: Medium**

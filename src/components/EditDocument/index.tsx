@@ -1,6 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
-import { Component, ReactNode, Suspense, useEffect, useState } from "react";
+import { Component, ErrorInfo, ReactNode, Suspense, useEffect, useState } from "react";
 import { EditorSkeleton } from "../EditorSkeleton";
 import SplashScreen from "../SplashScreen";
 
@@ -22,7 +22,7 @@ class EditorErrorBoundary extends Component<
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Editor error:", error, errorInfo);
   }
 
