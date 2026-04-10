@@ -46,19 +46,6 @@ called out in RTK docs. The same pattern appears in `useDocumentLoader.ts` and
 
 ---
 
-## 4. `createdAt: string | Date` Union Type Inconsistency
-
-**Severity: High**
-
-`src/types.ts` defines `EditorDocument.createdAt` and `updatedAt` as
-`string | Date`. This leaks everywhere, forcing runtime type checks
-(`instanceof Date ? .toISOString() : ...`) scattered across
-`loadLocalDocuments`, sort comparators, and sync operations. Dates should be
-normalized to `string` (ISO 8601) at the persistence boundary — the type should
-be `string` throughout.
-
----
-
 ## 5. Direct Mutation of IDB-Fetched Object in `forkLocalDocument`
 
 **Severity: High**
@@ -87,19 +74,6 @@ module-level mutable state. This breaks if multiple editor instances exist,
 leaks across tests, is incompatible with SSR, and entirely bypasses React's
 model. The proper pattern is React Context or passing the callback explicitly
 via props.
-
----
-
-## 7. `isClient` SSR Guard + `dynamic({ ssr: false })` Double Anti-Pattern
-
-**Severity: Medium**
-
-`src/components/EditDocument/index.tsx` uses both
-`dynamic(() => import('./Editor'), { ssr: false })` AND a `useState(false)` +
-`useEffect(() => setIsClient(true))` guard. The dynamic import already handles
-the SSR boundary — the `isClient` pattern adds an extra render cycle needlessly
-and is a known Next.js anti-pattern when `dynamic` with `ssr: false` is already
-present.
 
 ---
 
