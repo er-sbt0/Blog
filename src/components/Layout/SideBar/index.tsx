@@ -1,11 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import {
-  documentsSelectors,
-  type RootState,
-  useSelector,
-} from "@/store";
+import { documentsSelectors, type RootState, useSelector } from "@/store";
 import {
   Avatar,
   Box,

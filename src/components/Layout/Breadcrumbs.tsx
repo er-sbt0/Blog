@@ -26,18 +26,18 @@ interface BreadcrumbItem {
 const Breadcrumbs: React.FC = () => {
   const pathname = usePathname();
 
-  const getBreadcrumbs = React.useCallback((): BreadcrumbItem[] => {
+  const breadcrumbs = React.useMemo((): BreadcrumbItem[] => {
     const segments = pathname.split("/").filter(Boolean);
-    const breadcrumbs: BreadcrumbItem[] = [];
+    const items: BreadcrumbItem[] = [];
 
     if (segments.length === 0) {
-      return breadcrumbs;
+      return items;
     }
 
     // Handle different routes
     switch (segments[0]) {
       case "browse":
-        breadcrumbs.push({
+        items.push({
           label: "Posts",
           href: "/posts",
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
@@ -45,75 +45,75 @@ const Breadcrumbs: React.FC = () => {
         break;
 
       case "posts":
-        breadcrumbs.push({
+        items.push({
           label: "Posts",
           href: "/posts",
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         if (segments.length > 1) {
-          breadcrumbs.push({ label: "Series" });
+          items.push({ label: "Series" });
         }
         break;
 
       case "series":
-        breadcrumbs.push({
+        items.push({
           label: "Series",
           icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         if (segments.length > 1) {
           if (segments.length > 2 && segments[2] === "edit") {
-            breadcrumbs.push({
+            items.push({
               label: "Series Details",
               href: `/series/${segments[1]}`,
             });
-            breadcrumbs.push({ label: "Edit" });
+            items.push({ label: "Edit" });
           } else {
-            breadcrumbs.push({ label: "Series Details" });
+            items.push({ label: "Series Details" });
           }
         }
         break;
 
       case "dashboard":
-        breadcrumbs.push({
+        items.push({
           label: "Dashboard",
           icon: <Dashboard sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         break;
 
       case "new":
-        breadcrumbs.push({
+        items.push({
           label: "New Post",
           icon: <Create sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         break;
 
       case "edit":
-        breadcrumbs.push({
+        items.push({
           label: "Posts",
           href: "/posts",
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
-        breadcrumbs.push({
+        items.push({
           label: "Edit Post",
           icon: <Edit sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         break;
 
       case "view":
-        breadcrumbs.push({
+        items.push({
           label: "Posts",
           href: "/posts",
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
-        breadcrumbs.push({ label: "View Post" });
+        items.push({ label: "View Post" });
         break;
 
       case "user":
-        breadcrumbs.push({ label: "User Profile" });
+        items.push({ label: "User Profile" });
         break;
 
       case "notes":
-        breadcrumbs.push({
+        items.push({
           label: "Notes",
           icon: <StickyNote2 sx={{ fontSize: 16, mr: 0.5 }} />,
         });
@@ -121,14 +121,12 @@ const Breadcrumbs: React.FC = () => {
 
       default:
         // For other routes, just show the segment
-        breadcrumbs.push({ label: segments[0] });
+        items.push({ label: segments[0] });
         break;
     }
 
-    return breadcrumbs;
+    return items;
   }, [pathname]);
-
-  const breadcrumbs = getBreadcrumbs();
 
   // Don't show breadcrumbs on home page
   if (pathname === "/") {

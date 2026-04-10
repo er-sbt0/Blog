@@ -95,7 +95,7 @@ export const PostItem = memo(
                   bgcolor: (theme) =>
                     alpha(
                       theme.palette.action.active,
-                      inSeries ? 0.12 : 0.15
+                      inSeries ? 0.12 : 0.15,
                     ),
                 },
               },
