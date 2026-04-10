@@ -3,7 +3,12 @@ import { useState } from "react";
 import { useAsyncEffect } from "@/hooks/useAsyncEffect";
 import { actions, useDispatch, useSelector } from "@/store";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
-import { type EditorDocument, type DocumentCreateInput, WELCOME_NOTES_EDITOR_STATE } from "@/types";import { v4 as uuidv4 } from "uuid";
+import {
+  type DocumentCreateInput,
+  type EditorDocument,
+  WELCOME_NOTES_EDITOR_STATE,
+} from "@/types";
+import { v4 as uuidv4 } from "uuid";
 
 export function useDocumentLoader(
   id: string | undefined,
@@ -43,8 +48,8 @@ export function useDocumentLoader(
         const cloudResponse = await dispatch(actions.getCloudDocument(docId));
         if (isCancelled()) return;
         if (cloudResponse.type === actions.getCloudDocument.fulfilled.type) {
-          const { cloudDocument: _cloud, ...editorDocument } =
-            cloudResponse.payload as ReturnType<
+          const { cloudDocument: _cloud, ...editorDocument } = cloudResponse
+            .payload as ReturnType<
               typeof actions.getCloudDocument.fulfilled
             >["payload"];
           lastSavedCloud.current = JSON.stringify(editorDocument.data);

@@ -1,10 +1,10 @@
 import { useSelector } from "@/store";
+import { selectAllPosts } from "@/store/selectors/postsSelectors";
 import { UserDocument } from "@/types";
 import { PartitionGranularity, TimeGroup } from "@/types/partitioning";
 import { useState } from "react";
 
-// Import custom hooks
-import { usePostsFiltering } from "./usePostsFiltering";
+// Import custom hooks for parameterised (local-state-driven) transformations
 import { usePostsGrouping } from "./usePostsGrouping";
 import { usePostsSearch } from "./usePostsSearch";
 import { TimeFilterValue, usePostsTimeFilter } from "./usePostsTimeFilter";
@@ -51,8 +51,9 @@ export const usePostsData = (): UsePostsDataReturn => {
   // Get loading state from Redux
   const documentsLoading = useSelector((state) => state.ui.documentsLoading);
 
-  // Use custom filtering hook to get all posts
-  const { allPosts, totalCount } = usePostsFiltering();
+  // Use the memoised selector — re-derives only when documents/series change
+  const allPosts = useSelector(selectAllPosts);
+  const totalCount = allPosts.length;
 
   // Apply time filter first
   const { filteredPosts: timeFilteredPosts } = usePostsTimeFilter({

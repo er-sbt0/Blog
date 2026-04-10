@@ -76,7 +76,10 @@ export function useAvailablePostsSelector(
         .map((p) => p.id)
         .filter((id) => !selectedPosts.has(id));
 
-      await apiClient.series.updatePosts(seriesId, { postsToAdd, postsToRemove });
+      await apiClient.series.updatePosts(seriesId, {
+        postsToAdd,
+        postsToRemove,
+      });
 
       onPostsAdded();
       handleClose();

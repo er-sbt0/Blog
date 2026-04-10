@@ -10,7 +10,10 @@ export function useRenameBoardState(
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
 
-  const handleRenameClick = (boards: CanvasSummary[], menuBoardId: string | null) => {
+  const handleRenameClick = (
+    boards: CanvasSummary[],
+    menuBoardId: string | null,
+  ) => {
     const board = boards.find((b) => b.id === menuBoardId);
     if (board) {
       setRenamingId(board.id);

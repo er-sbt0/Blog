@@ -40,12 +40,19 @@ interface PostListItemProps {
   iconColor?: "primary" | "action";
 }
 
-function PostListItem({ post, checked, onToggle, iconColor = "action" }: PostListItemProps) {
+function PostListItem(
+  { post, checked, onToggle, iconColor = "action" }: PostListItemProps,
+) {
   return (
     <ListItem disablePadding>
       <ListItemButton onClick={() => onToggle(post.id)} dense>
         <ListItemIcon sx={{ minWidth: 40 }}>
-          <Checkbox edge="start" checked={checked} tabIndex={-1} disableRipple />
+          <Checkbox
+            edge="start"
+            checked={checked}
+            tabIndex={-1}
+            disableRipple
+          />
         </ListItemIcon>
         <ListItemIcon sx={{ minWidth: 36 }}>
           <Article color={iconColor} />
@@ -53,7 +60,9 @@ function PostListItem({ post, checked, onToggle, iconColor = "action" }: PostLis
         <ListItemText
           primary={post.name}
           secondary={post.description || (
-            <>Updated <DateDisplay date={post.updatedAt} variant="medium" /></>
+            <>
+              Updated <DateDisplay date={post.updatedAt} variant="medium" />
+            </>
           )}
           primaryTypographyProps={{ fontWeight: 500, noWrap: true }}
           secondaryTypographyProps={{ noWrap: true }}
@@ -88,7 +97,9 @@ function PostListSection({
           {label}
         </Typography>
       </Box>
-      <List sx={{ pt: 0, ...(maxHeight ? { maxHeight, overflow: "auto" } : {}) }}>
+      <List
+        sx={{ pt: 0, ...(maxHeight ? { maxHeight, overflow: "auto" } : {}) }}
+      >
         {posts.map((post) => (
           <PostListItem
             key={post.id}
@@ -124,7 +135,13 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
     handleSelectAll,
     handleAddPosts,
     handleClose,
-  } = useAvailablePostsSelector(open, seriesId, existingPosts, onPostsAdded, onClose);
+  } = useAvailablePostsSelector(
+    open,
+    seriesId,
+    existingPosts,
+    onPostsAdded,
+    onClose,
+  );
 
   const allPostCount = existingPosts.length + availablePosts.length;
 
@@ -185,10 +202,17 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
                 }}
               >
                 <Typography variant="body2" color="text.secondary">
-                  {existingPosts.length} in series · {availablePosts.length} available
+                  {existingPosts.length} in series · {availablePosts.length}
+                  {" "}
+                  available
                 </Typography>
-                <Button size="small" onClick={() => handleSelectAll(allPostCount)}>
-                  {selectedPosts.size === allPostCount ? "Deselect All" : "Select All"}
+                <Button
+                  size="small"
+                  onClick={() => handleSelectAll(allPostCount)}
+                >
+                  {selectedPosts.size === allPostCount
+                    ? "Deselect All"
+                    : "Select All"}
                 </Button>
               </Box>
 

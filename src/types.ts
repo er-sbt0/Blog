@@ -175,7 +175,7 @@ export const EMPTY_EDITOR_STATE: SerializedEditorState = {
   },
 };
 
-export const WELCOME_NOTES_EDITOR_STATE: SerializedEditorState = {
+export const WELCOME_NOTES_EDITOR_STATE = {
   root: {
     children: [
       {
@@ -185,7 +185,8 @@ export const WELCOME_NOTES_EDITOR_STATE: SerializedEditorState = {
             format: 0,
             mode: "normal",
             style: "",
-            text: "Welcome to your personal notes! This document will automatically save your changes.",
+            text:
+              "Welcome to your personal notes! This document will automatically save your changes.",
             type: "text",
             version: 1,
           },
@@ -203,7 +204,7 @@ export const WELCOME_NOTES_EDITOR_STATE: SerializedEditorState = {
     type: "root",
     version: 1,
   },
-};
+} as unknown as SerializedEditorState;
 
 export interface User {
   id: string;

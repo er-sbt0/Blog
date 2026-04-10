@@ -52,7 +52,9 @@ export function useCloudSave(
         actions.createCloudRevision(revision),
       );
 
-      if (revisionResponse.type === actions.createCloudRevision.fulfilled.type) {
+      if (
+        revisionResponse.type === actions.createCloudRevision.fulfilled.type
+      ) {
         const docResponse = await dispatch(
           actions.updateCloudDocument(documentUpdate),
         );

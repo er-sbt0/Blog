@@ -4,7 +4,7 @@ import { Add, ArticleOutlined } from "@mui/icons-material";
 import { UserDocument } from "@/types";
 import htmr from "htmr";
 import { DateDisplay } from "@/components/DateDisplay";
-import { useReadmeData, ReadmeData } from "./hooks/useReadmeData";
+import { ReadmeData, useReadmeData } from "./hooks/useReadmeData";
 import { useCreateReadme } from "./hooks/useCreateReadme";
 
 interface ReadmePreviewCardProps {
@@ -142,7 +142,12 @@ function ReadmeEmptyState({ creating, error }: ReadmeEmptyStateProps) {
         : (
           <>
             <Add
-              sx={{ fontSize: 40, color: "text.secondary", opacity: 0.4, mb: 1 }}
+              sx={{
+                fontSize: 40,
+                color: "text.secondary",
+                opacity: 0.4,
+                mb: 1,
+              }}
             />
             <Typography
               variant="body2"
@@ -210,7 +215,11 @@ export default function ReadmePreviewCard({
           <ArticleOutlined sx={{ fontSize: 20, color: "text.secondary" }} />
           <Typography
             variant="subtitle1"
-            sx={{ fontWeight: 500, color: "text.primary", letterSpacing: "-0.01em" }}
+            sx={{
+              fontWeight: 500,
+              color: "text.primary",
+              letterSpacing: "-0.01em",
+            }}
           >
             README
           </Typography>
@@ -228,7 +237,13 @@ export default function ReadmePreviewCard({
         }}
       >
         {readme
-          ? <ReadmeContent readme={readme} html={html} loadingHtml={loadingHtml} />
+          ? (
+            <ReadmeContent
+              readme={readme}
+              html={html}
+              loadingHtml={loadingHtml}
+            />
+          )
           : <ReadmeEmptyState creating={creating} error={error} />}
       </Box>
     </Box>

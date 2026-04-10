@@ -39,7 +39,12 @@ function CollapsedView({
   return (
     <Box
       onClick={onToggle}
-      sx={{ display: "flex", flexDirection: "column", height: "100%", cursor: "pointer" }}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        cursor: "pointer",
+      }}
     >
       <Box
         sx={{
@@ -154,12 +159,13 @@ function ExpandedView({
             flex: 1,
             overflowY: "auto",
             "&::-webkit-scrollbar": { width: 4 },
-            "&::-webkit-scrollbar-thumb": { bgcolor: "divider", borderRadius: 2 },
+            "&::-webkit-scrollbar-thumb": {
+              bgcolor: "divider",
+              borderRadius: 2,
+            },
           }}
         >
-          {sortedPosts.map((doc) => (
-            <DocItem key={doc.id} document={doc} />
-          ))}
+          {sortedPosts.map((doc) => <DocItem key={doc.id} document={doc} />)}
         </Box>
       </Box>
 
@@ -187,14 +193,21 @@ function ExpandedView({
           }),
         }}
       >
-        <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 600, color: "text.primary" }}
+        >
           {series.title}
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {collapsible && (
             <Typography
               variant="body2"
-              sx={{ color: "primary.main", fontWeight: 500, fontSize: "0.8rem" }}
+              sx={{
+                color: "primary.main",
+                fontWeight: 500,
+                fontSize: "0.8rem",
+              }}
             >
               Collapse
             </Typography>
@@ -242,11 +255,15 @@ function SeriesContextMenu({
       transformOrigin={{ vertical: "top", horizontal: "right" }}
     >
       <MenuItem onClick={onEdit}>
-        <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
+        <ListItemIcon>
+          <Edit fontSize="small" />
+        </ListItemIcon>
         <ListItemText>Edit</ListItemText>
       </MenuItem>
       <MenuItem onClick={onDelete} sx={{ color: "error.main" }}>
-        <ListItemIcon><Delete fontSize="small" sx={{ color: "error.main" }} /></ListItemIcon>
+        <ListItemIcon>
+          <Delete fontSize="small" sx={{ color: "error.main" }} />
+        </ListItemIcon>
         <ListItemText>Delete</ListItemText>
       </MenuItem>
     </Menu>
@@ -276,10 +293,22 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   const isAuthor = !!user && user.id === series.authorId;
 
   const { isCollapsed, sortedPosts, handleToggle, handleCardClick } =
-    useCompactVariantState(posts, defaultExpanded, series.id, onExpand, onCollapse);
+    useCompactVariantState(
+      posts,
+      defaultExpanded,
+      series.id,
+      onExpand,
+      onCollapse,
+    );
 
-  const { anchorEl, menuOpen, handleOpenMenu, handleCloseMenu, handleEdit, handleDelete } =
-    useSeriesActions(series);
+  const {
+    anchorEl,
+    menuOpen,
+    handleOpenMenu,
+    handleCloseMenu,
+    handleEdit,
+    handleDelete,
+  } = useSeriesActions(series);
 
   return (
     <Box
