@@ -1,6 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
-import { Alert, PatchUserResponse, User } from "@/types";
+import { Alert, User } from "@/types";
 import NProgress from "nprogress";
+import { apiClient } from "@/api";
 
 const toErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : "Unknown error";
@@ -14,13 +15,7 @@ export const updateUser = createAsyncThunk(
     try {
       NProgress.start();
       const { id, partial } = payloadCreator;
-      const response = await fetch(`/api/users/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(partial),
-      });
-      const { data, error } = await response.json() as PatchUserResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
+      const data = await apiClient.users.update(id, partial);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",

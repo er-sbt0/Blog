@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { Series } from "@/types";
+import { apiClient } from "@/api";
 
 interface EditSeriesFormProps {
   series: Series;
@@ -43,22 +44,11 @@ export default function EditSeriesForm(
     setError(null);
 
     try {
-      const response = await fetch(`/api/series/${series.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim() || undefined,
-          createdAt: new Date(createdAt).toISOString(),
-        }),
+      await apiClient.series.update(series.id, {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        createdAt: new Date(createdAt).toISOString(),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.title || "Failed to update series");
-      }
 
       router.push(`/series/${series.id}`);
     } catch (err) {
@@ -89,14 +79,7 @@ export default function EditSeriesForm(
     setError(null);
 
     try {
-      const response = await fetch(`/api/series/${series.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.title || "Failed to delete series");
-      }
+      await apiClient.series.delete(series.id);
 
       router.push("/series");
     } catch (err) {

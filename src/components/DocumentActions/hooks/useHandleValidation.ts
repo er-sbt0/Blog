@@ -2,7 +2,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { debounce } from "@mui/material/utils";
 import { validate } from "uuid";
-import { CheckHandleResponse } from "@/types";
+import { apiClient, ApiClientError } from "@/api";
 
 export function useHandleValidation(
   currentHandle: string | null,
@@ -25,19 +25,19 @@ export function useHandleValidation(
     () =>
       debounce(async (handle: string) => {
         try {
-          const response = await fetch(`${checkEndpoint}?handle=${handle}`);
-          const { error } = (await response.json()) as CheckHandleResponse;
-          if (error) {
+          await apiClient.documents.checkHandle(handle, checkEndpoint);
+          setValidationErrors({});
+        } catch (err) {
+          if (err instanceof ApiClientError && err.details) {
+            const { title, subtitle } = err.details;
             setValidationErrors({
-              handle: `${error.title}: ${error.subtitle}`,
+              handle: subtitle ? `${title}: ${subtitle}` : title,
             });
           } else {
-            setValidationErrors({});
+            setValidationErrors({
+              handle: "Something went wrong: Please try again later",
+            });
           }
-        } catch {
-          setValidationErrors({
-            handle: "Something went wrong: Please try again later",
-          });
         }
         setValidating(false);
       }, 500),

@@ -7,7 +7,6 @@ import {
   AppState,
   BackupDocument,
   CloudDocumentRevision,
-  DeleteRevisionResponse,
   Document,
   DocumentCreateInput,
   DocumentStorageUsage,
@@ -15,22 +14,10 @@ import {
   EditorDocument,
   EditorDocumentRevision,
   EMPTY_EDITOR_STATE,
-  ForkDocumentResponse,
-  GetDocumentStorageUsageResponse,
-  GetDocumentThumbnailResponse,
-  GetRevisionResponse,
-  GetSessionResponse,
-  PostRevisionResponse,
   UserDocument,
 } from "../types";
-import {
-  DeleteDocumentResponse,
-  GetDocumentResponse,
-  GetDocumentsResponse,
-  PatchDocumentResponse,
-  PostDocumentsResponse,
-  Series,
-} from "@/types";
+import { Series } from "@/types";
+import { apiClient } from "@/api";
 import { validate } from "uuid";
 import { duplicateDocument } from "./app/duplicateDocument";
 import {
@@ -79,8 +66,7 @@ export const loadSession = createAsyncThunk(
   "app/loadSession",
   async (_, thunkAPI) => {
     try {
-      const response = await fetch("/api/auth/session");
-      const data = await response.json() as GetSessionResponse;
+      const data = await apiClient.auth.getSession();
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -169,12 +155,8 @@ export const loadCloudDocuments = createAsyncThunk(
           payloadCreator,
         );
       }
-      const response = await fetch("/api/documents");
-      const { data, error } = await response
-        .json() as GetDocumentsResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
-      if (!data) return thunkAPI.fulfillWithValue([]);
-      return thunkAPI.fulfillWithValue(data);
+      const data = await apiClient.documents.list();
+      return thunkAPI.fulfillWithValue(data ?? []);
     } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
@@ -220,10 +202,7 @@ export async function fetchLocalStorageUsage(): Promise<
 export async function fetchCloudStorageUsage(): Promise<
   DocumentStorageUsage[]
 > {
-  const response = await fetch("/api/usage");
-  const { data, error } = await response
-    .json() as GetDocumentStorageUsageResponse;
-  if (error) throw new Error(error.subtitle ?? error.title);
+  const data = await apiClient.storage.getUsage();
   if (!data) throw new Error("failed to get cloud storage usage");
   return data;
 }
@@ -262,10 +241,7 @@ export const getCloudDocumentThumbnail = createAsyncThunk(
   "app/getCloudDocumentThumbnail",
   async (id: string, thunkAPI) => {
     try {
-      const response = await fetch(`/api/thumbnails/${id}`);
-      const { data, error } = await response
-        .json() as GetDocumentThumbnailResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
+      const data = await apiClient.thumbnails.get(id);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -351,10 +327,7 @@ export const getCloudDocument = createAsyncThunk(
   async (id: string, thunkAPI) => {
     try {
       NProgress.start();
-      const response = await fetch(`/api/documents/${id}`);
-      const { data, error } = await response
-        .json() as GetDocumentResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
+      const data = await apiClient.documents.get(id);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -379,10 +352,7 @@ export const getCloudRevision = createAsyncThunk(
   async (id: string, thunkAPI) => {
     try {
       NProgress.start();
-      const response = await fetch(`/api/revisions/${id}`);
-      const { data, error } = await response
-        .json() as GetRevisionResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
+      const data = await apiClient.revisions.get(id);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -454,12 +424,7 @@ export const forkCloudDocument = createAsyncThunk(
     try {
       const { id, revisionId } = payloadCreator;
       NProgress.start();
-      const response = await fetch(
-        `/api/documents/new/${id}${revisionId ? `?v=${revisionId}` : ""}`,
-      );
-      const { data, error } = await response
-        .json() as ForkDocumentResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
+      const data = await apiClient.documents.fork(id, revisionId);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -550,14 +515,7 @@ export const createCloudDocument = createAsyncThunk(
   async (payloadCreator: DocumentCreateInput, thunkAPI) => {
     try {
       NProgress.start();
-      const response = await fetch("/api/documents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payloadCreator),
-      });
-      const { data, error } = await response
-        .json() as PostDocumentsResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
+      const data = await apiClient.documents.create(payloadCreator);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -582,14 +540,7 @@ export const createCloudRevision = createAsyncThunk(
   async (revision: EditorDocumentRevision, thunkAPI) => {
     try {
       NProgress.start();
-      const response = await fetch("/api/revisions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(revision),
-      });
-      const { data, error } = await response
-        .json() as PostRevisionResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
+      const data = await apiClient.revisions.create(revision);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -728,13 +679,7 @@ export const updateCloudDocument = createAsyncThunk(
     try {
       NProgress.start();
       const { id, partial } = payloadCreator;
-      const response = await fetch(`/api/documents/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(partial),
-      });
-      const { data, error } = await response.json() as PatchDocumentResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
+      const data = await apiClient.documents.update(id, partial);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -792,12 +737,7 @@ export const deleteCloudDocument = createAsyncThunk(
   async (id: string, thunkAPI) => {
     try {
       NProgress.start();
-      const response = await fetch(`/api/documents/${id}`, {
-        method: "DELETE",
-      });
-      const { data, error } = await response
-        .json() as DeleteDocumentResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
+      const data = await apiClient.documents.delete(id);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -822,13 +762,7 @@ export const deleteCloudRevision = createAsyncThunk(
   async (payloadCreator: { id: string; documentId: string }, thunkAPI) => {
     try {
       NProgress.start();
-      const response = await fetch(
-        `/api/revisions/${payloadCreator.id}`,
-        { method: "DELETE" },
-      );
-      const { data, error } = await response
-        .json() as DeleteRevisionResponse;
-      if (error) return thunkAPI.rejectWithValue(error);
+      const data = await apiClient.revisions.delete(payloadCreator.id);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",

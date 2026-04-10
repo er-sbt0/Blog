@@ -2,6 +2,7 @@ import { UserDocument } from "@/types";
 import { generateHtml } from "@/editor/utils/generateHtml";
 import documentDB from "@/indexeddb";
 import thumbnailCache from "./thumbnailCache";
+import { apiClient } from "@/api";
 
 /**
  * Enhanced thumbnail loading with improved fallback strategies
@@ -115,18 +116,9 @@ const loadFromAPI = async (
 ): Promise<string | null> => {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const response = await fetch(`/api/thumbnails/${documentId}`, {
-        // Add cache headers for better performance
-        headers: {
-          "Cache-Control": "max-age=300", // 5 minutes cache
-        },
-      });
-
-      if (response.ok) {
-        const { data } = await response.json();
-        if (data) {
-          return data;
-        }
+      const data = await apiClient.thumbnails.get(documentId);
+      if (data) {
+        return data;
       }
 
       // If not successful and we have retries left, wait before retry

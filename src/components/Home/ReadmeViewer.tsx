@@ -7,6 +7,7 @@ import ViewDocument from "@/components/ViewDocument";
 import htmr from "htmr";
 import { Document, UserDocument } from "@/types";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
+import { apiClient } from "@/api";
 
 interface ReadmeViewerProps {
   documents: UserDocument[];
@@ -44,18 +45,10 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
 
       // README not in documents - try to fetch it from API
       try {
-        const response = await fetch("/api/documents");
-        if (!response.ok) {
-          if (!cancelled) {
-            setReadmeDocId(null);
-            setLoading(false);
-          }
-          return;
-        }
-        const { data } = await response.json();
+        const data = await apiClient.documents.list();
         if (cancelled) return;
 
-        const readmeFromApi = data?.find((doc: any) =>
+        const readmeFromApi = data?.find((doc: Document) =>
           doc.name?.toLowerCase() === "readme"
         );
 
@@ -100,35 +93,21 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
 
       try {
         // Step 1: Fetch the document to get revision data
-        const docResponse = await fetch(`/api/documents/${readmeDocId}`);
-        if (!docResponse.ok) {
-          throw new Error("Failed to fetch document");
-        }
-        const docData = await docResponse.json();
+        const docResult = await apiClient.documents.get(readmeDocId);
 
         if (cancelled) return;
 
-        if (!docData.data?.data?.root || !docData.data?.cloudDocument) {
+        if (!docResult?.data?.root || !docResult?.cloudDocument) {
           throw new Error("Invalid document data");
         }
 
         // Step 2: Use the embed API to generate HTML from the editor state
-        const embedResponse = await fetch("/api/embed", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(docData.data.data),
-        });
-
-        if (!embedResponse.ok) {
-          throw new Error("Failed to generate HTML");
-        }
+        const html = await apiClient.embed.render(docResult.data);
 
         if (cancelled) return;
 
-        const html = await embedResponse.text();
-
         setReadme({
-          cloudDocument: docData.data.cloudDocument,
+          cloudDocument: docResult.cloudDocument,
           html,
         });
       } catch (err) {

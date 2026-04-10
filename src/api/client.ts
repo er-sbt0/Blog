@@ -1,0 +1,401 @@
+/**
+ * Central API client for all `/api/*` routes.
+ *
+ * - Every route is accessed through a typed, named method — no raw URL strings
+ *   scattered across the codebase.
+ * - All methods throw `ApiClientError` on HTTP errors or API-level `error`
+ *   responses, so callers just need a single `try/catch`.
+ * - Easy to mock in tests: `apiClient.documents.list = jest.fn(...)`.
+ */
+
+import type { SerializedEditorState } from "lexical";
+import type {
+  CheckHandleResponse,
+  CloudDocumentRevision,
+  DeleteDocumentResponse,
+  DeleteRevisionResponse,
+  Document,
+  DocumentCreateInput,
+  DocumentStorageUsage,
+  DocumentUpdateInput,
+  EditorDocument,
+  EditorDocumentRevision,
+  ForkDocumentResponse,
+  GetDocumentStorageUsageResponse,
+  GetDocumentThumbnailResponse,
+  GetRevisionResponse,
+  GetSeriesResponse,
+  GetSessionResponse,
+  PatchDocumentResponse,
+  PatchUserResponse,
+  PostDocumentsResponse,
+  PostRevisionResponse,
+  PostSeriesResponse,
+  Series,
+  User,
+  UserDocument,
+} from "@/types";
+
+import type {
+  ApiError,
+  AttachmentData,
+  CreateNoteInput,
+  CreateNoteResponse,
+  DeleteSeriesResponse,
+  GetNotesCanvasResponse,
+  NotesCanvas,
+  UpdatePostTimesInput,
+  UpdateSeriesPostsInput,
+} from "./types";
+
+// ---------------------------------------------------------------------------
+// Error class
+// ---------------------------------------------------------------------------
+
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode?: number,
+    public readonly details?: ApiError,
+  ) {
+    super(message);
+    this.name = "ApiClientError";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Low-level helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetches `url`, throws `ApiClientError` on non-2xx, and returns the
+ * `data` field of the JSON body (the standard `{ data?, error? }` envelope).
+ */
+async function request<T>(
+  url: string,
+  options?: RequestInit,
+): Promise<T | undefined> {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    let details: ApiError | undefined;
+    try {
+      const body = await res.json();
+      details = body?.error;
+    } catch {
+      // ignore parse failure
+    }
+    const msg = details
+      ? details.subtitle
+        ? `${details.title}: ${details.subtitle}`
+        : details.title
+      : `Request failed with status ${res.status}`;
+    throw new ApiClientError(msg, res.status, details);
+  }
+  const body = (await res.json()) as { data?: T; error?: ApiError };
+  if (body.error) {
+    const { error } = body;
+    const msg = error.subtitle
+      ? `${error.title}: ${error.subtitle}`
+      : error.title;
+    throw new ApiClientError(msg, res.status, error);
+  }
+  return body.data;
+}
+
+/**
+ * Like `request` but returns the raw JSON body without unwrapping `data`.
+ * Used for endpoints whose response is not in the `{ data }` envelope
+ * (e.g. NextAuth `/api/auth/session`).
+ */
+async function requestRaw<T>(
+  url: string,
+  options?: RequestInit,
+): Promise<T> {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    let details: ApiError | undefined;
+    try {
+      const body = await res.json();
+      details = body?.error;
+    } catch {
+      // ignore
+    }
+    const msg = details
+      ? details.subtitle
+        ? `${details.title}: ${details.subtitle}`
+        : details.title
+      : `Request failed with status ${res.status}`;
+    throw new ApiClientError(msg, res.status, details);
+  }
+  return res.json() as Promise<T>;
+}
+
+/** Fetches and returns the response body as plain text. Throws on non-2xx. */
+async function requestText(
+  url: string,
+  options?: RequestInit,
+): Promise<string> {
+  const res = await fetch(url, options);
+  if (!res.ok) {
+    throw new ApiClientError(
+      `Request failed with status ${res.status}`,
+      res.status,
+    );
+  }
+  return res.text();
+}
+
+/** Build JSON POST/PATCH bodies. */
+function json(body: unknown): RequestInit {
+  return {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Public API client
+// ---------------------------------------------------------------------------
+
+export const apiClient = {
+  // -------------------------------------------------------------------------
+  // Auth
+  // -------------------------------------------------------------------------
+  auth: {
+    /** GET /api/auth/session */
+    getSession: (): Promise<GetSessionResponse> =>
+      requestRaw<GetSessionResponse>("/api/auth/session"),
+  },
+
+  // -------------------------------------------------------------------------
+  // Documents
+  // -------------------------------------------------------------------------
+  documents: {
+    /** GET /api/documents */
+    list: (): Promise<Document[] | undefined> =>
+      request<Document[]>("/api/documents", { cache: "no-store" }),
+
+    /** GET /api/documents/:id */
+    get: (
+      id: string,
+    ): Promise<(EditorDocument & { cloudDocument: Document }) | undefined> =>
+      request<EditorDocument & { cloudDocument: Document }>(
+        `/api/documents/${id}`,
+      ),
+
+    /** POST /api/documents */
+    create: (input: DocumentCreateInput): Promise<Document | undefined> =>
+      request<Document>("/api/documents", { method: "POST", ...json(input) }),
+
+    /** PATCH /api/documents/:id */
+    update: (
+      id: string,
+      partial: DocumentUpdateInput,
+    ): Promise<Document | undefined> =>
+      request<Document>(`/api/documents/${id}`, {
+        method: "PATCH",
+        ...json(partial),
+      }),
+
+    /** DELETE /api/documents/:id */
+    delete: (id: string): Promise<string | undefined> =>
+      request<string>(`/api/documents/${id}`, { method: "DELETE" }),
+
+    /**
+     * GET /api/documents/check?handle=:handle
+     * Pass a custom `endpoint` to target a different check route.
+     */
+    checkHandle: (
+      handle: string,
+      endpoint = "/api/documents/check",
+    ): Promise<boolean | undefined> =>
+      request<boolean>(`${endpoint}?handle=${handle}`),
+
+    /**
+     * GET /api/documents/new/:id  (optionally ?v=:revisionId)
+     * Returns a fork of the document, optionally at a specific revision.
+     */
+    fork: (
+      id: string,
+      revisionId?: string | null,
+    ): Promise<(UserDocument & { data: SerializedEditorState }) | undefined> =>
+      request<UserDocument & { data: SerializedEditorState }>(
+        `/api/documents/new/${id}${revisionId ? `?v=${revisionId}` : ""}`,
+      ),
+
+    /**
+     * POST /api/documents/:documentId/attachments  (multipart/form-data)
+     * NOTE: Do NOT set Content-Type — the browser must set it with the boundary.
+     */
+    uploadAttachment: (
+      documentId: string,
+      file: File,
+    ): Promise<AttachmentData | undefined> => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return request<AttachmentData>(
+        `/api/documents/${documentId}/attachments`,
+        { method: "POST", body: formData },
+      );
+    },
+  },
+
+  // -------------------------------------------------------------------------
+  // Revisions
+  // -------------------------------------------------------------------------
+  revisions: {
+    /** GET /api/revisions/:id */
+    get: (id: string): Promise<EditorDocumentRevision | undefined> =>
+      request<EditorDocumentRevision>(`/api/revisions/${id}`),
+
+    /** POST /api/revisions */
+    create: (
+      revision: EditorDocumentRevision,
+    ): Promise<CloudDocumentRevision | undefined> =>
+      request<CloudDocumentRevision>("/api/revisions", {
+        method: "POST",
+        ...json(revision),
+      }),
+
+    /** DELETE /api/revisions/:id */
+    delete: (
+      id: string,
+    ): Promise<{ id: string; documentId: string } | undefined> =>
+      request<{ id: string; documentId: string }>(`/api/revisions/${id}`, {
+        method: "DELETE",
+      }),
+  },
+
+  // -------------------------------------------------------------------------
+  // Series
+  // -------------------------------------------------------------------------
+  series: {
+    /** GET /api/series */
+    list: (): Promise<Series[] | undefined> =>
+      request<Series[]>("/api/series"),
+
+    /** GET /api/series/:id */
+    get: (id: string): Promise<Series | undefined> =>
+      request<Series>(`/api/series/${id}`),
+
+    /** POST /api/series */
+    create: (input: {
+      title: string;
+      description?: string;
+    }): Promise<Series | undefined> =>
+      request<Series>("/api/series", { method: "POST", ...json(input) }),
+
+    /** PATCH /api/series/:id */
+    update: (
+      id: string,
+      data: { title?: string; description?: string; createdAt?: string },
+    ): Promise<Series | undefined> =>
+      request<Series>(`/api/series/${id}`, { method: "PATCH", ...json(data) }),
+
+    /** DELETE /api/series/:id */
+    delete: (id: string): Promise<string | undefined> =>
+      request<string>(`/api/series/${id}`, { method: "DELETE" }),
+
+    /** GET /api/series/available-posts */
+    availablePosts: (): Promise<Document[] | undefined> =>
+      request<Document[]>("/api/series/available-posts"),
+
+    /** PATCH /api/series/:id/posts */
+    updatePosts: (
+      id: string,
+      payload: UpdateSeriesPostsInput,
+    ): Promise<undefined> =>
+      request<undefined>(`/api/series/${id}/posts`, {
+        method: "PATCH",
+        ...json(payload),
+      }),
+  },
+
+  // -------------------------------------------------------------------------
+  // Posts
+  // -------------------------------------------------------------------------
+  posts: {
+    /** POST /api/posts/update-times */
+    updateTimes: (updates: UpdatePostTimesInput["updates"]): Promise<undefined> =>
+      request<undefined>("/api/posts/update-times", {
+        method: "POST",
+        ...json({ updates }),
+      }),
+  },
+
+  // -------------------------------------------------------------------------
+  // Users
+  // -------------------------------------------------------------------------
+  users: {
+    /** PATCH /api/users/:id */
+    update: (id: string, data: Partial<User>): Promise<User | undefined> =>
+      request<User>(`/api/users/${id}`, { method: "PATCH", ...json(data) }),
+  },
+
+  // -------------------------------------------------------------------------
+  // Storage usage
+  // -------------------------------------------------------------------------
+  storage: {
+    /** GET /api/usage */
+    getUsage: (): Promise<DocumentStorageUsage[] | undefined> =>
+      request<DocumentStorageUsage[]>("/api/usage"),
+  },
+
+  // -------------------------------------------------------------------------
+  // Thumbnails
+  // -------------------------------------------------------------------------
+  thumbnails: {
+    /**
+     * GET /api/thumbnails/:documentId
+     * Sends Cache-Control: max-age=300 to match the per-call hint used
+     * previously in postHelpers.ts.
+     */
+    get: (documentId: string): Promise<string | undefined> =>
+      request<string>(`/api/thumbnails/${documentId}`, {
+        headers: { "Cache-Control": "max-age=300" },
+      }),
+  },
+
+  // -------------------------------------------------------------------------
+  // Embed (HTML rendering)
+  // -------------------------------------------------------------------------
+  embed: {
+    /** POST /api/embed — returns raw HTML text */
+    render: (state: SerializedEditorState): Promise<string> =>
+      requestText("/api/embed", { method: "POST", ...json(state) }),
+  },
+
+  // -------------------------------------------------------------------------
+  // Notes
+  // -------------------------------------------------------------------------
+  notes: {
+    /** GET /api/notes/canvas */
+    getCanvas: (): Promise<NotesCanvas | undefined> =>
+      request<NotesCanvas>("/api/notes/canvas"),
+
+    /** POST /api/notes */
+    create: (note: CreateNoteInput): Promise<unknown> =>
+      request<unknown>("/api/notes", { method: "POST", ...json(note) }),
+  },
+} as const;
+
+// Re-export types consumers may need when catching errors
+export type { ApiError };
+export type {
+  CheckHandleResponse,
+  DeleteDocumentResponse,
+  DeleteRevisionResponse,
+  ForkDocumentResponse,
+  GetDocumentStorageUsageResponse,
+  GetDocumentThumbnailResponse,
+  GetRevisionResponse,
+  GetSeriesResponse,
+  GetSessionResponse,
+  PatchDocumentResponse,
+  PatchUserResponse,
+  PostDocumentsResponse,
+  PostRevisionResponse,
+  PostSeriesResponse,
+  DeleteSeriesResponse,
+  UpdateSeriesPostsInput,
+};

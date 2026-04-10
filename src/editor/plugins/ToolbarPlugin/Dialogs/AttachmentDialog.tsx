@@ -19,6 +19,7 @@ import {
 import { Add, AttachFile, UploadFile } from "@mui/icons-material";
 import { ANNOUNCE_COMMAND } from "@/editor/commands";
 import { INSERT_ATTACHMENT_COMMAND } from "@/editor/plugins/AttachmentPlugin";
+import { apiClient } from "@/api";
 
 function AttachmentDialog({ editor }: { editor: LexicalEditor }) {
   const theme = useTheme();
@@ -82,24 +83,15 @@ function AttachmentDialog({ editor }: { editor: LexicalEditor }) {
       }
 
       // Upload file
-      const formData = new FormData();
-      formData.append("file", selectedFile);
+      const attachment = await apiClient.documents.uploadAttachment(
+        documentId,
+        selectedFile,
+      );
 
-      const response = await fetch(`/api/documents/${documentId}/attachments`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        const errorMessage = responseData.error?.subtitle ||
-          responseData.error?.title || "Upload failed";
-        throw new Error(errorMessage);
-      }
+      if (!attachment) throw new Error("Upload failed");
 
       // Insert attachment node
-      const { url, filename, mimetype, size } = responseData.data;
+      const { url, filename, mimetype, size } = attachment;
       editor.dispatchCommand(INSERT_ATTACHMENT_COMMAND, {
         url,
         filename,
@@ -146,24 +138,15 @@ function AttachmentDialog({ editor }: { editor: LexicalEditor }) {
       const file = new File([blob], blankFilename, { type: "text/plain" });
 
       // Upload the blank file
-      const formData = new FormData();
-      formData.append("file", file);
+      const attachment = await apiClient.documents.uploadAttachment(
+        documentId,
+        file,
+      );
 
-      const response = await fetch(`/api/documents/${documentId}/attachments`, {
-        method: "POST",
-        body: formData,
-      });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        const errorMessage = responseData.error?.subtitle ||
-          responseData.error?.title || "Upload failed";
-        throw new Error(errorMessage);
-      }
+      if (!attachment) throw new Error("Upload failed");
 
       // Insert attachment node with editing enabled
-      const { url, filename, mimetype, size } = responseData.data;
+      const { url, filename, mimetype, size } = attachment;
       editor.dispatchCommand(INSERT_ATTACHMENT_COMMAND, {
         url,
         filename,

@@ -15,6 +15,7 @@ import { useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { DateDisplay } from "@/components/DateDisplay";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
+import { apiClient } from "@/api";
 
 interface KanbanBoardProps {
   documents: UserDocument[];
@@ -78,11 +79,7 @@ export default function KanbanBoard(
     try {
       const published = columnId === "published";
 
-      await fetch(`/api/documents/${draggedDoc.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ published }),
-      });
+      await apiClient.documents.update(draggedDoc.id, { published });
 
       // Refresh documents to show updated data
       await onRefresh();

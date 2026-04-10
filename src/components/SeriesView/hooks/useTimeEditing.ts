@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { PendingTimeChange } from "../components/PostsCompactListView";
 import { Document } from "@/types";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
+import { apiClient } from "@/api";
 
 export function useTimeEditing(posts: Document[]) {
   const router = useRouter();
@@ -55,18 +56,12 @@ export function useTimeEditing(posts: Document[]) {
     if (pendingTimeChanges.size === 0) return;
     setIsSavingTimeChanges(true);
     try {
-      const updates = Array.from(pendingTimeChanges.entries()).map((
-        [id, change],
-      ) => ({
-        id,
-        createdAt: change.newDate,
-      }));
-      const response = await fetch("/api/posts/update-times", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates }),
-      });
-      if (!response.ok) throw new Error("Failed to update times");
+      await apiClient.posts.updateTimes(
+        Array.from(pendingTimeChanges.entries()).map(([id, change]) => ({
+          id,
+          createdAt: change.newDate,
+        }))
+      );
       setPendingTimeChanges(new Map());
       setIsTimeEditMode(false);
       router.refresh();

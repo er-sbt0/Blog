@@ -1,5 +1,6 @@
 import { getStore } from "@/indexeddb";
 import { Note, NotesCanvas } from "@/types/notes";
+import { apiClient } from "@/api";
 
 const NOTES_STORE = "notesCanvas";
 const DEFAULT_CANVAS_ID = "default";
@@ -69,38 +70,20 @@ export async function migrateNotesFromIndexedDB(): Promise<MigrationResult> {
     }
 
     // Get or create backend canvas
-    const canvasResponse = await fetch("/api/notes/canvas");
-    const canvasData = await canvasResponse.json();
-
-    if (!canvasResponse.ok) {
-      throw new Error(canvasData.error?.subtitle || "Failed to get canvas");
-    }
-
-    const backendCanvas = canvasData.data;
+    const backendCanvas = await apiClient.notes.getCanvas();
 
     // Create notes on backend (batch or individually)
     const migrationPromises = canvas.notes.map(async (note) => {
-      const response = await fetch("/api/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          positionX: note.position.x,
-          positionY: note.position.y,
-          width: note.size.width,
-          height: note.size.height,
-          title: note.title,
-          content: note.content,
-          color: note.color,
-          zIndex: note.zIndex,
-        }),
+      await apiClient.notes.create({
+        positionX: note.position.x,
+        positionY: note.position.y,
+        width: note.size.width,
+        height: note.size.height,
+        title: note.title,
+        content: note.content,
+        color: note.color,
+        zIndex: note.zIndex,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.subtitle || "Failed to create note");
-      }
-
-      return response.json();
     });
 
     await Promise.all(migrationPromises);

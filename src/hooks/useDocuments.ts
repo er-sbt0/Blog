@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { UserDocument } from "@/types";
+import { apiClient } from "@/api";
 
 interface UseDocumentsResult {
   documents: UserDocument[];
@@ -23,14 +24,11 @@ export function useDocuments(
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/documents", {
-        cache: "no-store",
-      });
-      const data = await response.json();
+      const documents = await apiClient.documents.list();
 
-      if (data.data) {
+      if (documents) {
         // API returns Document[] - convert to UserDocument[] format
-        const userDocuments: UserDocument[] = data.data.map((doc: any) => ({
+        const userDocuments: UserDocument[] = documents.map((doc) => ({
           id: doc.id,
           cloud: doc,
         }));

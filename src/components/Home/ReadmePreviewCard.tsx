@@ -10,6 +10,7 @@ import htmr from "htmr";
 import { DateDisplay } from "@/components/DateDisplay";
 import { actions, useDispatch } from "@/store";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
+import { apiClient } from "@/api";
 
 interface ReadmePreviewCardProps {
   documents: UserDocument[];
@@ -60,15 +61,10 @@ export default function ReadmePreviewCard({
     // README not in documents - try to fetch it from API
     // This happens when server-side render doesn't have session
     try {
-      const response = await fetch("/api/documents");
-      if (!response.ok) {
-        if (!isCancelled()) setReadme(null);
-        return;
-      }
-      const { data } = await response.json();
+      const data = await apiClient.documents.list();
       if (isCancelled()) return;
 
-      const readmeFromApi = data?.find((doc: ReadmeData & { name: string }) =>
+      const readmeFromApi = data?.find((doc) =>
         doc.name?.toLowerCase() === "readme"
       );
 
@@ -105,30 +101,15 @@ export default function ReadmePreviewCard({
     setLoadingHtml(true);
     try {
       // Fetch the document to get revision data
-      const docResponse = await fetch(`/api/documents/${readme.id}`);
-      if (!docResponse.ok) {
-        throw new Error("Failed to fetch document");
-      }
-      const docData = await docResponse.json();
+      const docResult = await apiClient.documents.get(readme.id);
 
-      if (!docData.data?.data?.root) {
+      if (!docResult?.data?.root) {
         throw new Error("Invalid document data");
-      }
-
-      // Use the embed API to generate HTML from the editor state
-      const embedResponse = await fetch("/api/embed", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(docData.data.data),
-      });
-
-      if (!embedResponse.ok) {
-        throw new Error("Failed to generate HTML");
       }
 
       if (isCancelled()) return;
 
-      const generatedHtml = await embedResponse.text();
+      const generatedHtml = await apiClient.embed.render(docResult.data);
       setHtml(generatedHtml);
     } catch (err) {
       errorAnnounce("Failed to fetch README HTML:", err);

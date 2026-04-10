@@ -2,7 +2,8 @@
 import { useCallback, useState } from "react";
 import { validate } from "uuid";
 import { debounce } from "@mui/material/utils";
-import { CheckHandleResponse, DocumentCreateInput } from "@/types";
+import { DocumentCreateInput } from "@/types";
+import { apiClient, ApiClientError } from "@/api";
 
 interface UseHandleValidationParams {
   updateInput: (partial: Partial<DocumentCreateInput>) => void;
@@ -20,17 +21,19 @@ export function useHandleValidation(
   const checkHandle = useCallback(
     debounce(async (handle: string) => {
       try {
-        const response = await fetch(`/api/documents/check?handle=${handle}`);
-        const { error } = (await response.json()) as CheckHandleResponse;
-        if (error) {
-          setValidationErrors({ handle: `${error.title}: ${error.subtitle}` });
+        await apiClient.documents.checkHandle(handle);
+        setValidationErrors({});
+      } catch (err) {
+        if (err instanceof ApiClientError && err.details) {
+          const { title, subtitle } = err.details;
+          setValidationErrors({
+            handle: subtitle ? `${title}: ${subtitle}` : title,
+          });
         } else {
-          setValidationErrors({});
+          setValidationErrors({
+            handle: "Something went wrong: Please try again later",
+          });
         }
-      } catch {
-        setValidationErrors({
-          handle: "Something went wrong: Please try again later",
-        });
       }
       setValidating(false);
     }, 500),

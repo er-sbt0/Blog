@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { Add, Close } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
+import { apiClient } from "@/api";
 
 interface CreateSeriesDrawerProps {
   /** Whether the drawer is open */
@@ -58,23 +59,12 @@ const CreateSeriesDrawer: React.FC<CreateSeriesDrawerProps> = ({
     setError(null);
 
     try {
-      const response = await fetch("/api/series", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim() || undefined,
-        }),
+      const series = await apiClient.series.create({
+        title: title.trim(),
+        description: description.trim() || undefined,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.title || "Failed to create series");
-      }
-
-      const { data: series } = await response.json();
+      if (!series) throw new Error("Failed to create series");
 
       // Success - close drawer and navigate or refresh
       onSuccess?.();

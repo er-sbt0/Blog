@@ -25,6 +25,7 @@ import { Document } from "@/types";
 import { getEditorData } from "@/utils/getEditorData";
 import { useHandleValidation } from "@/hooks/useHandleValidation";
 import DocumentVisibilityFields from "./DocumentActions/DocumentVisibilityFields";
+import { apiClient } from "@/api";
 
 const NewDocument: React.FC<{ cloudDocument?: Document }> = (
   { cloudDocument },
@@ -61,18 +62,12 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
     const fetchSeriesOrder = async () => {
       if (!seriesId) return;
       try {
-        const response = await fetch(`/api/series/${seriesId}`);
-        if (response.ok) {
-          const { data: series } = await response.json();
-          const maxOrder = (series?.posts ?? []).reduce(
-            (max: number, post: { seriesOrder?: number }) =>
-              Math.max(max, post.seriesOrder || 0),
-            0,
-          );
-          setNextSeriesOrder(maxOrder + 1);
-        } else {
-          setNextSeriesOrder(1);
-        }
+        const series = await apiClient.series.get(seriesId);
+        const maxOrder = (series?.posts ?? []).reduce(
+          (max, post) => Math.max(max, post.seriesOrder ?? 0),
+          0,
+        );
+        setNextSeriesOrder(maxOrder + 1);
       } catch (error) {
         errorAnnounce("Failed to fetch series", error);
         setNextSeriesOrder(1);

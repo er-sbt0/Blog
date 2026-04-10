@@ -20,6 +20,7 @@ import type { DocumentCreateInput, User } from "@/types";
 import { useHandleValidation } from "@/components/DocumentActions/hooks/useHandleValidation";
 import { getEditorData } from "@/utils/getEditorData";
 import PostCloudOptions from "../PostCloudOptions";
+import { apiClient } from "@/api";
 
 interface CreatePostDrawerProps {
   open: boolean;
@@ -70,7 +71,6 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
   } = useHandleValidation(
     null,
     (value) => updateInput({ handle: value }),
-    "/api/handle",
   );
 
   // Fetch next series order when drawer opens
@@ -78,16 +78,12 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
     if (!open || !seriesId) return;
     const fetchOrder = async () => {
       try {
-        const response = await fetch(`/api/series/${seriesId}`);
-        if (response.ok) {
-          const { data: series } = await response.json();
-          const maxOrder = series?.posts?.reduce(
-            (max: number, post: { seriesOrder?: number }) =>
-              Math.max(max, post.seriesOrder || 0),
-            0,
-          ) ?? 0;
-          setNextSeriesOrder(maxOrder + 1);
-        }
+        const series = await apiClient.series.get(seriesId);
+        const maxOrder = (series?.posts ?? []).reduce(
+          (max, post) => Math.max(max, post.seriesOrder ?? 0),
+          0,
+        );
+        setNextSeriesOrder(maxOrder + 1);
       } catch {
         setNextSeriesOrder(1);
       }

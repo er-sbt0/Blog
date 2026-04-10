@@ -23,11 +23,7 @@ import { Add, Article, Close, Search } from "@mui/icons-material";
 import { Document } from "@/types";
 import { DateDisplay } from "@/components/DateDisplay";
 import { LoadingState } from "@/components/LoadingState";
-
-interface SeriesApiResponse {
-  data?: Document[];
-  error?: { title: string };
-}
+import { apiClient } from "@/api";
 
 interface AddPostsDialogProps {
   open: boolean;
@@ -67,13 +63,8 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/series/available-posts");
-      const { data, error } = (await response.json()) as SeriesApiResponse;
-      if (error) {
-        setError(error.title || "Failed to load posts");
-        return;
-      }
-      setAvailablePosts(data || []);
+      const data = await apiClient.series.availablePosts();
+      setAvailablePosts(data ?? []);
     } catch (err) {
       setError("Failed to load available posts");
     } finally {
@@ -119,16 +110,7 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
         .map((p) => p.id)
         .filter((id) => !selectedPosts.has(id));
 
-      const response = await fetch(`/api/series/${seriesId}/posts`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postsToAdd, postsToRemove }),
-      });
-
-      if (!response.ok) {
-        const { error } = (await response.json()) as SeriesApiResponse;
-        throw new Error(error?.title || "Failed to update posts");
-      }
+      await apiClient.series.updatePosts(seriesId, { postsToAdd, postsToRemove });
 
       onPostsAdded();
       handleClose();

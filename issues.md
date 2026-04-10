@@ -21,22 +21,6 @@ smaller subcomponents.
 
 ---
 
-### H3 — Hardcoded API paths scattered across components
-
-**Files** (partial list):
-
-- `src/components/Home/ReadmePreviewCard.tsx` lines 60, 115, 126
-- `src/components/SeriesView/AddPostsDialog.tsx` line 64
-- `src/components/CreatePostDrawer/index.tsx` line 81
-
-Components call `fetch('/api/documents')`,
-`fetch('/api/series/available-posts')` etc. directly. No central API client.
-
-**Fix**: Create `src/api/client.ts` with typed methods. Enables mocking in tests
-and a single refactor point if routes change.
-
----
-
 ## Medium
 
 ### M2 — Missing `useMemo` for derived theme values
