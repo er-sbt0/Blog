@@ -48,17 +48,6 @@ Both define a `MONTHS` array and format dates from the same pattern.
 
 ---
 
-### H5 — Dead commented-out code blocks
-
-- `src/components/SeriesCard/variants/CompactVariant.tsx` lines 230–262 —
-  28-line JSX block commented out
-- `src/components/SeriesCard/variants/DetailedVariant.tsx` lines 116–128 —
-  commented "Created" label
-
-**Fix**: Delete. Git history preserves it if needed.
-
----
-
 ## Medium
 
 ### M1 — Inline JSX callbacks without useCallback causing unnecessary re-renders
@@ -239,10 +228,10 @@ assert the type on `.json()`.
 
 ## Totals
 
-| Severity  | Open | Fixed | Total |
-| --------- | ---- | ----- | ----- |
-| Critical  | 3    | 0     | 3     |
-| High      | 4    | 1     | 5     |
-| Medium    | 8    | 0     | 8     |
-| Low       | 3    | 0     | 3     |
-| **Total** | **18** | **1** | **19** |
+| Severity  | Open   | Fixed | Total  |
+| --------- | ------ | ----- | ------ |
+| Critical  | 3      | 0     | 3      |
+| High      | 3      | 2     | 5      |
+| Medium    | 8      | 0     | 8      |
+| Low       | 3      | 0     | 3      |
+| **Total** | **17** | **2** | **19** |

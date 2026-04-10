@@ -225,41 +225,6 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
                   >
                     {formatDate(series.createdAt)}
                   </Typography>
-
-                  {
-                    /* <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ fontSize: "0.875rem", fontWeight: 400 }}
-                  >
-                    •
-                  </Typography>
-
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.5,
-                    }}
-                  >
-                    <Article
-                      sx={{
-                        fontSize: "0.9rem",
-                        color: "text.secondary",
-                      }}
-                    />
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        fontSize: "0.875rem",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {postCount}
-                    </Typography>
-                  </Box> */
-                  }
                 </Box>
               )}
             </Box>

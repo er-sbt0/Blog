@@ -356,18 +356,22 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
               if (!isCancelled()) setIsLoading(false);
             } catch (error) {
               console.error("Failed to create notes document:", error);
-              if (!isCancelled()) setError({
-                title: "Failed to Create Notes",
-                subtitle: "Please try again",
-              });
+              if (!isCancelled()) {
+                setError({
+                  title: "Failed to Create Notes",
+                  subtitle: "Please try again",
+                });
+              }
             }
           } else {
-            if (!isCancelled()) setError(
-              cloudResponse.payload as {
-                title: string;
-                subtitle?: string;
-              },
-            );
+            if (!isCancelled()) {
+              setError(
+                cloudResponse.payload as {
+                  title: string;
+                  subtitle?: string;
+                },
+              );
+            }
           }
         }
       }
