@@ -1,3 +1,4 @@
+"use client";
 import React, { useMemo } from "react";
 import Grid from "@mui/material/Grid2";
 import { Series, UserDocument } from "@/types";

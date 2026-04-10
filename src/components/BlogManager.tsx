@@ -1,3 +1,4 @@
+"use client";
 /**
  * BlogManager Component
  *

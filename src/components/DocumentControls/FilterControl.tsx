@@ -1,3 +1,4 @@
+"use client";
 import { FC, useState } from "react";
 import { Tab, Tabs } from "@mui/material";
 import {
