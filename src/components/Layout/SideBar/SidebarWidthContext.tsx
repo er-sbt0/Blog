@@ -26,16 +26,6 @@ interface SidebarWidthContextType {
   resetWidth: () => void;
   /** Get the effective width based on open/closed state */
   getEffectiveWidth: (isOpen: boolean) => number;
-  /**
-   * @deprecated Use getEffectiveWidth instead.
-   * Kept for backward compatibility during migration.
-   */
-  sidebarWidth: number;
-  /**
-   * @deprecated No longer needed - width is managed internally.
-   * Kept for backward compatibility during migration.
-   */
-  setSidebarWidth: (width: number) => void;
 }
 
 const SidebarWidthContext = createContext<SidebarWidthContextType | undefined>(
@@ -132,13 +122,6 @@ export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
     return isOpen ? width : SIDEBAR_COLLAPSED_WIDTH;
   }, [width]);
 
-  // Backward compatibility: compute effective width assuming closed state
-  // This will be removed once all consumers are updated
-  const sidebarWidth = width;
-  const setSidebarWidth = useCallback((newWidth: number) => {
-    // No-op for backward compatibility - width is managed internally
-  }, []);
-
   return (
     <SidebarWidthContext.Provider
       value={{
@@ -147,9 +130,6 @@ export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
         startResize,
         resetWidth,
         getEffectiveWidth,
-        // Deprecated - for backward compatibility
-        sidebarWidth,
-        setSidebarWidth,
       }}
     >
       {children}

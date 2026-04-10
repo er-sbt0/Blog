@@ -2,22 +2,6 @@
 
 ---
 
-## 4. Deprecated no-op API kept in `SidebarWidthContext`
-
-**File:** `SideBar/SidebarWidthContext.tsx:33-38, 138-140`
-
-`setSidebarWidth` is exported as part of the context interface but its implementation is an explicit no-op:
-
-```ts
-const setSidebarWidth = useCallback((newWidth: number) => {
-  // No-op for backward compatibility - width is managed internally
-}, []);
-```
-
-`sidebarWidth` is also kept as an alias. Both are tagged `@deprecated`. There are no remaining callers — these should be removed, not preserved. Keeping a no-op in a public API is worse than removing it; callers believe they are doing something when they aren't.
-
----
-
 ## 5. Redundant wrapper function — `getWidth` in `SideBar.tsx`
 
 **File:** `SideBar.tsx:64`
@@ -169,10 +153,6 @@ The theme parameter is typed as a hand-rolled partial object instead of the MUI 
 
 | # | File | Severity | Category |
 |---|------|----------|----------|
-| 1 | `styles.ts` | High | Unnecessary `"use client"` |
-| 2 | `SidebarHeader.tsx` | High | Wrong shortcut hint (user-facing bug) |
-| 3 | `SafeNavigationLink.tsx` | High | `setTimeout` navigation race (data-loss risk) |
-| 4 | `SidebarWidthContext.tsx` | Medium | Dead no-op API (`setSidebarWidth`) |
 | 5 | `SideBar.tsx` | Low | Redundant wrapper `getWidth` |
 | 6 | `PostItem.tsx` | Medium | `isDirty` variable not used for dot indicator |
 | 7 | `useSidebarFontSize.ts` | Medium | Hydration mismatch pattern |
