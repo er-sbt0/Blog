@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useRef } from "react";
-import SplashScreen from "../SplashScreen";
+import SplashScreen from "../common/SplashScreen";
 import { EditorDocument } from "@/types";
 import { useSelector as useReduxSelector } from "react-redux";
 import { useSelector } from "@/store";

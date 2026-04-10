@@ -1,9 +1,9 @@
 import type { OgMetadata } from "@/app/api/og/route";
 import htmr from "htmr";
 import EmbedDocument from "@/components/EmbedDocument";
-import PrintButton from "@/components/PrintTrigger";
+import PrintButton from "@/components/common/PrintTrigger";
 import { findUserPost } from "@/repositories/post";
-import SplashScreen from "@/components/SplashScreen";
+import SplashScreen from "@/components/common/SplashScreen";
 import { cache } from "react";
 import type { Metadata } from "next";
 import { validate } from "uuid";

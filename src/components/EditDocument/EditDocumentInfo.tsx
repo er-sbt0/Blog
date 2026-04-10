@@ -10,8 +10,8 @@ import ShareDocument from "../DocumentActions/Share";
 import DownloadDocument from "../DocumentActions/Download";
 import ForkDocument from "../DocumentActions/Fork";
 import EditDocument from "../DocumentActions/Edit";
-import AppDrawer from "../AppDrawer";
-import AttachmentDrawer from "../AttachmentDrawer";
+import AppDrawer from "../drawers/AppDrawer";
+import AttachmentDrawer from "../drawers/AttachmentDrawer";
 import DocumentMetaSection from "./DocumentMetaSection";
 import { useDocumentRevisions } from "./hooks/useDocumentRevisions";
 

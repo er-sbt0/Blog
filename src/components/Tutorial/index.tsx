@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { EditorSkeleton } from "../EditorSkeleton";
-import SplashScreen from "../SplashScreen";
+import { EditorSkeleton } from "../common/EditorSkeleton";
+import SplashScreen from "../common/SplashScreen";
 import dynamic from "next/dynamic";
 
 const Tutorial: React.FC<React.PropsWithChildren> = ({ children }) => {

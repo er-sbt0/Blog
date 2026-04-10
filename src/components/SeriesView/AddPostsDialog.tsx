@@ -21,8 +21,8 @@ import {
 } from "@mui/material";
 import { Add, Article, Close, Search } from "@mui/icons-material";
 import { Document } from "@/types";
-import { DateDisplay } from "@/components/DateDisplay";
-import { LoadingState } from "@/components/LoadingState";
+import { DateDisplay } from "@/components/common/DateDisplay";
+import { LoadingState } from "@/components/common/LoadingState";
 import { useAvailablePostsSelector } from "./hooks/useAvailablePostsSelector";
 
 interface AddPostsDialogProps {

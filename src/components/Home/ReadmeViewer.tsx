@@ -3,7 +3,7 @@ import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { Add, Description } from "@mui/icons-material";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import ViewDocument from "@/components/ViewDocument";
+import ViewDocument from "@/components/views/ViewDocument";
 import htmr from "htmr";
 import { Document, UserDocument } from "@/types";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";

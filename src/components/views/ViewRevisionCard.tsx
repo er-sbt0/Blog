@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { Cloud, MobileFriendly } from "@mui/icons-material";
 import RouterLink from "next/link";
-import { DateDisplay } from "@/components/DateDisplay";
+import { DateDisplay } from "@/components/common/DateDisplay";
 import { useSearchParams } from "next/navigation";
 
 const ViewRevisionCard: React.FC<{

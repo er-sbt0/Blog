@@ -1,6 +1,6 @@
 "use client";
 import { ReactNode } from "react";
-import { FloatingActionButton } from "./Layout/FloatingActionsContainer";
+import { FloatingActionButton } from "../Layout/FloatingActionsContainer";
 import { Box, SxProps, Theme } from "@mui/material";
 
 interface ToolsContainerProps {

@@ -12,7 +12,7 @@ import {
   Chip,
   IconButton,
 } from "@mui/material";
-import { DateDisplay } from "@/components/DateDisplay";
+import { DateDisplay } from "@/components/common/DateDisplay";
 import {
   Cloud,
   CloudSync,

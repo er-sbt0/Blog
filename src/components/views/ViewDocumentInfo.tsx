@@ -3,14 +3,14 @@ import { CloudDocumentRevision, Document, User } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import Grid from "@mui/material/Grid2";
 import { Avatar, Box, Chip, IconButton, Typography } from "@mui/material";
-import { DateDisplay } from "@/components/DateDisplay";
+import { DateDisplay } from "@/components/common/DateDisplay";
 import { Edit, History } from "@mui/icons-material";
 import RouterLink from "next/link";
-import ShareDocument from "./DocumentActions/Share";
-import DownloadDocument from "./DocumentActions/Download";
-import ForkDocument from "./DocumentActions/Fork";
-import AppDrawer from "./AppDrawer";
-import AttachmentDrawer from "./AttachmentDrawer";
+import ShareDocument from "../DocumentActions/Share";
+import DownloadDocument from "../DocumentActions/Download";
+import ForkDocument from "../DocumentActions/Fork";
+import AppDrawer from "../drawers/AppDrawer";
+import AttachmentDrawer from "../drawers/AttachmentDrawer";
 import ViewRevisionCard from "./ViewRevisionCard";
 
 export default function ViewDocumentInfo(

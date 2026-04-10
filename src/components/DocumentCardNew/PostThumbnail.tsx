@@ -6,7 +6,7 @@ import { Refresh } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import { usePostContent } from "./hooks/usePostContent";
 import { createCardTheme } from "./theme";
-import { LoadingState } from "@/components/LoadingState";
+import { LoadingState } from "@/components/common/LoadingState";
 
 /**
  * Error display component for failed thumbnail loading

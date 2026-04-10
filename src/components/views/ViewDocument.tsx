@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useRef } from "react";
 import ViewAttachmentEnhancer from "./ViewAttachmentEnhancer";
-import SyncToCloudFab from "./SyncToCloudFab";
+import SyncToCloudFab from "../common/SyncToCloudFab";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import EditIcon from "@mui/icons-material/Edit";
 
 const ViewDocumentInfo = dynamic(
-  () => import("@/components/ViewDocumentInfo"),
+  () => import("./ViewDocumentInfo"),
   { ssr: false },
 );
 

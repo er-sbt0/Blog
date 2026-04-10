@@ -1,4 +1,4 @@
-import SplashScreen from "@/components/SplashScreen";
+import SplashScreen from "@/components/common/SplashScreen";
 
 const page = () => <SplashScreen title="Loading Document" />;
 

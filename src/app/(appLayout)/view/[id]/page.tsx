@@ -1,11 +1,11 @@
 import type { OgMetadata } from "@/app/api/og/route";
 import { findUserPost } from "@/repositories/post";
-import ViewDocument from "@/components/ViewDocument";
+import ViewDocument from "@/components/views/ViewDocument";
 import htmr from "htmr";
 import { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import SplashScreen from "@/components/SplashScreen";
+import SplashScreen from "@/components/common/SplashScreen";
 import { cache } from "react";
 import { findRevisionHtml } from "@/app/api/utils";
 import { DocumentRevision } from "@/types";

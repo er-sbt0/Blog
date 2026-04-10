@@ -17,7 +17,7 @@ import {
 import { ContentCopy } from "@mui/icons-material";
 import { Document, User } from "@/types";
 import UsersAutocomplete from "../User/UsersAutocomplete";
-import { DateDisplay } from "@/components/DateDisplay";
+import { DateDisplay } from "@/components/common/DateDisplay";
 
 interface SharedPanelProps {
   cloudDocument: Document;

@@ -6,7 +6,7 @@ import { UserDocument } from "@/types";
 import { sortDocuments } from "../DocumentControls/sortDocuments";
 import DocumentGrid from "../DocumentGrid";
 import { DragProvider } from "@/contexts/DragContext";
-import TrashBin from "../TrashBin";
+import TrashBin from "../Home/TrashBin";
 import { DocumentURLProvider } from "@/contexts/DocumentURLContext";
 
 // Import custom hooks and components

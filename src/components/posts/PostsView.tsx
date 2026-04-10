@@ -23,8 +23,8 @@ import PostsTimeSection from "./PostsTimeSection";
 // All-posts mode components
 import PostsHeader from "@/components/PostsList/components/PostsHeader";
 import PostsLoadingState from "@/components/PostsList/components/PostsLoadingState";
-import CreatePostDrawer from "@/components/CreatePostDrawer";
-import CreateSeriesDrawer from "@/components/CreateSeriesDrawer";
+import CreatePostDrawer from "@/components/drawers/CreatePostDrawer";
+import CreateSeriesDrawer from "@/components/drawers/CreateSeriesDrawer";
 
 // Series mode components
 import SeriesHeader from "@/components/SeriesView/components/SeriesHeader";

@@ -1,4 +1,4 @@
-import SplashScreen from "@/components/SplashScreen";
+import SplashScreen from "@/components/common/SplashScreen";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

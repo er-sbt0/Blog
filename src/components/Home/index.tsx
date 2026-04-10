@@ -4,7 +4,7 @@ import Grid from "@mui/material/Grid2";
 import { useRouter } from "next/navigation";
 import { Series, User, UserDocument } from "@/types";
 import { DragProvider } from "@/contexts/DragContext";
-import TrashBin from "../TrashBin";
+import TrashBin from "./TrashBin";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDocuments } from "@/hooks/useDocuments";
 import useLocalStorage from "@/hooks/useLocalStorage";

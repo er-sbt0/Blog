@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { findSeriesById } from "@/repositories/series";
-import PostsView from "@/components/PostsView";
+import PostsView from "@/components/posts/PostsView";
 
 // No caching – data changes frequently and mutations use router.refresh().
 export const dynamic = "force-dynamic";

@@ -1,8 +1,8 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { EditorSkeleton } from "../EditorSkeleton";
-import SplashScreen from "../SplashScreen";
+import { EditorSkeleton } from "../common/EditorSkeleton";
+import SplashScreen from "../common/SplashScreen";
 
 const Playground: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [isClient, setIsClient] = useState(false);

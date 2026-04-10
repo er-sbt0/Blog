@@ -2,7 +2,7 @@
 import { CloudUpload } from "@mui/icons-material";
 import { Fab, Tooltip } from "@mui/material";
 import { actions, documentsSelectors, useDispatch, useSelector } from "@/store";
-import { FloatingActionButton } from "./Layout/FloatingActionsContainer";
+import { FloatingActionButton } from "../Layout/FloatingActionsContainer";
 
 /**
  * Floating action button that appears on the /view/<id> page

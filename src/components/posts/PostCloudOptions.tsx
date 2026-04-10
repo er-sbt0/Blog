@@ -1,8 +1,8 @@
 "use client";
 import { Checkbox, FormControlLabel, FormHelperText } from "@mui/material";
 import { DocumentCreateInput, User } from "@/types";
-import UsersAutocomplete from "./User/UsersAutocomplete";
-import DocumentVisibilityFields from "./DocumentActions/DocumentVisibilityFields";
+import UsersAutocomplete from "../User/UsersAutocomplete";
+import DocumentVisibilityFields from "../DocumentActions/DocumentVisibilityFields";
 
 interface PostCloudOptionsProps {
   input: Partial<DocumentCreateInput>;

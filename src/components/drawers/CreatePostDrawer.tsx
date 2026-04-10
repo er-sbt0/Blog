@@ -18,7 +18,7 @@ import useOnlineStatus from "@/hooks/useOnlineStatus";
 import type { DocumentCreateInput, User } from "@/types";
 import { useHandleValidation } from "@/components/DocumentActions/hooks/useHandleValidation";
 import { getEditorData } from "@/utils/getEditorData";
-import PostCloudOptions from "./PostCloudOptions";
+import PostCloudOptions from "../posts/PostCloudOptions";
 import { useCreatePostActions } from "@/hooks/useCreatePostActions";
 
 interface CreatePostDrawerProps {
