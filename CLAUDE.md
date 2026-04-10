@@ -5,8 +5,11 @@ code in this repository.
 
 ## Design System
 
-**For all UI work, follow [DESIGN.md](./DESIGN.md).**  
-It documents color tokens, typography scale, spacing grid, border radii, component naming conventions, required states (loading/empty/error/disabled), and accessibility rules. Always include `"Follow DESIGN.md conventions"` in any UI-related prompt or sub-agent instruction.
+**For all UI work, follow [DESIGN.md](./DESIGN.md).**\
+It documents color tokens, typography scale, spacing grid, border radii,
+component naming conventions, required states (loading/empty/error/disabled),
+and accessibility rules. Always include `"Follow DESIGN.md conventions"` in any
+UI-related prompt or sub-agent instruction.
 
 ## Project Overview
 

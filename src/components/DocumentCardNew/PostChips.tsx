@@ -202,7 +202,7 @@ export const createSeriesChip = (
       icon={<LibraryBooks sx={{ fontSize: 14 }} />}
       label={label}
       onClick={() => {
-        window.location.href = `/series/${series.id}`;
+        window.location.href = `/posts/${series.id}`;
       }}
       sx={(theme) => {
         const ct = createCardTheme(theme);

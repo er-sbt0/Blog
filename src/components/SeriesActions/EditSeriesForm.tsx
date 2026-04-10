@@ -50,7 +50,7 @@ export default function EditSeriesForm(
         createdAt: new Date(createdAt).toISOString(),
       });
 
-      router.push(`/series/${series.id}`);
+      router.push(`/posts/${series.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {

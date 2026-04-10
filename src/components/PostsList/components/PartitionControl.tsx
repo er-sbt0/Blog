@@ -2,13 +2,13 @@ import React from "react";
 import {
   Box,
   FormControl,
-  InputLabel,
   MenuItem,
   Select,
   SelectChangeEvent,
   Typography,
 } from "@mui/material";
 import { PartitionGranularity } from "@/types/partitioning";
+import { granularityOptions } from "@/components/shared/granularityOptions";
 
 interface PartitionControlProps {
   granularity: PartitionGranularity;
@@ -16,39 +16,6 @@ interface PartitionControlProps {
   postCount?: number;
   disabled?: boolean;
 }
-
-const granularityOptions = [
-  {
-    value: "day" as const,
-    label: "Daily",
-    description: "Group posts by day",
-  },
-  {
-    value: "week" as const,
-    label: "Weekly",
-    description: "Group posts by week",
-  },
-  {
-    value: "month" as const,
-    label: "Monthly",
-    description: "Group posts by month",
-  },
-  {
-    value: "quarter" as const,
-    label: "Quarterly",
-    description: "Group posts by 3-month periods (default)",
-  },
-  {
-    value: "halfyear" as const,
-    label: "Semi-annual",
-    description: "Group posts by 6-month periods",
-  },
-  {
-    value: "year" as const,
-    label: "Yearly",
-    description: "Group posts by year",
-  },
-];
 
 /**
  * Control component for selecting post partitioning granularity

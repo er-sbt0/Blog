@@ -74,6 +74,8 @@ export const PATCH = withApiHandler(
     // Revalidate all relevant paths
     revalidatePath("/series");
     revalidatePath(`/series/${params.id}`);
+    revalidatePath("/posts");
+    revalidatePath(`/posts/${params.id}`);
     revalidatePath("/");
 
     return NextResponse.json({ data });
@@ -120,6 +122,8 @@ export const DELETE = withApiHandler(
     // Revalidate all relevant paths
     revalidatePath("/series");
     revalidatePath(`/series/${params.id}`);
+    revalidatePath("/posts");
+    revalidatePath(`/posts/${params.id}`);
     revalidatePath("/");
 
     return NextResponse.json({ data: params.id });

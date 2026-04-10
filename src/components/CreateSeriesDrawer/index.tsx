@@ -69,7 +69,7 @@ const CreateSeriesDrawer: React.FC<CreateSeriesDrawerProps> = ({
       // Success - close drawer and navigate or refresh
       onSuccess?.();
       onClose();
-      router.push(`/series/${series.id}`);
+      router.push(`/posts/${series.id}`);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");

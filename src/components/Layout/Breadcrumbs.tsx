@@ -51,6 +51,9 @@ const Breadcrumbs: React.FC = () => {
           href: "/posts",
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
+        if (segments.length > 1) {
+          breadcrumbs.push({ label: "Series" });
+        }
         break;
 
       case "series":

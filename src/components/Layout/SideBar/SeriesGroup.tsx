@@ -43,7 +43,7 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
         >
           <ListItemButton
             component={SafeNavigationLink}
-            href={`/series/${group.series.id}`}
+            href={`/posts/${group.series.id}`}
             sx={{
               minHeight: 28,
               justifyContent: sidebarOpen ? "initial" : "center",
