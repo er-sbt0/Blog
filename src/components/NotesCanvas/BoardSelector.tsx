@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { useMenuState } from "@/hooks/useMenuState";
 import {
   Box,
   Button,
@@ -53,7 +54,7 @@ export default function BoardSelector({
   canZoomIn = true,
   canZoomOut = true,
 }: BoardSelectorProps) {
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const { anchorEl: menuAnchor, menuOpen, openMenu, closeMenu } = useMenuState();
   const [menuBoardId, setMenuBoardId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -68,12 +69,12 @@ export default function BoardSelector({
     boardId: string,
   ) => {
     e.stopPropagation();
-    setMenuAnchor(e.currentTarget);
+    openMenu(e);
     setMenuBoardId(boardId);
   };
 
   const handleMenuClose = () => {
-    setMenuAnchor(null);
+    closeMenu();
     setMenuBoardId(null);
   };
 
@@ -375,7 +376,7 @@ export default function BoardSelector({
       {/* Context menu for active board */}
       <Menu
         anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
+        open={menuOpen}
         onClose={handleMenuClose}
         slotProps={{ paper: { elevation: 2 } }}
       >

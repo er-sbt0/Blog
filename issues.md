@@ -79,16 +79,3 @@ Three different patterns in use for the same concept:
   `<Box>`
 
 **Fix**: Standardise on one `<LoadingOverlay>` or `<ContentSkeleton>` component.
-
----
-
-### M6 — Inconsistent menu anchor state management
-
-- `src/components/NotesCanvas/DraggableNote.tsx` — two separate `useState`
-  anchors
-- `src/components/NotesCanvas/BoardSelector.tsx` — `menuAnchor` + `menuBoardId`
-  pair
-- `src/components/SeriesCard/variants/CompactVariant.tsx` — `useSeriesActions`
-  hook
-
-A `useMenuState` hook likely already exists. Use it consistently everywhere.

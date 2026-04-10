@@ -4,6 +4,7 @@ import { DraggableData, Rnd, RndDragEvent, RndResizeCallback } from "react-rnd";
 import { EditorState, LexicalEditor } from "lexical";
 import { editorConfig } from "@/editor/config";
 import { useCallback, useRef, useState } from "react";
+import { useMenuState } from "@/hooks/useMenuState";
 import {
   Box,
   Divider,
@@ -54,8 +55,8 @@ export default function DraggableNote({
   const editorRef = useRef<LexicalEditor | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [title, setTitle] = useState(note.title || "");
-  const [moreAnchor, setMoreAnchor] = useState<null | HTMLElement>(null);
-  const [colorAnchor, setColorAnchor] = useState<null | HTMLElement>(null);
+  const { anchorEl: moreAnchor, menuOpen: moreMenuOpen, openMenu: openMoreMenu, closeMenu: closeMoreMenu } = useMenuState();
+  const { anchorEl: colorAnchor, menuOpen: colorMenuOpen, openMenu: openColorMenu, closeMenu: closeColorMenu } = useMenuState();
   const { copyNote, cutNote } = useNotesClipboard();
 
   const handleEditorChange = useCallback(
@@ -108,41 +109,41 @@ export default function DraggableNote({
 
   const handleCut = useCallback(() => {
     cutNote(note, onDelete);
-    setMoreAnchor(null);
-  }, [cutNote, note, onDelete]);
+    closeMoreMenu();
+  }, [cutNote, note, onDelete, closeMoreMenu]);
 
   const handleCopy = useCallback(() => {
     copyNote(note);
-    setMoreAnchor(null);
-  }, [copyNote, note]);
+    closeMoreMenu();
+  }, [copyNote, note, closeMoreMenu]);
 
   const handleDelete = useCallback(() => {
     onDelete(note.id);
-    setMoreAnchor(null);
-  }, [onDelete, note.id]);
+    closeMoreMenu();
+  }, [onDelete, note.id, closeMoreMenu]);
 
   const handleColorChange = useCallback(
     (color: NoteColorKey) => {
       onUpdate(note.id, { color });
-      setColorAnchor(null);
+      closeColorMenu();
     },
-    [onUpdate, note.id],
+    [onUpdate, note.id, closeColorMenu],
   );
 
   const handleOpenColorMenu = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
-      setColorAnchor(e.currentTarget);
+      openColorMenu(e);
     },
-    [],
+    [openColorMenu],
   );
 
   const handleOpenMoreMenu = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
-      setMoreAnchor(e.currentTarget);
+      openMoreMenu(e);
     },
-    [],
+    [openMoreMenu],
   );
 
   const handleStopPropagation = useCallback(
@@ -150,15 +151,8 @@ export default function DraggableNote({
     [],
   );
 
-  const handleCloseColorAnchor = useCallback(
-    () => setColorAnchor(null),
-    [],
-  );
-
-  const handleCloseMoreAnchor = useCallback(
-    () => setMoreAnchor(null),
-    [],
-  );
+  const handleCloseColorAnchor = closeColorMenu;
+  const handleCloseMoreAnchor = closeMoreMenu;
 
   return (
     <Rnd
@@ -318,7 +312,7 @@ export default function DraggableNote({
 
         {/* Color picker */}
         <Popover
-          open={Boolean(colorAnchor)}
+          open={colorMenuOpen}
           anchorEl={colorAnchor}
           onClose={handleCloseColorAnchor}
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
@@ -357,7 +351,7 @@ export default function DraggableNote({
         {/* Note actions menu */}
         <Menu
           anchorEl={moreAnchor}
-          open={Boolean(moreAnchor)}
+          open={moreMenuOpen}
           onClose={handleCloseMoreAnchor}
           onClick={handleStopPropagation}
           slotProps={{ paper: { elevation: 2 } }}
