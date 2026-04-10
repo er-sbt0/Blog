@@ -18,14 +18,9 @@ export default function HydrationManager(
     setIsHydrated(true);
   }, []);
 
-  // On the server and during hydration, render a simple div
-  // with suppressHydrationWarning to prevent hydration errors
+  // Return null until hydration is complete to avoid CLS
   if (!isHydrated) {
-    return (
-      <div suppressHydrationWarning style={{ visibility: "hidden" }}>
-        Loading...
-      </div>
-    );
+    return null;
   }
 
   // Once the client has hydrated, render the children
