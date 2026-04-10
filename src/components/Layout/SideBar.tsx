@@ -60,7 +60,10 @@ const SideBar: React.FC = () => {
     ...postItemActions
   } = useSidebarActions();
 
-  const { shortcutHint } = useKeyboardShortcuts({ onToggleSidebar: toggleSidebar, enabled: true });
+  const { shortcutHint } = useKeyboardShortcuts({
+    onToggleSidebar: toggleSidebar,
+    enabled: true,
+  });
 
   const initialized = useSelector((state: RootState) => state.ui.initialized);
   const user = useSelector((state: RootState) => state.user);
@@ -186,16 +189,16 @@ const SideBar: React.FC = () => {
 
       <Divider sx={styles.divider} />
 
-      {user && activeDocuments.length > 0 ? (
-        <ActivePostsSection
-          groupedActivePosts={groupedActivePosts}
-          sidebarOpen={open}
-          pathname={pathname}
-          itemActions={postItemActions}
-        />
-      ) : (
-        <Box sx={{ flex: "1 1 auto", minHeight: 0 }} />
-      )}
+      {user && activeDocuments.length > 0
+        ? (
+          <ActivePostsSection
+            groupedActivePosts={groupedActivePosts}
+            sidebarOpen={open}
+            pathname={pathname}
+            itemActions={postItemActions}
+          />
+        )
+        : <Box sx={{ flex: "1 1 auto", minHeight: 0 }} />}
 
       <Divider sx={styles.dividerBottom} />
 

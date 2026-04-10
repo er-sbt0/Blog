@@ -6,7 +6,9 @@ const MIN_FONT_SIZE = 10;
 const MAX_FONT_SIZE = 24;
 
 export function useSidebarFontSize() {
-  const [sidebarFontSize, setSidebarFontSize] = useState<number>(DEFAULT_FONT_SIZE);
+  const [sidebarFontSize, setSidebarFontSize] = useState<number>(
+    DEFAULT_FONT_SIZE,
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);

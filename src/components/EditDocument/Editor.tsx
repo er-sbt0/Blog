@@ -1,9 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  registerSaveCallback,
-  unregisterSaveCallback,
-} from "./saveRegistry";
+import { registerSaveCallback, unregisterSaveCallback } from "./saveRegistry";
 import SplashScreen from "../SplashScreen";
 import {
   DocumentCreateInput,
