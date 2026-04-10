@@ -410,10 +410,12 @@ export const forkLocalDocument = createAsyncThunk(
           subtitle: "revision not found",
         });
       }
-      document.head = revision.id;
-      document.updatedAt = revision.createdAt;
-      document.data = revision.data;
-      return thunkAPI.fulfillWithValue(document);
+      return thunkAPI.fulfillWithValue({
+        ...document,
+        head: revision.id,
+        updatedAt: revision.createdAt,
+        data: revision.data,
+      });
     } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
