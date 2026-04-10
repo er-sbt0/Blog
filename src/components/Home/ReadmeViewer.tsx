@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import ViewDocument from "@/components/ViewDocument";
 import htmr from "htmr";
 import { Document, UserDocument } from "@/types";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 interface ReadmeViewerProps {
   documents: UserDocument[];
@@ -22,6 +23,7 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
   const [error, setError] = useState<string | null>(null);
   const [readmeDocId, setReadmeDocId] = useState<string | null>(null);
   const router = useRouter();
+  const errorAnnounce = useErrorAnnounce();
 
   // Find README from documents OR fetch from API
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
           setLoading(false);
         }
       } catch (err) {
-        console.error("Failed to fetch documents for README:", err);
+        errorAnnounce("Failed to fetch documents for README:", err);
         if (!cancelled) {
           setReadmeDocId(null);
           setLoading(false);
@@ -130,7 +132,7 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
           html,
         });
       } catch (err) {
-        console.error("Failed to fetch README:", err);
+        errorAnnounce("Failed to fetch README:", err);
         if (!cancelled) setError("Failed to load README");
       } finally {
         if (!cancelled) setLoading(false);

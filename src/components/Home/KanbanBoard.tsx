@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { DateDisplay } from "@/components/DateDisplay";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 interface KanbanBoardProps {
   documents: UserDocument[];
@@ -37,6 +38,7 @@ export default function KanbanBoard(
 ) {
   const router = useRouter();
   const theme = useTheme();
+  const errorAnnounce = useErrorAnnounce();
   const [draggedDoc, setDraggedDoc] = useState<UserDocument | null>(null);
 
   const columns: Column[] = [
@@ -85,7 +87,7 @@ export default function KanbanBoard(
       // Refresh documents to show updated data
       await onRefresh();
     } catch (error) {
-      console.error("Failed to update document:", error);
+      errorAnnounce("Failed to update document", error);
     }
 
     setDraggedDoc(null);

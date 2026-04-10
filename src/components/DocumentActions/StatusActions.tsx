@@ -16,6 +16,7 @@ import { actions, useDispatch } from "@/store";
 import { DocumentStatus, UserDocument } from "@/types";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { useMenuState } from "@/hooks/useMenuState";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 interface StatusActionsProps {
   userDocument: UserDocument;
@@ -30,6 +31,7 @@ const StatusActions: React.FC<StatusActionsProps> = ({
 }) => {
   const dispatch = useDispatch();
   const isOnline = useOnlineStatus();
+  const errorAnnounce = useErrorAnnounce();
   const { anchorEl, menuOpen: open, openMenu, closeMenu: closeStatusMenu } =
     useMenuState();
 
@@ -81,7 +83,7 @@ const StatusActions: React.FC<StatusActionsProps> = ({
         }));
       }
     } catch (error) {
-      console.error("Failed to update document status:", error);
+      errorAnnounce("Failed to update document status", error);
     }
   };
 

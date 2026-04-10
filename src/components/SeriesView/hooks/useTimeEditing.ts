@@ -3,9 +3,11 @@ import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PendingTimeChange } from "../components/PostsCompactListView";
 import { Document } from "@/types";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 export function useTimeEditing(posts: Document[]) {
   const router = useRouter();
+  const errorAnnounce = useErrorAnnounce();
   const [isTimeEditMode, setIsTimeEditMode] = useState(false);
   const [pendingTimeChanges, setPendingTimeChanges] = useState<
     Map<string, PendingTimeChange>
@@ -69,7 +71,7 @@ export function useTimeEditing(posts: Document[]) {
       setIsTimeEditMode(false);
       router.refresh();
     } catch (error) {
-      console.error("Failed to save time changes:", error);
+      errorAnnounce("Failed to save time changes", error);
     } finally {
       setIsSavingTimeChanges(false);
     }

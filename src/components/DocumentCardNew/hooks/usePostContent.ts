@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { UserDocument } from "@/types";
 import { useThumbnailContext } from "../../../app/context/ThumbnailContext";
 import { loadThumbnailWithFallbacks } from "../utils/postHelpers";
@@ -36,6 +37,8 @@ export const usePostContent = (
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const errorAnnounce = useErrorAnnounce();
 
   // Get the document to display (prefer local over cloud)
   const document = userDocument?.local || userDocument?.cloud;
@@ -110,7 +113,7 @@ export const usePostContent = (
         await loadContent();
       } catch (error) {
         if (isMounted) {
-          console.error("Content loading failed:", error);
+          errorAnnounce("Content loading failed", error);
         }
       }
     };

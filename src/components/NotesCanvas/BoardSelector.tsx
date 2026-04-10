@@ -54,7 +54,8 @@ export default function BoardSelector({
   canZoomIn = true,
   canZoomOut = true,
 }: BoardSelectorProps) {
-  const { anchorEl: menuAnchor, menuOpen, openMenu, closeMenu } = useMenuState();
+  const { anchorEl: menuAnchor, menuOpen, openMenu, closeMenu } =
+    useMenuState();
   const [menuBoardId, setMenuBoardId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");

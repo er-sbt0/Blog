@@ -15,6 +15,7 @@ import {
 import { actions, useDispatch, useSelector } from "@/store";
 import { DocumentStatus, UserDocument } from "@/types";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 interface StatusToggleProps {
   userDocument: UserDocument;
@@ -30,6 +31,7 @@ const StatusToggle: React.FC<StatusToggleProps> = ({
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
   const isOnline = useOnlineStatus();
+  const errorAnnounce = useErrorAnnounce();
 
   const localDocument = userDocument?.local;
   const cloudDocument = userDocument?.cloud;
@@ -114,7 +116,7 @@ const StatusToggle: React.FC<StatusToggleProps> = ({
         }));
       }
     } catch (error) {
-      console.error("Failed to update document status:", error);
+      errorAnnounce("Failed to update document status", error);
     }
   };
 

@@ -10,6 +10,7 @@ import {
 } from "@/types";
 import { useSelector as useReduxSelector } from "react-redux";
 import { actions, useDispatch, useSelector } from "@/store";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import type { RootState } from "@/store";
 import { usePathname, useRouter } from "next/navigation";
 import type {
@@ -33,6 +34,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ title: string; subtitle?: string }>();
   const dispatch = useDispatch();
+  const errorAnnounce = useErrorAnnounce();
   const pathname = usePathname();
   const router = useRouter();
   const id = pathname.split("/")[2]?.toLowerCase();
@@ -126,7 +128,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
 
       return false;
     } catch (error) {
-      console.error("Failed to auto-save document to cloud:", error);
+      errorAnnounce("Failed to auto-save document to cloud", error);
       return false;
     }
   }, [document, user, dispatch, editorRef]);
@@ -355,7 +357,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
 
               if (!isCancelled()) setIsLoading(false);
             } catch (error) {
-              console.error("Failed to create notes document:", error);
+              errorAnnounce("Failed to create notes document", error);
               if (!isCancelled()) {
                 setError({
                   title: "Failed to Create Notes",

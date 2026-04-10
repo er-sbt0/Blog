@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { actions, useDispatch } from "@/store";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { downloadFile } from "@/utils/downloadFile";
 import { detectLanguage } from "@/utils/languageDetection";
 import { AttachmentContentCache, attachmentContentDB } from "@/indexeddb";
@@ -36,6 +37,7 @@ export function useAttachmentContent(
   { open, url, filename, mimetype }: UseAttachmentContentParams,
 ) {
   const dispatch = useDispatch();
+  const errorAnnounce = useErrorAnnounce();
   const language = filename && mimetype
     ? detectLanguage(filename, mimetype)
     : "text";
@@ -151,7 +153,7 @@ export function useAttachmentContent(
     try {
       await downloadFile(url, filename);
     } catch (error) {
-      console.error("Download error:", error);
+      errorAnnounce("Download failed", error);
     } finally {
       setIsDownloading(false);
     }

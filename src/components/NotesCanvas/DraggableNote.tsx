@@ -55,8 +55,18 @@ export default function DraggableNote({
   const editorRef = useRef<LexicalEditor | null>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [title, setTitle] = useState(note.title || "");
-  const { anchorEl: moreAnchor, menuOpen: moreMenuOpen, openMenu: openMoreMenu, closeMenu: closeMoreMenu } = useMenuState();
-  const { anchorEl: colorAnchor, menuOpen: colorMenuOpen, openMenu: openColorMenu, closeMenu: closeColorMenu } = useMenuState();
+  const {
+    anchorEl: moreAnchor,
+    menuOpen: moreMenuOpen,
+    openMenu: openMoreMenu,
+    closeMenu: closeMoreMenu,
+  } = useMenuState();
+  const {
+    anchorEl: colorAnchor,
+    menuOpen: colorMenuOpen,
+    openMenu: openColorMenu,
+    closeMenu: closeColorMenu,
+  } = useMenuState();
   const { copyNote, cutNote } = useNotesClipboard();
 
   const handleEditorChange = useCallback(

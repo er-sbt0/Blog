@@ -9,6 +9,7 @@ import { UserDocument } from "@/types";
 import htmr from "htmr";
 import { DateDisplay } from "@/components/DateDisplay";
 import { actions, useDispatch } from "@/store";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 interface ReadmePreviewCardProps {
   documents: UserDocument[];
@@ -27,6 +28,7 @@ export default function ReadmePreviewCard({
   onViewFull,
 }: ReadmePreviewCardProps) {
   const dispatch = useDispatch();
+  const errorAnnounce = useErrorAnnounce();
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [html, setHtml] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export default function ReadmePreviewCard({
         setReadme(null);
       }
     } catch (err) {
-      console.error("Failed to fetch documents for README:", err);
+      errorAnnounce("Failed to fetch documents for README:", err);
       if (!isCancelled()) setReadme(null);
     }
   }, [documents]);
@@ -129,7 +131,7 @@ export default function ReadmePreviewCard({
       const generatedHtml = await embedResponse.text();
       setHtml(generatedHtml);
     } catch (err) {
-      console.error("Failed to fetch README HTML:", err);
+      errorAnnounce("Failed to fetch README HTML:", err);
       if (!isCancelled()) setHtml(null);
     } finally {
       if (!isCancelled()) setLoadingHtml(false);
@@ -220,7 +222,7 @@ export default function ReadmePreviewCard({
       }
     } catch (err) {
       setError("Network error - please try again");
-      console.error("Failed to create README:", err);
+      errorAnnounce("Failed to create README:", err);
     } finally {
       setCreating(false);
     }

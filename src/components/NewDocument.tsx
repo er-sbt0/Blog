@@ -5,6 +5,7 @@ import * as React from "react";
 import { DocumentCreateInput, User, UserDocument } from "@/types";
 import { useCallback, useEffect, useState } from "react";
 import { actions, useDispatch, useSelector } from "@/store";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import DocumentCard from "./DocumentCardNew";
 import {
   Avatar,
@@ -37,6 +38,7 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
   });
   const [saveToCloud, setSaveToCloud] = useState(true);
   const dispatch = useDispatch();
+  const errorAnnounce = useErrorAnnounce();
   const pathname = usePathname();
   const baseId = pathname.split("/")[2]?.toLowerCase();
   const searchParams = useSearchParams();
@@ -72,7 +74,7 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
           setNextSeriesOrder(1);
         }
       } catch (error) {
-        console.error("Failed to fetch series:", error);
+        errorAnnounce("Failed to fetch series", error);
         setNextSeriesOrder(1);
       }
     };

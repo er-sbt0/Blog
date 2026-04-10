@@ -53,16 +53,3 @@ const cardTheme = createCardTheme(theme); // re-created every render
 ```tsx
 const cardTheme = useMemo(() => createCardTheme(theme), [theme]);
 ```
-
----
-
-### M4 — Inconsistent error handling across components
-
-| File                                         | Pattern                                 |
-| -------------------------------------------- | --------------------------------------- |
-| `src/components/Home/ReadmePreviewCard.tsx`  | `console.error()` only — silent to user |
-| `src/components/DocumentActions/Edit.tsx`    | `dispatch(actions.announce())`          |
-| `src/components/BackgroundImageUploader.tsx` | both `console.error` AND dispatch       |
-
-**Fix**: Create a `useErrorAnnounce` hook that always dispatches to the
-snackbar. Ban `console.error` for user-facing errors.

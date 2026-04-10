@@ -26,6 +26,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import { actions, useDispatch } from "@/store";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 interface ViewAttachmentProps {
   url: string;
@@ -51,6 +52,7 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [truncated, setTruncated] = useState(false);
   const dispatch = useDispatch();
+  const errorAnnounce = useErrorAnnounce();
 
   const canPreview = isTextFile(mimetype) && size < 1024 * 1024; // 1MB max
   const language = detectLanguageFromFilename(filename);
@@ -87,7 +89,7 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
 
       setContent(text);
     } catch (err) {
-      console.error("Failed to fetch attachment content:", err);
+      errorAnnounce("Failed to fetch attachment content", err);
       setError("Failed to load preview");
     } finally {
       setLoading(false);
@@ -107,7 +109,7 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
     downloadFile(url, filename).catch((err) => {
-      console.error("Download failed:", err);
+      errorAnnounce("Download failed", err);
     });
   };
 

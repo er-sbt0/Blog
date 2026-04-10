@@ -7,6 +7,7 @@ import Grid from "@mui/material/Grid2";
 import { Box, CircularProgress, Paper, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEffect, useState } from "react";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { Cloud, Login, Storage } from "@mui/icons-material";
 
@@ -84,6 +85,7 @@ const StorageChart: React.FC = () => {
   const user = useSelector((state) => state.user);
   const initialized = useSelector((state) => state.ui.initialized);
   const theme = useTheme();
+  const errorAnnounce = useErrorAnnounce();
 
   const [storageUsage, setStorageUsage] = useState<StorageState>({
     local: initialStorageUsage,
@@ -97,7 +99,7 @@ const StorageChart: React.FC = () => {
         local: parseStoragePayload(payload),
       }));
     }).catch((error: unknown) =>
-      console.error("Failed to load local storage usage", error)
+      errorAnnounce("Failed to load local storage usage", error)
     );
   }, []);
 
@@ -116,7 +118,7 @@ const StorageChart: React.FC = () => {
         cloud: parseStoragePayload(payload),
       }));
     }).catch((error: unknown) =>
-      console.error("Failed to load cloud storage usage", error)
+      errorAnnounce("Failed to load cloud storage usage", error)
     );
   }, [user]);
 

@@ -2,6 +2,7 @@
 import { useCallback, useState } from "react";
 import { actions, useDispatch } from "@/store";
 import { UserDocument } from "@/types";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 interface DropTargetState {
   isDropTarget: boolean;
@@ -28,6 +29,7 @@ export const useDropTarget = (
   { targetId, targetType, onDropComplete }: DropTargetOptions,
 ) => {
   const dispatch = useDispatch();
+  const errorAnnounce = useErrorAnnounce();
   const [dropTargetState, setDropTargetState] = useState<DropTargetState>({
     isDropTarget: false,
     dragEnterCount: 0,
@@ -139,13 +141,11 @@ export const useDropTarget = (
 
       onDropComplete?.();
     } catch (error) {
-      console.error("Drop operation failed:", error);
-      dispatch(actions.announce({
-        message: {
-          title: "Move failed",
-          subtitle: "Failed to move the post. Please try again.",
-        },
-      }));
+      errorAnnounce(
+        "Move failed",
+        error,
+        "Failed to move the post. Please try again.",
+      );
     }
   }, [targetId, targetType, dispatch, onDropComplete]);
 

@@ -4,6 +4,7 @@ import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { Delete, UploadFile } from "@mui/icons-material";
 import { UserDocument } from "@/types";
 import { actions, useDispatch } from "@/store";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 interface BackgroundImageUploaderProps {
   userDocument: UserDocument;
@@ -17,6 +18,7 @@ const BackgroundImageUploader = (
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImage);
   const dispatch = useDispatch();
+  const errorAnnounce = useErrorAnnounce();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -58,11 +60,6 @@ const BackgroundImageUploader = (
 
       // Check document type - all documents are now posts
       if (document.type !== "DOCUMENT") {
-        console.error(
-          "Not a document - document type:",
-          document.type,
-          "Expected: DOCUMENT",
-        );
         throw new Error(
           `This document is not a valid post (type: ${document.type})`,
         );
@@ -98,15 +95,11 @@ const BackgroundImageUploader = (
         throw new Error("No image path returned from server");
       }
     } catch (error) {
-      console.error("Upload error:", error);
-      dispatch(actions.announce({
-        message: {
-          title: "Upload Failed",
-          subtitle: error instanceof Error
-            ? error.message
-            : "Please try again later.",
-        },
-      }));
+      errorAnnounce(
+        "Upload Failed",
+        error,
+        error instanceof Error ? error.message : "Please try again later.",
+      );
       // Reset preview on error
       if (currentImage) {
         setPreviewUrl(currentImage);

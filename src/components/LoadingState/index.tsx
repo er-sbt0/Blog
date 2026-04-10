@@ -86,7 +86,12 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
             <Skeleton variant="text" width="70%" height={24} />
             <Skeleton variant="text" width="90%" height={16} />
             <Skeleton variant="text" width="75%" height={16} />
-            <Skeleton variant="rectangular" width="100%" height={60} sx={{ mt: 1 }} />
+            <Skeleton
+              variant="rectangular"
+              width="100%"
+              height={60}
+              sx={{ mt: 1 }}
+            />
           </Box>
         );
 

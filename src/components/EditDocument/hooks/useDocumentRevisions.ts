@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { DocumentRevision, EditorDocumentRevision } from "@/types";
 import { actions, useDispatch, useSelector } from "@/store";
 import type { LexicalEditor } from "lexical";
@@ -9,6 +10,7 @@ export function useDocumentRevisions(
   editorRef: RefObject<LexicalEditor | null>,
 ) {
   const dispatch = useDispatch();
+  const errorAnnounce = useErrorAnnounce();
   const user = useSelector((state) => state.user);
   const userDocument = useSelector((state) =>
     state.documents.find((d) => d.id === documentId)
@@ -137,7 +139,7 @@ export function useDocumentRevisions(
               }));
             }
           } catch (error) {
-            console.error("Failed to save to cloud before viewing:", error);
+            errorAnnounce("Failed to save to cloud before viewing", error);
           }
         }
       }
@@ -181,7 +183,7 @@ export function useDocumentRevisions(
             }));
           }
         } catch (error) {
-          console.error("Failed to save to cloud:", error);
+          errorAnnounce("Failed to save to cloud", error);
         }
       }
     }

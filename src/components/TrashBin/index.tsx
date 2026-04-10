@@ -8,10 +8,12 @@ import { v4 as uuid } from "uuid";
 import { DragContext } from "../DragContext";
 import { UserDocument } from "@/types";
 import { FloatingActionButton } from "../Layout/FloatingActionsContainer";
+import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 const TrashBin: React.FC = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const errorAnnounce = useErrorAnnounce();
   const [isDropTarget, setIsDropTarget] = useState(false);
   const { isDragging } = useContext(DragContext);
 
@@ -74,14 +76,11 @@ const TrashBin: React.FC = () => {
         }));
       }
     } catch (error) {
-      console.error("Error during deletion:", error);
-      dispatch(actions.announce({
-        message: {
-          title: "Failed to delete item",
-          subtitle: "An error occurred while deleting the item",
-        },
-        timeout: 3000,
-      }));
+      errorAnnounce(
+        "Failed to delete item",
+        error,
+        "An error occurred while deleting the item",
+      );
     }
   };
 
