@@ -4,22 +4,6 @@ Critical and notable code-quality findings across `src/components/Layout/`.
 
 ---
 
-## 2. Wrong keyboard shortcut displayed in tooltip
-
-**File:** `SideBar/SidebarHeader.tsx:107`, `SideBar/hooks/useKeyboardShortcuts.ts:27`
-
-The sidebar toggle tooltip reads `"Ctrl+Alt+S"` but the actual shortcut registered in `useKeyboardShortcuts` is `Ctrl+B` (`event.ctrlKey && event.key === "b"`). These are out of sync — the UI is lying to the user.
-
-```tsx
-// SidebarHeader.tsx — what the tooltip says
-title={`${open ? "Collapse" : "Expand"} sidebar (Ctrl+Alt+S)`}
-
-// useKeyboardShortcuts.ts — what actually fires
-if (isModifierPressed && event.key === "b") { ... }
-```
-
----
-
 ## 3. `setTimeout` navigation hack in `SafeNavigationLink` — data-loss risk
 
 **File:** `SideBar/SafeNavigationLink.tsx:36`

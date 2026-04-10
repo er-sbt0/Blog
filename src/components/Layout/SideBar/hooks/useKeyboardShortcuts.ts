@@ -24,7 +24,7 @@ export const useKeyboardShortcuts = ({
     // Check for modifier keys (Ctrl/Cmd + B to toggle sidebar)
     const isModifierPressed = event.ctrlKey || event.metaKey;
 
-    if (isModifierPressed && event.key === "b") {
+    if (isModifierPressed && event.key === "\\") {
       event.preventDefault();
       onToggleSidebar();
     }
@@ -41,6 +41,6 @@ export const useKeyboardShortcuts = ({
   }, [handleKeyDown, enabled]);
 
   return {
-    shortcutHint: "Ctrl+B",
+    shortcutHint: "Ctrl+\\",
   };
 };

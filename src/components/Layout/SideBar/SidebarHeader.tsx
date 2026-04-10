@@ -104,7 +104,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
           </>
         )}
         <Tooltip
-          title={`${open ? "Collapse" : "Expand"} sidebar (Ctrl+Alt+S)`}
+          title={`${open ? "Collapse" : "Expand"} sidebar (Ctrl+\\)`}
         >
           <IconButton
             onClick={toggleSidebar}
