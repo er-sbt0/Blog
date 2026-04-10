@@ -57,11 +57,6 @@ function GraphDialog(
       }, 300);
     },
   };
-  useEffect(() => {
-    if (!geogebraAPI) return;
-    loadGgbBase64();
-  }, [geogebraAPI]);
-
   const loadGgbBase64 = async () => {
     const unsavedValue = localStorage.getItem("geogebra");
     if (unsavedValue) {
@@ -97,6 +92,11 @@ function GraphDialog(
       if (id === alert.actions[1].id) geogebraAPI.setBase64(unsavedValue);
     }
   };
+
+  useEffect(() => {
+    if (!geogebraAPI) return;
+    loadGgbBase64();
+  }, [geogebraAPI]);
 
   const clearLocalStorage = () => {
     localStorage.removeItem("geogebra");

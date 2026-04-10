@@ -3,8 +3,8 @@
 ## Overview
 
 All HTTP calls to `/api/*` routes go through the central client at
-`src/api/client.ts`. No component, hook, Redux thunk, or utility is permitted
-to call `fetch('/api/...')` directly.
+`src/api/client.ts`. No component, hook, Redux thunk, or utility is permitted to
+call `fetch('/api/...')` directly.
 
 ```
 src/api/
@@ -26,36 +26,36 @@ import { apiClient, ApiClientError } from "@/api";
 Every route is accessed through a named method grouped by resource. The full
 surface is:
 
-| Namespace | Methods |
-|---|---|
-| `auth` | `getSession()` |
-| `documents` | `list()`, `get(id)`, `create(input)`, `update(id, partial)`, `delete(id)`, `checkHandle(handle, endpoint?)`, `fork(id, revisionId?)`, `uploadAttachment(documentId, file)` |
-| `revisions` | `get(id)`, `create(revision)`, `delete(id)` |
-| `series` | `list()`, `get(id)`, `create(input)`, `update(id, data)`, `delete(id)`, `availablePosts()`, `updatePosts(id, payload)` |
-| `posts` | `updateTimes(updates)` |
-| `users` | `update(id, data)` |
-| `storage` | `getUsage()` |
-| `thumbnails` | `get(documentId)` |
-| `embed` | `render(state)` |
-| `notes` | `getCanvas()`, `create(note)` |
+| Namespace    | Methods                                                                                                                                                                    |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth`       | `getSession()`                                                                                                                                                             |
+| `documents`  | `list()`, `get(id)`, `create(input)`, `update(id, partial)`, `delete(id)`, `checkHandle(handle, endpoint?)`, `fork(id, revisionId?)`, `uploadAttachment(documentId, file)` |
+| `revisions`  | `get(id)`, `create(revision)`, `delete(id)`                                                                                                                                |
+| `series`     | `list()`, `get(id)`, `create(input)`, `update(id, data)`, `delete(id)`, `availablePosts()`, `updatePosts(id, payload)`                                                     |
+| `posts`      | `updateTimes(updates)`                                                                                                                                                     |
+| `users`      | `update(id, data)`                                                                                                                                                         |
+| `storage`    | `getUsage()`                                                                                                                                                               |
+| `thumbnails` | `get(documentId)`                                                                                                                                                          |
+| `embed`      | `render(state)`                                                                                                                                                            |
+| `notes`      | `getCanvas()`, `create(note)`                                                                                                                                              |
 
 ---
 
 ## Error handling
 
-The private `request<T>` helper throws `ApiClientError` on any non-2xx
-response **or** when the JSON body contains a top-level `error` field
-(the `{ data?, error? }` envelope used by every API route).
+The private `request<T>` helper throws `ApiClientError` on any non-2xx response
+**or** when the JSON body contains a top-level `error` field (the
+`{ data?, error? }` envelope used by every API route).
 
 ```ts
 export class ApiClientError extends Error {
-  statusCode?: number;   // HTTP status
-  details?: ApiError;    // { title, subtitle? } from the response body
+  statusCode?: number; // HTTP status
+  details?: ApiError; // { title, subtitle? } from the response body
 }
 ```
 
-Callers do not need to inspect `response.ok` or unwrap `{ data, error }` —
-they just catch:
+Callers do not need to inspect `response.ok` or unwrap `{ data, error }` — they
+just catch:
 
 ```ts
 // In a Redux thunk:
@@ -112,16 +112,16 @@ import { ApiClientError } from "@/api";
 2. **Add any new request/response types** to `src/api/types.ts`, not inline in
    the component.
 
-3. Use `request<T>` for `{ data?, error? }` envelope responses (all standard
-   API routes). Use `requestRaw<T>` only when the response is **not** wrapped
-   in that envelope (currently only `/api/auth/session`). Use `requestText`
-   for routes that return raw text (currently only `/api/embed`).
+3. Use `request<T>` for `{ data?, error? }` envelope responses (all standard API
+   routes). Use `requestRaw<T>` only when the response is **not** wrapped in
+   that envelope (currently only `/api/auth/session`). Use `requestText` for
+   routes that return raw text (currently only `/api/embed`).
 
 4. **Do not** add `Content-Type: application/json` manually — use the private
    `json(body)` helper already used by all POST/PATCH methods:
 
    ```ts
-   request<T>(url, { method: "POST", ...json(payload) })
+   request<T>(url, { method: "POST", ...json(payload) });
    ```
 
 5. **FormData uploads** must NOT set `Content-Type` — omit it so the browser
@@ -131,12 +131,12 @@ import { ApiClientError } from "@/api";
 
 ## What does NOT belong in this layer
 
-| Concern | Where it lives |
-|---|---|
-| Server-side fetch with ISR (`next: { revalidate }`) | `src/app/api/utils.ts` (server only) |
-| Business logic / data transformation | `src/repositories/` |
-| State mutations after API calls | Redux thunks in `src/store/` |
-| UI error display | component `setError` state or `useErrorAnnounce` hook |
+| Concern                                             | Where it lives                                        |
+| --------------------------------------------------- | ----------------------------------------------------- |
+| Server-side fetch with ISR (`next: { revalidate }`) | `src/app/api/utils.ts` (server only)                  |
+| Business logic / data transformation                | `src/repositories/`                                   |
+| State mutations after API calls                     | Redux thunks in `src/store/`                          |
+| UI error display                                    | component `setError` state or `useErrorAnnounce` hook |
 
 ---
 

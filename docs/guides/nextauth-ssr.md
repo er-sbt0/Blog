@@ -119,4 +119,5 @@ When implementing this pattern, verify:
 ## Related Documentation
 
 - [hydration.md](./hydration.md) — General hydration error troubleshooting
-- [../architecture/overview.md](../architecture/overview.md) — Application layer rules including server/client component boundaries
+- [../architecture/overview.md](../architecture/overview.md) — Application layer
+  rules including server/client component boundaries

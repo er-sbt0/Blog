@@ -344,8 +344,8 @@ Full reference:
 
 For most blog/content sites, **UTC-based consistent dates are preferable** to
 avoid complexity. If you need dates in the user's local timezone, render them
-client-only inside a `useEffect` and show a neutral placeholder (`—`) during
-SSR to avoid hydration mismatches.
+client-only inside a `useEffect` and show a neutral placeholder (`—`) during SSR
+to avoid hydration mismatches.
 
 ---
 

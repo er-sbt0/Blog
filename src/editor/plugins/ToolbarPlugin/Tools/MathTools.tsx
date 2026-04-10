@@ -283,6 +283,10 @@ export default function MathTools(
 
   useFixedBodyScroll(open);
 
+  const annouunce = useCallback((announcement: Announcement) => {
+    editor.dispatchCommand(ANNOUNCE_COMMAND, announcement);
+  }, [editor]);
+
   const ocr = useCallback(async (blob: Blob) => {
     try {
       setLoading(true);
@@ -310,7 +314,7 @@ export default function MathTools(
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [annouunce]);
 
   const handleFreeHand = useCallback(async () => {
     const exportToBlob = await import("@excalidraw/excalidraw").then((
@@ -332,10 +336,6 @@ export default function MathTools(
     mathfield.executeCommand(["insert", latex]);
     handleClose();
   }, [excalidrawAPI, node, ocr]);
-
-  const annouunce = useCallback((announcement: Announcement) => {
-    editor.dispatchCommand(ANNOUNCE_COMMAND, announcement);
-  }, [editor]);
 
   const handleToggle = (
     event: React.MouseEvent<HTMLElement>,

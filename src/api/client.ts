@@ -271,8 +271,7 @@ export const apiClient = {
   // -------------------------------------------------------------------------
   series: {
     /** GET /api/series */
-    list: (): Promise<Series[] | undefined> =>
-      request<Series[]>("/api/series"),
+    list: (): Promise<Series[] | undefined> => request<Series[]>("/api/series"),
 
     /** GET /api/series/:id */
     get: (id: string): Promise<Series | undefined> =>
@@ -316,7 +315,9 @@ export const apiClient = {
   // -------------------------------------------------------------------------
   posts: {
     /** POST /api/posts/update-times */
-    updateTimes: (updates: UpdatePostTimesInput["updates"]): Promise<undefined> =>
+    updateTimes: (
+      updates: UpdatePostTimesInput["updates"],
+    ): Promise<undefined> =>
       request<undefined>("/api/posts/update-times", {
         method: "POST",
         ...json({ updates }),
@@ -385,6 +386,7 @@ export type {
   CheckHandleResponse,
   DeleteDocumentResponse,
   DeleteRevisionResponse,
+  DeleteSeriesResponse,
   ForkDocumentResponse,
   GetDocumentStorageUsageResponse,
   GetDocumentThumbnailResponse,
@@ -396,6 +398,5 @@ export type {
   PostDocumentsResponse,
   PostRevisionResponse,
   PostSeriesResponse,
-  DeleteSeriesResponse,
   UpdateSeriesPostsInput,
 };

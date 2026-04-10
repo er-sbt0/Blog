@@ -296,6 +296,13 @@ export default function AITools(
     return headlessEditor.getEditorState().toJSON();
   }, [editor]);
 
+  const updateDocument = useCallback(
+    throttle(() => {
+      editor.dispatchCommand(UPDATE_DOCUMENT_COMMAND, undefined);
+    }, 1000),
+    [editor],
+  );
+
   useEffect(() => {
     if (completion.length === 0) return;
     if (!isLoading) {
@@ -331,13 +338,6 @@ export default function AITools(
       lastChild.selectStart();
     }, { onUpdate: updateDocument });
   }, [completion, isLoading]);
-
-  const updateDocument = useCallback(
-    throttle(() => {
-      editor.dispatchCommand(UPDATE_DOCUMENT_COMMAND, undefined);
-    }, 1000),
-    [editor],
-  );
 
   useEffect(() => {
     return mergeRegister(

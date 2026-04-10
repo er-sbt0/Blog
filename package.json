@@ -9,7 +9,9 @@
     "clean": "rm -rf .next && rm -rf node_modules/.cache",
     "start": "next start",
     "lint": "next lint",
-    "rebuild": "npm run clean && npm run build"
+    "rebuild": "npm run clean && npm run build",
+    "check:tdz": "node scripts/check-tdz.mjs",
+    "check:tdz:fix": "node scripts/check-tdz.mjs --fix-hint"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "3.0.9",

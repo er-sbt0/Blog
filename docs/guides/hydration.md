@@ -26,8 +26,8 @@ differences between the server environment and the user's browser.
 output is identical on server and client. Avoid `toLocaleDateString()`,
 `toLocaleString()`, and `toLocaleTimeString()`.
 
-See [date-formatting.md](./date-formatting.md) for
-the full guide including the `DateDisplay` and `RelativeDate` components.
+See [date-formatting.md](./date-formatting.md) for the full guide including the
+`DateDisplay` and `RelativeDate` components.
 
 ### 3. Random Values
 
@@ -61,5 +61,6 @@ with:
 
 ## Related Documentation
 
-- [date-formatting.md](./date-formatting.md) — Consistent UTC-based date rendering
+- [date-formatting.md](./date-formatting.md) — Consistent UTC-based date
+  rendering
 - [nextauth-ssr.md](./nextauth-ssr.md) — Session availability issues during SSR

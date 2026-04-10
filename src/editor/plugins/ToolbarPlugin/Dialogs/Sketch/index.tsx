@@ -183,7 +183,7 @@ function SketchDialog(
     });
   }
 
-  const loadSceneOrLibrary = async () => {
+  async function loadSceneOrLibrary() {
     const unsavedScene = localStorage.getItem("excalidraw");
     if (unsavedScene) {
       const alert = {
@@ -220,7 +220,7 @@ function SketchDialog(
         restoreSerializedScene(unsavedScene);
       }
     } else tryLoadSceneFromNode();
-  };
+  }
 
   async function tryLoadSceneFromNode() {
     const src = node?.getSrc();

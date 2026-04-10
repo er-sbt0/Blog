@@ -38,25 +38,9 @@ const OCRDialog: React.FC<{ editor: LexicalEditor }> = ({ editor }) => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleFilesChange = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const files = event.target.files;
-      if (!files || files.length === 0) return;
-      const file = files[0];
-      event.target.value = "";
-      if (isMimeType(file, ACCEPTABLE_IMAGE_TYPES)) {
-        updateValue(file);
-      } else {
-        annouunce({
-          message: {
-            title: "Uploading image failed",
-            subtitle: "Unsupported file type",
-          },
-        });
-      }
-    },
-    [],
-  );
+  const annouunce = useCallback((announcement: Announcement) => {
+    editor.dispatchCommand(ANNOUNCE_COMMAND, announcement);
+  }, [editor]);
 
   const ocr = useCallback(async (blob: Blob) => {
     try {
@@ -85,13 +69,33 @@ const OCRDialog: React.FC<{ editor: LexicalEditor }> = ({ editor }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [annouunce]);
 
   const updateValue = useCallback(async (blob: Blob) => {
     const latex = await ocr(blob);
     if (!latex) return;
     setFormData({ ...formData, value: latex });
-  }, [formData]);
+  }, [formData, ocr]);
+
+  const handleFilesChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = event.target.files;
+      if (!files || files.length === 0) return;
+      const file = files[0];
+      event.target.value = "";
+      if (isMimeType(file, ACCEPTABLE_IMAGE_TYPES)) {
+        updateValue(file);
+      } else {
+        annouunce({
+          message: {
+            title: "Uploading image failed",
+            subtitle: "Unsupported file type",
+          },
+        });
+      }
+    },
+    [updateValue, annouunce],
+  );
 
   const readFromClipboard = useCallback(async () => {
     try {
@@ -114,11 +118,7 @@ const OCRDialog: React.FC<{ editor: LexicalEditor }> = ({ editor }) => {
         },
       });
     }
-  }, []);
-
-  const annouunce = useCallback((announcement: Announcement) => {
-    editor.dispatchCommand(ANNOUNCE_COMMAND, announcement);
-  }, [editor]);
+  }, [updateValue, annouunce]);
 
   const closeDialog = () => {
     editor.dispatchCommand(SET_DIALOGS_COMMAND, { ocr: { open: false } });

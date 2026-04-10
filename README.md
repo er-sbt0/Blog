@@ -34,10 +34,14 @@ npm run dev
 ## Troubleshooting
 
 If you encounter hydration errors or other rendering issues, see
-[Hydration Error Troubleshooting](docs/guides/hydration.md) for detailed instructions.
+[Hydration Error Troubleshooting](docs/guides/hydration.md) for detailed
+instructions.
 
 ## Documentation
 
-- [Hydration Troubleshooting](docs/guides/hydration.md) - Fixing common rendering issues
-- [Date Formatting Best Practices](docs/guides/date-formatting.md) - Avoiding hydration errors from date rendering
-- [Architecture Overview](docs/architecture/overview.md) - Layered architecture and conventions
+- [Hydration Troubleshooting](docs/guides/hydration.md) - Fixing common
+  rendering issues
+- [Date Formatting Best Practices](docs/guides/date-formatting.md) - Avoiding
+  hydration errors from date rendering
+- [Architecture Overview](docs/architecture/overview.md) - Layered architecture
+  and conventions

@@ -17,9 +17,9 @@ throws a `ReferenceError`.
 
 ```js
 // ❌ TDZ error — const is not yet initialised when useMemo runs
-const result = useMemo(() => compute(helper), [dep]);   // line 10
+const result = useMemo(() => compute(helper), [dep]); // line 10
 // ... more code ...
-const helper = (x) => x * 2;                            // line 50
+const helper = (x) => x * 2; // line 50
 ```
 
 This is different from `function` declarations, which are **fully hoisted**
@@ -29,18 +29,21 @@ This is different from `function` declarations, which are **fully hoisted**
 // ✅ OK — function declaration is hoisted
 const result = useMemo(() => compute(helper), [dep]);
 // ...
-function helper(x) { return x * 2; }
+function helper(x) {
+  return x * 2;
+}
 ```
 
 ---
 
 ## The Specific Bug
 
-**File:** [src/components/EditDocument/Editor.tsx](../../src/components/EditDocument/Editor.tsx)
+**File:**
+[src/components/EditDocument/Editor.tsx](../../src/components/EditDocument/Editor.tsx)
 
-Inside the `DocumentEditor` component, `ensureValidDocumentData` was declared
-as a `const` arrow function near the bottom of the component body (~line 171),
-but was called inside a `useMemo` near the top (~line 56):
+Inside the `DocumentEditor` component, `ensureValidDocumentData` was declared as
+a `const` arrow function near the bottom of the component body (~line 171), but
+was called inside a `useMemo` near the top (~line 56):
 
 ```tsx
 // ❌ Before fix — const used before its declaration
@@ -59,8 +62,8 @@ const DocumentEditor = () => {
 ```
 
 In development mode (un-minified), React runs hook callbacks eagerly during
-render. When `useMemo` fires before `ensureValidDocumentData`'s declaration
-has been evaluated, the TDZ throws:
+render. When `useMemo` fires before `ensureValidDocumentData`'s declaration has
+been evaluated, the TDZ throws:
 
 ```
 Error: Cannot access 'ensureValidDocumentData' before initialization
@@ -88,8 +91,8 @@ In the production bundle the same error appears as a minified
 ## The Fix
 
 Move `ensureValidDocumentData` **outside the component** as a module-level
-`function` declaration. This is safe because the function has no dependencies
-on component state, props, or closures.
+`function` declaration. This is safe because the function has no dependencies on
+component state, props, or closures.
 
 ```tsx
 // ✅ After fix — module-level function declaration, fully hoisted
@@ -107,6 +110,7 @@ const DocumentEditor = () => {
 ```
 
 Benefits beyond fixing the TDZ:
+
 - The function is no longer re-created on every render.
 - It is independently testable.
 

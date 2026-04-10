@@ -39,16 +39,16 @@ adding new features.
 
 Every document has two independent storage paths that are merged in Redux.
 
-| | Local | Cloud |
-|---|---|---|
-| Storage | Browser IndexedDB (`src/indexeddb/`) | PostgreSQL via Prisma |
-| Auth required | No | Yes |
-| Redux thunk prefix | `createLocal*`, `updateLocal*` … | `createCloud*`, `updateCloud*` … |
-| Works offline | Yes | No |
+|                    | Local                                | Cloud                            |
+| ------------------ | ------------------------------------ | -------------------------------- |
+| Storage            | Browser IndexedDB (`src/indexeddb/`) | PostgreSQL via Prisma            |
+| Auth required      | No                                   | Yes                              |
+| Redux thunk prefix | `createLocal*`, `updateLocal*` …     | `createCloud*`, `updateCloud*` … |
+| Works offline      | Yes                                  | No                               |
 
 The `load` thunk in `store/app.ts` boots both sources in parallel and merges
 them into `AppState.documents` as `UserDocument[]` where each entry has an
-optional `local` and `optional `cloud` field.
+optional `local` and `optional`cloud` field.
 
 **Rule:** Always dispatch paired thunks for operations that should persist to
 both stores, unless the feature is intentionally local-only or cloud-only.
@@ -81,8 +81,8 @@ Async thunks use `thunkAPI.fulfillWithValue` / `thunkAPI.rejectWithValue` and
 delegate HTTP work to `apiClient`. They must **not** contain inline `fetch`
 calls.
 
-Series and user thunks live in dedicated files under `src/store/thunks/` and
-are re-exported from `store/app.ts`.
+Series and user thunks live in dedicated files under `src/store/thunks/` and are
+re-exported from `store/app.ts`.
 
 **Rule:** Components that need data should read from the Redux store via
 `useSelector`. Direct API fetches in components are only acceptable for data
@@ -95,21 +95,21 @@ then must go through `apiClient`.
 
 After any client-side mutation:
 
-1. The **API route** calls `revalidatePath()` (forward-compat, currently
-   inert because `dynamic = "force-dynamic"`).
+1. The **API route** calls `revalidatePath()` (forward-compat, currently inert
+   because `dynamic = "force-dynamic"`).
 2. The **component or thunk** calls `router.refresh()` after a successful
    mutation to trigger a server re-fetch of the current page.
 
-`router.refresh()` is the only mechanism that actually causes RSC data to
-update today. Do not skip it.
+`router.refresh()` is the only mechanism that actually causes RSC data to update
+today. Do not skip it.
 
 ---
 
 ## Repositories
 
-Business logic belongs in `src/repositories/`, not in API routes or
-components. API routes call repository functions; they do not contain Prisma
-queries themselves.
+Business logic belongs in `src/repositories/`, not in API routes or components.
+API routes call repository functions; they do not contain Prisma queries
+themselves.
 
 ```
 src/repositories/
@@ -133,6 +133,7 @@ src/components/
 ```
 
 Components must not:
+
 - Call `fetch` directly — use `apiClient`
 - Contain Prisma queries or server-only imports
 - Manage global state — dispatch Redux actions instead
@@ -141,21 +142,21 @@ Components must not:
 
 ## Editor (Lexical)
 
-Custom nodes live in `src/editor/nodes/`. Plugins live in
-`src/editor/plugins/`. The editor is client-only; never import editor
-internals in server components or API routes.
+Custom nodes live in `src/editor/nodes/`. Plugins live in `src/editor/plugins/`.
+The editor is client-only; never import editor internals in server components or
+API routes.
 
 ---
 
 ## Naming conventions
 
-| Thing | Convention |
-|---|---|
-| Cloud thunk | `createCloudDocument`, `updateCloudDocument` … |
-| Local thunk | `createLocalDocument`, `updateLocalDocument` … |
-| API client method | `apiClient.<resource>.<verb>()` |
-| Repository function | verb-first: `createDocument`, `getDocumentById` … |
-| Response type | `Get*Response`, `Post*Response`, `Patch*Response`, `Delete*Response` |
+| Thing               | Convention                                                           |
+| ------------------- | -------------------------------------------------------------------- |
+| Cloud thunk         | `createCloudDocument`, `updateCloudDocument` …                       |
+| Local thunk         | `createLocalDocument`, `updateLocalDocument` …                       |
+| API client method   | `apiClient.<resource>.<verb>()`                                      |
+| Repository function | verb-first: `createDocument`, `getDocumentById` …                    |
+| Response type       | `Get*Response`, `Post*Response`, `Patch*Response`, `Delete*Response` |
 
 ---
 
@@ -166,8 +167,8 @@ internals in server components or API routes.
       `src/api/client.ts`
 - [ ] New request/response types are in `src/api/types.ts` or `src/types.ts`,
       not inline
-- [ ] Mutations that should persist call both `*Local` and `*Cloud` thunks
-      (or document why only one is needed)
+- [ ] Mutations that should persist call both `*Local` and `*Cloud` thunks (or
+      document why only one is needed)
 - [ ] Mutations in components call `router.refresh()` after success
 - [ ] Business logic is in `src/repositories/`, not in route handlers
 - [ ] No `console.log` — only `console.warn` and `console.error` (ESLint rule)

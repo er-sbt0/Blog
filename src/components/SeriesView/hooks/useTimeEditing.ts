@@ -60,7 +60,7 @@ export function useTimeEditing(posts: Document[]) {
         Array.from(pendingTimeChanges.entries()).map(([id, change]) => ({
           id,
           createdAt: change.newDate,
-        }))
+        })),
       );
       setPendingTimeChanges(new Map());
       setIsTimeEditMode(false);

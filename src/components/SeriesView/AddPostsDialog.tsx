@@ -50,15 +50,6 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch available posts when dialog opens
-  useEffect(() => {
-    if (open) {
-      fetchAvailablePosts();
-      // Initialize selected posts with existing posts
-      setSelectedPosts(new Set(existingPosts.map((p) => p.id)));
-    }
-  }, [open, existingPosts]);
-
   const fetchAvailablePosts = async () => {
     setLoading(true);
     setError(null);
@@ -71,6 +62,15 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
       setLoading(false);
     }
   };
+
+  // Fetch available posts when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchAvailablePosts();
+      // Initialize selected posts with existing posts
+      setSelectedPosts(new Set(existingPosts.map((p) => p.id)));
+    }
+  }, [open, existingPosts]);
 
   const handleTogglePost = (postId: string) => {
     setSelectedPosts((prev) => {
@@ -110,7 +110,10 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
         .map((p) => p.id)
         .filter((id) => !selectedPosts.has(id));
 
-      await apiClient.series.updatePosts(seriesId, { postsToAdd, postsToRemove });
+      await apiClient.series.updatePosts(seriesId, {
+        postsToAdd,
+        postsToRemove,
+      });
 
       onPostsAdded();
       handleClose();
