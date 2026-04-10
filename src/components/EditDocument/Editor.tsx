@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAsyncEffect } from "@/hooks/useAsyncEffect";
 import { registerSaveCallback, unregisterSaveCallback } from "./saveRegistry";
 import SplashScreen from "../SplashScreen";
 import {
@@ -215,20 +216,21 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
     return doc;
   };
 
-  useEffect(() => {
+  useAsyncEffect(async (isCancelled) => {
     const loadDocument = async (id: string) => {
       const localResponse = await dispatch(actions.getLocalDocument(id));
       if (
         localResponse.type === actions.getLocalDocument.fulfilled.type
       ) {
         const editorDocument = localResponse.payload as EditorDocument;
-        setIsLoading(false);
+        if (!isCancelled()) setIsLoading(false);
 
         // Check if local is ahead of cloud by comparing head revision IDs.
         // This detects the case where the user edited locally, closed the tab
         // before saving to cloud, and has now re-opened the document.
         if (user) {
           const cloudResponse = await dispatch(actions.getCloudDocument(id));
+          if (isCancelled()) return;
           if (cloudResponse.type === actions.getCloudDocument.fulfilled.type) {
             const { cloudDocument, ...cloudEditorDocument } = cloudResponse
               .payload as ReturnType<
@@ -250,6 +252,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
         const cloudResponse = await dispatch(
           actions.getCloudDocument(id),
         );
+        if (isCancelled()) return;
         if (
           cloudResponse.type ===
             actions.getCloudDocument.fulfilled.type
@@ -262,7 +265,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
           lastSavedCloud.current = JSON.stringify(editorDocument.data);
           // Await so the local document is in Redux before the selector fires
           await dispatch(actions.createLocalDocument(editorDocument));
-          setIsLoading(false);
+          if (!isCancelled()) setIsLoading(false);
           const editorDocumentRevision = {
             id: editorDocument.head,
             documentId: editorDocument.id,
@@ -350,16 +353,16 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
               // Create the revision in cloud
               await dispatch(actions.createCloudRevision(revision));
 
-              setIsLoading(false);
+              if (!isCancelled()) setIsLoading(false);
             } catch (error) {
               console.error("Failed to create notes document:", error);
-              setError({
+              if (!isCancelled()) setError({
                 title: "Failed to Create Notes",
                 subtitle: "Please try again",
               });
             }
           } else {
-            setError(
+            if (!isCancelled()) setError(
               cloudResponse.payload as {
                 title: string;
                 subtitle?: string;
@@ -369,7 +372,11 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
         }
       }
     };
-    id ? loadDocument(id) : setError({ title: "Document Not Found" });
+    if (id) {
+      await loadDocument(id);
+    } else if (!isCancelled()) {
+      setError({ title: "Document Not Found" });
+    }
     return () => {
       dispatch(actions.setDiff({ open: false }));
       dispatch(actions.setDirty(false));

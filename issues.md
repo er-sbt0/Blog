@@ -21,32 +21,6 @@ smaller subcomponents.
 
 ---
 
-### H2 — Repeated manual async-cancellation pattern
-
-**Files**: `src/components/Home/ReadmePreviewCard.tsx` ~lines 34–92,
-`src/components/EditDocument/Editor.tsx` ~lines 202–360
-
-Both repeat this pattern manually in multiple `useEffect`s:
-
-```tsx
-useEffect(() => {
-  let cancelled = false;
-  async function run() {
-    const data = await fetchSomething();
-    if (!cancelled) setState(data);
-  }
-  run();
-  return () => {
-    cancelled = true;
-  };
-}, [dep]);
-```
-
-**Fix**: Extract to a shared `useAsyncEffect` hook or use `AbortController`
-consistently.
-
----
-
 ### H3 — Hardcoded API paths scattered across components
 
 **Files** (partial list):
@@ -265,10 +239,10 @@ assert the type on `.json()`.
 
 ## Totals
 
-| Severity  | Count  |
-| --------- | ------ |
-| Critical  | 3      |
-| High      | 5      |
-| Medium    | 8      |
-| Low       | 3      |
-| **Total** | **19** |
+| Severity  | Open | Fixed | Total |
+| --------- | ---- | ----- | ----- |
+| Critical  | 3    | 0     | 3     |
+| High      | 4    | 1     | 5     |
+| Medium    | 8    | 0     | 8     |
+| Low       | 3    | 0     | 3     |
+| **Total** | **18** | **1** | **19** |

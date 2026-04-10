@@ -1,7 +1,8 @@
 "use client";
 import { Box, CircularProgress, Typography } from "@mui/material";
 import { Add, ArticleOutlined } from "@mui/icons-material";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useAsyncEffect } from "@/hooks/useAsyncEffect";
 import { v4 as uuidv4 } from "uuid";
 import { UserDocument } from "@/types";
 import htmr from "htmr";
@@ -30,70 +31,60 @@ export default function ReadmePreviewCard({
   const [loadingHtml, setLoadingHtml] = useState(true); // Start with loading true
 
   // Find README from documents prop OR fetch it separately
-  useEffect(() => {
-    let cancelled = false;
+  useAsyncEffect(async (isCancelled) => {
+    // First, check if README is in documents
+    const readmeDoc = documents.find((doc) => {
+      const data = doc.cloud || doc.local;
+      const name = data?.name || "";
+      return name.toLowerCase() === "readme";
+    });
 
-    const findOrFetchReadme = async () => {
-      // First, check if README is in documents
-      const readmeDoc = documents.find((doc) => {
-        const data = doc.cloud || doc.local;
-        const name = data?.name || "";
-        return name.toLowerCase() === "readme";
-      });
-
-      if (readmeDoc) {
-        const data = readmeDoc.cloud || readmeDoc.local;
-        if (data && !cancelled) {
-          setReadme({
-            id: readmeDoc.id,
-            name: data.name,
-            description: data.description || undefined,
-            updatedAt: String(data.updatedAt),
-          });
-          return;
-        }
+    if (readmeDoc) {
+      const data = readmeDoc.cloud || readmeDoc.local;
+      if (data && !isCancelled()) {
+        setReadme({
+          id: readmeDoc.id,
+          name: data.name,
+          description: data.description || undefined,
+          updatedAt: String(data.updatedAt),
+        });
+        return;
       }
+    }
 
-      // README not in documents - try to fetch it from API
-      // This happens when server-side render doesn't have session
-      try {
-        const response = await fetch("/api/documents");
-        if (!response.ok) {
-          if (!cancelled) setReadme(null);
-          return;
-        }
-        const { data } = await response.json();
-        if (cancelled) return;
-
-        const readmeFromApi = data?.find((doc: any) =>
-          doc.name?.toLowerCase() === "readme"
-        );
-
-        if (readmeFromApi) {
-          setReadme({
-            id: readmeFromApi.id,
-            name: readmeFromApi.name,
-            description: readmeFromApi.description || undefined,
-            updatedAt: String(readmeFromApi.updatedAt),
-          });
-        } else {
-          setReadme(null);
-        }
-      } catch (err) {
-        console.error("Failed to fetch documents for README:", err);
-        if (!cancelled) setReadme(null);
+    // README not in documents - try to fetch it from API
+    // This happens when server-side render doesn't have session
+    try {
+      const response = await fetch("/api/documents");
+      if (!response.ok) {
+        if (!isCancelled()) setReadme(null);
+        return;
       }
-    };
+      const { data } = await response.json();
+      if (isCancelled()) return;
 
-    findOrFetchReadme();
+      const readmeFromApi = data?.find((doc: ReadmeData & { name: string }) =>
+        doc.name?.toLowerCase() === "readme"
+      );
 
-    return () => {
-      cancelled = true;
-    };
+      if (readmeFromApi) {
+        setReadme({
+          id: readmeFromApi.id,
+          name: readmeFromApi.name,
+          description: readmeFromApi.description || undefined,
+          updatedAt: String(readmeFromApi.updatedAt),
+        });
+      } else {
+        setReadme(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch documents for README:", err);
+      if (!isCancelled()) setReadme(null);
+    }
   }, [documents]);
 
   // Fetch HTML content when readme is found
-  useEffect(() => {
+  useAsyncEffect(async (isCancelled) => {
     if (readme === null) {
       // Explicitly null means we checked and there's no README
       setHtml(null);
@@ -106,50 +97,40 @@ export default function ReadmePreviewCard({
       return;
     }
 
-    let cancelled = false;
-
-    const fetchHtml = async () => {
-      setLoadingHtml(true);
-      try {
-        // Fetch the document to get revision data
-        const docResponse = await fetch(`/api/documents/${readme.id}`);
-        if (!docResponse.ok) {
-          throw new Error("Failed to fetch document");
-        }
-        const docData = await docResponse.json();
-
-        if (!docData.data?.data?.root) {
-          throw new Error("Invalid document data");
-        }
-
-        // Use the embed API to generate HTML from the editor state
-        const embedResponse = await fetch("/api/embed", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(docData.data.data),
-        });
-
-        if (!embedResponse.ok) {
-          throw new Error("Failed to generate HTML");
-        }
-
-        if (cancelled) return;
-
-        const generatedHtml = await embedResponse.text();
-        setHtml(generatedHtml);
-      } catch (err) {
-        console.error("Failed to fetch README HTML:", err);
-        if (!cancelled) setHtml(null);
-      } finally {
-        if (!cancelled) setLoadingHtml(false);
+    setLoadingHtml(true);
+    try {
+      // Fetch the document to get revision data
+      const docResponse = await fetch(`/api/documents/${readme.id}`);
+      if (!docResponse.ok) {
+        throw new Error("Failed to fetch document");
       }
-    };
+      const docData = await docResponse.json();
 
-    fetchHtml();
+      if (!docData.data?.data?.root) {
+        throw new Error("Invalid document data");
+      }
 
-    return () => {
-      cancelled = true;
-    };
+      // Use the embed API to generate HTML from the editor state
+      const embedResponse = await fetch("/api/embed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(docData.data.data),
+      });
+
+      if (!embedResponse.ok) {
+        throw new Error("Failed to generate HTML");
+      }
+
+      if (isCancelled()) return;
+
+      const generatedHtml = await embedResponse.text();
+      setHtml(generatedHtml);
+    } catch (err) {
+      console.error("Failed to fetch README HTML:", err);
+      if (!isCancelled()) setHtml(null);
+    } finally {
+      if (!isCancelled()) setLoadingHtml(false);
+    }
   }, [readme]);
 
   const createReadme = useCallback(async () => {
