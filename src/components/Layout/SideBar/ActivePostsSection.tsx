@@ -29,7 +29,7 @@ export const ActivePostsSection: React.FC<ActivePostsSectionProps> = ({
 }) => {
   const [activePostsSearch, setActivePostsSearch] = useState("");
   const {
-    expandedSeries: collapsedSeries,
+    expandedSeries,
     toggleSeries: toggleSeriesExpanded,
   } = useExpandedState("sidebarSeriesCollapsedState");
 
@@ -160,7 +160,7 @@ export const ActivePostsSection: React.FC<ActivePostsSectionProps> = ({
                     series: NonNullable<SeriesGroupItem["series"]>;
                   }}
                   groupIndex={groupIndex}
-                  isExpanded={!collapsedSeries.has(group.series.id)}
+                  isExpanded={expandedSeries.has(group.series.id)}
                   onToggle={() => toggleSeriesExpanded(group.series!.id)}
                   sidebarOpen={sidebarOpen}
                   pathname={pathname}
