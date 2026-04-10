@@ -111,14 +111,16 @@ Clutters the deps array and makes reasoning harder.
 
 ---
 
-### M8 — `window.location.reload()` in async callback
+### ~~M8 — `window.location.reload()` in async callback~~ ✅ Fixed (46db9680)
 
-**File**: `src/components/Home/ReadmePreviewCard.tsx` ~line 232
+**File**: `src/components/Home/ReadmePreviewCard.tsx`
 
-Hard page reload after creating a README document. All in-memory state is lost
-and the user experiences a flash.
+~~Hard page reload after creating a README document. All in-memory state is lost
+and the user experiences a flash.~~
 
-**Fix**: Dispatch a Redux action to update state and navigate with
-`router.push()` instead.
+Replaced manual `fetch` + `window.location.reload()` with
+`dispatch(actions.createCloudDocument(...))`. The
+`createCloudDocument.fulfilled` reducer adds the document to Redux state,
+triggering a natural re-render with no flash or state loss.
 
 ---

@@ -209,8 +209,11 @@ export default function ReadmePreviewCard({
       );
 
       if (actions.createCloudDocument.rejected.match(result)) {
-        const payload = result.payload as { title?: string; subtitle?: string } | undefined;
-        const errorMessage = payload?.subtitle || payload?.title || "Failed to create README";
+        const payload = result.payload as
+          | { title?: string; subtitle?: string }
+          | undefined;
+        const errorMessage = payload?.subtitle || payload?.title ||
+          "Failed to create README";
         setError(errorMessage);
       }
     } catch (err) {
