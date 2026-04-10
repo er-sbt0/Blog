@@ -1,23 +1,12 @@
 "use client";
 import { UserDocument } from "@/types";
 import { memo } from "react";
-import { Alert, Box, IconButton, Skeleton } from "@mui/material";
+import { Alert, Box, IconButton } from "@mui/material";
 import { Refresh } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import { usePostContent } from "./hooks/usePostContent";
 import { createCardTheme } from "./theme";
-
-/**
- * Simple inline skeleton for thumbnail loading
- */
-const ThumbnailSkeleton: React.FC = () => (
-  <Box sx={{ p: 1 }}>
-    <Skeleton variant="text" width="70%" height={24} />
-    <Skeleton variant="text" width="90%" height={16} />
-    <Skeleton variant="text" width="75%" height={16} />
-    <Skeleton variant="rectangular" width="100%" height={60} sx={{ mt: 1 }} />
-  </Box>
-);
+import { LoadingState } from "@/components/LoadingState";
 
 /**
  * Error display component for failed thumbnail loading
@@ -52,7 +41,7 @@ const PostThumbnail: React.FC<{ userDocument?: UserDocument }> = memo(
 
     // Show loading skeleton
     if (isLoading) {
-      return <ThumbnailSkeleton />;
+      return <LoadingState variant="content" />;
     }
 
     // Show error with retry option

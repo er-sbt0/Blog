@@ -5,7 +5,7 @@ import { SxProps, Theme } from "@mui/material/styles";
 
 interface LoadingStateProps {
   /** Type of loading state to display */
-  variant?: "spinner" | "skeleton" | "grid" | "linear";
+  variant?: "spinner" | "skeleton" | "content" | "grid" | "linear";
   /** Size of the loading indicator */
   size?: "small" | "medium" | "large";
   /** Custom message to display */
@@ -77,6 +77,16 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
             <Skeleton variant="text" height={40} sx={{ mb: 2 }} />
             <Skeleton variant="rectangular" height={height} sx={{ mb: 1 }} />
             <Skeleton variant="text" height={20} width="60%" />
+          </Box>
+        );
+
+      case "content":
+        return (
+          <Box sx={{ p: 1, ...sx }}>
+            <Skeleton variant="text" width="70%" height={24} />
+            <Skeleton variant="text" width="90%" height={16} />
+            <Skeleton variant="text" width="75%" height={16} />
+            <Skeleton variant="rectangular" width="100%" height={60} sx={{ mt: 1 }} />
           </Box>
         );
 

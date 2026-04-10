@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Checkbox,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -22,6 +21,7 @@ import {
 import { Add, Article, Close, Search } from "@mui/icons-material";
 import { Document } from "@/types";
 import { DateDisplay } from "@/components/DateDisplay";
+import { LoadingState } from "@/components/LoadingState";
 
 interface SeriesApiResponse {
   data?: Document[];
@@ -182,16 +182,11 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
 
         {loading
           ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                py: 6,
-              }}
-            >
-              <CircularProgress />
-            </Box>
+            <LoadingState
+              variant="spinner"
+              showMessage={false}
+              height={150}
+            />
           )
           : (() => {
             // Combine available posts and existing posts for display
