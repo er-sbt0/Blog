@@ -66,16 +66,3 @@ const cardTheme = useMemo(() => createCardTheme(theme), [theme]);
 
 **Fix**: Create a `useErrorAnnounce` hook that always dispatches to the
 snackbar. Ban `console.error` for user-facing errors.
-
----
-
-### M5 — Inconsistent loading state representations
-
-Three different patterns in use for the same concept:
-
-- `src/components/PostsList/index.tsx` — custom `PostsLoadingState` component
-- `src/components/DocumentCardNew/PostThumbnail.tsx` — `ThumbnailSkeleton`
-- `src/components/SeriesView/AddPostsDialog.tsx` — bare `<CircularProgress>` in
-  `<Box>`
-
-**Fix**: Standardise on one `<LoadingOverlay>` or `<ContentSkeleton>` component.
