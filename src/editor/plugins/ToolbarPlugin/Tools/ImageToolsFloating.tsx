@@ -18,7 +18,7 @@ import {
   ViewHeadline,
 } from "@mui/icons-material";
 import { $isIFrameNode, IFrameNode } from "@/editor/nodes/IFrameNode";
-import ToolsContainer from "@/components/Tools/ToolsContainer";
+import ToolsContainer from "@/components/ToolsContainer";
 
 const FormatImageRight = () => (
   <SvgIcon viewBox="0 -960 960 960" fontSize="small">

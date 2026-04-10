@@ -18,7 +18,7 @@ import { useTimeEditing } from "@/hooks/useTimeEditing";
 import { type ViewType } from "@/components/shared/ViewToggle";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { getPostSeriesId } from "@/utils/posts/seriesGrouping";
-import PostsTimeSection from "./components/PostsTimeSection";
+import PostsTimeSection from "./PostsTimeSection";
 
 // All-posts mode components
 import PostsHeader from "@/components/PostsList/components/PostsHeader";

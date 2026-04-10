@@ -5,9 +5,9 @@ import { DeleteForever } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import { actions, useDispatch } from "@/store";
 import { v4 as uuid } from "uuid";
-import { DragContext } from "../DragContext";
+import { DragContext } from "./DragContext";
 import { UserDocument } from "@/types";
-import { FloatingActionButton } from "../Layout/FloatingActionsContainer";
+import { FloatingActionButton } from "./Layout/FloatingActionsContainer";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 
 const TrashBin: React.FC = () => {
