@@ -14,7 +14,7 @@ const Playground: React.FC<React.PropsWithChildren> = ({ children }) => {
     : <SplashScreen title="Loading Document" />;
   if (!isClient) return fallback;
 
-  const PlaygroundEditor = dynamic(() => import("./Editor"), {
+  const PlaygroundEditor = dynamic(() => import("./PlaygroundEditor"), {
     ssr: false,
     loading: () => fallback,
   });

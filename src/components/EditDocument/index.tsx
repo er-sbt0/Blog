@@ -42,7 +42,9 @@ class EditorErrorBoundary extends Component<
   }
 }
 
-const DocumentEditor = dynamic(() => import("./Editor"), { ssr: false });
+const DocumentEditor = dynamic(() => import("./EditDocumentContent"), {
+  ssr: false,
+});
 
 const EditDocument: React.FC<React.PropsWithChildren> = ({ children }) => {
   const fallback = children

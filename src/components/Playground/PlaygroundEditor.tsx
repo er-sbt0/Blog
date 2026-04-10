@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { PropsWithChildren } from "react";
 import { EditorDocument } from "@/types";
-import Editor from "../Editor";
+import ConnectedEditor from "../ConnectedEditor";
 
 const PlaygroundEditor: React.FC<PropsWithChildren> = (
   { children: _children },
@@ -17,7 +17,7 @@ const PlaygroundEditor: React.FC<PropsWithChildren> = (
 
   if (!document) return null;
 
-  return <Editor document={document} />;
+  return <ConnectedEditor document={document} />;
 };
 
 export default PlaygroundEditor;

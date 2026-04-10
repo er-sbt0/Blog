@@ -10,7 +10,7 @@ import { usePathname } from "next/navigation";
 import type { LexicalEditor, SerializedEditorState } from "lexical";
 import dynamic from "next/dynamic";
 import DiffView from "../Diff";
-import Editor from "../Editor";
+import ConnectedEditor from "../ConnectedEditor";
 import SaveDiscardActions from "./SaveDiscardActions";
 import { useCloudSave } from "./hooks/useCloudSave";
 import { useDocumentLoader } from "./hooks/useDocumentLoader";
@@ -115,7 +115,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = (
     <>
       <title>{documentForEditor.name}</title>
       {showDiff && <DiffView />}
-      <Editor
+      <ConnectedEditor
         document={documentForEditor}
         editorRef={editorRef}
         onChange={handleChange}

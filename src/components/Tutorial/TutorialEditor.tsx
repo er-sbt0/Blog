@@ -20,7 +20,7 @@ import {
 import { $isListItemNode, $isListNode } from "@lexical/list";
 import { PropsWithChildren } from "react";
 import { EditorDocument } from "@/types";
-import Editor from "../Editor";
+import ConnectedEditor from "../ConnectedEditor";
 
 const TutorialEditor: React.FC<PropsWithChildren> = (
   { children: _children },
@@ -129,7 +129,7 @@ const TutorialEditor: React.FC<PropsWithChildren> = (
   if (!document) return null;
 
   return (
-    <Editor
+    <ConnectedEditor
       document={document}
       onChange={onChange}
       editorRef={registerListeners}

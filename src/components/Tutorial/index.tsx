@@ -14,7 +14,7 @@ const Tutorial: React.FC<React.PropsWithChildren> = ({ children }) => {
     : <SplashScreen title="Loading Document" />;
   if (!isClient) return fallback;
 
-  const TutorialEditor = dynamic(() => import("./Editor"), {
+  const TutorialEditor = dynamic(() => import("./TutorialEditor"), {
     ssr: false,
     loading: () => fallback,
   });

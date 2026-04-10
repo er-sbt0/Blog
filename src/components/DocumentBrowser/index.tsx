@@ -15,7 +15,7 @@ import { useBreadcrumbs } from "./hooks/useBreadcrumbs";
 import { useDocumentNavigation } from "./hooks/useDocumentNavigation";
 import BrowserBreadcrumbs from "./components/BrowserBreadcrumbs";
 import BrowserHeader from "./components/BrowserHeader";
-import EmptyState from "./components/EmptyState";
+import BlogPostsEmptyState from "./components/BlogPostsEmptyState";
 import LoadingState from "./components/LoadingState";
 
 interface DocumentBrowserProps {
@@ -130,7 +130,7 @@ const DocumentBrowser: React.FC<DocumentBrowserProps> = () => {
               {/* Content section */}
               {hasNoItems
                 ? (
-                  <EmptyState
+                  <BlogPostsEmptyState
                     onCreateDocument={createDocument}
                   />
                 )

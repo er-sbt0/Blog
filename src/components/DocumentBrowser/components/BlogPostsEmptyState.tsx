@@ -11,7 +11,7 @@ interface EmptyStateProps {
  * Empty state component shown when no blog posts are found
  * Provides quick action to create a new post
  */
-const EmptyState: React.FC<EmptyStateProps> = ({
+const BlogPostsEmptyState: React.FC<EmptyStateProps> = ({
   onCreateDocument,
 }) => {
   // In blog structure, we always show the same empty state
@@ -72,4 +72,4 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   );
 };
 
-export default EmptyState;
+export default BlogPostsEmptyState;

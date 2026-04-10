@@ -12,7 +12,7 @@ import { actions, useDispatch } from "@/store";
 import type { EditorState, LexicalEditor } from "lexical";
 import Editor from "@/editor/Editor";
 
-const Container: React.FC<{
+const ConnectedEditor: React.FC<{
   document: EditorDocument;
   editorRef?: RefObject<LexicalEditor | null> | RefCallback<LexicalEditor>;
   onChange?: (
@@ -110,4 +110,4 @@ const Container: React.FC<{
   );
 };
 
-export default Container;
+export default ConnectedEditor;
