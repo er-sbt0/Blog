@@ -1,7 +1,6 @@
 "use client";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { checkpoints } from "./checkpoints";
-import tutorialTemplate from "./tutorial.json";
 import {
   $addUpdateTag,
   $getRoot,
@@ -23,11 +22,16 @@ import { PropsWithChildren } from "react";
 import { EditorDocument } from "@/types";
 import Editor from "../Editor";
 
-const document = tutorialTemplate as unknown as EditorDocument;
-
 const TutorialEditor: React.FC<PropsWithChildren> = (
   { children: _children },
 ) => {
+  const [document, setDocument] = useState<EditorDocument | null>(null);
+
+  useEffect(() => {
+    fetch("/data/tutorial.json")
+      .then((res) => res.json())
+      .then((data: EditorDocument) => setDocument(data));
+  }, []);
   const onChange = (
     editorState: EditorState,
     editor: LexicalEditor,
@@ -121,6 +125,8 @@ const TutorialEditor: React.FC<PropsWithChildren> = (
       COMMAND_PRIORITY_NORMAL,
     );
   }, []);
+
+  if (!document) return null;
 
   return (
     <Editor
