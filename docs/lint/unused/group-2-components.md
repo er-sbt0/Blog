@@ -1,18 +1,9 @@
 # Group 2 — UI Components (`src/components/`)
 
 > Suggested commit message: `fix(lint): remove unused vars in components`
-> ~~Errors: **67**~~ → **4 remaining** (verified 2026-04-10)
+> ~~Errors: **67**~~ → **0 remaining** ✅ committed 2026-04-10
 
-## ✅ Remaining errors (do these next)
-
-| File | Line | Symbol | Fix |
-| ---- | ---- | ------ | --- |
-| `src/components/ViewDocumentInfo.tsx` | L11 | `useScrollTrigger` | Remove import |
-| `src/components/ViewDocumentInfo.tsx` | L43 | `revisionId` | Remove assignment |
-| `src/components/DocumentBrowser/index.tsx` | L37 | `directories` | Remove assignment |
-| `src/components/EditDocument/EditRevisionCard.tsx` | L59 | `isCloudOnlyRevision` | Remove assignment |
-
-> All other entries below were fixed in the previous pass.
+> All errors fixed and committed.
 
 ---
 
