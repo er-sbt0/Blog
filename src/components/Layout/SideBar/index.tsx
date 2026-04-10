@@ -1,11 +1,9 @@
 "use client";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import {
-  actions,
   documentsSelectors,
   type RootState,
-  useDispatch,
   useSelector,
 } from "@/store";
 import {
@@ -48,7 +46,6 @@ const navigationItems = [
 ];
 
 const SideBar: React.FC = () => {
-  const dispatch = useDispatch();
   const pathname = usePathname();
   const theme = useTheme();
 
@@ -70,7 +67,6 @@ const SideBar: React.FC = () => {
     enabled: true,
   });
 
-  const initialized = useSelector((state: RootState) => state.ui.initialized);
   const user = useSelector((state: RootState) => state.user);
   const documents = useSelector((state: RootState) =>
     documentsSelectors.selectAll(state)
@@ -102,10 +98,6 @@ const SideBar: React.FC = () => {
     () => groupPostsBySeries(activeDocuments, seriesMap),
     [activeDocuments, seriesMap],
   );
-
-  useEffect(() => {
-    if (!initialized) dispatch(actions.load());
-  }, [dispatch, initialized]);
 
   return (
     <Drawer

@@ -1,11 +1,19 @@
 "use client";
+import { useEffect } from "react";
 import SideBar from "./SideBar";
 import HydrationManager from "./HydrationManager";
 import Breadcrumbs from "./Breadcrumbs";
 import { Box, Container, Toolbar } from "@mui/material";
 import { CONTENT_RIGHT_PADDING } from "./SideBar/constants";
+import { actions, type RootState, useDispatch, useSelector } from "@/store";
 
 const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
+  const dispatch = useDispatch();
+  const initialized = useSelector((state: RootState) => state.ui.initialized);
+
+  useEffect(() => {
+    if (!initialized) dispatch(actions.load());
+  }, [dispatch, initialized]);
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <SideBar />
