@@ -9,6 +9,7 @@ interface SidebarHeaderProps {
   open: boolean;
   sidebarFontSize: number;
   toggleSidebar: () => void;
+  shortcutHint: string;
   increaseFontSize: () => void;
   decreaseFontSize: () => void;
   resetFontSize: () => void;
@@ -18,6 +19,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
   open,
   sidebarFontSize,
   toggleSidebar,
+  shortcutHint,
   increaseFontSize,
   decreaseFontSize,
   resetFontSize,
@@ -104,7 +106,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
           </>
         )}
         <Tooltip
-          title={`${open ? "Collapse" : "Expand"} sidebar (Ctrl+\\)`}
+          title={`${open ? "Collapse" : "Expand"} sidebar (${shortcutHint})`}
         >
           <IconButton
             onClick={toggleSidebar}

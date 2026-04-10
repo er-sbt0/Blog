@@ -60,7 +60,7 @@ const SideBar: React.FC = () => {
     ...postItemActions
   } = useSidebarActions();
 
-  useKeyboardShortcuts({ onToggleSidebar: toggleSidebar, enabled: true });
+  const { shortcutHint } = useKeyboardShortcuts({ onToggleSidebar: toggleSidebar, enabled: true });
 
   const initialized = useSelector((state: RootState) => state.ui.initialized);
   const user = useSelector((state: RootState) => state.user);
@@ -127,6 +127,7 @@ const SideBar: React.FC = () => {
         open={open}
         sidebarFontSize={sidebarFontSize}
         toggleSidebar={toggleSidebar}
+        shortcutHint={shortcutHint}
         increaseFontSize={increaseFontSize}
         decreaseFontSize={decreaseFontSize}
         resetFontSize={resetFontSize}
