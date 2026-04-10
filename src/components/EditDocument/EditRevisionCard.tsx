@@ -23,7 +23,7 @@ import {
   MobileFriendly,
   Update,
 } from "@mui/icons-material";
-import { actions, useDispatch, useSelector } from "@/store";
+import { actions, documentsSelectors, useDispatch, useSelector } from "@/store";
 import { CLEAR_HISTORY_COMMAND, type LexicalEditor } from "lexical";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import NProgress from "nprogress";
@@ -38,7 +38,7 @@ const RevisionCard: React.FC<{
   const user = useSelector((state) => state.user);
   const isOnline = useOnlineStatus();
   const userDocument = useSelector((state) =>
-    state.documents.find((d) => d.id === revision.documentId)
+    documentsSelectors.selectById(state, revision.documentId)
   );
   const localDocument = userDocument?.local;
   const cloudDocument = userDocument?.cloud;

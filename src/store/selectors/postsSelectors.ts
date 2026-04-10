@@ -1,8 +1,9 @@
 import { createSelector } from "@reduxjs/toolkit";
-import { RootState } from "@/store";
+import { documentsSelectors, RootState } from "@/store";
 import { UserDocument } from "@/types";
 
-const selectDocuments = (state: RootState) => state.documents;
+const selectDocuments = (state: RootState) =>
+  documentsSelectors.selectAll(state);
 const selectSeries = (state: RootState) => state.series;
 
 /**

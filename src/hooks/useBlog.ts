@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "@/store";
+import { AppDispatch, documentsSelectors, RootState } from "@/store";
 import {
   createCloudDocument,
   createSeries,
@@ -14,7 +14,9 @@ import { DocumentCreateInput, DocumentUpdateInput } from "@/types";
 // ===== POST HOOKS =====
 
 export const usePosts = () => {
-  const documents = useSelector((state: RootState) => state.documents);
+  const documents = useSelector((state: RootState) =>
+    documentsSelectors.selectAll(state)
+  );
   // Posts are cloud documents of type DOCUMENT that are not readme entries
   return documents.filter(
     (doc) =>
@@ -25,7 +27,9 @@ export const usePosts = () => {
 };
 
 export const usePublishedPosts = () => {
-  const documents = useSelector((state: RootState) => state.documents);
+  const documents = useSelector((state: RootState) =>
+    documentsSelectors.selectAll(state)
+  );
   return documents.filter(
     (doc) =>
       doc.cloud?.published &&

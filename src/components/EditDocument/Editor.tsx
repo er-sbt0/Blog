@@ -5,6 +5,7 @@ import { EditorDocument } from "@/types";
 import { useSelector as useReduxSelector } from "react-redux";
 import { useSelector } from "@/store";
 import type { RootState } from "@/store";
+import { documentsSelectors } from "@/store";
 import { usePathname } from "next/navigation";
 import type { LexicalEditor, SerializedEditorState } from "lexical";
 import dynamic from "next/dynamic";
@@ -79,7 +80,9 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
   // re-renders from data changes on every edit (only re-render on identity change).
   const document = useReduxSelector(
     (state: RootState) =>
-      state.documents.find((d) => d.local?.handle === id || d.local?.id === id)
+      documentsSelectors
+        .selectAll(state)
+        .find((d) => d.local?.handle === id || d.local?.id === id)
         ?.local,
     (a, b) => a?.id === b?.id,
   );

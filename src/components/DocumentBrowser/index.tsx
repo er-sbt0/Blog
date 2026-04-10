@@ -1,5 +1,5 @@
 "use client";
-import { useSelector } from "@/store";
+import { documentsSelectors, useSelector } from "@/store";
 import { useMemo, useState } from "react";
 import { Box, Container, Fade } from "@mui/material";
 import { UserDocument } from "@/types";
@@ -23,7 +23,7 @@ interface DocumentBrowserProps {
 }
 
 const DocumentBrowser: React.FC<DocumentBrowserProps> = () => {
-  const documents = useSelector((state) => state.documents);
+  const documents = useSelector((state) => documentsSelectors.selectAll(state));
   const user = useSelector((state) => state.user);
 
   // State for loading and sorting

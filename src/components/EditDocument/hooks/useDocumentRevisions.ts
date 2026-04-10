@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { DocumentRevision, EditorDocumentRevision } from "@/types";
-import { actions, useDispatch, useSelector } from "@/store";
+import { actions, documentsSelectors, useDispatch, useSelector } from "@/store";
 import type { LexicalEditor } from "lexical";
 import type { RefObject } from "react";
 
@@ -13,7 +13,7 @@ export function useDocumentRevisions(
   const errorAnnounce = useErrorAnnounce();
   const user = useSelector((state) => state.user);
   const userDocument = useSelector((state) =>
-    state.documents.find((d) => d.id === documentId)
+    documentsSelectors.selectById(state, documentId)
   );
   const localDocument = userDocument?.local;
   const cloudDocument = userDocument?.cloud;

@@ -15,6 +15,7 @@ import {
   deleteLocalDocument,
   deleteLocalRevision,
   deleteSeries,
+  documentsAdapter,
   duplicateDocument,
   forkCloudDocument,
   forkLocalDocument,
@@ -94,6 +95,11 @@ export type AppThunk<ReturnType = void> = ThunkAction<
   unknown,
   Action<string>
 >;
+
+/** O(1) document selectors backed by entity adapter */
+export const documentsSelectors = documentsAdapter.getSelectors<RootState>(
+  (state) => state.documents,
+);
 
 export const useDispatch: () => AppDispatch = useReduxDispatch;
 export const useSelector: <T>(selector: (state: RootState) => T) => T =

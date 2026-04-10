@@ -1,5 +1,6 @@
 import type { SerializedEditorState } from "lexical";
 import type { Session } from "next-auth";
+import type { EntityState } from "@reduxjs/toolkit";
 
 export interface Alert {
   title: string;
@@ -24,7 +25,7 @@ export interface AttachmentPreviewState {
 
 export interface AppState {
   user?: User;
-  documents: UserDocument[];
+  documents: EntityState<UserDocument, string>;
   series: Series[];
   ui: {
     announcements: Announcement[];

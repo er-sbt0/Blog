@@ -1,7 +1,7 @@
 "use client";
 import { CloudUpload } from "@mui/icons-material";
 import { Fab, Tooltip } from "@mui/material";
-import { actions, useDispatch, useSelector } from "@/store";
+import { actions, documentsSelectors, useDispatch, useSelector } from "@/store";
 import { FloatingActionButton } from "./Layout/FloatingActionsContainer";
 
 /**
@@ -12,7 +12,7 @@ import { FloatingActionButton } from "./Layout/FloatingActionsContainer";
 const SyncToCloudFab: React.FC<{ documentId: string }> = ({ documentId }) => {
   const dispatch = useDispatch();
   const userDocument = useSelector((state) =>
-    state.documents.find((d) => d.id === documentId)
+    documentsSelectors.selectById(state, documentId)
   );
 
   const isDirty = Boolean(userDocument?.local) &&

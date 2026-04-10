@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuid } from "uuid";
-import { actions, type RootState, useDispatch, useSelector } from "@/store";
+import {
+  actions,
+  documentsSelectors,
+  type RootState,
+  useDispatch,
+  useSelector,
+} from "@/store";
 
 export interface PostItemActions {
   renamingPostId: string | null;
@@ -29,7 +35,9 @@ export interface SidebarActionsResult extends PostItemActions {
 export function useSidebarActions(): SidebarActionsResult {
   const dispatch = useDispatch();
   const router = useRouter();
-  const documents = useSelector((state: RootState) => state.documents);
+  const documents = useSelector((state: RootState) =>
+    documentsSelectors.selectAll(state)
+  );
 
   const [contextMenu, setContextMenu] = useState<
     {

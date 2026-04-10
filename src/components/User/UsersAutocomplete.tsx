@@ -6,7 +6,7 @@ import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import { Document, User } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
-import { actions, useDispatch, useSelector } from "@/store";
+import { actions, documentsSelectors, useDispatch, useSelector } from "@/store";
 import {
   Avatar,
   Chip,
@@ -36,7 +36,7 @@ export default function UsersAutocomplete({
 }) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
-  const documents = useSelector((state) => state.documents);
+  const documents = useSelector((state) => documentsSelectors.selectAll(state));
   const cloudDocuments = documents.filter((d) => !!d.cloud).map((d) =>
     d.cloud
   ) as Document[];

@@ -1,7 +1,9 @@
 import {
   createAction,
   createAsyncThunk,
+  createEntityAdapter,
   createSlice,
+  EntityState,
   PayloadAction,
 } from "@reduxjs/toolkit";
 import NProgress from "nprogress";
@@ -33,11 +35,26 @@ import {
 } from "./thunks/seriesThunks";
 import { alert, updateUser } from "./thunks/userThunks";
 
+export const documentsAdapter = createEntityAdapter<UserDocument>();
+
+/** Insert a new entity at the front of ids[] so it appears first in the list. */
+function prependOneDoc(
+  adapterState: EntityState<UserDocument, string>,
+  entity: UserDocument,
+) {
+  documentsAdapter.addOne(adapterState, entity);
+  const idx = adapterState.ids.indexOf(entity.id);
+  if (idx > 0) {
+    adapterState.ids.splice(idx, 1);
+    adapterState.ids.unshift(entity.id);
+  }
+}
+
 const toErrorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : "Unknown error";
 
 const initialState: AppState = {
-  documents: [],
+  documents: documentsAdapter.getInitialState(),
   series: [],
   ui: {
     announcements: [],
@@ -798,7 +815,7 @@ export const getDocumentById = createAsyncThunk(
   async (id: string, thunkAPI) => {
     try {
       const state = thunkAPI.getState() as AppState;
-      const userDocument = state.documents.find((doc) => doc.id === id);
+      const userDocument = state.documents.entities[id];
       if (!userDocument) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -889,15 +906,17 @@ export const appSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(load.fulfilled, (state, action) => {
-        state.documents = state.documents.sort((a, b) => {
-          const first = a.local?.updatedAt || a.cloud?.updatedAt;
-          const second = b.local?.updatedAt || b.cloud?.updatedAt;
-          if (!first && !second) return 0;
-          if (!first) return 1;
-          if (!second) return -1;
-          return new Date(second).getTime() -
-            new Date(first).getTime();
-        });
+        const sorted =
+          (Object.values(state.documents.entities) as UserDocument[])
+            .sort((a, b) => {
+              const first = a.local?.updatedAt || a.cloud?.updatedAt;
+              const second = b.local?.updatedAt || b.cloud?.updatedAt;
+              if (!first && !second) return 0;
+              if (!first) return 1;
+              if (!second) return -1;
+              return new Date(second).getTime() - new Date(first).getTime();
+            });
+        documentsAdapter.setAll(state.documents, sorted);
         state.ui.initialized = true;
       })
       .addCase(loadSession.fulfilled, (state, action) => {
@@ -907,15 +926,15 @@ export const appSlice = createSlice({
       .addCase(loadLocalDocuments.fulfilled, (state, action) => {
         const documents = action.payload;
         documents.forEach((document) => {
-          const userDocument = state.documents.find((doc) =>
-            doc.id === document.id
-          );
-          if (!userDocument) {
-            state.documents.push({
+          const existing = state.documents.entities[document.id];
+          if (!existing) {
+            documentsAdapter.addOne(state.documents, {
               id: document.id,
               local: document,
             });
-          } else userDocument.local = document;
+          } else {
+            existing.local = document;
+          }
         });
       })
       .addCase(loadCloudDocuments.pending, (state) => {
@@ -925,16 +944,14 @@ export const appSlice = createSlice({
         state.ui.documentsLoading = false;
         const documents = action.payload;
         documents.forEach((document) => {
-          const userDocument = state.documents.find((doc) =>
-            doc.id === document.id
-          );
-          if (!userDocument) {
-            state.documents.push({
+          const existing = state.documents.entities[document.id];
+          if (!existing) {
+            documentsAdapter.addOne(state.documents, {
               id: document.id,
               cloud: document,
             });
           } else {
-            userDocument.cloud = document;
+            existing.cloud = document;
           }
         });
       })
@@ -943,27 +960,23 @@ export const appSlice = createSlice({
       })
       .addCase(getLocalDocument.fulfilled, (state, action) => {
         const document = action.payload;
-        const userDocument = state.documents.find((doc) =>
-          doc.id === document.id
-        );
-        if (!userDocument) {
-          state.documents.unshift({ id: document.id, local: document });
+        const existing = state.documents.entities[document.id];
+        if (!existing) {
+          prependOneDoc(state.documents, { id: document.id, local: document });
         } else {
-          userDocument.local = document;
+          existing.local = document;
         }
       })
       .addCase(getCloudDocument.fulfilled, (state, action) => {
         const { cloudDocument } = action.payload;
-        const userDocument = state.documents.find((doc) =>
-          doc.id === cloudDocument.id
-        );
-        if (!userDocument) {
-          state.documents.unshift({
+        const existing = state.documents.entities[cloudDocument.id];
+        if (!existing) {
+          prependOneDoc(state.documents, {
             id: cloudDocument.id,
             cloud: cloudDocument,
           });
         } else {
-          userDocument.cloud = cloudDocument;
+          existing.cloud = cloudDocument;
         }
       })
       .addCase(getCloudRevision.rejected, (state, action) => {
@@ -982,21 +995,19 @@ export const appSlice = createSlice({
       })
       .addCase(createLocalDocument.fulfilled, (state, action) => {
         const document = action.payload;
-        const userDocument = state.documents.find((doc) =>
-          doc.id === document.id
-        );
-        if (!userDocument) {
-          state.documents.unshift({
+        const existing = state.documents.entities[document.id];
+        if (!existing) {
+          prependOneDoc(state.documents, {
             id: document.id,
             local: document,
           });
-        } else userDocument.local = document;
+        } else {
+          existing.local = document;
+        }
       })
       .addCase(createLocalRevision.fulfilled, (state, action) => {
         const revision = action.payload;
-        const userDocument = state.documents.find((doc) =>
-          doc.id === revision.documentId
-        );
+        const userDocument = state.documents.entities[revision.documentId];
         if (!userDocument) return;
         const localDocument = userDocument.local;
         if (!localDocument) return;
@@ -1008,16 +1019,14 @@ export const appSlice = createSlice({
       })
       .addCase(createCloudDocument.fulfilled, (state, action) => {
         const document = action.payload;
-        const userDocument = state.documents.find((doc) =>
-          doc.id === document.id
-        );
-        if (!userDocument) {
-          state.documents.unshift({
+        const existing = state.documents.entities[document.id];
+        if (!existing) {
+          prependOneDoc(state.documents, {
             id: document.id,
             cloud: document,
           });
         } else {
-          userDocument.cloud = document;
+          existing.cloud = document;
         }
       })
       .addCase(createCloudDocument.rejected, (state, action) => {
@@ -1029,9 +1038,7 @@ export const appSlice = createSlice({
       })
       .addCase(createCloudRevision.fulfilled, (state, action) => {
         const revision = action.payload;
-        const document = state.documents.find((doc) =>
-          doc.id === revision.documentId
-        );
+        const document = state.documents.entities[revision.documentId];
         if (!document?.cloud) return;
         document.cloud.revisions.unshift(revision);
       })
@@ -1044,7 +1051,7 @@ export const appSlice = createSlice({
       })
       .addCase(updateLocalDocument.fulfilled, (state, action) => {
         const { id, partial } = action.payload;
-        const userDocument = state.documents.find((doc) => doc.id === id);
+        const userDocument = state.documents.entities[id];
         if (!userDocument) return;
         const localDocument = userDocument.local;
         if (!localDocument) return;
@@ -1052,16 +1059,14 @@ export const appSlice = createSlice({
       })
       .addCase(updateCloudDocument.fulfilled, (state, action) => {
         const document = action.payload;
-        const userDocument = state.documents.find((doc) =>
-          doc.id === document.id
-        );
-        if (!userDocument) {
-          state.documents.unshift({
+        const existing = state.documents.entities[document.id];
+        if (!existing) {
+          prependOneDoc(state.documents, {
             id: document.id,
             cloud: document,
           });
         } else {
-          userDocument.cloud = document;
+          existing.cloud = document;
         }
       })
       .addCase(updateCloudDocument.rejected, (state, action) => {
@@ -1073,14 +1078,13 @@ export const appSlice = createSlice({
       })
       .addCase(deleteLocalDocument.fulfilled, (state, action) => {
         const id = action.payload;
-        const userDocument = state.documents.find((doc) => doc.id === id);
+        const userDocument = state.documents.entities[id];
         if (!userDocument) return;
         if (!userDocument.cloud) {
-          state.documents.splice(
-            state.documents.indexOf(userDocument),
-            1,
-          );
-        } else delete userDocument.local;
+          documentsAdapter.removeOne(state.documents, id);
+        } else {
+          delete userDocument.local;
+        }
 
         // Also remove the post from any series that contains it
         if (state.series && state.series.length > 0) {
@@ -1093,9 +1097,7 @@ export const appSlice = createSlice({
       })
       .addCase(deleteLocalRevision.fulfilled, (state, action) => {
         const { id, documentId } = action.payload;
-        const userDocument = state.documents.find((doc) =>
-          doc.id === documentId
-        );
+        const userDocument = state.documents.entities[documentId];
         if (!userDocument) return;
         const localDocument = userDocument.local;
         if (!localDocument) return;
@@ -1109,11 +1111,13 @@ export const appSlice = createSlice({
       })
       .addCase(deleteCloudDocument.fulfilled, (state, action) => {
         const id = action.payload;
-        const userDocument = state.documents.find((doc) => doc.id === id);
+        const userDocument = state.documents.entities[id];
         if (!userDocument) return;
-        const index = state.documents.indexOf(userDocument);
-        if (!userDocument.local) state.documents.splice(index, 1);
-        else delete userDocument.cloud;
+        if (!userDocument.local) {
+          documentsAdapter.removeOne(state.documents, id);
+        } else {
+          delete userDocument.cloud;
+        }
 
         // Also remove the post from any series that contains it
         if (state.series && state.series.length > 0) {
@@ -1133,9 +1137,7 @@ export const appSlice = createSlice({
       })
       .addCase(deleteCloudRevision.fulfilled, (state, action) => {
         const { id, documentId } = action.payload;
-        const userDocument = state.documents.find((doc) =>
-          doc.id === documentId
-        );
+        const userDocument = state.documents.entities[documentId];
         if (!userDocument) return;
         const cloudDocument = userDocument.cloud;
         if (!cloudDocument) return;
@@ -1171,7 +1173,7 @@ export const appSlice = createSlice({
           id: duplicatedDoc.id,
           local: duplicatedDoc,
         };
-        state.documents.push(newUserDocument);
+        documentsAdapter.addOne(state.documents, newUserDocument);
       })
       .addCase(duplicateDocument.rejected, (state, action) => {
         const message = action.payload as {

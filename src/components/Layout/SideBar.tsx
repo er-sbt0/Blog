@@ -2,7 +2,13 @@
 import { useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import RouterLink from "next/link";
-import { actions, type RootState, useDispatch, useSelector } from "@/store";
+import {
+  actions,
+  documentsSelectors,
+  type RootState,
+  useDispatch,
+  useSelector,
+} from "@/store";
 import {
   Avatar,
   Box,
@@ -67,7 +73,9 @@ const SideBar: React.FC = () => {
 
   const initialized = useSelector((state: RootState) => state.ui.initialized);
   const user = useSelector((state: RootState) => state.user);
-  const documents = useSelector((state: RootState) => state.documents);
+  const documents = useSelector((state: RootState) =>
+    documentsSelectors.selectAll(state)
+  );
   const seriesList = useSelector((state: RootState) => state.series);
 
   const activeDocuments = useMemo((): UserDocument[] => {
