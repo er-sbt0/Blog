@@ -1,5 +1,5 @@
 "use client";
-import HtmlDiff from "./Diff";
+import HtmlDiff from "@/lib/diff/Diff";
 import { useEffect, useState } from "react";
 import { actions, useDispatch, useSelector } from "@/store";
 import { generateHtml } from "@/editor/utils/generateHtml";
