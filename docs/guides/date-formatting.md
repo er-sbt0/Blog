@@ -338,16 +338,15 @@ Full reference:
 
 - [React Hydration Errors](https://react.dev/errors/418)
 - [date-fns Documentation](https://date-fns.org/)
-- [HYDRATION.md](./HYDRATION.md) - General hydration troubleshooting
+- [hydration.md](./hydration.md) - General hydration troubleshooting
 
 ## When You Need Localized Dates
 
-If you absolutely need dates in user's timezone/locale, see
-[LOCALIZED_DATES.md](./LOCALIZED_DATES.md) for progressive enhancement approach.
-
 For most blog/content sites, **UTC-based consistent dates are preferable** to
-avoid complexity.
+avoid complexity. If you need dates in the user's local timezone, render them
+client-only inside a `useEffect` and show a neutral placeholder (`—`) during
+SSR to avoid hydration mismatches.
 
 ---
 
-**Last Updated:** January 31, 2026
+**Last Updated:** April 10, 2026

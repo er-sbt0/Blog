@@ -77,20 +77,6 @@ const MyClientWrapper: React.FC<MyClientWrapperProps> = ({
 3. **Graceful degradation**: Component works regardless of which source provides
    the user data
 
-## Files Fixed
-
-- `/src/app/(appLayout)/series/page.tsx` - Series list page
-- `/src/app/(appLayout)/series/[id]/page.tsx` - Individual series page
-- `/src/components/SeriesListWrapper/index.tsx` - Client wrapper with session
-  fallback
-- `/src/components/SeriesView/index.tsx` - Client component with session
-  fallback
-
-## Files Already Correct
-
-- `/src/components/ViewDocument.tsx` - Already uses `useSession()` on client
-- API routes - Don't need this pattern (sessions work correctly in API routes)
-
 ## When to Apply This Pattern
 
 Apply this pattern whenever:
@@ -129,3 +115,8 @@ When implementing this pattern, verify:
 3. ✅ Logged out state handled correctly
 4. ✅ Logged in state handled correctly
 5. ✅ No console errors during hydration
+
+## Related Documentation
+
+- [hydration.md](./hydration.md) — General hydration error troubleshooting
+- [../architecture/overview.md](../architecture/overview.md) — Application layer rules including server/client component boundaries

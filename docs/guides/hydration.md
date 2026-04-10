@@ -19,10 +19,15 @@ Browser extensions can modify the DOM before React hydrates, causing mismatches.
 
 ### 2. Date/Time Differences
 
-Server and client may render different dates/times.
+Server and client may render different dates/times due to timezone or locale
+differences between the server environment and the user's browser.
 
-**Solution**: Use `useEffect` for client-only date rendering or ensure
-consistent timezone handling.
+**Solution**: Format dates with a fixed timezone (UTC) using `date-fns` so the
+output is identical on server and client. Avoid `toLocaleDateString()`,
+`toLocaleString()`, and `toLocaleTimeString()`.
+
+See [date-formatting.md](./date-formatting.md) for
+the full guide including the `DateDisplay` and `RelativeDate` components.
 
 ### 3. Random Values
 
@@ -53,3 +58,8 @@ with:
 - Browser and version
 - Steps to reproduce
 - Console error messages
+
+## Related Documentation
+
+- [date-formatting.md](./date-formatting.md) — Consistent UTC-based date rendering
+- [nextauth-ssr.md](./nextauth-ssr.md) — Session availability issues during SSR

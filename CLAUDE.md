@@ -220,7 +220,7 @@ Configuration is in `src/lib/ai/`.
 
 ## Debugging
 
-- Hydration errors: see `docs/HYDRATION.md`. Common causes are browser
+- Hydration errors: see `docs/guides/hydration.md`. Common causes are browser
   extensions, date/time SSR mismatches, and `window`/`document` access during
   SSR.
 - Use React DevTools for component inspection

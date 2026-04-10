@@ -57,7 +57,7 @@ both stores, unless the feature is intentionally local-only or cloud-only.
 
 ## API client
 
-See [API_CLIENT.md](./API_CLIENT.md) for the full contract.
+See [api-client.md](./api-client.md) for the full contract.
 
 **Rule:** No file under `src/` (outside of `src/app/api/` itself) may call
 `fetch('/api/...')` directly. Use `apiClient` from `@/api`.
