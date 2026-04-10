@@ -3,11 +3,8 @@ import {
   Box,
   Button,
   Chip,
-  IconButton,
-  InputAdornment,
   Menu,
   MenuItem,
-  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
@@ -15,10 +12,8 @@ import {
 import {
   Add,
   CalendarMonth,
-  Clear,
   FilterList,
   Schedule,
-  Search,
   Today,
 } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
@@ -29,6 +24,7 @@ import {
   ViewToggle,
   ViewType,
 } from "@/components/SeriesView/components/ViewToggle";
+import { SearchField } from "@/components/shared/SearchField";
 
 interface PostsHeaderProps {
   totalCount: number;
@@ -146,12 +142,6 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
     [onTimeFilterChange],
   );
 
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      onSearchChange?.(e.target.value),
-    [onSearchChange],
-  );
-
   const handleGranularityChange = useCallback(
     (g: PartitionGranularity) => onGranularityChange?.(g),
     [onGranularityChange],
@@ -181,44 +171,13 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
 
   return (
     <Box component="header" sx={{ mb: 4, pt: 2, pb: 3 }}>
-      {/* Row 1: Search + post count */}
+      {/* Row 1: Search */}
       <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 2 }}>
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Search posts by title, content, or tags..."
+        <SearchField
           value={searchQuery}
-          onChange={handleSearchChange}
-          sx={{
-            maxWidth: { xs: "100%", md: 600 },
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 2,
-              backgroundColor: "background.paper",
-              transition: "box-shadow 0.2s ease-in-out",
-              "&:hover": { boxShadow: "0 2px 8px rgba(0,0,0,0.08)" },
-              "&.Mui-focused": { boxShadow: "0 2px 12px rgba(0,0,0,0.12)" },
-            },
-          }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ color: "text.secondary", fontSize: 22 }} />
-              </InputAdornment>
-            ),
-            endAdornment: searchQuery && (
-              <InputAdornment position="end">
-                <IconButton
-                  size="small"
-                  onClick={clearSearch}
-                  aria-label="Clear search"
-                  sx={{ "&:hover": { backgroundColor: "action.hover" } }}
-                >
-                  <Clear sx={{ fontSize: 18 }} />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-          aria-label="Search posts"
+          onChange={(v) => onSearchChange?.(v)}
+          placeholder="Search posts by title, content, or tags..."
+          ariaLabel="Search posts"
         />
       </Box>
 

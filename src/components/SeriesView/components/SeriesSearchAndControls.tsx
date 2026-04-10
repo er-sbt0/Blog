@@ -1,18 +1,11 @@
-"use client";
 import React from "react";
-import {
-  Box,
-  Button,
-  Chip,
-  IconButton,
-  InputAdornment,
-  TextField,
-} from "@mui/material";
-import { AccessTime, Check, Clear, Close, Search } from "@mui/icons-material";
+import { Box, Button, Chip } from "@mui/material";
+import { AccessTime, Check, Close } from "@mui/icons-material";
 import { PartitionGranularity } from "@/types/partitioning";
-import { PostsPartitionControl } from "./PostsPartitionControl";
+import { PartitionControl } from "@/components/PostsList/components/PartitionControl";
 import { ViewToggle, type ViewType } from "./ViewToggle";
 import { PendingTimeChange } from "./PostsCompactListView";
+import { SearchField } from "@/components/shared/SearchField";
 
 interface SeriesSearchAndControlsProps {
   searchQuery: string;
@@ -48,41 +41,10 @@ const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
   onDiscardTimeChanges,
 }) => (
   <Box sx={{ mb: 3, display: "flex", flexDirection: "column", gap: 2 }}>
-    <TextField
-      fullWidth
-      size="small"
-      placeholder="Search posts by title, handle, or author..."
+    <SearchField
       value={searchQuery}
-      onChange={(e) => onSearchChange(e.target.value)}
-      sx={{
-        maxWidth: { xs: "100%", md: 600 },
-        "& .MuiOutlinedInput-root": {
-          borderRadius: 2,
-          backgroundColor: "background.paper",
-          transition: "box-shadow 0.2s ease-in-out",
-          "&:hover": { boxShadow: "0 2px 8px rgba(0,0,0,0.08)" },
-          "&.Mui-focused": { boxShadow: "0 2px 12px rgba(0,0,0,0.12)" },
-        },
-      }}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <Search sx={{ color: "text.secondary", fontSize: 22 }} />
-          </InputAdornment>
-        ),
-        endAdornment: searchQuery && (
-          <InputAdornment position="end">
-            <IconButton
-              size="small"
-              onClick={() => onSearchChange("")}
-              aria-label="Clear search"
-              sx={{ "&:hover": { backgroundColor: "action.hover" } }}
-            >
-              <Clear sx={{ fontSize: 18 }} />
-            </IconButton>
-          </InputAdornment>
-        ),
-      }}
+      onChange={onSearchChange}
+      placeholder="Search posts by title, handle, or author..."
     />
 
     <Box
@@ -94,7 +56,7 @@ const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
         gap: 2,
       }}
     >
-      <PostsPartitionControl
+      <PartitionControl
         granularity={granularity}
         onGranularityChange={onGranularityChange}
         postCount={filteredPostCount}

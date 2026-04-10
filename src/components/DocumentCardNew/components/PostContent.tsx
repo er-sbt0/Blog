@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Chip, Typography } from "@mui/material";
 import { UserDocument } from "@/types";
+import { formatFullDate as formatDate } from "@/utils/dateFormat";
 
 /**
  * Props for PostContent component
@@ -8,30 +9,6 @@ import { UserDocument } from "@/types";
 interface PostContentProps {
   userDocument?: UserDocument;
 }
-
-/**
- * Simple date formatter
- */
-const formatDate = (dateString: string | Date): string => {
-  const date = typeof dateString === "string"
-    ? new Date(dateString)
-    : dateString;
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-};
 
 /**
  * Blog-style PostContent component

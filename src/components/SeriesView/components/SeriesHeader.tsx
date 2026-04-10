@@ -3,28 +3,7 @@ import React from "react";
 import { Box, Button, Chip, Typography } from "@mui/material";
 import { Add, CollectionsBookmark, NoteAdd } from "@mui/icons-material";
 import { Series } from "@/types";
-
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-function formatDate(dateString: string | Date): string {
-  const date = typeof dateString === "string"
-    ? new Date(dateString)
-    : dateString;
-  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-}
+import { formatFullDate as formatDate } from "@/utils/dateFormat";
 
 interface SeriesHeaderProps {
   series: Series;

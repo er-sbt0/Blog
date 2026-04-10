@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import Grid from "@mui/material/Grid2";
 import { TimeGroup } from "@/types/partitioning";
 import { User, UserDocument } from "@/types";
@@ -10,39 +10,7 @@ import {
   PostsCompactListView,
 } from "@/components/SeriesView/components/PostsCompactListView";
 import type { ViewType } from "@/components/SeriesView/components/ViewToggle";
-
-// Shared section header: pill label + horizontal divider.
-const SectionTimeHeader: React.FC<{
-  timeLabel: string;
-  timeKey: string;
-  isLatest?: boolean;
-}> = ({ timeLabel, timeKey, isLatest = false }) => (
-  <Box
-    id={`time-header-${timeKey}`}
-    sx={{
-      mb: { xs: 2, md: 3 },
-      display: "flex",
-      alignItems: "center",
-      gap: 1.5,
-    }}
-  >
-    <Typography
-      component="h2"
-      sx={{
-        fontSize: "0.9rem",
-        fontWeight: 600,
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
-        color: isLatest ? "primary.main" : "text.disabled",
-        whiteSpace: "nowrap",
-        flexShrink: 0,
-      }}
-    >
-      {timeLabel}
-    </Typography>
-    <Box sx={{ flex: 1, height: "1px", bgcolor: "divider" }} />
-  </Box>
-);
+import { TimeGroupHeader } from "@/components/shared/TimeGroupHeader";
 
 interface PostsTimeSectionProps {
   timeGroup: TimeGroup;
@@ -129,7 +97,7 @@ const PostsTimeSection: React.FC<PostsTimeSectionProps> = ({
       aria-labelledby={`time-header-${timeGroup.timeKey}`}
       sx={{ mb: { xs: 4, md: 6 } }}
     >
-      <SectionTimeHeader
+      <TimeGroupHeader
         timeLabel={timeGroup.timeLabel}
         timeKey={timeGroup.timeKey}
         isLatest={isLatest}
