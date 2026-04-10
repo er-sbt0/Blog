@@ -61,8 +61,6 @@ const SideBar: React.FC = () => {
   const documents = useSelector((state: RootState) => state.documents);
   const seriesList = useSelector((state: RootState) => state.series);
 
-  const getWidth = (isOpen: boolean) => getEffectiveWidth(isOpen);
-
   const activeDocuments = useMemo((): UserDocument[] => {
     if (!user || !documents) return [];
     return documents.filter((doc) => {
@@ -108,11 +106,11 @@ const SideBar: React.FC = () => {
       open={open}
       onClose={toggleSidebar}
       sx={{
-        width: getWidth(open),
+        width: getEffectiveWidth(open),
         flexShrink: 0,
         displayPrint: "none",
         "& .MuiDrawer-paper": {
-          width: getWidth(open),
+          width: getEffectiveWidth(open),
           boxSizing: "border-box",
           transition: isResizing
             ? "none"
@@ -251,7 +249,7 @@ const SideBar: React.FC = () => {
           sx={{
             position: "fixed",
             top: 0,
-            left: getWidth(open) - 4,
+            left: getEffectiveWidth(open) - 4,
             bottom: 0,
             width: 4,
             cursor: "col-resize",

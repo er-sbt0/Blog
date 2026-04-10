@@ -2,18 +2,6 @@
 
 ---
 
-## 5. Redundant wrapper function — `getWidth` in `SideBar.tsx`
-
-**File:** `SideBar.tsx:64`
-
-```tsx
-const getWidth = (isOpen: boolean) => getEffectiveWidth(isOpen);
-```
-
-This is a one-liner wrapper that does nothing but delegate to `getEffectiveWidth` with the same signature. It adds indirection with no benefit. `getEffectiveWidth` should be used directly.
-
----
-
 ## 6. `isDirty` computed but not used for the dirty dot indicator
 
 **File:** `SideBar/PostItem.tsx:46-48, 110-112`
