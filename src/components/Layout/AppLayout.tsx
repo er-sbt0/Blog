@@ -48,7 +48,6 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
               overflow:
                 "auto", /* Allow scrolling but scrollbar is hidden by CSS */
               width: "100%",
-              maxWidth: "100%",
               pl: {
                 xs: 5,
                 sm: 10,

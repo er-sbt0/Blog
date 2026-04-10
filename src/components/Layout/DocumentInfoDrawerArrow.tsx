@@ -3,7 +3,7 @@ import { actions, useDispatch, useSelector } from "@/store";
 import { Paper } from "@mui/material";
 import { ChevronLeft } from "@mui/icons-material";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { alpha } from "@mui/material/styles";
 
 const DocumentInfoDrawerArrow: React.FC = () => {
@@ -18,7 +18,6 @@ const DocumentInfoDrawerArrow: React.FC = () => {
 
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
-  const arrowRef = useRef<HTMLDivElement>(null);
 
   const toggleDrawer = () => {
     dispatch(actions.toggleDrawer());
@@ -87,7 +86,6 @@ const DocumentInfoDrawerArrow: React.FC = () => {
 
   return (
     <Paper
-      ref={arrowRef}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onClick={toggleDrawer}
