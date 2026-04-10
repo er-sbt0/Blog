@@ -21,8 +21,18 @@ interface LoadingStateProps {
 }
 
 /**
- * Centralized loading state component with multiple variants
- * for different loading scenarios throughout the application
+ * Generic loading primitives (Level 1 – primitive).
+ *
+ * Loading-state hierarchy:
+ *   Level 1 – LoadingState            : generic spinner / skeleton primitives  ← you are here
+ *   Level 2 – DocumentCardNew/LoadingCard : card-shaped skeleton (domain)
+ *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser
+ *   Level 3 – PostsList/PostsLoadingState : page-level skeleton for PostsList
+ *
+ * Use this component for any in-component loading that doesn't need a
+ * card- or page-shaped skeleton. Higher-level skeletons (Levels 2 & 3)
+ * may compose this or render MUI primitives directly when layout fidelity
+ * requires it.
  */
 export const LoadingState: React.FC<LoadingStateProps> = ({
   variant = "spinner",

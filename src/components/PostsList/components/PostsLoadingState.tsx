@@ -6,9 +6,17 @@ import Grid from "@mui/material/Grid2";
 import SkeletonCard from "@/components/DocumentCardNew/components/LoadingCard";
 
 /**
- * Loading state component for posts list.
- * Shows skeleton UI organised in month-like sections, using `LoadingCard`
+ * Page-level skeleton for PostsList (Level 3 – feature).
+ *
+ * Loading-state hierarchy:
+ *   Level 1 – common/LoadingState     : generic spinner / skeleton primitives
+ *   Level 2 – DocumentCardNew/LoadingCard : card-shaped skeleton (domain)
+ *   Level 3 – PostsLoadingState       : page-level skeleton for PostsList  ← you are here
+ *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser
+ *
+ * Shows skeleton UI organised in month-like sections, composing `LoadingCard`
  * for each card slot — consistent with the rest of the card loading system.
+ * Do not use this outside PostsList; for generic loading use `common/LoadingState`.
  */
 const PostsLoadingState: React.FC = () => {
   const theme = useTheme();

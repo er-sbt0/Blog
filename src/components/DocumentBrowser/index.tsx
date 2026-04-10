@@ -16,7 +16,7 @@ import { useDocumentNavigation } from "./hooks/useDocumentNavigation";
 import BrowserBreadcrumbs from "./components/BrowserBreadcrumbs";
 import BrowserHeader from "./components/BrowserHeader";
 import BlogPostsEmptyState from "./components/BlogPostsEmptyState";
-import LoadingState from "./components/LoadingState";
+import DocumentBrowserSkeleton from "./components/DocumentBrowserSkeleton";
 
 interface DocumentBrowserProps {
   // No props needed for simplified blog structure
@@ -57,7 +57,7 @@ const DocumentBrowser: React.FC<DocumentBrowserProps> = () => {
 
   // Early returns for various states
   if (loading) {
-    return <LoadingState />;
+    return <DocumentBrowserSkeleton />;
   }
 
   // In blog structure, we don't expect directory navigation errors

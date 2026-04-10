@@ -4,10 +4,18 @@ import { Box, Container, Skeleton } from "@mui/material";
 import DocumentGrid from "../../DocumentGrid";
 
 /**
- * Loading state component for the document browser
- * Shows skeleton UI while data is being loaded
+ * Page-level skeleton for the DocumentBrowser (Level 3 – feature).
+ *
+ * Loading-state hierarchy:
+ *   Level 1 – common/LoadingState     : generic spinner / skeleton primitives
+ *   Level 2 – DocumentCardNew/LoadingCard : card-shaped skeleton (domain)
+ *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser  ← you are here
+ *   Level 3 – PostsList/PostsLoadingState : page-level skeleton for PostsList
+ *
+ * This component is intentionally feature-specific; do not use it outside
+ * DocumentBrowser. For generic loading states use `common/LoadingState`.
  */
-const LoadingState: React.FC = () => {
+const DocumentBrowserSkeleton: React.FC = () => {
   return (
     <Container
       maxWidth={false}
@@ -71,4 +79,4 @@ const LoadingState: React.FC = () => {
   );
 };
 
-export default LoadingState;
+export default DocumentBrowserSkeleton;
