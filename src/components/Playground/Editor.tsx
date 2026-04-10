@@ -6,7 +6,9 @@ import Editor from "../Editor";
 
 const document = playgroundTemplate as unknown as EditorDocument;
 
-const PlaygroundEditor: React.FC<PropsWithChildren> = ({ children }) => {
+const PlaygroundEditor: React.FC<PropsWithChildren> = (
+  { children: _children },
+) => {
   return <Editor document={document} />;
 };
 

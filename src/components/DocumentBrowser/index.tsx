@@ -34,13 +34,12 @@ const DocumentBrowser: React.FC<DocumentBrowserProps> = () => {
   });
 
   // Use custom hooks for complex logic
-  const { directories, regularDocuments, currentDirectory } =
-    useDocumentFiltering({
-      documents,
-    });
+  const { directories, regularDocuments } = useDocumentFiltering({
+    documents,
+  });
 
   const breadcrumbs = useBreadcrumbs();
-  const { createDocument, createDirectory } = useDocumentNavigation({});
+  const { createDocument } = useDocumentNavigation({});
 
   // Function to get the correct URL for a blog post
   const getDocumentUrl = useMemo(() => {
@@ -50,12 +49,6 @@ const DocumentBrowser: React.FC<DocumentBrowserProps> = () => {
       return `/view/${docId}`;
     };
   }, []);
-
-  // Apply sorting to the filtered results
-  const sortedDirectories = useMemo(
-    () => sortDocuments(directories, sortValue.key, sortValue.direction),
-    [directories, sortValue.key, sortValue.direction],
-  );
 
   const sortedDocuments = useMemo(
     () => sortDocuments(regularDocuments, sortValue.key, sortValue.direction),

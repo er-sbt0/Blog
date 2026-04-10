@@ -2,7 +2,7 @@
 import React from "react";
 import { Box, IconButton } from "@mui/material";
 import { MoreVert, Share } from "@mui/icons-material";
-import { useRouter } from "next/navigation";
+
 import { User, UserDocument } from "@/types";
 import PostActionMenu from "../PostActionMenu";
 
@@ -38,8 +38,6 @@ const PostActions: React.FC<PostActionsProps> = ({
   user,
   isLoading = false,
 }) => {
-  const router = useRouter();
-
   // Show skeleton during loading or when no document is available
   if (isLoading || !userDocument) {
     return <ActionsSkeleton />;

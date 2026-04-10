@@ -9,7 +9,7 @@ interface SaveDocumentButtonProps {
 
 const SaveDocumentButton: React.FC<SaveDocumentButtonProps> = ({ onSave }) => {
   const handleSave = async () => {
-    const success = await onSave();
+    await onSave();
     // The navigation logic should be handled in the parent component
   };
 

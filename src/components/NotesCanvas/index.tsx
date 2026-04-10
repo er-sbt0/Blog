@@ -36,8 +36,8 @@ export default function NotesCanvas(
     onZoomIn,
     onZoomOut,
     onResetZoom,
-    canZoomIn,
-    canZoomOut,
+    canZoomIn: _canZoomIn,
+    canZoomOut: _canZoomOut,
   }: NotesCanvasProps,
 ) {
   const {

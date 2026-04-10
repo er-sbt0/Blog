@@ -1,5 +1,5 @@
 "use client";
-import { Fab, useScrollTrigger, Zoom } from "@mui/material";
+import { Fab, useScrollTrigger } from "@mui/material";
 import { KeyboardArrowUp } from "@mui/icons-material";
 import { FloatingActionButton } from "./FloatingActionsContainer";
 

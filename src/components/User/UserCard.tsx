@@ -37,7 +37,7 @@ const UserCard: React.FC<{ user?: User; showActions?: boolean }> = memo(
       };
       try {
         await navigator.share(shareData);
-      } catch (err) {
+      } catch {
         navigator.clipboard.writeText(shareData.url);
         dispatch(
           actions.announce({

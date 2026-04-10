@@ -32,7 +32,7 @@ const PostCard: React.FC<PostCardProps> = memo(({
   sx,
 }) => {
   // Use consolidated state management hook
-  const { document, author, postState, href, seriesInfo, ariaLabel, status } =
+  const { author, postState, href, seriesInfo, ariaLabel, status } =
     usePostState(userDocument, user);
 
   // Local is ahead of cloud when both exist but heads differ

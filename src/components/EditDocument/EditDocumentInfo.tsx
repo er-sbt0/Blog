@@ -1,6 +1,5 @@
 import { extractCollaborators } from "@/utils/collaborators";
 import RevisionCard from "./EditRevisionCard";
-import { actions, useDispatch } from "@/store";
 import Grid from "@mui/material/Grid2";
 import { Box, Button, IconButton, Typography } from "@mui/material";
 import { Close, Compare, History, Preview } from "@mui/icons-material";

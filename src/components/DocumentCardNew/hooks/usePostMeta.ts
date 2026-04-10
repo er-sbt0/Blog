@@ -1,11 +1,6 @@
 import { useMemo } from "react";
 import { User } from "@/types";
-import {
-  createAuthorChip,
-  createSeriesChip,
-  createStatusChip,
-  PostState,
-} from "../PostChips";
+import { createSeriesChip, createStatusChip, PostState } from "../PostChips";
 
 /**
  * Options for controlling which metadata chips to display

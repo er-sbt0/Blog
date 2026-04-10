@@ -1,13 +1,7 @@
 "use client";
 import React from "react";
 import { Box, Button, Tooltip } from "@mui/material";
-import {
-  CreateNewFolder,
-  FilterList,
-  PostAdd,
-  Settings,
-} from "@mui/icons-material";
-import Link from "next/link";
+import { FilterList, PostAdd } from "@mui/icons-material";
 import DocumentSortControl from "../../DocumentControls/SortControl";
 
 interface BrowserHeaderProps {

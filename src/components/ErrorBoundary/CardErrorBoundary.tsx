@@ -1,13 +1,6 @@
 "use client";
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-} from "@mui/material";
+import { Alert, Button, Card, CardContent, Typography } from "@mui/material";
 import { ErrorOutline, Refresh } from "@mui/icons-material";
 
 interface Props {

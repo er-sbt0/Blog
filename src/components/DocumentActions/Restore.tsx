@@ -91,7 +91,7 @@ const RestoreDocument: React.FC<
       ).unwrap() as ReturnType<
         typeof actions.getCloudDocument.fulfilled
       >["payload"];
-      const { cloudDocument, ...editorDocument } = cloudPayload;
+      const { cloudDocument: _cloudDocument, ...editorDocument } = cloudPayload;
       await dispatch(
         actions.createLocalRevision({
           id: editorDocument.head,

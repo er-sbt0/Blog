@@ -18,7 +18,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import CloseIcon from "@mui/icons-material/Close";
 
 export default function NotesMigrationBanner() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [showBanner, setShowBanner] = useState(false);
   const [migrating, setMigrating] = useState(false);
   const [result, setResult] = useState<MigrationResult | null>(null);

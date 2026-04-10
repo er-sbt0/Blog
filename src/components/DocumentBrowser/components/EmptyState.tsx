@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { Box, Button, Paper, Typography } from "@mui/material";
-import { CreateNewFolder, Folder, PostAdd } from "@mui/icons-material";
+import { PostAdd } from "@mui/icons-material";
 
 interface EmptyStateProps {
   onCreateDocument: () => void;

@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
 interface DocumentGridHeaderProps {
@@ -18,10 +18,10 @@ interface DocumentGridHeaderProps {
  * Memoized for performance optimization
  */
 const DocumentGridHeader: React.FC<DocumentGridHeaderProps> = memo(({
-  title,
+  title: _title,
   titleIcon,
-  isLoading = false,
-  itemCount = 0,
+  isLoading: _isLoading = false,
+  itemCount: _itemCount = 0,
 }) => {
   const theme = useTheme();
 

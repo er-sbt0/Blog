@@ -1,7 +1,6 @@
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
 import {
   Box,
-  ListItemIcon,
   ListItemText,
   MenuItem,
   Select,
@@ -40,7 +39,7 @@ const DocumentSortControl: React.FC<{
         size="small"
         value="sort-direction"
         onChange={handleDirectionToggle}
-        sx={(theme) => ({
+        sx={(_theme) => ({
           borderTopRightRadius: 0,
           borderBottomRightRadius: 0,
           borderRight: "none",
@@ -61,7 +60,7 @@ const DocumentSortControl: React.FC<{
       <Select
         value={sortKey}
         onChange={handleSortKeyChange}
-        sx={(theme) => ({
+        sx={(_theme) => ({
           borderTopLeftRadius: 0,
           borderBottomLeftRadius: 0,
           height: 40,

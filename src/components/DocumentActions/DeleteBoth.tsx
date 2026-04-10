@@ -1,7 +1,7 @@
 "use client";
 import { actions, useDispatch } from "@/store";
 import { UserDocument } from "@/types";
-import { Delete, DeleteForever } from "@mui/icons-material";
+import { DeleteForever } from "@mui/icons-material";
 import {
   IconButton,
   ListItemIcon,
@@ -29,8 +29,6 @@ const DeleteBothDocument: React.FC<{
   const name = localDocument?.name || cloudDocument?.name || "This Item";
 
   // All documents are posts now (no directories)
-  const document = userDocument.local || userDocument.cloud;
-  const isDirectory = false; // No directories in blog structure
   const itemType = "Post";
 
   const handleDelete = async () => {

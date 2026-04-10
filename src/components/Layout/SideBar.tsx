@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
-import RouterLink from "next/link";
 import {
   actions,
   documentsSelectors,

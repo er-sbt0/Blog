@@ -115,7 +115,7 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   });
 
   // Search (common to both modes).
-  const { filteredPosts: searchFilteredPosts, searchResults } = usePostsSearch({
+  const { filteredPosts: searchFilteredPosts } = usePostsSearch({
     posts: timeFilteredPosts,
     searchQuery,
   });

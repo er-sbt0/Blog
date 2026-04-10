@@ -4,17 +4,14 @@ import { extractCollaborators } from "@/utils/collaborators";
 import Grid from "@mui/material/Grid2";
 import {
   Avatar,
-  Badge,
   Box,
   Chip,
-  Fab,
   IconButton,
-  Portal,
   Typography,
   useScrollTrigger,
 } from "@mui/material";
 import { DateDisplay } from "@/components/DateDisplay";
-import { Edit, FileCopy, History } from "@mui/icons-material";
+import { Edit, History } from "@mui/icons-material";
 import RouterLink from "next/link";
 import ShareDocument from "./DocumentActions/Share";
 import DownloadDocument from "./DocumentActions/Download";
@@ -23,12 +20,10 @@ import AppDrawer from "./AppDrawer";
 import AttachmentDrawer from "./AttachmentDrawer";
 import ViewRevisionCard from "./ViewRevisionCard";
 import { useSearchParams } from "next/navigation";
-import { FloatingActionButton } from "./Layout/FloatingActionsContainer";
 
 export default function ViewDocumentInfo(
   { cloudDocument, user }: { cloudDocument: Document; user?: User },
 ) {
-  const slideTrigger = useScrollTrigger({ disableHysteresis: true });
   const handle = cloudDocument.handle || cloudDocument.id;
   const isAuthor = cloudDocument.author.id === user?.id;
   // Simplified blog structure: no coauthors, only authors can edit
@@ -46,11 +41,6 @@ export default function ViewDocumentInfo(
 
   const searchParams = useSearchParams();
   const revisionId = searchParams.get("v");
-  const href = isEditable
-    ? `/edit/${handle}`
-    : `/new/${handle}${revisionId ? `?v=${revisionId}` : ""}`;
-
-  const cloudDocumentRevisions = cloudDocument?.revisions ?? [];
 
   return (
     <>

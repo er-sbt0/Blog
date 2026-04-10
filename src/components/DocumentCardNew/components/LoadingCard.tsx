@@ -1,6 +1,6 @@
 import React from "react";
-import { Box, Card, Chip, IconButton, Skeleton } from "@mui/material";
-import { MoreVert, Share } from "@mui/icons-material";
+import { Box, Card, Skeleton } from "@mui/material";
+
 import { alpha, SxProps, Theme, useTheme } from "@mui/material/styles";
 import { createCardTheme } from "../theme";
 

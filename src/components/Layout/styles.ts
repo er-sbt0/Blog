@@ -1,8 +1,6 @@
 // This file contains utility functions to ensure consistent styling
 // between server and client rendering to prevent hydration mismatches
 
-import { SxProps, Theme } from "@mui/material/styles";
-
 // These are constant style objects that won't change between server and client
 // They replace inline sx props that can cause hydration mismatches
 

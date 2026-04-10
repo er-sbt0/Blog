@@ -1,6 +1,6 @@
 import React from "react";
-import { Alert, AlertTitle, Box, Button, Typography } from "@mui/material";
-import { ErrorOutline, Refresh } from "@mui/icons-material";
+import { Alert, AlertTitle, Box, Button } from "@mui/material";
+import { Refresh } from "@mui/icons-material";
 
 interface DocumentGridErrorProps {
   /** The error that occurred */

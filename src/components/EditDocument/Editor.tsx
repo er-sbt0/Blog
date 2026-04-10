@@ -69,7 +69,9 @@ function ensureValidDocumentData(doc: EditorDocument): EditorDocument {
   return doc;
 }
 
-const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
+const DocumentEditor: React.FC<React.PropsWithChildren> = (
+  { children: _children },
+) => {
   const pathname = usePathname();
   const id = pathname.split("/")[2]?.toLowerCase();
   const editorRef = useRef<LexicalEditor>(null);

@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import Grid from "@mui/material/Grid2";
 import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import { useMediaQuery } from "@mui/material";
 import { User, UserDocument } from "@/types";

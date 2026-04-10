@@ -1,4 +1,3 @@
-import { User, UserDocument } from "@/types";
 import { FC, useState } from "react";
 import { Tab, Tabs } from "@mui/material";
 import {
@@ -7,7 +6,6 @@ import {
   CloudDone,
   CloudSync,
   DoneAll,
-  Folder,
   GroupWork,
   MobileFriendly,
   PeopleOutline,
@@ -18,59 +16,6 @@ import {
   Workspaces,
 } from "@mui/icons-material";
 import { SxProps, Theme } from "@mui/material/styles";
-
-const filterDocuments = (
-  documents: UserDocument[],
-  user: User | undefined,
-  value: number,
-) => {
-  if (value === 0) return documents;
-  const filteredDocuments = documents.filter((d) => {
-    const localDocument = d.local;
-    const cloudDocument = d.cloud;
-    const document = localDocument || cloudDocument;
-    const isLocalOnly = localDocument && !cloudDocument;
-    const isCloudOnly = cloudDocument && !localDocument &&
-      !cloudDocument.published && !cloudDocument.collab &&
-      !cloudDocument.private;
-    const isSynced = localDocument && cloudDocument &&
-      localDocument.head === cloudDocument.head;
-    const isOutofSync = localDocument && cloudDocument &&
-      localDocument.head !== cloudDocument.head;
-    const isAuthor = cloudDocument?.author.id === user?.id;
-    const isCoauthor = cloudDocument?.coauthors.some((coauthor) =>
-      coauthor.id === user?.id
-    );
-    const isCollaborator = cloudDocument?.revisions.some((revision) =>
-      revision.author?.id === user?.id
-    );
-    const isOthers = !isLocalOnly && !isAuthor && !isCoauthor &&
-      !isCollaborator;
-    const isDocument = document?.type === "DOCUMENT";
-
-    const showLocal = !!(value & (1 << 0)) && !!localDocument;
-    const showCloud = !!(value & (1 << 1)) && !!isCloudOnly;
-    const showPublished = !!(value & (1 << 2)) &&
-      !!cloudDocument?.published;
-    const showCollab = !!(value & (1 << 3)) && !!cloudDocument?.collab;
-    const showPrivate = !!(value & (1 << 4)) && !!cloudDocument?.private;
-    const showSynced = !!(value & (1 << 5)) && !!isSynced;
-    const showOutOfSync = !!(value & (1 << 6)) && !!isOutofSync;
-    const showAuthor = !!(value & (1 << 7)) && !!isAuthor;
-    const showCoauthor = !!(value & (1 << 8)) && !!isCoauthor;
-    const showCollaborator = !!(value & (1 << 9)) && !!isCollaborator &&
-      !isAuthor && !isCoauthor;
-    const showOthers = !!(value & (1 << 10)) && !!isOthers;
-    const showDocuments = !!(value & (1 << 11)) && !!isDocument;
-
-    const shouldShow = showLocal || showCloud || showPublished ||
-      showCollab || showPrivate || showSynced || showOutOfSync ||
-      showAuthor || showCoauthor || showCollaborator || showOthers ||
-      showDocuments;
-    return shouldShow;
-  });
-  return filteredDocuments;
-};
 
 const DocumentFilterControl: FC<{
   value: number;

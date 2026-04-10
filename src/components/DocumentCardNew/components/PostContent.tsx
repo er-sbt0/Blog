@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Chip, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { UserDocument } from "@/types";
 import { formatFullDate as formatDate } from "@/utils/dateFormat";
 

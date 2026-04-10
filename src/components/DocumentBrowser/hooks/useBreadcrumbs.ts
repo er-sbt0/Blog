@@ -1,6 +1,5 @@
 "use client";
 import { useMemo } from "react";
-import { UserDocument } from "@/types";
 
 interface BreadcrumbItem {
   id: string;

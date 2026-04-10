@@ -79,7 +79,7 @@ export default function RecentPostsPreviewCard({
           : (
             <>
               <Box sx={{ py: 1, flex: 1 }}>
-                {recentPosts.map((doc, index) => {
+                {recentPosts.map((doc, _index) => {
                   const post = doc.cloud || doc.local;
                   if (!post) return null;
 

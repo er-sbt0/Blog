@@ -78,7 +78,7 @@ const actionButtonSx = {
  */
 const PostsHeader: React.FC<PostsHeaderProps> = ({
   totalCount,
-  loading,
+  loading: _loading,
   searchQuery = "",
   onSearchChange,
   timeFilter = "all",

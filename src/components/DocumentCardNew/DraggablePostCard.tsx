@@ -4,7 +4,7 @@ import { User, UserDocument } from "@/types";
 import { Box, SxProps, useMediaQuery } from "@mui/material";
 import { Theme, useTheme } from "@mui/material/styles";
 import PostCard from "./index";
-import { actions, useDispatch } from "@/store";
+
 import { DragContext } from "../DragContext";
 
 interface DraggablePostCardProps {
@@ -24,7 +24,6 @@ const DraggablePostCard: React.FC<DraggablePostCardProps> = ({
   sx,
   onMoveComplete,
 }) => {
-  const dispatch = useDispatch();
   const theme = useTheme();
   const prefersReducedMotion = useMediaQuery(
     "(prefers-reduced-motion: reduce)",

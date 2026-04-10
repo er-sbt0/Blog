@@ -53,7 +53,7 @@ const ImportExportControl: FC<ImportExportControlProps> = (
                 await documentDB.add(newDocument);
                 dispatch(actions.loadLocalDocuments());
               }
-            } catch (error) {
+            } catch {
               dispatch(
                 actions.announce({
                   message: {
@@ -107,7 +107,7 @@ const ImportExportControl: FC<ImportExportControlProps> = (
 
         link.dispatchEvent(evt);
         link.remove();
-      } catch (error) {
+      } catch {
         dispatch(
           actions.announce({
             message: {

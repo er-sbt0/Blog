@@ -17,7 +17,6 @@ import {
   Cloud,
   CloudSync,
   CloudUpload,
-  Delete,
   DeleteForever,
   History,
   MobileFriendly,
@@ -58,7 +57,6 @@ const RevisionCard: React.FC<{
   const isCloudHead = isCloudDocument && isCloudRevision &&
     cloudDocument.head === revision.id;
   const isCloudOnlyRevision = isCloudRevision && !isLocalRevision;
-  const isLastCopy = isCloudOnlyRevision || isCloudOnlyRevision;
   const isHeadLocalRevision = localDocumentRevisions.some((r) =>
     r.id === localDocument?.head
   );

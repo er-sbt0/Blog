@@ -25,7 +25,9 @@ import Editor from "../Editor";
 
 const document = tutorialTemplate as unknown as EditorDocument;
 
-const TutorialEditor: React.FC<PropsWithChildren> = ({ children }) => {
+const TutorialEditor: React.FC<PropsWithChildren> = (
+  { children: _children },
+) => {
   const onChange = (
     editorState: EditorState,
     editor: LexicalEditor,

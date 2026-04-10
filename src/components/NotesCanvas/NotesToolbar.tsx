@@ -11,7 +11,7 @@ interface NotesToolbarProps {
 
 export default function NotesToolbar({
   onAddNote,
-  onClearAll,
+  onClearAll: _onClearAll,
 }: NotesToolbarProps) {
   const [open, setOpen] = useState(false);
 

@@ -17,7 +17,7 @@ interface BrowserBreadcrumbsProps {
  * Shows only "Blog Posts" as we don't have directory navigation
  */
 const BrowserBreadcrumbs: React.FC<BrowserBreadcrumbsProps> = ({
-  breadcrumbs,
+  breadcrumbs: _breadcrumbs,
 }) => {
   return (
     <Breadcrumbs aria-label="breadcrumb">

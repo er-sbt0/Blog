@@ -223,37 +223,6 @@ export const createSeriesChip = (
 };
 
 /**
- * Render all post chips
- */
-const renderPostChips = ({
-  postState,
-  author,
-  series,
-  seriesOrder,
-  showAuthor = true,
-  showSeries = true,
-}: {
-  postState: PostState;
-  author?: User | null;
-  series?: Series | null;
-  seriesOrder?: number | null;
-  showAuthor?: boolean;
-  showSeries?: boolean;
-}) => {
-  if (postState.isLoading) {
-    return renderSkeletonChips();
-  }
-
-  const chips = [
-    createStatusChip(postState),
-    createSeriesChip(series, seriesOrder, showSeries),
-    // createAuthorChip(author, showAuthor),
-  ].filter(Boolean);
-
-  return <>{chips}</>;
-};
-
-/**
  * Render loading skeleton chips
  */
 export const renderSkeletonChips = (count = 2) => {
