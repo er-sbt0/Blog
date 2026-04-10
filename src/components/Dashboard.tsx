@@ -3,6 +3,7 @@ import { useSelector } from "@/store";
 import { fetchCloudStorageUsage, fetchLocalStorageUsage } from "@/store/app";
 import { DocumentStorageUsage } from "@/types";
 import UserCard from "./User/UserCard";
+import { ExportImportPanel } from "./ExportImport/ExportImportPanel";
 import Grid from "@mui/material/Grid2";
 import { Box, CircularProgress, Paper, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -19,6 +20,8 @@ const Dashboard: React.FC = () => {
       <UserCard user={user} showActions />
 
       <StorageChart />
+
+      <ExportImportPanel />
     </Box>
   );
 };
