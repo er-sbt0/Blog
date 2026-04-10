@@ -1,26 +1,7 @@
 # Code Quality Issues — src/components/
 
-> Review date: 2026-04-10. Focused on: god components, anti-patterns, TypeScript safety, state management, consistency.
-
----
-
-## Critical
-
-### C1 — Mixed Redux/local state in EditDocument/Editor.tsx
-
-**File**: `src/components/EditDocument/Editor.tsx` ~lines 30–40
-
-The component mixes local `useState` for `document` with Redux selectors for `isDirty` and `showDiff`. No single source of truth.
-
-```tsx
-const [document, setDocument] = useState<EditorDocument>(); // local
-const isDirty = useSelector((state) => state.ui.isDirty);   // Redux
-const showDiff = useSelector((state) => state.ui.diff.open); // Redux
-```
-
-**Why it matters**: Synchronization between local and Redux state is fragile; bugs that only appear after multi-step user interactions.
-
-**Fix**: Move `document` to Redux (already partially there), or keep everything local and push to Redux only on save.
+> Review date: 2026-04-10. Focused on: god components, anti-patterns, TypeScript
+> safety, state management, consistency.
 
 ---
 
@@ -28,9 +9,12 @@ const showDiff = useSelector((state) => state.ui.diff.open); // Redux
 
 **File**: `src/components/SeriesView/AddPostsDialog.tsx` ~lines 117–145
 
-Posts are added/removed to a series via sequential `await fetch(...)` calls in a loop. If any call fails mid-way the series is left in a partial state. No rollback.
+Posts are added/removed to a series via sequential `await fetch(...)` calls in a
+loop. If any call fails mid-way the series is left in a partial state. No
+rollback.
 
-**Fix**: Batch with `Promise.all()`, or add a dedicated bulk-update API endpoint.
+**Fix**: Batch with `Promise.all()`, or add a dedicated bulk-update API
+endpoint.
 
 ---
 
@@ -43,9 +27,11 @@ const { getTimeKey } = require("./dateHelpers"); // CommonJS in ESM file
 const granularity = timeGroups[0].granularity as any; // type erasure
 ```
 
-**Why it matters**: `require()` in an ESM module works coincidentally in webpack but breaks type inference. `as any` hides real type mismatches.
+**Why it matters**: `require()` in an ESM module works coincidentally in webpack
+but breaks type inference. `as any` hides real type mismatches.
 
 **Fix**:
+
 ```ts
 import { getTimeKey } from "./dateHelpers";
 const granularity = timeGroups[0].granularity as PartitionGranularity;
@@ -57,21 +43,24 @@ const granularity = timeGroups[0].granularity as PartitionGranularity;
 
 ### H1 — God components (>350 lines, multiple responsibilities)
 
-| File | Lines | Responsibilities |
-|------|-------|-----------------|
-| `src/components/Home/ReadmePreviewCard.tsx` | 462 | Fetch doc, fetch HTML, create doc, manage 4 UI states, render |
-| `src/components/EditDocument/Editor.tsx` | 415 | Load, auto-save, diff, dirty tracking, cloud sync, render |
-| `src/components/SeriesCard/variants/CompactVariant.tsx` | 437 | Sort posts, manage menus, render collapsed + expanded |
-| `src/components/SeriesView/AddPostsDialog.tsx` | 422 | Fetch available posts, selection state, API calls, render |
-| `src/components/NotesCanvas/BoardSelector.tsx` | 398 | Board CRUD, zoom controls, render |
+| File                                                    | Lines | Responsibilities                                              |
+| ------------------------------------------------------- | ----- | ------------------------------------------------------------- |
+| `src/components/Home/ReadmePreviewCard.tsx`             | 462   | Fetch doc, fetch HTML, create doc, manage 4 UI states, render |
+| `src/components/EditDocument/Editor.tsx`                | 415   | Load, auto-save, diff, dirty tracking, cloud sync, render     |
+| `src/components/SeriesCard/variants/CompactVariant.tsx` | 437   | Sort posts, manage menus, render collapsed + expanded         |
+| `src/components/SeriesView/AddPostsDialog.tsx`          | 422   | Fetch available posts, selection state, API calls, render     |
+| `src/components/NotesCanvas/BoardSelector.tsx`          | 398   | Board CRUD, zoom controls, render                             |
 
-**Pattern fix**: Extract logic into custom hooks (`useDocumentLoader`, `useAutoSave`, `useAvailablePostsSelector`) and split large render trees into smaller subcomponents.
+**Pattern fix**: Extract logic into custom hooks (`useDocumentLoader`,
+`useAutoSave`, `useAvailablePostsSelector`) and split large render trees into
+smaller subcomponents.
 
 ---
 
 ### H2 — Repeated manual async-cancellation pattern
 
-**Files**: `src/components/Home/ReadmePreviewCard.tsx` ~lines 34–92, `src/components/EditDocument/Editor.tsx` ~lines 202–360
+**Files**: `src/components/Home/ReadmePreviewCard.tsx` ~lines 34–92,
+`src/components/EditDocument/Editor.tsx` ~lines 202–360
 
 Both repeat this pattern manually in multiple `useEffect`s:
 
@@ -83,30 +72,37 @@ useEffect(() => {
     if (!cancelled) setState(data);
   }
   run();
-  return () => { cancelled = true; };
+  return () => {
+    cancelled = true;
+  };
 }, [dep]);
 ```
 
-**Fix**: Extract to a shared `useAsyncEffect` hook or use `AbortController` consistently.
+**Fix**: Extract to a shared `useAsyncEffect` hook or use `AbortController`
+consistently.
 
 ---
 
 ### H3 — Hardcoded API paths scattered across components
 
 **Files** (partial list):
+
 - `src/components/Home/ReadmePreviewCard.tsx` lines 60, 115, 126
 - `src/components/SeriesView/AddPostsDialog.tsx` line 64
 - `src/components/CreatePostDrawer/index.tsx` line 81
 
-Components call `fetch('/api/documents')`, `fetch('/api/series/available-posts')` etc. directly. No central API client.
+Components call `fetch('/api/documents')`,
+`fetch('/api/series/available-posts')` etc. directly. No central API client.
 
-**Fix**: Create `src/api/client.ts` with typed methods. Enables mocking in tests and a single refactor point if routes change.
+**Fix**: Create `src/api/client.ts` with typed methods. Enables mocking in tests
+and a single refactor point if routes change.
 
 ---
 
 ### H4 — Duplicate date formatting logic
 
-**Files**: `src/components/SeriesCard/seriesCardUtils.ts` lines 8–28, `src/components/SeriesView/components/PostCompactListItem.tsx` lines 18–51
+**Files**: `src/components/SeriesCard/seriesCardUtils.ts` lines 8–28,
+`src/components/SeriesView/components/PostCompactListItem.tsx` lines 18–51
 
 Both define a `MONTHS` array and format dates from the same pattern.
 
@@ -116,8 +112,10 @@ Both define a `MONTHS` array and format dates from the same pattern.
 
 ### H5 — Dead commented-out code blocks
 
-- `src/components/SeriesCard/variants/CompactVariant.tsx` lines 230–262 — 28-line JSX block commented out
-- `src/components/SeriesCard/variants/DetailedVariant.tsx` lines 116–128 — commented "Created" label
+- `src/components/SeriesCard/variants/CompactVariant.tsx` lines 230–262 —
+  28-line JSX block commented out
+- `src/components/SeriesCard/variants/DetailedVariant.tsx` lines 116–128 —
+  commented "Created" label
 
 **Fix**: Delete. Git history preserves it if needed.
 
@@ -128,16 +126,21 @@ Both define a `MONTHS` array and format dates from the same pattern.
 ### M1 — Inline JSX callbacks without useCallback causing unnecessary re-renders
 
 **Files**:
-- `src/components/NotesCanvas/DraggableNote.tsx` lines 216–218, 233–235, 305, 327
-- `src/components/SeriesView/components/PostCompactListItem.tsx` lines 107–112, 138–150
+
+- `src/components/NotesCanvas/DraggableNote.tsx` lines 216–218, 233–235, 305,
+  327
+- `src/components/SeriesView/components/PostCompactListItem.tsx` lines 107–112,
+  138–150
 - `src/components/PostsList/components/PostsHeader.tsx` lines 120–122, 184–192
 
 Pattern:
+
 ```tsx
 <IconButton onClick={(e) => { e.stopPropagation(); setAnchor(e.currentTarget); }}>
 ```
 
-Each render creates a new function reference. Memo on child components becomes ineffective.
+Each render creates a new function reference. Memo on child components becomes
+ineffective.
 
 **Fix**: Wrap in `useCallback` with stable deps.
 
@@ -153,6 +156,7 @@ const cardTheme = createCardTheme(theme); // re-created every render
 ```
 
 **Fix**:
+
 ```tsx
 const cardTheme = useMemo(() => createCardTheme(theme), [theme]);
 ```
@@ -174,22 +178,25 @@ const cardTheme = useMemo(() => createCardTheme(theme), [theme]);
 
 ### M4 — Inconsistent error handling across components
 
-| File | Pattern |
-|------|---------|
-| `src/components/Home/ReadmePreviewCard.tsx` | `console.error()` only — silent to user |
-| `src/components/DocumentActions/Edit.tsx` | `dispatch(actions.announce())` |
-| `src/components/BackgroundImageUploader.tsx` | both `console.error` AND dispatch |
+| File                                         | Pattern                                 |
+| -------------------------------------------- | --------------------------------------- |
+| `src/components/Home/ReadmePreviewCard.tsx`  | `console.error()` only — silent to user |
+| `src/components/DocumentActions/Edit.tsx`    | `dispatch(actions.announce())`          |
+| `src/components/BackgroundImageUploader.tsx` | both `console.error` AND dispatch       |
 
-**Fix**: Create a `useErrorAnnounce` hook that always dispatches to the snackbar. Ban `console.error` for user-facing errors.
+**Fix**: Create a `useErrorAnnounce` hook that always dispatches to the
+snackbar. Ban `console.error` for user-facing errors.
 
 ---
 
 ### M5 — Inconsistent loading state representations
 
 Three different patterns in use for the same concept:
+
 - `src/components/PostsList/index.tsx` — custom `PostsLoadingState` component
 - `src/components/DocumentCardNew/PostThumbnail.tsx` — `ThumbnailSkeleton`
-- `src/components/SeriesView/AddPostsDialog.tsx` — bare `<CircularProgress>` in `<Box>`
+- `src/components/SeriesView/AddPostsDialog.tsx` — bare `<CircularProgress>` in
+  `<Box>`
 
 **Fix**: Standardise on one `<LoadingOverlay>` or `<ContentSkeleton>` component.
 
@@ -197,9 +204,12 @@ Three different patterns in use for the same concept:
 
 ### M6 — Inconsistent menu anchor state management
 
-- `src/components/NotesCanvas/DraggableNote.tsx` — two separate `useState` anchors
-- `src/components/NotesCanvas/BoardSelector.tsx` — `menuAnchor` + `menuBoardId` pair
-- `src/components/SeriesCard/variants/CompactVariant.tsx` — `useSeriesActions` hook
+- `src/components/NotesCanvas/DraggableNote.tsx` — two separate `useState`
+  anchors
+- `src/components/NotesCanvas/BoardSelector.tsx` — `menuAnchor` + `menuBoardId`
+  pair
+- `src/components/SeriesCard/variants/CompactVariant.tsx` — `useSeriesActions`
+  hook
 
 A `useMenuState` hook likely already exists. Use it consistently everywhere.
 
@@ -216,7 +226,8 @@ const topContent = useMemo(
 );
 ```
 
-`postCount` is `series.posts.length` — redundant when `series` is already a dep. Clutters the deps array and makes reasoning harder.
+`postCount` is `series.posts.length` — redundant when `series` is already a dep.
+Clutters the deps array and makes reasoning harder.
 
 ---
 
@@ -224,9 +235,11 @@ const topContent = useMemo(
 
 **File**: `src/components/Home/ReadmePreviewCard.tsx` ~line 232
 
-Hard page reload after creating a README document. All in-memory state is lost and the user experiences a flash.
+Hard page reload after creating a README document. All in-memory state is lost
+and the user experiences a flash.
 
-**Fix**: Dispatch a Redux action to update state and navigate with `router.push()` instead.
+**Fix**: Dispatch a Redux action to update state and navigate with
+`router.push()` instead.
 
 ---
 
@@ -234,13 +247,14 @@ Hard page reload after creating a README document. All in-memory state is lost a
 
 ### L1 — Magic numbers without named constants
 
-| File | Value | Meaning |
-|------|-------|---------|
-| `src/components/NotesCanvas/index.tsx` lines 14–15 | `1920`, `1080` | virtual canvas size |
-| `src/components/NotesCanvas/DraggableNote.tsx` lines 129–130 | `160`, `120` | min note dimensions (px) |
-| `src/components/ViewAttachment.tsx` lines 38–39 | `100 * 1024`, `100` | max preview size / max lines |
+| File                                                         | Value               | Meaning                      |
+| ------------------------------------------------------------ | ------------------- | ---------------------------- |
+| `src/components/NotesCanvas/index.tsx` lines 14–15           | `1920`, `1080`      | virtual canvas size          |
+| `src/components/NotesCanvas/DraggableNote.tsx` lines 129–130 | `160`, `120`        | min note dimensions (px)     |
+| `src/components/ViewAttachment.tsx` lines 38–39              | `100 * 1024`, `100` | max preview size / max lines |
 
-**Fix**: Define as named constants at module top or in a shared `src/constants.ts`.
+**Fix**: Define as named constants at module top or in a shared
+`src/constants.ts`.
 
 ---
 
@@ -255,9 +269,11 @@ const DocumentEditor = dynamic(() => import("./Editor"), {
 });
 ```
 
-React 18 + Next.js 13+ prefer wrapping with `<Suspense fallback={...}>` directly.
+React 18 + Next.js 13+ prefer wrapping with `<Suspense fallback={...}>`
+directly.
 
 **Fix**:
+
 ```tsx
 const DocumentEditor = dynamic(() => import("./Editor"), { ssr: false });
 // ...
@@ -277,16 +293,18 @@ const { data, error } = await response.json(); // untyped
 if (error) setError(error.title || "Failed"); // assumes shape
 ```
 
-**Fix**: Define `interface SeriesApiResponse { data?: Post[]; error?: { title: string } }` and assert the type on `.json()`.
+**Fix**: Define
+`interface SeriesApiResponse { data?: Post[]; error?: { title: string } }` and
+assert the type on `.json()`.
 
 ---
 
 ## Totals
 
-| Severity | Count |
-|----------|-------|
-| Critical | 3 |
-| High | 5 |
-| Medium | 8 |
-| Low | 3 |
+| Severity  | Count  |
+| --------- | ------ |
+| Critical  | 3      |
+| High      | 5      |
+| Medium    | 8      |
+| Low       | 3      |
 | **Total** | **19** |

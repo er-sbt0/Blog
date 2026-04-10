@@ -7,7 +7,9 @@ import {
   EditorDocument,
   EditorDocumentRevision,
 } from "@/types";
+import { useSelector as useReduxSelector } from "react-redux";
 import { actions, useDispatch, useSelector } from "@/store";
+import type { RootState } from "@/store";
 import { usePathname, useRouter } from "next/navigation";
 import type {
   EditorState,
@@ -27,7 +29,7 @@ const EditDocumentInfo = dynamic(
 );
 
 const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [document, setDocument] = useState<EditorDocument>();
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ title: string; subtitle?: string }>();
   const dispatch = useDispatch();
   const pathname = usePathname();
@@ -37,7 +39,21 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
   const showDiff = useSelector((state) => state.ui.diff.open);
   const isDirty = useSelector((state) => state.ui.isDirty);
   const user = useSelector((state) => state.user);
+  // Single source of truth: document lives in Redux. Custom equality prevents
+  // re-renders from data changes on every edit (only re-render on identity change).
+  const document = useReduxSelector(
+    (state: RootState) =>
+      state.documents.find((d) => d.local?.handle === id || d.local?.id === id)
+        ?.local,
+    (a, b) => a?.id === b?.id,
+  );
   const lastSavedCloud = useRef<string | null>(null);
+  // Apply data normalization once when the document first loads (not on every edit)
+  const documentForEditor = useMemo(
+    () => (document ? ensureValidDocumentData(document) : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [document?.id],
+  );
 
   const debouncedUpdateLocalDocument = useMemo(
     () =>
@@ -206,7 +222,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
         localResponse.type === actions.getLocalDocument.fulfilled.type
       ) {
         const editorDocument = localResponse.payload as EditorDocument;
-        setDocument(ensureValidDocumentData(editorDocument));
+        setIsLoading(false);
 
         // Check if local is ahead of cloud by comparing head revision IDs.
         // This detects the case where the user edited locally, closed the tab
@@ -242,10 +258,11 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
             .payload as ReturnType<
               typeof actions.getCloudDocument.fulfilled
             >["payload"];
-          setDocument(ensureValidDocumentData(editorDocument));
           // Seed lastSavedCloud — local was just created from cloud, they're in sync
           lastSavedCloud.current = JSON.stringify(editorDocument.data);
-          dispatch(actions.createLocalDocument(editorDocument));
+          // Await so the local document is in Redux before the selector fires
+          await dispatch(actions.createLocalDocument(editorDocument));
+          setIsLoading(false);
           const editorDocumentRevision = {
             id: editorDocument.head,
             documentId: editorDocument.id,
@@ -333,7 +350,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
               // Create the revision in cloud
               await dispatch(actions.createCloudRevision(revision));
 
-              setDocument(ensureValidDocumentData(newDocument));
+              setIsLoading(false);
             } catch (error) {
               console.error("Failed to create notes document:", error);
               setError({
@@ -389,20 +406,25 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
   if (error) {
     return <SplashScreen title={error.title} subtitle={error.subtitle} />;
   }
-  if (!document) return <SplashScreen title="Loading Document" />;
+  if (isLoading || !documentForEditor) {
+    return <SplashScreen title="Loading Document" />;
+  }
 
   return (
     <>
-      <title>{document.name}</title>
+      <title>{documentForEditor.name}</title>
       {showDiff && <DiffView />}
       <Editor
-        document={document}
+        document={documentForEditor}
         editorRef={editorRef}
         onChange={handleChange}
         onSave={handleSaveAndNavigate}
         onDiscard={handleDiscard}
       />
-      <EditDocumentInfo documentId={document.id} editorRef={editorRef} />
+      <EditDocumentInfo
+        documentId={documentForEditor.id}
+        editorRef={editorRef}
+      />
       <SaveDiscardActions
         onSave={handleSaveAndNavigate}
         onDiscard={handleDiscard}

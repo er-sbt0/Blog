@@ -1005,6 +1005,17 @@ export const appSlice = createSlice({
       .addCase(loadCloudDocuments.rejected, (state) => {
         state.ui.documentsLoading = false;
       })
+      .addCase(getLocalDocument.fulfilled, (state, action) => {
+        const document = action.payload;
+        const userDocument = state.documents.find((doc) =>
+          doc.id === document.id
+        );
+        if (!userDocument) {
+          state.documents.unshift({ id: document.id, local: document });
+        } else {
+          userDocument.local = document;
+        }
+      })
       .addCase(getCloudDocument.fulfilled, (state, action) => {
         const { cloudDocument } = action.payload;
         const userDocument = state.documents.find((doc) =>
