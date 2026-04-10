@@ -107,8 +107,7 @@ export const PostItem = memo(
               }}
             >
               <Article sx={{ fontSize: "0.85em", color: "text.secondary" }} />
-              {post.local && post.cloud &&
-                post.local.head !== post.cloud.head && (
+              {isDirty && (
                 <Box
                   component="span"
                   sx={{

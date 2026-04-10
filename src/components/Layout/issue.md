@@ -2,26 +2,6 @@
 
 ---
 
-## 6. `isDirty` computed but not used for the dirty dot indicator
-
-**File:** `SideBar/PostItem.tsx:46-48, 110-112`
-
-`isDirty` is derived on line 46:
-
-```tsx
-const isDirty = Boolean(post.local) && Boolean(post.cloud) && post.local!.head !== post.cloud!.head;
-```
-
-But the dirty-dot indicator (the small blue circle) on line 110 re-evaluates the same condition inline instead of using the variable:
-
-```tsx
-{post.local && post.cloud && post.local.head !== post.cloud.head && ( <Box ... /> )}
-```
-
-The variable `isDirty` is only used for the `CloudUpload` button further below. The dot and the button should both use `isDirty`.
-
----
-
 ## 7. Hydration mismatch risk in `useSidebarFontSize`
 
 **File:** `SideBar/hooks/useSidebarFontSize.ts:9-14`
