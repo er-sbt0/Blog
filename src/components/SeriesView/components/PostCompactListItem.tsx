@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Box,
   IconButton,
@@ -57,6 +57,62 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
   const hasRowChanges = !!pendingChange;
   const isEditing = editingName !== undefined;
 
+  const handleNavigate = useCallback(() => {
+    if (!isTimeEditMode && document?.id) {
+      router.push(`/view/${document.id}`);
+    }
+  }, [isTimeEditMode, document?.id, router]);
+
+  const handleStopPropagation = useCallback(
+    (e: React.SyntheticEvent) => e.stopPropagation(),
+    [],
+  );
+
+  const handleNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      e.stopPropagation();
+      onNameChange(post.id, e.target.value);
+    },
+    [post.id, onNameChange],
+  );
+
+  const handleNameBlur = useCallback(() => {
+    if (document?.id) {
+      onNameCommit(post.id, document.id, document?.name || "");
+    }
+  }, [post.id, document?.id, document?.name, onNameCommit]);
+
+  const handleNameKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (document?.id) {
+          onNameCommit(post.id, document.id, document?.name || "");
+        }
+      }
+      if (e.key === "Escape") onNameCancel(post.id);
+    },
+    [post.id, document?.id, document?.name, onNameCommit, onNameCancel],
+  );
+
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onDelete(post);
+    },
+    [post, onDelete],
+  );
+
+  const handleTimeAdjust = useCallback(
+    (days: number) => onTimeAdjust?.(post.id, originalDate, days),
+    [onTimeAdjust, post.id, originalDate],
+  );
+
+  const handleTimeReset = useCallback(
+    () => onTimeReset?.(post.id),
+    [onTimeReset, post.id],
+  );
+
   return (
     <ListItem
       key={post.id}
@@ -70,13 +126,7 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
       }}
     >
       <ListItemButton
-        onClick={() => {
-          if (!isTimeEditMode && document?.id) {
-            router.push(
-              `/view/${document.id}`,
-            );
-          }
-        }}
+        onClick={handleNavigate}
         sx={{
           py: 1.25,
           px: 2,
@@ -101,20 +151,10 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
               ? (
                 <InputBase
                   value={isEditing ? editingName : (document?.name || "")}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    onNameChange(post.id, e.target.value);
-                  }}
-                  onBlur={() =>
-                    onNameCommit(post.id, document.id, document?.name || "")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      onNameCommit(post.id, document.id, document?.name || "");
-                    }
-                    if (e.key === "Escape") onNameCancel(post.id);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
+                  onChange={handleNameChange}
+                  onBlur={handleNameBlur}
+                  onKeyDown={handleNameKeyDown}
+                  onClick={handleStopPropagation}
                   fullWidth
                   sx={{
                     fontWeight: 500,
@@ -158,10 +198,7 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
               <Tooltip title="Delete post" arrow>
                 <IconButton
                   size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(post);
-                  }}
+                  onClick={handleDelete}
                   sx={{
                     flexShrink: 0,
                     width: 22,
@@ -228,11 +265,11 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
         {isTimeEditMode && onTimeAdjust && onTimeReset && (
           <Box
             sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleStopPropagation}
           >
             <TimeStepperControls
-              onAdjust={(days) => onTimeAdjust(post.id, originalDate, days)}
-              onReset={() => onTimeReset(post.id)}
+              onAdjust={handleTimeAdjust}
+              onReset={handleTimeReset}
               hasChanges={hasRowChanges}
             />
           </Box>
@@ -241,7 +278,7 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
         {/* Action menu */}
         {!isTimeEditMode && (
           <Box
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleStopPropagation}
             sx={{
               display: "flex",
               alignItems: "center",

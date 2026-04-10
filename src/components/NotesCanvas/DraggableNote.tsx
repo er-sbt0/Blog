@@ -3,7 +3,7 @@ import { Note } from "@/types/notes";
 import { DraggableData, Rnd, RndDragEvent, RndResizeCallback } from "react-rnd";
 import { EditorState, LexicalEditor } from "lexical";
 import { editorConfig } from "@/editor/config";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Box,
   Divider,
@@ -120,6 +120,37 @@ export default function DraggableNote({
     setColorAnchor(null);
   };
 
+  const handleOpenColorMenu = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      setColorAnchor(e.currentTarget);
+    },
+    [],
+  );
+
+  const handleOpenMoreMenu = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      setMoreAnchor(e.currentTarget);
+    },
+    [],
+  );
+
+  const handleStopPropagation = useCallback(
+    (e: React.SyntheticEvent) => e.stopPropagation(),
+    [],
+  );
+
+  const handleCloseColorAnchor = useCallback(
+    () => setColorAnchor(null),
+    [],
+  );
+
+  const handleCloseMoreAnchor = useCallback(
+    () => setMoreAnchor(null),
+    [],
+  );
+
   return (
     <Rnd
       size={{ width: note.size.width, height: note.size.height }}
@@ -192,8 +223,8 @@ export default function DraggableNote({
             placeholder="Untitled"
             variant="standard"
             fullWidth
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
+            onClick={handleStopPropagation}
+            onMouseDown={handleStopPropagation}
             InputProps={{
               disableUnderline: true,
               sx: {
@@ -213,11 +244,8 @@ export default function DraggableNote({
           />
           <IconButton
             size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              setColorAnchor(e.currentTarget);
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
+            onClick={handleOpenColorMenu}
+            onMouseDown={handleStopPropagation}
             sx={{
               padding: "3px",
               flexShrink: 0,
@@ -230,11 +258,8 @@ export default function DraggableNote({
           </IconButton>
           <IconButton
             size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              setMoreAnchor(e.currentTarget);
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
+            onClick={handleOpenMoreMenu}
+            onMouseDown={handleStopPropagation}
             sx={{
               padding: "3px",
               flexShrink: 0,
@@ -286,10 +311,10 @@ export default function DraggableNote({
         <Popover
           open={Boolean(colorAnchor)}
           anchorEl={colorAnchor}
-          onClose={() => setColorAnchor(null)}
+          onClose={handleCloseColorAnchor}
           anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
           transformOrigin={{ vertical: "top", horizontal: "right" }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={handleStopPropagation}
           slotProps={{ paper: { elevation: 3, sx: { p: 1 } } }}
         >
           <Box
@@ -324,8 +349,8 @@ export default function DraggableNote({
         <Menu
           anchorEl={moreAnchor}
           open={Boolean(moreAnchor)}
-          onClose={() => setMoreAnchor(null)}
-          onClick={(e) => e.stopPropagation()}
+          onClose={handleCloseMoreAnchor}
+          onClick={handleStopPropagation}
           slotProps={{ paper: { elevation: 2 } }}
         >
           <MenuItem onClick={handleCut} dense>

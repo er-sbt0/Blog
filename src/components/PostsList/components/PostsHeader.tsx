@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Box,
   Button,
@@ -135,6 +135,22 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
 
   const clearSearch = () => onSearchChange?.("");
 
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      onSearchChange?.(e.target.value),
+    [onSearchChange],
+  );
+
+  const handleGranularityChange = useCallback(
+    (g: PartitionGranularity) => onGranularityChange?.(g),
+    [onGranularityChange],
+  );
+
+  const handleViewTypeChange = useCallback(
+    (v: ViewType) => onViewTypeChange?.(v),
+    [onViewTypeChange],
+  );
+
   const activeTimeFilter = timeFilterOptions.find((o) =>
     o.value === timeFilter
   );
@@ -161,7 +177,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
           size="small"
           placeholder="Search posts by title, content, or tags..."
           value={searchQuery}
-          onChange={(e) => onSearchChange?.(e.target.value)}
+          onChange={handleSearchChange}
           sx={{
             maxWidth: { xs: "100%", md: 600 },
             "& .MuiOutlinedInput-root": {
@@ -266,13 +282,13 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
         {totalCount > 0 && (
           <PartitionControl
             granularity={granularity}
-            onGranularityChange={onGranularityChange || (() => {})}
+            onGranularityChange={handleGranularityChange}
             postCount={totalCount}
           />
         )}
 
         {/* View layout */}
-        <ViewToggle view={viewType} onChange={onViewTypeChange || (() => {})} />
+        <ViewToggle view={viewType} onChange={handleViewTypeChange} />
       </Box>
 
       {/* Active filter chips */}
