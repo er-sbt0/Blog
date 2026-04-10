@@ -147,12 +147,12 @@ export const loadLocalDocuments = createAsyncThunk(
 
 export const loadCloudDocuments = createAsyncThunk(
   "app/loadCloudDocuments",
-  async (payloadCreator: Document[] | undefined, thunkAPI) => {
+  async (arg: Document[] | undefined, thunkAPI) => {
     try {
       NProgress.start();
-      if (payloadCreator) {
+      if (arg) {
         return thunkAPI.fulfillWithValue(
-          payloadCreator,
+          arg,
         );
       }
       const data = await apiClient.documents.list();
@@ -375,11 +375,11 @@ export const getCloudRevision = createAsyncThunk(
 export const forkLocalDocument = createAsyncThunk(
   "app/forkLocalDocument",
   async (
-    payloadCreator: { id: string; revisionId?: string | null },
+    arg: { id: string; revisionId?: string | null },
     thunkAPI,
   ) => {
     try {
-      const { id, revisionId } = payloadCreator;
+      const { id, revisionId } = arg;
       const isValidId = validate(id);
       const document = isValidId
         ? await documentDB.getByID(id)
@@ -418,11 +418,11 @@ export const forkLocalDocument = createAsyncThunk(
 export const forkCloudDocument = createAsyncThunk(
   "app/forkCloudDocument",
   async (
-    payloadCreator: { id: string; revisionId?: string | null },
+    arg: { id: string; revisionId?: string | null },
     thunkAPI,
   ) => {
     try {
-      const { id, revisionId } = payloadCreator;
+      const { id, revisionId } = arg;
       NProgress.start();
       const data = await apiClient.documents.fork(id, revisionId);
       if (!data) {
@@ -446,7 +446,7 @@ export const forkCloudDocument = createAsyncThunk(
 
 export const createLocalDocument = createAsyncThunk(
   "app/createLocalDocument",
-  async (payloadCreator: DocumentCreateInput, thunkAPI) => {
+  async (arg: DocumentCreateInput, thunkAPI) => {
     try {
       const {
         coauthors,
@@ -455,7 +455,7 @@ export const createLocalDocument = createAsyncThunk(
         private: isPrivate,
         revisions,
         ...document
-      } = payloadCreator;
+      } = arg;
       const id = await documentDB.add(document);
       if (!id) {
         return thunkAPI.rejectWithValue({
@@ -512,10 +512,10 @@ export const createLocalRevision = createAsyncThunk(
 
 export const createCloudDocument = createAsyncThunk(
   "app/createCloudDocument",
-  async (payloadCreator: DocumentCreateInput, thunkAPI) => {
+  async (arg: DocumentCreateInput, thunkAPI) => {
     try {
       NProgress.start();
-      const data = await apiClient.documents.create(payloadCreator);
+      const data = await apiClient.documents.create(arg);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",
@@ -624,11 +624,11 @@ export const syncLocalToCloud = createAsyncThunk(
 export const updateLocalDocument = createAsyncThunk(
   "app/updateLocalDocument",
   async (
-    payloadCreator: { id: string; partial: DocumentUpdateInput },
+    arg: { id: string; partial: DocumentUpdateInput },
     thunkAPI,
   ) => {
     try {
-      const { id, partial } = payloadCreator;
+      const { id, partial } = arg;
       const {
         coauthors,
         published,
@@ -673,12 +673,12 @@ export const updateLocalDocument = createAsyncThunk(
 export const updateCloudDocument = createAsyncThunk(
   "app/updateCloudDocument",
   async (
-    payloadCreator: { id: string; partial: DocumentUpdateInput },
+    arg: { id: string; partial: DocumentUpdateInput },
     thunkAPI,
   ) => {
     try {
       NProgress.start();
-      const { id, partial } = payloadCreator;
+      const { id, partial } = arg;
       const data = await apiClient.documents.update(id, partial);
       if (!data) {
         return thunkAPI.rejectWithValue({
@@ -718,10 +718,10 @@ export const deleteLocalDocument = createAsyncThunk(
 
 export const deleteLocalRevision = createAsyncThunk(
   "app/deleteLocalRevision",
-  async (payloadCreator: { id: string; documentId: string }, thunkAPI) => {
+  async (arg: { id: string; documentId: string }, thunkAPI) => {
     try {
-      await revisionDB.deleteByID(payloadCreator.id);
-      return thunkAPI.fulfillWithValue(payloadCreator);
+      await revisionDB.deleteByID(arg.id);
+      return thunkAPI.fulfillWithValue(arg);
     } catch (error: unknown) {
       console.error(error);
       return thunkAPI.rejectWithValue({
@@ -759,10 +759,10 @@ export const deleteCloudDocument = createAsyncThunk(
 
 export const deleteCloudRevision = createAsyncThunk(
   "app/deleteCloudRevision",
-  async (payloadCreator: { id: string; documentId: string }, thunkAPI) => {
+  async (arg: { id: string; documentId: string }, thunkAPI) => {
     try {
       NProgress.start();
-      const data = await apiClient.revisions.delete(payloadCreator.id);
+      const data = await apiClient.revisions.delete(arg.id);
       if (!data) {
         return thunkAPI.rejectWithValue({
           title: "Something went wrong",

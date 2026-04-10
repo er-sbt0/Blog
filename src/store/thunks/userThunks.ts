@@ -9,12 +9,12 @@ const toErrorMessage = (error: unknown): string =>
 export const updateUser = createAsyncThunk(
   "app/updateUser",
   async (
-    payloadCreator: { id: string; partial: Partial<User> },
+    arg: { id: string; partial: Partial<User> },
     thunkAPI,
   ) => {
     try {
       NProgress.start();
-      const { id, partial } = payloadCreator;
+      const { id, partial } = arg;
       const data = await apiClient.users.update(id, partial);
       if (!data) {
         return thunkAPI.rejectWithValue({
@@ -38,7 +38,7 @@ export const updateUser = createAsyncThunk(
 
 export const alert = createAsyncThunk(
   "app/alert",
-  async (payloadCreator: Alert, thunkAPI) => {
+  async (arg: Alert, thunkAPI) => {
     try {
       const id = await new Promise((resolve) => {
         const handler = (event: MouseEvent): void => {

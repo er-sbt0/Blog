@@ -121,14 +121,6 @@ componentDidCatch(error: Error, errorInfo: any)
 
 ---
 
-## 12. Misleading `payloadCreator` Parameter Name in Thunks
-
-**Severity: Low**
-
-Thunks like `createLocalDocument`, `updateCloudDocument`, `forkLocalDocument` use `payloadCreator` as the action argument parameter name. In RTK, `payloadCreator` is the name of the *async function callback itself*, not the argument passed to it — this causes confusion for anyone familiar with RTK conventions.
-
----
-
 ## Summary Table
 
 | # | Issue | File | Severity |
@@ -144,4 +136,3 @@ Thunks like `createLocalDocument`, `updateCloudDocument`, `forkLocalDocument` us
 | 9 | `errorInfo: any` in error boundary | `src/components/EditDocument/index.tsx` | Medium |
 | 10 | No error boundary reset mechanism | `src/components/EditDocument/index.tsx` | Medium |
 | 11 | Derived data in hook chains vs. selectors | `src/components/PostsList/hooks/usePostsData.ts` | Medium |
-| 12 | Misleading `payloadCreator` param name | `src/store/app.ts` | Low |

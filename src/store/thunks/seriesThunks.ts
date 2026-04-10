@@ -27,9 +27,9 @@ export const loadSeries = createAsyncThunk(
 
 export const createSeries = createAsyncThunk(
   "app/createSeries",
-  async (payloadCreator: SeriesCreateInput, thunkAPI) => {
+  async (arg: SeriesCreateInput, thunkAPI) => {
     try {
-      const data = await apiClient.series.create(payloadCreator);
+      const data = await apiClient.series.create(arg);
       return thunkAPI.fulfillWithValue(data);
     } catch (error: unknown) {
       console.error(error);
