@@ -4,16 +4,6 @@ Critical and notable code-quality findings across `src/components/Layout/`.
 
 ---
 
-## 1. `"use client"` in `styles.ts` — forces all consumers to be client components
-
-**File:** `styles.ts:1`
-
-`styles.ts` starts with `"use client"`. The file only exports static `SxProps` objects — no hooks, no browser APIs. This directive is entirely unnecessary and silently forces every component that imports from it (`SideBar.tsx`, `ActivePostsSection.tsx`, etc.) to be a client component, even if they otherwise could be server components.
-
-**Fix:** Remove `"use client"` from `styles.ts`.
-
----
-
 ## 2. Wrong keyboard shortcut displayed in tooltip
 
 **File:** `SideBar/SidebarHeader.tsx:107`, `SideBar/hooks/useKeyboardShortcuts.ts:27`

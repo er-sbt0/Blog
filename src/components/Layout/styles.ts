@@ -1,5 +1,3 @@
-"use client";
-
 // This file contains utility functions to ensure consistent styling
 // between server and client rendering to prevent hydration mismatches
 
