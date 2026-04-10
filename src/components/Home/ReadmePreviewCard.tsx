@@ -4,6 +4,7 @@ import { Add, ArticleOutlined } from "@mui/icons-material";
 import { useCallback, useMemo, useState } from "react";
 import { useAsyncEffect } from "@/hooks/useAsyncEffect";
 import { v4 as uuidv4 } from "uuid";
+import { SerializedEditorState } from "lexical";
 import { UserDocument } from "@/types";
 import htmr from "htmr";
 import { DateDisplay } from "@/components/DateDisplay";
@@ -144,7 +145,7 @@ export default function ReadmePreviewCard({
       const headId = uuidv4();
 
       // Default Lexical editor state with a heading
-      const defaultData = {
+      const defaultData: SerializedEditorState = {
         root: {
           children: [
             {
