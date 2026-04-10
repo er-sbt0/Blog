@@ -36,6 +36,12 @@ import {
 const NAV_ITEM_MIN_HEIGHT = 42;
 const USER_ITEM_MIN_HEIGHT = 48;
 
+const navigationItems = [
+  { text: "Home", icon: <Home />, path: "/" },
+  { text: "Posts", icon: <LibraryBooks />, path: "/posts" },
+  { text: "Notes", icon: <StickyNote2 />, path: "/notes" },
+];
+
 const SideBar: React.FC = () => {
   const dispatch = useDispatch();
   const pathname = usePathname();
@@ -85,15 +91,6 @@ const SideBar: React.FC = () => {
   const groupedActivePosts = useMemo(
     () => groupPostsBySeries(activeDocuments, seriesMap),
     [activeDocuments, seriesMap],
-  );
-
-  const navigationItems = useMemo(
-    () => [
-      { text: "Home", icon: <Home />, path: "/" },
-      { text: "Posts", icon: <LibraryBooks />, path: "/posts" },
-      { text: "Notes", icon: <StickyNote2 />, path: "/notes" },
-    ],
-    [],
   );
 
   useEffect(() => {

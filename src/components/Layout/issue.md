@@ -1,23 +1,5 @@
 # Layout Component Issues
 
-## 8. `navigationItems` in `useMemo` with empty deps — should be a module constant
-
-**File:** `SideBar.tsx:92-98`
-
-```tsx
-const navigationItems = useMemo(
-  () => [
-    { text: "Home", icon: <Home />, path: "/" },
-    ...
-  ],
-  [],
-);
-```
-
-A `useMemo` with empty deps `[]` is equivalent to a module-level constant but slower (React still calls the factory once and stores the result). JSX elements created here are also re-created each time the component mounts. This should be a `const` at module scope.
-
----
-
 ## 9. Complement conditions instead of ternary
 
 **File:** `SideBar.tsx:193-204`
@@ -101,8 +83,6 @@ The theme parameter is typed as a hand-rolled partial object instead of the MUI 
 
 | # | File | Severity | Category |
 |---|------|----------|----------|
-| 7 | `useSidebarFontSize.ts` | Medium | Hydration mismatch pattern |
-| 8 | `SideBar.tsx` | Low | `useMemo([])` instead of module constant |
 | 9 | `SideBar.tsx` | Low | Complement conditions instead of ternary |
 | 10 | `DocumentInfoDrawerArrow.tsx` | Low | Unused `arrowRef` |
 | 11 | `useKeyboardShortcuts.ts` | Low | Unused return value |
