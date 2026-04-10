@@ -30,6 +30,56 @@ const EditDocumentInfo = dynamic(
   { ssr: false },
 );
 
+function ensureValidDocumentData(doc: EditorDocument): EditorDocument {
+  const defaultParagraph = {
+    children: [],
+    direction: null,
+    format: "",
+    indent: 0,
+    type: "paragraph",
+    version: 1,
+  };
+  const defaultRoot: SerializedEditorState = {
+    root: {
+      children: [defaultParagraph],
+      direction: null,
+      format: "",
+      indent: 0,
+      type: "root",
+      version: 1,
+    },
+  };
+
+  // If data is missing or invalid, create a default state
+  if (!doc.data || typeof doc.data !== "object") {
+    return { ...doc, data: defaultRoot };
+  }
+
+  // Validate that root exists and has the required structure
+  if (
+    !doc.data.root || !doc.data.root.children ||
+    !Array.isArray(doc.data.root.children)
+  ) {
+    return { ...doc, data: defaultRoot };
+  }
+
+  // If root has no children, add an empty paragraph
+  if (doc.data.root.children.length === 0) {
+    return {
+      ...doc,
+      data: {
+        ...doc.data,
+        root: {
+          ...doc.data.root,
+          children: [defaultParagraph],
+        },
+      } as SerializedEditorState,
+    };
+  }
+
+  return doc;
+}
+
 const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ title: string; subtitle?: string }>();
@@ -166,57 +216,6 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = ({ children }) => {
     }
     debouncedUpdateLocalDocument(document.id, updatedDocument);
   }
-
-  // Helper function to ensure document has valid editor data
-  const ensureValidDocumentData = (doc: EditorDocument): EditorDocument => {
-    const defaultParagraph = {
-      children: [],
-      direction: null,
-      format: "",
-      indent: 0,
-      type: "paragraph",
-      version: 1,
-    };
-    const defaultRoot: SerializedEditorState = {
-      root: {
-        children: [defaultParagraph],
-        direction: null,
-        format: "",
-        indent: 0,
-        type: "root",
-        version: 1,
-      },
-    };
-
-    // If data is missing or invalid, create a default state
-    if (!doc.data || typeof doc.data !== "object") {
-      return { ...doc, data: defaultRoot };
-    }
-
-    // Validate that root exists and has the required structure
-    if (
-      !doc.data.root || !doc.data.root.children ||
-      !Array.isArray(doc.data.root.children)
-    ) {
-      return { ...doc, data: defaultRoot };
-    }
-
-    // If root has no children, add an empty paragraph
-    if (doc.data.root.children.length === 0) {
-      return {
-        ...doc,
-        data: {
-          ...doc.data,
-          root: {
-            ...doc.data.root,
-            children: [defaultParagraph],
-          },
-        } as SerializedEditorState,
-      };
-    }
-
-    return doc;
-  };
 
   useAsyncEffect(async (isCancelled) => {
     const loadDocument = async (id: string) => {
