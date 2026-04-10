@@ -33,6 +33,9 @@ import {
   NoteColorKey,
 } from "./noteColors";
 
+const MIN_NOTE_WIDTH = 160; // px
+const MIN_NOTE_HEIGHT = 120; // px
+
 interface DraggableNoteProps {
   note: Note;
   onUpdate: (id: string, updates: Partial<Note>) => void;
@@ -157,8 +160,8 @@ export default function DraggableNote({
       position={{ x: note.position.x, y: note.position.y }}
       onDragStop={handleDragStop}
       onResizeStop={handleResizeStop}
-      minWidth={160}
-      minHeight={120}
+      minWidth={MIN_NOTE_WIDTH}
+      minHeight={MIN_NOTE_HEIGHT}
       bounds="parent"
       dragHandleClassName="drag-handle"
       scale={scale}

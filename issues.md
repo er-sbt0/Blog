@@ -161,17 +161,6 @@ and the user experiences a flash.
 
 ## Low
 
-### L1 — Magic numbers without named constants
-
-| File                                                         | Value               | Meaning                      |
-| ------------------------------------------------------------ | ------------------- | ---------------------------- |
-| `src/components/NotesCanvas/index.tsx` lines 14–15           | `1920`, `1080`      | virtual canvas size          |
-| `src/components/NotesCanvas/DraggableNote.tsx` lines 129–130 | `160`, `120`        | min note dimensions (px)     |
-| `src/components/ViewAttachment.tsx` lines 38–39              | `100 * 1024`, `100` | max preview size / max lines |
-
-**Fix**: Define as named constants at module top or in a shared
-`src/constants.ts`.
-
 ---
 
 ### L2 — `dynamic()` loading prop instead of `<Suspense>`
@@ -222,5 +211,5 @@ assert the type on `.json()`.
 | Critical  | 3      | 0     | 3      |
 | High      | 2      | 3     | 5      |
 | Medium    | 7      | 1     | 8      |
-| Low       | 3      | 0     | 3      |
-| **Total** | **16** | **3** | **19** |
+| Low       | 2      | 1     | 3      |
+| **Total** | **15** | **4** | **19** |
