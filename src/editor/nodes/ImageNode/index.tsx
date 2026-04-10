@@ -157,7 +157,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
 
   static importDOM(): DOMConversionMap | null {
     return {
-      img: (node: Node) => ({
+      img: (_node: Node) => ({
         conversion: convertImageElement,
         priority: 0,
       }),
@@ -333,7 +333,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
   isSelected(selection?: null | BaseSelection): boolean {
     try {
       return super.isSelected(selection);
-    } catch (e) {
+    } catch {
       return false;
     }
   }

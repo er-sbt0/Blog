@@ -205,7 +205,7 @@ export class TableNode extends LexicalTableNode {
   isSelected(selection?: null | BaseSelection): boolean {
     try {
       return super.isSelected(selection);
-    } catch (e) {
+    } catch {
       return false;
     }
   }

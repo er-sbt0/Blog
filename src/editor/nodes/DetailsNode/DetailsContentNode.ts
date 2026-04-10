@@ -24,7 +24,7 @@ import { domOnBeforeMatch, setDomHiddenUntilFound } from "./utils";
 type SerializedDetailsContentNode = SerializedElementNode;
 
 export function $convertDetailsContentElement(
-  domNode: HTMLElement,
+  _domNode: HTMLElement,
 ): DOMConversionOutput | null {
   const node = $createDetailsContentNode();
   return {
@@ -71,7 +71,7 @@ export class DetailsContentNode extends ElementNode {
     return dom;
   }
 
-  updateDOM(prevNode: DetailsContentNode, dom: HTMLElement): boolean {
+  updateDOM(_prevNode: DetailsContentNode, _dom: HTMLElement): boolean {
     return false;
   }
 
@@ -97,7 +97,7 @@ export class DetailsContentNode extends ElementNode {
   }
 
   static importJSON(
-    serializedNode: SerializedDetailsContentNode,
+    _serializedNode: SerializedDetailsContentNode,
   ): DetailsContentNode {
     return $createDetailsContentNode();
   }

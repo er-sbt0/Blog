@@ -3,7 +3,7 @@
 import React, { useCallback, useState } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $getNodeByKey } from "lexical";
-import { createTask, Task, updateTask } from "./utils";
+import { createTask, Task } from "./utils";
 import "./KanbanComponent.css";
 
 interface KanbanComponentProps {
@@ -34,8 +34,8 @@ export default function KanbanComponent({
     editor.update(() => {
       const node = $getNodeByKey(nodeKey);
       if (node && node.getType() === "kanban") {
-        // We need to cast to any since we can't import KanbanNode here due to circular imports
-        const kanbanNode = node as any;
+        // Cast via unknown to avoid circular import of KanbanNode
+        const kanbanNode = node as unknown as { getWritable: () => { __tasks: Task[] } };
         const writableNode = kanbanNode.getWritable();
         writableNode.__tasks = newTasks;
       }

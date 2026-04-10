@@ -26,7 +26,7 @@ interface AttachmentEditorProps {
 export default function AttachmentEditor({
   initialContent,
   filename,
-  language,
+  language: _language,
   onSave,
   onCancel,
 }: AttachmentEditorProps) {

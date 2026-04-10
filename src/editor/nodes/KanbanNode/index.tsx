@@ -1,21 +1,12 @@
 import type {
-  BaseSelection,
   DOMExportOutput,
-  EditorConfig,
-  LexicalEditor,
   LexicalNode,
   NodeKey,
   SerializedLexicalNode,
   Spread,
 } from "lexical";
 
-import {
-  $createNodeSelection,
-  $getSelection,
-  $setSelection,
-  DecoratorNode,
-  isHTMLElement,
-} from "lexical";
+import { DecoratorNode } from "lexical";
 import * as React from "react";
 import KanbanComponent from "./KanbanComponent";
 import { createTask, KanbanPayload, Task } from "./utils";

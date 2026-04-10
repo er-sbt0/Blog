@@ -3,30 +3,17 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Box,
-  Button,
-  CircularProgress,
   Collapse,
   IconButton,
   Skeleton,
-  TextField,
   Typography,
 } from "@mui/material";
 import {
-  Cancel,
-  ExpandLess,
-  ExpandMore,
   OpenInNew,
   Refresh,
-  Save,
 } from "@mui/icons-material";
 import { NodeKey } from "lexical";
-import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $getNodeByKey } from "lexical";
-import { $isAttachmentNode } from ".";
-import {
-  detectLanguage,
-  getLanguageDisplayName,
-} from "@/utils/languageDetection";
+import { detectLanguage } from "@/utils/languageDetection";
 import { AttachmentContentCache, attachmentContentDB } from "@/indexeddb";
 import { RootState, useSelector } from "@/store";
 import Prism from "prismjs";
@@ -62,7 +49,6 @@ interface ContentState {
 }
 
 // Size thresholds
-const INLINE_MAX_SIZE = 100 * 1024; // 100KB - show full inline
 const TRUNCATE_MAX_SIZE = 1024 * 1024; // 1MB - truncated or sidebar only
 const MAX_INLINE_LINES = 100;
 
@@ -162,10 +148,9 @@ export default function AttachmentPreview({
   size,
   expanded,
   editing,
-  nodeKey,
+  nodeKey: _nodeKey,
   onOpenInSidebar,
 }: AttachmentPreviewProps) {
-  const [editor] = useLexicalComposerContext();
   const [contentState, setContentState] = useState<ContentState>({
     content: null,
     loading: false,
@@ -174,10 +159,6 @@ export default function AttachmentPreview({
   const [highlightedContent, setHighlightedContent] = useState<string | null>(
     null,
   );
-  const [editContent, setEditContent] = useState<string>("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
   // Listen for attachment modifications from the drawer
   const attachmentModified = useSelector((state: RootState) =>
     state.ui.attachmentModified
@@ -186,7 +167,6 @@ export default function AttachmentPreview({
   const canPreview = isPreviewable(mimetype, filename);
   const isTooLarge = size > TRUNCATE_MAX_SIZE;
   const language = detectLanguage(filename, mimetype);
-  const languageDisplayName = getLanguageDisplayName(language);
 
   // Cache key based on URL
   const cacheKey = extractFilename(url);
@@ -262,13 +242,6 @@ export default function AttachmentPreview({
     }
   }, [expanded, editing, contentState, fetchContent]);
 
-  // Initialize edit content when entering edit mode
-  useEffect(() => {
-    if (editing && contentState.content !== null) {
-      setEditContent(contentState.content);
-    }
-  }, [editing, contentState.content]);
-
   // Refresh content when attachment is modified in the drawer
   useEffect(() => {
     if (attachmentModified && attachmentModified.url === url && expanded) {
@@ -299,59 +272,6 @@ export default function AttachmentPreview({
       setHighlightedContent(null);
     }
   }, [contentState.content, language]);
-
-  const handleToggleExpand = useCallback(() => {
-    editor.update(() => {
-      const node = $getNodeByKey(nodeKey);
-      if ($isAttachmentNode(node)) {
-        node.toggleExpanded();
-      }
-    });
-  }, [editor, nodeKey]);
-
-  const handleSave = useCallback(async () => {
-    setIsSaving(true);
-    setSaveError(null);
-
-    try {
-      const response = await fetch(`${url}/content`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: editContent }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save");
-      }
-
-      // Update cache and state
-      await attachmentContentDB.deleteByID(cacheKey).catch(() => {});
-      setContentState({ content: editContent, loading: false, error: null });
-
-      // Exit editing mode
-      editor.update(() => {
-        const node = $getNodeByKey(nodeKey);
-        if ($isAttachmentNode(node)) {
-          node.setEditing(false);
-        }
-      });
-    } catch (error) {
-      setSaveError(
-        error instanceof Error ? error.message : "Failed to save changes",
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  }, [editContent, url, cacheKey, editor, nodeKey]);
-
-  const handleCancelEdit = useCallback(() => {
-    editor.update(() => {
-      const node = $getNodeByKey(nodeKey);
-      if ($isAttachmentNode(node)) {
-        node.setEditing(false);
-      }
-    });
-  }, [editor, nodeKey]);
 
   const handleRefresh = useCallback(async () => {
     // Clear cache and refetch

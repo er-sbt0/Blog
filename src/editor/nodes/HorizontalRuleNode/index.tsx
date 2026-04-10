@@ -15,7 +15,7 @@ import type {
 } from "lexical";
 
 import { $applyNodeReplacement, createCommand, DecoratorNode } from "lexical";
-import { JSX, lazy } from "react";
+import { JSX } from "react";
 import HorizontalRuleComponent from "./HorizontalRuleComponent";
 
 export type SerializedHorizontalRuleNode = SerializedLexicalNode;
@@ -33,7 +33,7 @@ export class HorizontalRuleNode extends DecoratorNode<JSX.Element> {
   }
 
   static importJSON(
-    serializedNode: SerializedHorizontalRuleNode,
+    _serializedNode: SerializedHorizontalRuleNode,
   ): HorizontalRuleNode {
     return $createHorizontalRuleNode();
   }

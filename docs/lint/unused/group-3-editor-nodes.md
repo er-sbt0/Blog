@@ -1,7 +1,10 @@
 # Group 3 — Editor Nodes (`src/editor/nodes/`)
 
-> Suggested commit message: `fix(lint): remove unused vars in editor nodes`
-> Errors: **41**
+> ✅ **Committed** — `fix(lint): remove unused vars in editor nodes`
+> All 41 errors resolved. ESLint finds **0** `@typescript-eslint/no-unused-vars`
+> in `src/editor/nodes/`.
+
+> ~~Errors: **41**~~
 
 ---
 

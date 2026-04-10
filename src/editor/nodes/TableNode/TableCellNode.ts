@@ -54,11 +54,11 @@ export class TableCellNode extends LexicalTableCellNode {
 
   static importDOM(): DOMConversionMap | null {
     return {
-      td: (node: Node) => ({
+      td: (_node: Node) => ({
         conversion: $convertTableCellNodeElement,
         priority: 0,
       }),
-      th: (node: Node) => ({
+      th: (_node: Node) => ({
         conversion: $convertTableCellNodeElement,
         priority: 0,
       }),

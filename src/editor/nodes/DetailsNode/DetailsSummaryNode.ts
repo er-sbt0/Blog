@@ -28,7 +28,7 @@ type SerializedDetailsSummaryNode = SerializedElementNode & {
 };
 
 export function $convertSummaryElement(
-  domNode: HTMLElement,
+  _domNode: HTMLElement,
 ): DOMConversionOutput | null {
   const node = $createDetailsSummaryNode();
   return {
@@ -87,7 +87,7 @@ export class DetailsSummaryNode extends ElementNode {
 
   static importDOM(): DOMConversionMap | null {
     return {
-      summary: (domNode: HTMLElement) => {
+      summary: (_domNode: HTMLElement) => {
         return {
           conversion: $convertSummaryElement,
           priority: 1,

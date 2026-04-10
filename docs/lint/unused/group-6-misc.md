@@ -1,7 +1,10 @@
 # Group 6 — Miscellaneous (`src/app/`, `src/api/`, `src/repositories/`, `src/hooks/`, `src/lib/`, `src/middleware.ts`, `src/shared/`, `src/utils/`, `src/editor/config.tsx`, `src/editor/utils/`)
 
 > Suggested commit message: `fix(lint): remove unused vars in misc/infra files`
-> Errors: **31**
+> ~~Errors: **31**~~ → **~19 remaining** (verified 2026-04-10)
+
+> **Also fix from group-1:** `src/store/app/duplicateDocument.ts` L53 — change
+> `catch (_error)` → `catch {` (bare catch). See group-1 residual note.
 
 ---
 

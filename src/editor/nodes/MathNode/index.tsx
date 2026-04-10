@@ -70,7 +70,7 @@ export class MathNode extends DecoratorNode<JSX.Element> {
     return { element };
   }
 
-  createDOM(config: EditorConfig, editor: LexicalEditor): HTMLElement {
+  createDOM(config: EditorConfig, _editor: LexicalEditor): HTMLElement {
     const element = document.createElement("span");
     const className = config.theme.math;
     if (className !== undefined) {
@@ -145,7 +145,7 @@ export class MathNode extends DecoratorNode<JSX.Element> {
   isSelected(selection?: null | BaseSelection): boolean {
     try {
       return super.isSelected(selection);
-    } catch (e) {
+    } catch {
       return false;
     }
   }
