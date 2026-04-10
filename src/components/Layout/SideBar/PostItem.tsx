@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useCallback } from "react";
 import {
   Box,
   IconButton,
@@ -48,7 +48,7 @@ export const PostItem = memo(
       Boolean(post.cloud) &&
       post.local!.head !== post.cloud!.head;
 
-    const handleSyncToCloud = (e: React.MouseEvent) => {
+    const handleSyncToCloud = useCallback((e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       dispatch(
@@ -59,7 +59,7 @@ export const PostItem = memo(
           parentId: post.local!.parentId,
         }),
       );
-    };
+    }, [dispatch, post.id, post.local]);
 
     const linkProps = isRenaming
       ? {}
