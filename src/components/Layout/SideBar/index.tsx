@@ -22,17 +22,17 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Home, LibraryBooks, StickyNote2 } from "@mui/icons-material";
-import { styles } from "./styles";
+import { styles } from "../styles";
 import { DocumentStatus, type UserDocument } from "@/types";
-import { useSidebarState } from "./SideBar/hooks/useSidebarState";
-import { useKeyboardShortcuts } from "./SideBar/hooks/useKeyboardShortcuts";
-import { useSidebarWidth } from "./SideBar/SidebarWidthContext";
-import { useSidebarFontSize } from "./SideBar/hooks/useSidebarFontSize";
-import { useSidebarActions } from "./SideBar/hooks/useSidebarActions";
-import { SidebarHeader } from "./SideBar/SidebarHeader";
-import { ActivePostsSection } from "./SideBar/ActivePostsSection";
-import { PostContextMenu } from "./SideBar/PostContextMenu";
-import { SafeNavigationLink } from "./SideBar/SafeNavigationLink";
+import { useSidebarState } from "./hooks/useSidebarState";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useSidebarWidth } from "./SidebarWidthContext";
+import { useSidebarFontSize } from "./hooks/useSidebarFontSize";
+import { useSidebarActions } from "./hooks/useSidebarActions";
+import { SidebarHeader } from "./SidebarHeader";
+import { ActivePostsSection } from "./ActivePostsSection";
+import { PostContextMenu } from "./PostContextMenu";
+import { SafeNavigationLink } from "./SafeNavigationLink";
 import {
   buildSeriesMap,
   groupPostsBySeries,
