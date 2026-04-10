@@ -59,24 +59,6 @@ via props.
 
 ---
 
-## 8. Empty Reducer Body Used as Action Signal
-
-**Severity: Medium**
-
-In `src/store/app.ts`:
-
-```ts
-triggerAutosaveBeforeNavigation: ((state, action) => {
-  // This is intentionally empty as we'll handle this action in middleware
-});
-```
-
-A reducer is a state-transition function. Having one that does nothing to state
-— used purely as a "signal" — is an anti-pattern. Standalone action creators
-should be created with `createAction()` outside the slice for this purpose.
-
----
-
 ## 10. No Error Recovery in `EditorErrorBoundary`
 
 **Severity: Medium**

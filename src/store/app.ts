@@ -1,4 +1,9 @@
-import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import {
+  createAction,
+  createAsyncThunk,
+  createSlice,
+  PayloadAction,
+} from "@reduxjs/toolkit";
 import NProgress from "nprogress";
 import documentDB, { revisionDB } from "@/indexeddb";
 import {
@@ -49,6 +54,10 @@ const initialState: AppState = {
     attachmentModified: null,
   },
 };
+
+export const triggerAutosaveBeforeNavigation = createAction<
+  { targetUrl: string }
+>("app/triggerAutosaveBeforeNavigation");
 
 export const load = createAsyncThunk("app/load", async (_, thunkAPI) => {
   // Load series LAST so it's the freshest data
@@ -873,15 +882,6 @@ export const appSlice = createSlice({
     },
     clearAttachmentModified: (state) => {
       state.ui.attachmentModified = null;
-    },
-    // This is a placeholder action that will be intercepted by the middleware
-    // It doesn't actually modify state but serves as a signal
-    triggerAutosaveBeforeNavigation: (
-      state,
-      action: PayloadAction<{ targetUrl: string }>,
-    ) => {
-      // This is intentionally empty as we'll handle this action in middleware
-      // The actual save logic is in the component
     },
   },
   extraReducers: (builder) => {
