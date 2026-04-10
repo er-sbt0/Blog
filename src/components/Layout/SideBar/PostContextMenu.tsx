@@ -1,5 +1,6 @@
 import React from "react";
 import { ListItemIcon, ListItemText, Menu, MenuItem } from "@mui/material";
+import { Theme } from "@mui/material/styles";
 import { Delete, DriveFileRenameOutline, Edit } from "@mui/icons-material";
 
 interface ContextMenuState {
@@ -25,7 +26,7 @@ const menuItemSx = {
 };
 
 const borderBottomSx = {
-  borderBottom: (theme: { palette: { mode: string } }) =>
+  borderBottom: (theme: Theme) =>
     theme.palette.mode === "dark"
       ? "1px solid rgba(255, 255, 255, 0.06)"
       : "1px solid rgba(0, 0, 0, 0.04)",

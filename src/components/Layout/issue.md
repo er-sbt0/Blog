@@ -22,23 +22,8 @@ Both issues are minor but indicate copy-paste without cleanup.
 
 ---
 
-## 13. Partial manual type instead of `Theme` in `PostContextMenu`
-
-**File:** `SideBar/PostContextMenu.tsx:28-31`
-
-```ts
-const borderBottomSx = {
-  borderBottom: (theme: { palette: { mode: string } }) => ...
-};
-```
-
-The theme parameter is typed as a hand-rolled partial object instead of the MUI `Theme` type. This bypasses type safety and is non-idiomatic.
-
----
-
 ## Summary Table
 
 | # | File | Severity | Category |
 |---|------|----------|----------|
 | 12 | `AppLayout.tsx` | Low | Redundant `maxWidth` + identical breakpoints |
-| 13 | `PostContextMenu.tsx` | Low | Manual partial type instead of `Theme` |
