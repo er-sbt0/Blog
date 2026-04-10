@@ -37,7 +37,7 @@ import { SafeNavigationLink } from "./SideBar/SafeNavigationLink";
 import {
   buildSeriesMap,
   groupPostsBySeries,
-} from "@/components/PostsList/utils/seriesGrouping";
+} from "@/utils/posts/seriesGrouping";
 
 const NAV_ITEM_MIN_HEIGHT = 42;
 const USER_ITEM_MIN_HEIGHT = 48;

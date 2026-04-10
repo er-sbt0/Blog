@@ -9,7 +9,7 @@ import {
   PendingTimeChange,
   PostsCompactListView,
 } from "@/components/SeriesView/components/PostsCompactListView";
-import type { ViewType } from "@/components/SeriesView/components/ViewToggle";
+import type { ViewType } from "@/components/shared/ViewToggle";
 import { TimeGroupHeader } from "@/components/shared/TimeGroupHeader";
 
 interface PostsTimeSectionProps {

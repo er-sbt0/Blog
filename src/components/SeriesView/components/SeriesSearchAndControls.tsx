@@ -3,9 +3,17 @@ import { Box, Button, Chip } from "@mui/material";
 import { AccessTime, Check, Close } from "@mui/icons-material";
 import { PartitionGranularity } from "@/types/partitioning";
 import { PartitionControl } from "@/components/PostsList/components/PartitionControl";
-import { ViewToggle, type ViewType } from "./ViewToggle";
+import { ViewToggle, type ViewType } from "@/components/shared/ViewToggle";
 import { PendingTimeChange } from "./PostsCompactListView";
 import { SearchField } from "@/components/shared/SearchField";
+
+const timeEditBtnSx = {
+  textTransform: "none",
+  fontWeight: 500,
+  fontSize: "0.8rem",
+  borderRadius: 1.5,
+  height: 32,
+} as const;
 
 interface SeriesSearchAndControlsProps {
   searchQuery: string;
@@ -73,13 +81,7 @@ const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
               variant={isTimeEditMode ? "contained" : "outlined"}
               startIcon={<AccessTime />}
               onClick={onToggleTimeEdit}
-              sx={{
-                textTransform: "none",
-                fontWeight: 500,
-                fontSize: "0.8rem",
-                borderRadius: 1.5,
-                height: 32,
-              }}
+              sx={timeEditBtnSx}
             >
               {isTimeEditMode ? "Editing" : "Edit"}
             </Button>
@@ -102,14 +104,7 @@ const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
                   onClick={onSaveTimeChanges}
                   disabled={pendingTimeChanges.size === 0 ||
                     isSavingTimeChanges}
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: 500,
-                    fontSize: "0.8rem",
-                    borderRadius: 1.5,
-                    minWidth: 80,
-                    height: 32,
-                  }}
+                  sx={{ ...timeEditBtnSx, minWidth: 80 }}
                 >
                   {isSavingTimeChanges ? "Saving..." : "Save"}
                 </Button>
@@ -120,13 +115,7 @@ const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
                   startIcon={<Close />}
                   onClick={onDiscardTimeChanges}
                   disabled={isSavingTimeChanges}
-                  sx={{
-                    textTransform: "none",
-                    fontWeight: 500,
-                    fontSize: "0.8rem",
-                    borderRadius: 1.5,
-                    height: 32,
-                  }}
+                  sx={timeEditBtnSx}
                 >
                   Cancel
                 </Button>

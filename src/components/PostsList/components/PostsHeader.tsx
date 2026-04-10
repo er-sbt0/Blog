@@ -17,13 +17,10 @@ import {
   Today,
 } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
-import { TimeFilterValue } from "../hooks/usePostsTimeFilter";
+import { FILTER_LABELS, TimeFilterValue } from "@/hooks/usePostsTimeFilter";
 import { PartitionGranularity } from "@/types/partitioning";
 import { PartitionControl } from "./PartitionControl";
-import {
-  ViewToggle,
-  ViewType,
-} from "@/components/SeriesView/components/ViewToggle";
+import { ViewToggle, ViewType } from "@/components/shared/ViewToggle";
 import { SearchField } from "@/components/shared/SearchField";
 
 interface PostsHeaderProps {
@@ -105,12 +102,36 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
   const filterMenuOpen = Boolean(filterAnchorEl);
 
   const timeFilterOptions = [
-    { value: "all", label: "All Time", icon: <Schedule /> },
-    { value: "thisYear", label: "This Year", icon: <CalendarMonth /> },
-    { value: "thisMonth", label: "This Month", icon: <Today /> },
-    { value: "lastMonth", label: "Last Month", icon: <Today /> },
-    { value: "last3Months", label: "Last 3 Months", icon: <CalendarMonth /> },
-    { value: "last6Months", label: "Last 6 Months", icon: <CalendarMonth /> },
+    {
+      value: "all" as TimeFilterValue,
+      label: FILTER_LABELS.all,
+      icon: <Schedule />,
+    },
+    {
+      value: "thisYear" as TimeFilterValue,
+      label: FILTER_LABELS.thisYear,
+      icon: <CalendarMonth />,
+    },
+    {
+      value: "thisMonth" as TimeFilterValue,
+      label: FILTER_LABELS.thisMonth,
+      icon: <Today />,
+    },
+    {
+      value: "lastMonth" as TimeFilterValue,
+      label: FILTER_LABELS.lastMonth,
+      icon: <Today />,
+    },
+    {
+      value: "last3Months" as TimeFilterValue,
+      label: FILTER_LABELS.last3Months,
+      icon: <CalendarMonth />,
+    },
+    {
+      value: "last6Months" as TimeFilterValue,
+      label: FILTER_LABELS.last6Months,
+      icon: <CalendarMonth />,
+    },
   ];
 
   const handleNewPost = useCallback(() => {

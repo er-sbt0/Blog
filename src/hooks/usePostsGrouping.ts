@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { UserDocument } from "@/types";
 import { PartitionGranularity, TimeGroup } from "@/types/partitioning";
-import { getGroupingFunction } from "@/components/PostsList/utils/timeGrouping";
+import { getGroupingFunction } from "@/utils/posts/timeGrouping";
 import {
   buildSeriesMap,
   deduplicateSeriesAcrossPartitions,
   ensureSeriesPartitions,
-} from "@/components/PostsList/utils/seriesGrouping";
+} from "@/utils/posts/seriesGrouping";
 import { useSelector } from "@/store";
 import type { PendingTimeChange } from "@/components/SeriesView/components/PostsCompactListView";
 

@@ -9,15 +9,15 @@ import { useSelector } from "@/store";
 import { selectAllPosts } from "@/store/selectors/postsSelectors";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { usePostsGrouping } from "@/hooks/usePostsGrouping";
-import { usePostsSearch } from "@/components/PostsList/hooks/usePostsSearch";
+import { usePostsSearch } from "@/hooks/usePostsSearch";
 import {
   TimeFilterValue,
   usePostsTimeFilter,
-} from "@/components/PostsList/hooks/usePostsTimeFilter";
-import { useTimeEditing } from "@/components/SeriesView/hooks/useTimeEditing";
-import { type ViewType } from "@/components/SeriesView/components/ViewToggle";
+} from "@/hooks/usePostsTimeFilter";
+import { useTimeEditing } from "@/hooks/useTimeEditing";
+import { type ViewType } from "@/components/shared/ViewToggle";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { getPostSeriesId } from "@/components/PostsList/utils/seriesGrouping";
+import { getPostSeriesId } from "@/utils/posts/seriesGrouping";
 import PostsTimeSection from "./components/PostsTimeSection";
 
 // All-posts mode components

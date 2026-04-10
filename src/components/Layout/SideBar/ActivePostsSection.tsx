@@ -7,7 +7,7 @@ import {
   TextField,
 } from "@mui/material";
 import { Clear, Search } from "@mui/icons-material";
-import type { SeriesGroupItem } from "@/components/PostsList/utils/seriesGrouping";
+import type { SeriesGroupItem } from "@/utils/posts/seriesGrouping";
 import type { PostItemActions } from "./hooks/useSidebarActions";
 import { PostItem } from "./PostItem";
 import { SeriesGroup } from "./SeriesGroup";

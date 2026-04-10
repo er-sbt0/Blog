@@ -13,7 +13,7 @@ import { actions, useDispatch } from "@/store";
 import { useRouter } from "next/navigation";
 import { v4 as uuid } from "uuid";
 import PostCompactListItem from "./PostCompactListItem";
-import { SeriesGroupItem } from "@/components/PostsList/utils/seriesGrouping";
+import { SeriesGroupItem } from "@/utils/posts/seriesGrouping";
 import { useExpandedState } from "@/hooks/useExpandedState";
 
 export interface PendingTimeChange {

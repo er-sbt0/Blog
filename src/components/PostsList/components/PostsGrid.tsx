@@ -8,8 +8,8 @@ import {
   buildSeriesMap,
   groupPostsBySeries,
   SeriesGroupItem,
-} from "../utils/seriesGrouping";
-import { ViewType } from "@/components/SeriesView/components/ViewToggle";
+} from "@/utils/posts/seriesGrouping";
+import { ViewType } from "@/components/shared/ViewToggle";
 import { PostsCompactListView } from "@/components/SeriesView/components/PostsCompactListView";
 import { useExpandedState } from "@/hooks/useExpandedState";
 
