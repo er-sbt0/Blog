@@ -10,6 +10,8 @@ export default memo(function ProgressBar() {
   useEffect(() => {
     NProgress.configure({ showSpinner: false });
 
+    const boundAnchors = new Set<HTMLAnchorElement>();
+
     const handleAnchorClick = (event: MouseEvent) => {
       if (
         !navigator.onLine ||
@@ -28,17 +30,30 @@ export default memo(function ProgressBar() {
       }, 0);
     };
 
-    const handleMutation: MutationCallback = () => {
-      const anchorElements: NodeListOf<HTMLAnchorElement> = document
-        .querySelectorAll("a[href]");
-      anchorElements.forEach((anchor) =>
-        anchor.addEventListener("click", handleAnchorClick)
+    const bindAnchors = () => {
+      document.querySelectorAll<HTMLAnchorElement>("a[href]").forEach(
+        (anchor) => {
+          if (!boundAnchors.has(anchor)) {
+            anchor.addEventListener("click", handleAnchorClick);
+            boundAnchors.add(anchor);
+          }
+        },
       );
     };
 
-    const mutationObserver = new MutationObserver(handleMutation);
-
+    const mutationObserver = new MutationObserver(bindAnchors);
     mutationObserver.observe(document, { childList: true, subtree: true });
+
+    // Bind anchors already present in the DOM at mount time.
+    bindAnchors();
+
+    return () => {
+      mutationObserver.disconnect();
+      boundAnchors.forEach((anchor) =>
+        anchor.removeEventListener("click", handleAnchorClick)
+      );
+      boundAnchors.clear();
+    };
   }, []);
 
   useEffect(() => {
