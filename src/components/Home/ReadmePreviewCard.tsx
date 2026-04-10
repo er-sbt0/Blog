@@ -145,7 +145,7 @@ export default function ReadmePreviewCard({
       const headId = uuidv4();
 
       // Default Lexical editor state with a heading
-      const defaultData: SerializedEditorState = {
+      const defaultData = {
         root: {
           children: [
             {
@@ -199,8 +199,9 @@ export default function ReadmePreviewCard({
           id,
           name: "README",
           description: "Welcome to my blog",
+          type: "DOCUMENT" as const,
           head: headId,
-          data: defaultData,
+          data: defaultData as unknown as SerializedEditorState,
           createdAt: now,
           updatedAt: now,
           published: true,
