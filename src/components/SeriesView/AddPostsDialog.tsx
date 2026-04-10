@@ -23,6 +23,11 @@ import { Add, Article, Close, Search } from "@mui/icons-material";
 import { Document } from "@/types";
 import { DateDisplay } from "@/components/DateDisplay";
 
+interface SeriesApiResponse {
+  data?: Document[];
+  error?: { title: string };
+}
+
 interface AddPostsDialogProps {
   open: boolean;
   onClose: () => void;
@@ -62,7 +67,7 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
     setError(null);
     try {
       const response = await fetch("/api/series/available-posts");
-      const { data, error } = await response.json();
+      const { data, error } = (await response.json()) as SeriesApiResponse;
       if (error) {
         setError(error.title || "Failed to load posts");
         return;
@@ -120,7 +125,7 @@ const AddPostsDialog: React.FC<AddPostsDialogProps> = ({
       });
 
       if (!response.ok) {
-        const { error } = await response.json();
+        const { error } = (await response.json()) as SeriesApiResponse;
         throw new Error(error?.title || "Failed to update posts");
       }
 
