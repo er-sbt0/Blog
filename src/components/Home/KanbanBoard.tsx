@@ -12,6 +12,7 @@ import { DragIndicator } from "@mui/icons-material";
 import { UserDocument } from "@/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTheme } from "@mui/material/styles";
 import { DateDisplay } from "@/components/DateDisplay";
 
 interface KanbanBoardProps {
@@ -35,19 +36,20 @@ export default function KanbanBoard(
   { documents, onRefresh }: KanbanBoardProps,
 ) {
   const router = useRouter();
+  const theme = useTheme();
   const [draggedDoc, setDraggedDoc] = useState<UserDocument | null>(null);
 
   const columns: Column[] = [
     {
       id: "draft",
       title: "Draft",
-      color: "#ffa726",
+      color: theme.palette.warning.main,
       filterFn: (doc) => !getDocumentPublished(doc),
     },
     {
       id: "published",
       title: "Published",
-      color: "#66bb6a",
+      color: theme.palette.success.main,
       filterFn: (doc) => getDocumentPublished(doc),
     },
   ];

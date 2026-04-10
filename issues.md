@@ -79,19 +79,6 @@ const cardTheme = useMemo(() => createCardTheme(theme), [theme]);
 
 ---
 
-### M3 — Hardcoded hex colors instead of theme palette
-
-**File**: `src/components/Home/KanbanBoard.tsx` lines 44–45
-
-```tsx
-{ id: "draft", color: "#ffa726" }  // should be theme.palette.warning.main
-{ id: "done",  color: "#66bb6a" }  // should be theme.palette.success.main
-```
-
-**Fix**: Use `theme.palette.*` tokens so the app respects theme overrides.
-
----
-
 ### M4 — Inconsistent error handling across components
 
 | File                                         | Pattern                                 |
@@ -210,6 +197,6 @@ assert the type on `.json()`.
 | --------- | ------ | ----- | ------ |
 | Critical  | 3      | 0     | 3      |
 | High      | 2      | 3     | 5      |
-| Medium    | 7      | 1     | 8      |
+| Medium    | 6      | 2     | 8      |
 | Low       | 2      | 1     | 3      |
-| **Total** | **15** | **4** | **19** |
+| **Total** | **14** | **5** | **19** |
