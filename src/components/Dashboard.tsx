@@ -1,16 +1,13 @@
 "use client";
 import { useSelector } from "@/store";
-import { fetchCloudStorageUsage, fetchLocalStorageUsage } from "@/store/app";
-import { DocumentStorageUsage } from "@/types";
 import UserCard from "./User/UserCard";
 import { ExportImportPanel } from "./ExportImportPanel";
 import Grid from "@mui/material/Grid2";
 import { Box, CircularProgress, Paper, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { useEffect, useState } from "react";
-import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { Cloud, Login, Storage } from "@mui/icons-material";
+import { useStorageUsage } from "@/hooks/useStorageUsage";
 
 const Dashboard: React.FC = () => {
   const user = useSelector((state) => state.user);
@@ -27,30 +24,6 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-
-type StorageUsage = {
-  loading: boolean;
-  usage: number;
-  details: { value: number; label?: string; color?: string }[];
-};
-
-type StorageState = { local: StorageUsage; cloud: StorageUsage };
-
-const initialStorageUsage: StorageUsage = {
-  loading: true,
-  usage: 0,
-  details: [],
-};
-
-function parseStoragePayload(documents: DocumentStorageUsage[]): StorageUsage {
-  const usage = documents.reduce((acc, d) => acc + (d.size ?? 0), 0) / 1024 /
-    1024;
-  const details = documents.map((d) => ({
-    value: (d.size ?? 0) / 1024 / 1024,
-    label: d.name,
-  }));
-  return { loading: false, usage, details };
-}
 
 const StorageEmptyState: React.FC<{
   icon?: React.ReactNode;
@@ -86,46 +59,9 @@ const StorageEmptyState: React.FC<{
 
 const StorageChart: React.FC = () => {
   const user = useSelector((state) => state.user);
-  const initialized = useSelector((state) => state.ui.initialized);
+  const { local: localStorageUsage, cloud: cloudStorageUsage, initialized } =
+    useStorageUsage();
   const theme = useTheme();
-  const errorAnnounce = useErrorAnnounce();
-
-  const [storageUsage, setStorageUsage] = useState<StorageState>({
-    local: initialStorageUsage,
-    cloud: initialStorageUsage,
-  });
-
-  useEffect(() => {
-    fetchLocalStorageUsage().then((payload) => {
-      setStorageUsage((prev) => ({
-        ...prev,
-        local: parseStoragePayload(payload),
-      }));
-    }).catch((error: unknown) =>
-      errorAnnounce("Failed to load local storage usage", error)
-    );
-  }, []);
-
-  useEffect(() => {
-    if (!user) {
-      setStorageUsage((prev) => ({
-        ...prev,
-        cloud: { ...initialStorageUsage, loading: false },
-      }));
-      return;
-    }
-    setStorageUsage((prev) => ({ ...prev, cloud: initialStorageUsage }));
-    fetchCloudStorageUsage().then((payload) => {
-      setStorageUsage((prev) => ({
-        ...prev,
-        cloud: parseStoragePayload(payload),
-      }));
-    }).catch((error: unknown) =>
-      errorAnnounce("Failed to load cloud storage usage", error)
-    );
-  }, [user]);
-
-  const { local: localStorageUsage, cloud: cloudStorageUsage } = storageUsage;
 
   return (
     <Grid container spacing={2}>

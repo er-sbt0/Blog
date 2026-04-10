@@ -2,7 +2,21 @@ import { UserDocument } from "@/types";
 import { generateHtml } from "@/editor/utils/generateHtml";
 import documentDB from "@/indexeddb";
 import thumbnailCache from "./thumbnailCache";
-import { apiClient } from "@/api";
+
+/** Injectable thumbnail fetcher — defaults to the real API client. */
+type ThumbnailFetcher = (documentId: string) => Promise<string | null>;
+
+let _defaultFetcher: ThumbnailFetcher | null = null;
+async function defaultFetcher(documentId: string): Promise<string | null> {
+  if (!_defaultFetcher) {
+    // Lazy-import so the API client is never bundled into non-browser contexts.
+    const { apiClient } = await import("@/api");
+    _defaultFetcher = async (id) =>
+      (await apiClient.thumbnails.get(id)) ?? null;
+  }
+  const fetcher = _defaultFetcher;
+  return fetcher(documentId);
+}
 
 /**
  * Enhanced thumbnail loading with improved fallback strategies
@@ -15,6 +29,7 @@ import { apiClient } from "@/api";
  */
 export const loadThumbnailWithFallbacks = async (
   userDocument?: UserDocument,
+  fetchThumbnail: ThumbnailFetcher = defaultFetcher,
 ): Promise<string | null> => {
   if (!userDocument) return null;
 
@@ -48,7 +63,7 @@ export const loadThumbnailWithFallbacks = async (
     }
 
     // 4. Fallback to API (slowest)
-    const apiThumbnail = await loadFromAPI(documentId);
+    const apiThumbnail = await loadFromAPI(documentId, fetchThumbnail);
     if (apiThumbnail) {
       thumbnailCache.set(cacheKey, apiThumbnail);
       return apiThumbnail;
@@ -112,11 +127,12 @@ const loadFromIndexedDB = async (
  */
 const loadFromAPI = async (
   documentId: string,
+  fetchThumbnail: ThumbnailFetcher,
   retries = 2,
 ): Promise<string | null> => {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      const data = await apiClient.thumbnails.get(documentId);
+      const data = await fetchThumbnail(documentId);
       if (data) {
         return data;
       }

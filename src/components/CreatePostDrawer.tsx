@@ -14,13 +14,12 @@ import {
 import { Add, Close } from "@mui/icons-material";
 import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
-import { actions, useDispatch, useSelector } from "@/store";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import type { DocumentCreateInput, User } from "@/types";
 import { useHandleValidation } from "@/components/DocumentActions/hooks/useHandleValidation";
 import { getEditorData } from "@/utils/getEditorData";
 import PostCloudOptions from "./PostCloudOptions";
-import { apiClient } from "@/api";
+import { useCreatePostActions } from "@/hooks/useCreatePostActions";
 
 interface CreatePostDrawerProps {
   open: boolean;
@@ -37,10 +36,9 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
   seriesTitle,
   onSuccess,
 }) => {
-  const dispatch = useDispatch();
+  const { user, fetchNextSeriesOrder, createPost } = useCreatePostActions();
   const router = useRouter();
   const isOnline = useOnlineStatus();
-  const user = useSelector((state) => state.user);
 
   const [input, setInput] = useState<Partial<DocumentCreateInput>>({
     published: true,
@@ -76,20 +74,8 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
   // Fetch next series order when drawer opens
   React.useEffect(() => {
     if (!open || !seriesId) return;
-    const fetchOrder = async () => {
-      try {
-        const series = await apiClient.series.get(seriesId);
-        const maxOrder = (series?.posts ?? []).reduce(
-          (max, post) => Math.max(max, post.seriesOrder ?? 0),
-          0,
-        );
-        setNextSeriesOrder(maxOrder + 1);
-      } catch {
-        setNextSeriesOrder(1);
-      }
-    };
-    fetchOrder();
-  }, [open, seriesId]);
+    fetchNextSeriesOrder(seriesId).then(setNextSeriesOrder);
+  }, [open, seriesId, fetchNextSeriesOrder]);
 
   // Reset form when drawer closes
   React.useEffect(() => {
@@ -134,25 +120,16 @@ const CreatePostDrawer: React.FC<CreatePostDrawerProps> = ({
         updatedAt: createdAt,
       };
 
-      try {
-        await dispatch(actions.createLocalDocument(payload)).unwrap();
-        if (saveToCloud && isOnline && user) {
-          try {
-            await dispatch(actions.createCloudDocument(payload)).unwrap();
-            onSuccess?.();
-            onClose();
-            router.refresh();
-            router.push(`/edit/${postId}`);
-            return;
-          } catch {
-            // cloud save is optional
-          }
-        }
-        onSuccess?.();
-        onClose();
-        router.refresh();
-      } catch {
-        setError("Failed to create post. Please try again.");
+      const result = await createPost(payload, { saveToCloud, isOnline });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      onSuccess?.();
+      onClose();
+      router.refresh();
+      if (result.cloudSaved) {
+        router.push(`/edit/${postId}`);
       }
     } catch {
       setError("An unexpected error occurred. Please try again.");

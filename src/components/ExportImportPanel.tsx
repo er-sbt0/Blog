@@ -35,13 +35,7 @@ import {
   UploadFile,
   WarningAmber,
 } from "@mui/icons-material";
-import { useDispatch, useSelector } from "@/store";
-import {
-  exportCloudBackup,
-  exportLocalBackup,
-  importCloudBackup,
-  importLocalBackup,
-} from "@/store/thunks/exportThunks";
+import { useExportImportActions } from "@/hooks/useExportImportActions";
 import type { ImportSummary } from "@/lib/export/manifest";
 
 // ─── Tab panel helper ─────────────────────────────────────────────────────────
@@ -120,8 +114,7 @@ export const ExportImportPanel: React.FC = () => {
 // ─── Export tab ───────────────────────────────────────────────────────────────
 
 const ExportTab: React.FC = () => {
-  const dispatch = useDispatch();
-  const user = useSelector((s) => s.user);
+  const { user, runExportCloud, runExportLocal } = useExportImportActions();
   const [cloudLoading, setCloudLoading] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
   const [cloudError, setCloudError] = useState<string | null>(null);
@@ -133,16 +126,12 @@ const ExportTab: React.FC = () => {
     setCloudError(null);
     setCloudSuccess(null);
     setCloudLoading(true);
-    const result = await dispatch(exportCloudBackup());
+    const result = await runExportCloud();
     setCloudLoading(false);
-    if (exportCloudBackup.rejected.match(result)) {
-      const payload = result.payload as
-        | { title: string; subtitle?: string }
-        | undefined;
-      setCloudError(payload?.subtitle ?? payload?.title ?? "Export failed");
+    if (!result.ok) {
+      setCloudError(result.error);
     } else {
-      const payload = result.payload as { filename: string } | undefined;
-      setCloudSuccess(`Downloaded: ${payload?.filename ?? "backup.zip"}`);
+      setCloudSuccess(`Downloaded: ${result.filename}`);
     }
   };
 
@@ -150,27 +139,15 @@ const ExportTab: React.FC = () => {
     setLocalWarnings([]);
     setLocalSuccess(null);
     setLocalLoading(true);
-    const result = await dispatch(exportLocalBackup());
+    const result = await runExportLocal();
     setLocalLoading(false);
-    if (exportLocalBackup.rejected.match(result)) {
-      const payload = result.payload as
-        | { title: string; subtitle?: string }
-        | undefined;
-      setLocalWarnings([
-        payload?.subtitle ?? payload?.title ?? "Export failed",
-      ]);
+    if (!result.ok) {
+      setLocalWarnings([result.error]);
     } else {
-      const payload = result.payload as {
-        filename: string;
-        documents: number;
-        warnings: string[];
-      } | undefined;
       setLocalSuccess(
-        `Downloaded: ${payload?.filename ?? "local-backup.zip"} (${
-          payload?.documents ?? 0
-        } documents)`,
+        `Downloaded: ${result.filename} (${result.documents} documents)`,
       );
-      setLocalWarnings(payload?.warnings ?? []);
+      setLocalWarnings(result.warnings);
     }
   };
 
@@ -267,8 +244,7 @@ const ExportTab: React.FC = () => {
 type ImportTarget = "cloud" | "local";
 
 const ImportTab: React.FC = () => {
-  const dispatch = useDispatch();
-  const user = useSelector((s) => s.user);
+  const { user, runImport } = useExportImportActions();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [target, setTarget] = useState<ImportTarget>("cloud");
   const [loading, setLoading] = useState(false);
@@ -289,20 +265,13 @@ const ImportTab: React.FC = () => {
     setSummary(null);
     setLoading(true);
 
-    const thunk = target === "cloud" ? importCloudBackup : importLocalBackup;
-    const result = await dispatch(thunk(selectedFile));
+    const result = await runImport(selectedFile, target);
 
     setLoading(false);
-    if (
-      importCloudBackup.rejected.match(result) ||
-      importLocalBackup.rejected.match(result)
-    ) {
-      const payload = result.payload as
-        | { title: string; subtitle?: string }
-        | undefined;
-      setError(payload?.subtitle ?? payload?.title ?? "Import failed");
+    if (!result.ok) {
+      setError(result.error);
     } else {
-      setSummary(result.payload as ImportSummary);
+      setSummary(result.summary);
     }
 
     // Reset file input

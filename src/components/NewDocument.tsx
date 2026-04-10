@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import * as React from "react";
 import { DocumentCreateInput, User, UserDocument } from "@/types";
 import { useCallback, useEffect, useState } from "react";
-import { actions, useDispatch, useSelector } from "@/store";
+import { useSelector } from "@/store";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import DocumentCard from "./DocumentCardNew";
 import {
@@ -25,20 +25,20 @@ import { Document } from "@/types";
 import { getEditorData } from "@/utils/getEditorData";
 import { useHandleValidation } from "@/hooks/useHandleValidation";
 import DocumentVisibilityFields from "./DocumentActions/DocumentVisibilityFields";
-import { apiClient } from "@/api";
+import { useCreateDocumentActions } from "@/hooks/useCreateDocumentActions";
 
 const NewDocument: React.FC<{ cloudDocument?: Document }> = (
   { cloudDocument },
 ) => {
   const initialized = useSelector((state) => state.ui.initialized);
-  const user = useSelector((state) => state.user);
+  const { user, fetchNextSeriesOrder, forkDocument, createDocument } =
+    useCreateDocumentActions();
   const unauthenticated = initialized && !user;
   const isOnline = useOnlineStatus();
   const [input, setInput] = useState<Partial<DocumentCreateInput>>({
     published: true,
   });
   const [saveToCloud, setSaveToCloud] = useState(true);
-  const dispatch = useDispatch();
   const errorAnnounce = useErrorAnnounce();
   const pathname = usePathname();
   const baseId = pathname.split("/")[2]?.toLowerCase();
@@ -62,12 +62,8 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
     const fetchSeriesOrder = async () => {
       if (!seriesId) return;
       try {
-        const series = await apiClient.series.get(seriesId);
-        const maxOrder = (series?.posts ?? []).reduce(
-          (max, post) => Math.max(max, post.seriesOrder ?? 0),
-          0,
-        );
-        setNextSeriesOrder(maxOrder + 1);
+        const order = await fetchNextSeriesOrder(seriesId);
+        setNextSeriesOrder(order);
       } catch (error) {
         errorAnnounce("Failed to fetch series", error);
         setNextSeriesOrder(1);
@@ -82,35 +78,29 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
 
   useEffect(() => {
     const loadDocument = async (id: string) => {
-      try {
-        const editorDoc = await dispatch(
-          actions.forkLocalDocument({ id, revisionId }),
-        ).unwrap() as ReturnType<
-          typeof actions.forkLocalDocument.fulfilled
-        >["payload"];
-        const { data, ...rest } = editorDoc;
+      const result = await forkDocument(id, revisionId);
+      if (!result) return;
+      type ForkPayload =
+        & { id: string; data: DocumentCreateInput["data"] }
+        & Record<string, unknown>;
+      const { data, ...rest } = result.doc as unknown as ForkPayload;
+      if (result.source === "local") {
         setBase((prev) => ({
           ...prev,
-          id: editorDoc.id,
-          local: { ...rest, data, revisions: [] },
+          id: rest.id,
+          local: {
+            ...rest,
+            data,
+            revisions: [],
+          } as unknown as UserDocument["local"],
         }));
-        setInput((prev) => ({ ...prev, data, baseId: editorDoc.id }));
-      } catch {
-        try {
-          const { data, ...userDocument } = await dispatch(
-            actions.forkCloudDocument({ id, revisionId }),
-          ).unwrap() as ReturnType<
-            typeof actions.forkCloudDocument.fulfilled
-          >["payload"];
-          setBase(userDocument);
-          setInput((prev) => ({ ...prev, data, baseId: userDocument.id }));
-        } catch {
-          // fork from both sources failed
-        }
+      } else {
+        setBase({ ...rest, id: rest.id } as unknown as UserDocument);
       }
+      setInput((prev) => ({ ...prev, data, baseId: rest.id }));
     };
     if (baseId) loadDocument(baseId);
-  }, [baseId, revisionId, dispatch]);
+  }, [baseId, revisionId, forkDocument]);
 
   const router = useRouter();
 
@@ -135,15 +125,11 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
       updatedAt: createdAt,
     };
     try {
-      await dispatch(actions.createLocalDocument(payload)).unwrap();
-      if (saveToCloud && isOnline && user) {
-        try {
-          await dispatch(actions.createCloudDocument(payload)).unwrap();
-          router.refresh();
-        } catch {
-          // cloud save is optional
-        }
-      }
+      const { cloudSaved } = await createDocument(payload, {
+        saveToCloud,
+        isOnline,
+      });
+      if (cloudSaved) router.refresh();
       router.push(`/edit/${payload.id}`);
     } catch {
       // local document creation failed
