@@ -6,11 +6,11 @@
 /** Width when sidebar is collapsed (icons only) */
 export const SIDEBAR_COLLAPSED_WIDTH = 72;
 
-/** Default width when sidebar is expanded */
+/** Default width when sidebar is expanded; also the minimum resizable width */
 export const SIDEBAR_DEFAULT_WIDTH = 130;
 
-/** Minimum width when resizing */
-export const SIDEBAR_MIN_WIDTH = 130;
+/** Minimum width when resizing — equal to the default so the user cannot shrink below it */
+export const SIDEBAR_MIN_WIDTH = SIDEBAR_DEFAULT_WIDTH;
 
 /** Maximum width when resizing */
 export const SIDEBAR_MAX_WIDTH = 450;
