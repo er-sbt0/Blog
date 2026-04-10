@@ -14,7 +14,7 @@ import { Delete, Edit, MoreVert } from "@mui/icons-material";
 import { CompactVariantProps } from "../types";
 import { UserDocument } from "@/types";
 import { Series } from "@/types";
-import { createCardTheme } from "../../DocumentCardNew/theme";
+import { createCardTheme } from "../../DocumentCard/theme";
 import { formatDate, useSeriesActions } from "../seriesCardUtils";
 import DocItem from "../DocItem";
 import { useCompactVariantState } from "../hooks/useCompactVariantState";

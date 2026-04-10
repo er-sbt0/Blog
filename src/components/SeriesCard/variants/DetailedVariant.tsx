@@ -13,7 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Article, Delete, Edit, MoreVert, NoteAdd } from "@mui/icons-material";
-import CardBase from "../../DocumentCardNew/CardBase";
+import CardBase from "../../DocumentCard/CardBase";
 import { DetailedVariantProps } from "../types";
 import { formatDate, useSeriesActions } from "../seriesCardUtils";
 

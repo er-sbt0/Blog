@@ -9,7 +9,7 @@ import { RefObject } from "react";
 import ShareDocument from "../DocumentActions/Share";
 import DownloadDocument from "../DocumentActions/Download";
 import ForkDocument from "../DocumentActions/Fork";
-import EditDocument from "../DocumentActions/Edit";
+import EditDocumentDialog from "../DocumentActions/Edit";
 import AppDrawer from "../drawers/AppDrawer";
 import AttachmentDrawer from "../drawers/AttachmentDrawer";
 import DocumentMetaSection from "./DocumentMetaSection";
@@ -78,7 +78,7 @@ export default function EditDocumentInfo(
             <ShareDocument userDocument={userDocument} />
             <ForkDocument userDocument={userDocument} />
             <DownloadDocument userDocument={userDocument} />
-            {isAuthor && <EditDocument userDocument={userDocument} />}
+            {isAuthor && <EditDocumentDialog userDocument={userDocument} />}
           </Box>
         )}
 

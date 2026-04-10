@@ -25,7 +25,7 @@ interface LoadingStateProps {
  *
  * Loading-state hierarchy:
  *   Level 1 – LoadingState            : generic spinner / skeleton primitives  ← you are here
- *   Level 2 – DocumentCardNew/LoadingCard : card-shaped skeleton (domain)
+ *   Level 2 – DocumentCard/LoadingCard : card-shaped skeleton (domain)
  *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser
  *   Level 3 – PostsList/PostsLoadingState : page-level skeleton for PostsList
  *

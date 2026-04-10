@@ -35,7 +35,7 @@ import {
   EditTitleField,
 } from "./EditFields";
 
-const EditDocument: React.FC<{
+const EditDocumentDialog: React.FC<{
   userDocument: UserDocument;
   variant?: "menuitem" | "iconbutton";
   closeMenu?: () => void;
@@ -226,4 +226,4 @@ const EditDocument: React.FC<{
   );
 };
 
-export default EditDocument;
+export default EditDocumentDialog;

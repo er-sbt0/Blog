@@ -3,8 +3,8 @@ import React, { useMemo } from "react";
 import Grid from "@mui/material/Grid2";
 import { Series, UserDocument } from "@/types";
 import { useSelector } from "@/store";
-import DocumentCard from "@/components/DocumentCardNew";
-import SeriesCard from "@/components/SeriesCard/SeriesCardUnified";
+import DocumentCard from "@/components/DocumentCard";
+import SeriesCard from "@/components/SeriesCard/SeriesCard";
 import {
   buildSeriesMap,
   groupPostsBySeries,

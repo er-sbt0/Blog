@@ -3,14 +3,14 @@ import React from "react";
 import { Box, Skeleton, useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import Grid from "@mui/material/Grid2";
-import SkeletonCard from "@/components/DocumentCardNew/components/LoadingCard";
+import SkeletonCard from "@/components/DocumentCard/components/LoadingCard";
 
 /**
  * Page-level skeleton for PostsList (Level 3 – feature).
  *
  * Loading-state hierarchy:
  *   Level 1 – common/LoadingState     : generic spinner / skeleton primitives
- *   Level 2 – DocumentCardNew/LoadingCard : card-shaped skeleton (domain)
+ *   Level 2 – DocumentCard/LoadingCard : card-shaped skeleton (domain)
  *   Level 3 – PostsLoadingState       : page-level skeleton for PostsList  ← you are here
  *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser
  *

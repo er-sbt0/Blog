@@ -8,7 +8,7 @@ import DocumentGrid from "../../DocumentGrid";
  *
  * Loading-state hierarchy:
  *   Level 1 – common/LoadingState     : generic spinner / skeleton primitives
- *   Level 2 – DocumentCardNew/LoadingCard : card-shaped skeleton (domain)
+ *   Level 2 – DocumentCard/LoadingCard : card-shaped skeleton (domain)
  *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser  ← you are here
  *   Level 3 – PostsList/PostsLoadingState : page-level skeleton for PostsList
  *

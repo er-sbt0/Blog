@@ -3,7 +3,7 @@ export { default as DocumentActionMenu } from "./ActionMenu";
 export { default as DeleteBothDocument } from "./DeleteBoth";
 export { default as DocumentVisibilityFields } from "./DocumentVisibilityFields";
 export { default as DownloadDocument } from "./Download";
-export { default as EditDocument } from "./Edit";
+export { default as EditDocumentDialog } from "./Edit";
 export {
   EditDateFields,
   EditDescriptionField,

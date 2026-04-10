@@ -13,7 +13,7 @@ import DeleteBothDocument from "./DeleteBoth";
 import UploadDocument from "./Upload";
 import { User, UserDocument } from "@/types";
 import ShareDocument from "./Share";
-import EditDocument from "./Edit";
+import EditDocumentDialog from "./Edit";
 import RestoreDocument from "./Restore";
 import { useRouter } from "next/navigation";
 
@@ -48,7 +48,9 @@ function DocumentActionMenu(
 
   return (
     <>
-      {options.includes("edit") && <EditDocument userDocument={userDocument} />}
+      {options.includes("edit") && (
+        <EditDocumentDialog userDocument={userDocument} />
+      )}
       <IconButton
         id={`${id}-action-button`}
         aria-controls={open ? `${id}-action-menu` : undefined}

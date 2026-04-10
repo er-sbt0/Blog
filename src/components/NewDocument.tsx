@@ -6,7 +6,7 @@ import { DocumentCreateInput, User, UserDocument } from "@/types";
 import { useCallback, useEffect, useState } from "react";
 import { useSelector } from "@/store";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
-import DocumentCard from "./DocumentCardNew";
+import DocumentCard from "./DocumentCard";
 import {
   Avatar,
   Box,
