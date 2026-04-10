@@ -9,6 +9,7 @@ import {
   TextField,
   Tooltip,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { Article, CloudUpload } from "@mui/icons-material";
 import { actions, useDispatch } from "@/store";
 import type { UserDocument } from "@/types";
@@ -91,9 +92,11 @@ export const PostItem = memo(
               "&.Mui-selected": {
                 bgcolor: "action.selected",
                 "&:hover": {
-                  bgcolor: inSeries
-                    ? "rgba(0, 0, 0, 0.12)"
-                    : "rgba(0, 0, 0, 0.15)",
+                  bgcolor: (theme) =>
+                    alpha(
+                      theme.palette.action.active,
+                      inSeries ? 0.12 : 0.15
+                    ),
                 },
               },
             }}
