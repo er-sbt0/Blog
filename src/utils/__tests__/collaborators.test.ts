@@ -12,6 +12,13 @@
 import { extractCollaborators } from "../collaborators";
 import { CloudDocumentRevision, User } from "@/types";
 
+// Lightweight assertion helper (avoids console.assert which is disallowed by lint)
+function assert(condition: boolean, message: string): void {
+  if (!condition) {
+    throw new Error(`Assertion failed: ${message}`);
+  }
+}
+
 // Mock data helpers
 const createMockUser = (id: string, name: string): User => ({
   id,
@@ -38,7 +45,7 @@ const createMockRevision = (
 export function testEmptyRevisions() {
   const author = createMockUser("author1", "Author");
   const result = extractCollaborators([], author.id);
-  console.assert(
+  assert(
     result.length === 0,
     "Should return empty array for empty revisions",
   );
@@ -58,8 +65,8 @@ export function testExcludesPrimaryAuthor() {
   ];
 
   const result = extractCollaborators(revisions, author.id);
-  console.assert(result.length === 1, "Should have 1 collaborator");
-  console.assert(result[0].id === user1.id, "Should be user1");
+  assert(result.length === 1, "Should have 1 collaborator");
+  assert(result[0].id === user1.id, "Should be user1");
 }
 
 /**
@@ -79,9 +86,9 @@ export function testRemovesDuplicates() {
   ];
 
   const result = extractCollaborators(revisions, author.id);
-  console.assert(result.length === 2, "Should have 2 unique collaborators");
-  console.assert(result[0].id === user1.id, "First should be user1");
-  console.assert(result[1].id === user2.id, "Second should be user2");
+  assert(result.length === 2, "Should have 2 unique collaborators");
+  assert(result[0].id === user1.id, "First should be user1");
+  assert(result[1].id === user2.id, "Second should be user2");
 }
 
 /**
@@ -102,16 +109,16 @@ export function testExcludesUserIds() {
 
   const result = extractCollaborators(revisions, author.id, [user2.id]);
 
-  console.assert(result.length === 2, "Should have 2 collaborators");
-  console.assert(
+  assert(result.length === 2, "Should have 2 collaborators");
+  assert(
     !result.find((u) => u.id === user2.id),
     "user2 should be excluded",
   );
-  console.assert(
+  assert(
     !!result.find((u) => u.id === user1.id),
     "user1 should be included",
   );
-  console.assert(
+  assert(
     !!result.find((u) => u.id === user3.id),
     "user3 should be included",
   );
@@ -143,12 +150,12 @@ export function testMultipleExcludedUsers() {
     [coauthor1.id, coauthor2.id],
   );
 
-  console.assert(result.length === 3, "Should have 3 collaborators");
-  console.assert(
+  assert(result.length === 3, "Should have 3 collaborators");
+  assert(
     !result.find((u) => u.id === coauthor1.id),
     "coauthor1 should be excluded",
   );
-  console.assert(
+  assert(
     !result.find((u) => u.id === coauthor2.id),
     "coauthor2 should be excluded",
   );
@@ -172,10 +179,10 @@ export function testPreservesOrder() {
   ];
 
   const result = extractCollaborators(revisions, author.id);
-  console.assert(result.length === 3, "Should have 3 collaborators");
-  console.assert(result[0].id === user2.id, "First should be user2");
-  console.assert(result[1].id === user1.id, "Second should be user1");
-  console.assert(result[2].id === user3.id, "Third should be user3");
+  assert(result.length === 3, "Should have 3 collaborators");
+  assert(result[0].id === user2.id, "First should be user2");
+  assert(result[1].id === user1.id, "Second should be user1");
+  assert(result[2].id === user3.id, "Third should be user3");
 }
 
 /**
@@ -192,16 +199,16 @@ export function testNullAuthors() {
     {
       id: "rev2",
       documentId: "doc1",
-      author: null as any,
+      author: null as unknown as User,
       createdAt: new Date().toISOString(),
     },
     createMockRevision("rev3", user2),
   ] as CloudDocumentRevision[];
 
   const result = extractCollaborators(revisions, author.id);
-  console.assert(result.length === 2, "Should have 2 collaborators");
-  console.assert(result[0].id === user1.id, "First should be user1");
-  console.assert(result[1].id === user2.id, "Second should be user2");
+  assert(result.length === 2, "Should have 2 collaborators");
+  assert(result[0].id === user1.id, "First should be user1");
+  assert(result[1].id === user2.id, "Second should be user2");
 }
 
 // Run all tests (when testing framework is available, this can be replaced with proper test runner)
