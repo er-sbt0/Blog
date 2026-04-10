@@ -14,41 +14,7 @@ import { useRouter } from "next/navigation";
 import PostActionMenu from "@/components/DocumentCardNew/PostActionMenu";
 import { PendingTimeChange } from "./PostsCompactListView";
 import { TimeStepperControls } from "./TimeStepperControls";
-
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-function formatDate(dateString: string | Date): string {
-  const date = typeof dateString === "string"
-    ? new Date(dateString)
-    : dateString;
-  const now = new Date();
-  const diffDays = Math.floor(
-    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
-  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-}
-
-function formatFullDate(date: Date): string {
-  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-}
+import { formatFullDate } from "@/utils/dateFormat";
 
 interface PostCompactListItemProps {
   post: UserDocument;

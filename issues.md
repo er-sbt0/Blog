@@ -37,17 +37,6 @@ and a single refactor point if routes change.
 
 ---
 
-### H4 — Duplicate date formatting logic
-
-**Files**: `src/components/SeriesCard/seriesCardUtils.ts` lines 8–28,
-`src/components/SeriesView/components/PostCompactListItem.tsx` lines 18–51
-
-Both define a `MONTHS` array and format dates from the same pattern.
-
-**Fix**: Consolidate into `src/utils/dateFormat.ts`.
-
----
-
 ## Medium
 
 ### M1 — Inline JSX callbacks without useCallback causing unnecessary re-renders
@@ -231,7 +220,7 @@ assert the type on `.json()`.
 | Severity  | Open   | Fixed | Total  |
 | --------- | ------ | ----- | ------ |
 | Critical  | 3      | 0     | 3      |
-| High      | 3      | 2     | 5      |
+| High      | 2      | 3     | 5      |
 | Medium    | 8      | 0     | 8      |
 | Low       | 3      | 0     | 3      |
-| **Total** | **17** | **2** | **19** |
+| **Total** | **16** | **3** | **19** |

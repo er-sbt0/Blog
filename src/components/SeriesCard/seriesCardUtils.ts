@@ -4,28 +4,9 @@ import { useDispatch } from "@/store";
 import { deleteSeries } from "@/store/app";
 import { useMenuState } from "@/hooks/useMenuState";
 import { Series } from "@/types";
+import { formatFullDate } from "@/utils/dateFormat";
 
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-export const formatDate = (dateString: string | Date): string => {
-  const date = typeof dateString === "string"
-    ? new Date(dateString)
-    : dateString;
-  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-};
+export { formatFullDate as formatDate };
 
 export function useSeriesActions(series: Series | null | undefined) {
   const router = useRouter();
