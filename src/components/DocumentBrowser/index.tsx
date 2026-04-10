@@ -34,7 +34,7 @@ const DocumentBrowser: React.FC<DocumentBrowserProps> = () => {
   });
 
   // Use custom hooks for complex logic
-  const { directories, regularDocuments } = useDocumentFiltering({
+  const { regularDocuments } = useDocumentFiltering({
     documents,
   });
 

@@ -8,7 +8,6 @@ import {
   Chip,
   IconButton,
   Typography,
-  useScrollTrigger,
 } from "@mui/material";
 import { DateDisplay } from "@/components/DateDisplay";
 import { Edit, History } from "@mui/icons-material";
@@ -19,7 +18,6 @@ import ForkDocument from "./DocumentActions/Fork";
 import AppDrawer from "./AppDrawer";
 import AttachmentDrawer from "./AttachmentDrawer";
 import ViewRevisionCard from "./ViewRevisionCard";
-import { useSearchParams } from "next/navigation";
 
 export default function ViewDocumentInfo(
   { cloudDocument, user }: { cloudDocument: Document; user?: User },
@@ -38,9 +36,6 @@ export default function ViewDocumentInfo(
       cloudDocument.author.id,
     )
     : [];
-
-  const searchParams = useSearchParams();
-  const revisionId = searchParams.get("v");
 
   return (
     <>

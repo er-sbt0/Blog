@@ -56,7 +56,6 @@ const RevisionCard: React.FC<{
   const isLocalHead = isLocalDocument && localDocument.head === revision.id;
   const isCloudHead = isCloudDocument && isCloudRevision &&
     cloudDocument.head === revision.id;
-  const isCloudOnlyRevision = isCloudRevision && !isLocalRevision;
   const isHeadLocalRevision = localDocumentRevisions.some((r) =>
     r.id === localDocument?.head
   );
