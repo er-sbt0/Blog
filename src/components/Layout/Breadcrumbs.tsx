@@ -16,6 +16,8 @@ import {
   StickyNote2,
 } from "@mui/icons-material";
 import RouterLink from "next/link";
+import { documentsSelectors, useSelector } from "@/store";
+import type { RootState } from "@/store";
 
 interface BreadcrumbItem {
   label: string;
@@ -25,6 +27,31 @@ interface BreadcrumbItem {
 
 const Breadcrumbs: React.FC = () => {
   const pathname = usePathname();
+  const seriesList = useSelector((state: RootState) => state.series);
+  const docEntities = useSelector((state: RootState) =>
+    documentsSelectors.selectEntities(state)
+  );
+
+  const getSeriesTitle = React.useCallback(
+    (id: string) => seriesList.find((s) => s.id === id)?.title,
+    [seriesList],
+  );
+
+  const getDocName = React.useCallback(
+    (id: string) => {
+      const doc = docEntities[id];
+      return doc?.cloud?.name || doc?.local?.name;
+    },
+    [docEntities],
+  );
+
+  const getDocSeriesId = React.useCallback(
+    (id: string) => {
+      const doc = docEntities[id];
+      return doc?.cloud?.seriesId || doc?.local?.seriesId;
+    },
+    [docEntities],
+  );
 
   const breadcrumbs = React.useMemo((): BreadcrumbItem[] => {
     const segments = pathname.split("/").filter(Boolean);
@@ -51,82 +78,140 @@ const Breadcrumbs: React.FC = () => {
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         if (segments.length > 1) {
-          items.push({ label: "Series" });
+          const seriesId = segments[1];
+          items.push({
+            label: getSeriesTitle(seriesId) || "Series",
+            href: `/series/${seriesId}`,
+            icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+          });
         }
         break;
 
       case "series":
         items.push({
-          label: "Series",
-          icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+          label: "Posts",
+          href: "/posts",
+          icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         if (segments.length > 1) {
+          const seriesId = segments[1];
           if (segments.length > 2 && segments[2] === "edit") {
             items.push({
-              label: "Series Details",
-              href: `/series/${segments[1]}`,
+              label: getSeriesTitle(seriesId) || "Series",
+              href: `/series/${seriesId}`,
+              icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
             });
-            items.push({ label: "Edit" });
+            items.push({
+              label: "Edit",
+              href: `/series/${seriesId}/edit`,
+            });
           } else {
-            items.push({ label: "Series Details" });
+            items.push({
+              label: getSeriesTitle(seriesId) || "Series",
+              href: `/series/${seriesId}`,
+              icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+            });
           }
+        } else {
+          items.push({
+            label: "Series",
+            href: "/posts",
+            icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+          });
         }
         break;
 
       case "dashboard":
         items.push({
           label: "Dashboard",
+          href: "/dashboard",
           icon: <Dashboard sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         break;
 
       case "new":
         items.push({
+          label: "Posts",
+          href: "/posts",
+          icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
+        items.push({
           label: "New Post",
+          href: "/new",
           icon: <Create sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         break;
 
-      case "edit":
+      case "edit": {
+        const editId = segments[1];
+        const editSeriesId = editId ? getDocSeriesId(editId) : undefined;
         items.push({
           label: "Posts",
           href: "/posts",
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
+        if (editSeriesId) {
+          items.push({
+            label: getSeriesTitle(editSeriesId) || "Series",
+            href: `/series/${editSeriesId}`,
+            icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+          });
+        }
         items.push({
-          label: "Edit Post",
+          label: editId ? getDocName(editId) || "Edit Post" : "Edit Post",
+          href: editId ? `/edit/${editId}` : "/edit",
           icon: <Edit sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         break;
+      }
 
-      case "view":
+      case "view": {
+        const viewId = segments[1];
+        const viewSeriesId = viewId ? getDocSeriesId(viewId) : undefined;
         items.push({
           label: "Posts",
           href: "/posts",
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
-        items.push({ label: "View Post" });
+        if (viewSeriesId) {
+          items.push({
+            label: getSeriesTitle(viewSeriesId) || "Series",
+            href: `/series/${viewSeriesId}`,
+            icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+          });
+        }
+        items.push({
+          label: viewId ? getDocName(viewId) || "Post" : "Post",
+          href: viewId ? `/view/${viewId}` : "/posts",
+        });
         break;
+      }
 
       case "user":
-        items.push({ label: "User Profile" });
+        items.push({
+          label: "User Profile",
+          href: segments[1] ? `/user/${segments[1]}` : "/",
+        });
         break;
 
       case "notes":
         items.push({
           label: "Notes",
+          href: "/notes",
           icon: <StickyNote2 sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         break;
 
       default:
-        // For other routes, just show the segment
-        items.push({ label: segments[0] });
+        items.push({
+          label: segments[0],
+          href: `/${segments[0]}`,
+        });
         break;
     }
 
     return items;
-  }, [pathname]);
+  }, [pathname, getSeriesTitle, getDocName, getDocSeriesId]);
 
   // Don't show breadcrumbs on home page
   if (pathname === "/") {
@@ -148,43 +233,44 @@ const Breadcrumbs: React.FC = () => {
         {breadcrumbs.map((item, index) => {
           const isLast = index === breadcrumbs.length - 1;
 
-          if (isLast || !item.href) {
+          if (item.href) {
             return (
-              <Typography
+              <Link
                 key={index}
-                color="text.primary"
+                component={RouterLink}
+                href={item.href}
+                underline="hover"
+                color={isLast ? "text.primary" : "inherit"}
                 sx={{
                   display: "flex",
                   alignItems: "center",
                   fontSize: "0.875rem",
                   fontWeight: isLast ? 600 : 400,
+                  "&:hover": {
+                    color: "primary.main",
+                  },
                 }}
               >
                 {item.icon}
                 {item.label}
-              </Typography>
+              </Link>
             );
           }
 
           return (
-            <Link
+            <Typography
               key={index}
-              component={RouterLink}
-              href={item.href}
-              underline="hover"
-              color="inherit"
+              color="text.primary"
               sx={{
                 display: "flex",
                 alignItems: "center",
                 fontSize: "0.875rem",
-                "&:hover": {
-                  color: "primary.main",
-                },
+                fontWeight: isLast ? 600 : 400,
               }}
             >
               {item.icon}
               {item.label}
-            </Link>
+            </Typography>
           );
         })}
       </MuiBreadcrumbs>
