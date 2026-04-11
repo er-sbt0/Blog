@@ -4,11 +4,9 @@ import Grid from "@mui/material/Grid2";
 import { TimeGroup } from "@/types/partitioning";
 import { User, UserDocument } from "@/types";
 import DocumentCard from "@/components/DocumentCard";
-import PostsGrid from "@/components/PostsList/components/PostsGrid";
-import {
-  PendingTimeChange,
-  PostsCompactListView,
-} from "@/components/SeriesView/components/PostsCompactListView";
+import PostsGrid from "./components/PostsGrid";
+import { PostsCompactListView } from "./components/PostsCompactListView";
+import { PendingTimeChange } from "@/types/posts";
 import type { ViewType } from "@/components/shared/ViewToggle";
 import { TimeGroupHeader } from "@/components/shared/TimeGroupHeader";
 

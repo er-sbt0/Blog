@@ -12,7 +12,7 @@ import { DeleteForever } from "@mui/icons-material";
 import { DocumentStatus, User, UserDocument } from "@/types";
 import { useRouter } from "next/navigation";
 import PostActionMenu from "@/components/DocumentCard/PostActionMenu";
-import { PendingTimeChange } from "./PostsCompactListView";
+import { PendingTimeChange } from "@/types/posts";
 import { TimeStepperControls } from "./TimeStepperControls";
 import { formatFullDate } from "@/utils/dateFormat";
 

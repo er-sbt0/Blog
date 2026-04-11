@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PendingTimeChange } from "@/components/SeriesView/components/PostsCompactListView";
+import { PendingTimeChange } from "@/types/posts";
 import { Document } from "@/types";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { apiClient } from "@/api";

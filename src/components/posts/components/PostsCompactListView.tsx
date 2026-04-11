@@ -16,11 +16,7 @@ import { v4 as uuid } from "uuid";
 import PostCompactListItem from "./PostCompactListItem";
 import { SeriesGroupItem } from "@/utils/posts/seriesGrouping";
 import { useExpandedState } from "@/hooks/useExpandedState";
-
-export interface PendingTimeChange {
-  originalDate: Date;
-  newDate: Date;
-}
+import { PendingTimeChange } from "@/types/posts";
 
 interface PostsCompactListViewProps {
   posts?: UserDocument[];

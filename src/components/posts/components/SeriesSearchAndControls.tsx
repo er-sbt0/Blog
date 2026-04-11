@@ -1,9 +1,9 @@
 import React from "react";
 import { Box, Button, Chip } from "@mui/material";
 import { AccessTime, Check, Close } from "@mui/icons-material";
-import { PartitionControl } from "@/components/PostsList/components/PartitionControl";
+import { PartitionControl } from "./PartitionControl";
 import { ViewToggle, type ViewType } from "@/components/shared/ViewToggle";
-import { PendingTimeChange } from "./PostsCompactListView";
+import { PendingTimeChange } from "@/types/posts";
 import { PartitionGranularity } from "@/types/partitioning";
 
 const timeEditBtnSx = {

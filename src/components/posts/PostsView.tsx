@@ -20,15 +20,15 @@ import { getPostSeriesId } from "@/utils/posts/seriesGrouping";
 import PostsTimeSection from "./PostsTimeSection";
 
 // All-posts mode components
-import PostsHeader from "@/components/PostsList/components/PostsHeader";
-import PostsLoadingState from "@/components/PostsList/components/PostsLoadingState";
+import PostsHeader from "./components/PostsHeader";
+import PostsLoadingState from "./components/PostsLoadingState";
 import CreatePostDrawer from "@/components/drawers/CreatePostDrawer";
 import CreateSeriesDrawer from "@/components/drawers/CreateSeriesDrawer";
 
 // Series mode components
-import SeriesHeader from "@/components/SeriesView/components/SeriesHeader";
-import SeriesSearchAndControls from "@/components/SeriesView/components/SeriesSearchAndControls";
-import AddPostsDialog from "@/components/SeriesView/AddPostsDialog";
+import SeriesHeader from "./components/SeriesHeader";
+import SeriesSearchAndControls from "./components/SeriesSearchAndControls";
+import AddPostsDialog from "./AddPostsDialog";
 
 interface PostsViewProps {
   /** When provided, renders in series mode; otherwise all-posts mode. */

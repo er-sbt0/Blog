@@ -8,7 +8,7 @@ import {
   ensureSeriesPartitions,
 } from "@/utils/posts/seriesGrouping";
 import { useSelector } from "@/store";
-import type { PendingTimeChange } from "@/components/SeriesView/components/PostsCompactListView";
+import type { PendingTimeChange } from "@/types/posts";
 
 interface UsePostsGroupingProps {
   posts: UserDocument[];

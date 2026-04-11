@@ -11,7 +11,7 @@ import {
   SeriesGroupItem,
 } from "@/utils/posts/seriesGrouping";
 import { ViewType } from "@/components/shared/ViewToggle";
-import { PostsCompactListView } from "@/components/SeriesView/components/PostsCompactListView";
+import { PostsCompactListView } from "./PostsCompactListView";
 import { useExpandedState } from "@/hooks/useExpandedState";
 
 interface PostsGridProps {
