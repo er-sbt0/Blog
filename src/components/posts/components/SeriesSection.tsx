@@ -6,6 +6,7 @@ import { type ViewType } from "@/components/shared/ViewToggle";
 import { SeriesGroupItem } from "@/utils/posts/seriesGrouping";
 import SeriesGroupCard from "./SeriesGroupCard";
 import { PostsCompactListView } from "./PostsCompactListView";
+import { useExpandedState } from "@/hooks/useExpandedState";
 
 interface SeriesSectionProps {
   series: Series[];
@@ -24,6 +25,11 @@ const SeriesSection: React.FC<SeriesSectionProps> = ({
   user,
   viewType = "grid",
 }) => {
+  // Track which series are collapsed (series default to expanded).
+  // expandedSeries here actually holds the SET OF COLLAPSED ids.
+  const { expandedSeries: collapsedSeries, toggleSeries: toggleCollapsed } =
+    useExpandedState("seriesSectionCollapsedState");
+
   if (viewType === "compact") {
     const groups: SeriesGroupItem[] = series.map((s) => ({
       type: "series" as const,
@@ -48,7 +54,9 @@ const SeriesSection: React.FC<SeriesSectionProps> = ({
               posts={posts}
               user={user}
               collapsible
-              defaultExpanded
+              defaultExpanded={!collapsedSeries.has(s.id)}
+              onExpand={() => toggleCollapsed(s.id)}
+              onCollapse={() => toggleCollapsed(s.id)}
             />
           </Grid>
         );
