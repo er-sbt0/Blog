@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useRef } from "react";
 import ViewAttachmentEnhancer from "./ViewAttachmentEnhancer";
 import SyncToCloudFab from "../shared/SyncToCloudFab";
+import LocalDocumentView from "./LocalDocumentView";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import EditIcon from "@mui/icons-material/Edit";
@@ -42,7 +43,12 @@ const ViewDocument: React.FC<
         </Box>
       )}
       <div className="document-container" ref={containerRef}>
-        {children}
+        <LocalDocumentView
+          documentId={cloudDocument.id}
+          cloudHead={cloudDocument.head}
+        >
+          {children}
+        </LocalDocumentView>
         <ViewAttachmentEnhancer containerRef={containerRef} />
       </div>
       <ViewDocumentInfo cloudDocument={cloudDocument} user={user} />
