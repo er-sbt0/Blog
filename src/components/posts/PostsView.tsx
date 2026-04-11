@@ -178,6 +178,7 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
                   isLatest={index === 0}
                   viewType={viewType}
                   user={user}
+                  showSeriesCards={!isSeries}
                   isTimeEditMode={isSeries ? isTimeEditMode : undefined}
                   pendingChanges={isSeries ? pendingTimeChanges : undefined}
                   onTimeAdjust={isSeries && canEdit
