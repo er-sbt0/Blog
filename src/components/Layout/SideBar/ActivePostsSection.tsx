@@ -86,17 +86,6 @@ export const ActivePostsSection: React.FC<ActivePostsSectionProps> = ({
             gap: 1,
           }}
         >
-          <Box
-            sx={{
-              fontSize: "0.75em",
-              fontWeight: 600,
-              color: "text.secondary",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-            }}
-          >
-            Active Posts
-          </Box>
           {showSearch && (
             <TextField
               size="small"

@@ -18,7 +18,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { Add, LibraryBooks, Remove, StickyNote2 } from "@mui/icons-material";
 import { styles } from "../styles";
-import { DocumentStatus, type UserDocument } from "@/types";
+import type { UserDocument } from "@/types";
 import { useSidebarState } from "./hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
@@ -69,18 +69,19 @@ const SideBar: React.FC = () => {
   );
   const seriesList = useSelector((state: RootState) => state.series);
 
-  const activeDocuments = useMemo((): UserDocument[] => {
+  const filteredDocuments = useMemo((): UserDocument[] => {
     if (!user || !documents) return [];
     return documents.filter((doc) => {
       const cloudDocument = doc.cloud;
       const localDocument = doc.local;
       if (cloudDocument) {
         return (
-          cloudDocument.status === DocumentStatus.ACTIVE &&
-          cloudDocument.author.id === user.id
+          cloudDocument.author.id === user.id &&
+          cloudDocument.name.toLowerCase() !== "readme"
         );
       }
-      if (localDocument) return localDocument.status === DocumentStatus.ACTIVE;
+      if (localDocument)
+        return localDocument.name.toLowerCase() !== "readme";
       return false;
     });
   }, [user, documents]);
@@ -91,8 +92,8 @@ const SideBar: React.FC = () => {
   );
 
   const groupedActivePosts = useMemo(
-    () => groupPostsBySeries(activeDocuments, seriesMap),
-    [activeDocuments, seriesMap],
+    () => groupPostsBySeries(filteredDocuments, seriesMap),
+    [filteredDocuments, seriesMap],
   );
 
   return (
@@ -180,7 +181,7 @@ const SideBar: React.FC = () => {
 
       <Divider sx={styles.divider} />
 
-      {user && activeDocuments.length > 0
+      {user && filteredDocuments.length > 0
         ? (
           <ActivePostsSection
             groupedActivePosts={groupedActivePosts}
