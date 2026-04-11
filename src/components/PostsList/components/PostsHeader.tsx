@@ -11,13 +11,11 @@ import {
   Typography,
 } from "@mui/material";
 import {
-  Add,
   CalendarMonth,
   FilterList,
   Schedule,
   Today,
 } from "@mui/icons-material";
-import { useRouter } from "next/navigation";
 import { FILTER_LABELS, TimeFilterValue } from "@/hooks/usePostsTimeFilter";
 import { PartitionGranularity } from "@/types/partitioning";
 import { PartitionControl } from "./PartitionControl";
@@ -30,8 +28,6 @@ interface PostsHeaderProps {
   onTimeFilterChange?: (filter: TimeFilterValue) => void;
   granularity?: PartitionGranularity;
   onGranularityChange?: (granularity: PartitionGranularity) => void;
-  onNewPost?: () => void;
-  onNewSeries?: () => void;
   viewType?: ViewType;
   onViewTypeChange?: (view: ViewType) => void;
   showPosts?: boolean;
@@ -81,8 +77,6 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
   onTimeFilterChange,
   granularity = "quarter",
   onGranularityChange,
-  onNewPost,
-  onNewSeries,
   viewType = "grid",
   onViewTypeChange,
   showPosts = true,
@@ -90,7 +84,6 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
   showSeries = true,
   onShowSeriesChange,
 }) => {
-  const router = useRouter();
 
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(
     null,
@@ -129,11 +122,6 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
       icon: <CalendarMonth />,
     },
   ];
-
-  const handleNewPost = useCallback(() => {
-    if (onNewPost) onNewPost();
-    else router.push("/new");
-  }, [onNewPost, router]);
 
   const handleFilterClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
@@ -186,35 +174,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
 
   return (
     <Box component="header" sx={{ mb: 4, pt: 2, pb: 3 }}>
-      {/* Row 2: Create actions */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1.5,
-          mb: 1.5,
-          flexWrap: "wrap",
-        }}
-      >
-        <Button
-          variant="outlined"
-          startIcon={<Add />}
-          onClick={handleNewPost}
-          sx={actionButtonSx}
-        >
-          New Post
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<Add />}
-          onClick={onNewSeries}
-          sx={actionButtonSx}
-        >
-          New Series
-        </Button>
-      </Box>
-
-      {/* Row 3: Filters + display options */}
+      {/* Filters + display options */}
       <Box
         sx={{
           display: "flex",

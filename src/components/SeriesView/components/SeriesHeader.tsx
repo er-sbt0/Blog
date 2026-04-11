@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { Box, Button, Chip, Typography } from "@mui/material";
-import { Add, CollectionsBookmark, NoteAdd } from "@mui/icons-material";
+import { Add, CollectionsBookmark } from "@mui/icons-material";
 import { Series } from "@/types";
 import { formatFullDate as formatDate } from "@/utils/dateFormat";
 
@@ -9,7 +9,6 @@ interface SeriesHeaderProps {
   series: Series;
   canEdit: boolean;
   postCount: number;
-  onNewPost: () => void;
   onAddPosts: () => void;
 }
 
@@ -17,7 +16,6 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
   series,
   canEdit,
   postCount,
-  onNewPost,
   onAddPosts,
 }) => (
   <Box sx={{ mb: { xs: 3, md: 4 } }}>
@@ -40,19 +38,6 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
 
     {canEdit && (
       <Box sx={{ mb: 2, display: "flex", gap: 1.5 }}>
-        <Button
-          variant="contained"
-          startIcon={<NoteAdd />}
-          onClick={onNewPost}
-          sx={{
-            borderRadius: 1.5,
-            textTransform: "none",
-            fontWeight: 600,
-            height: "40px",
-          }}
-        >
-          New Post
-        </Button>
         <Button
           variant="outlined"
           startIcon={<Add />}
