@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
-import { UserDocument } from "@/types";
+import { User, UserDocument } from "@/types";
 import { formatFullDate as formatDate } from "@/utils/dateFormat";
 
 /**
@@ -8,6 +8,7 @@ import { formatFullDate as formatDate } from "@/utils/dateFormat";
  */
 interface PostContentProps {
   userDocument?: UserDocument;
+  author?: User | null;
 }
 
 /**
@@ -16,11 +17,11 @@ interface PostContentProps {
  */
 export const PostContent: React.FC<PostContentProps> = ({
   userDocument,
+  author,
 }) => {
   const document = userDocument?.cloud || userDocument?.local;
   const title = document?.name || "Untitled Post";
   const createdAt = document?.createdAt;
-  const author = userDocument?.cloud?.author;
 
   // Format the date
   const formattedDate = createdAt ? formatDate(createdAt) : "";

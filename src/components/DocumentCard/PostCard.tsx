@@ -55,6 +55,7 @@ const PostCard: React.FC<PostCardProps> = memo(({
       topContent={
         <PostContent
           userDocument={userDocument}
+          author={author}
         />
       }
       chipContent={

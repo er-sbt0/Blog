@@ -3,7 +3,7 @@ import React, { useCallback, useContext, useRef, useState } from "react";
 import { User, UserDocument } from "@/types";
 import { Box, SxProps, useMediaQuery } from "@mui/material";
 import { Theme, useTheme } from "@mui/material/styles";
-import PostCard from "./index";
+import PostCard from "./PostCard";
 
 import { DragContext } from "@/contexts/DragContext";
 
