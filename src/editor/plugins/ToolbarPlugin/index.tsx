@@ -219,7 +219,7 @@ function ToolbarPlugin(
           $updateToolbar();
         });
         const tagValue = tags.values().next().value as string | undefined;
-        if (tagValue) {
+        if (tagValue && tagValue.startsWith("{")) {
           try {
             const revision = JSON.parse(tagValue);
             if (revision.id) {
