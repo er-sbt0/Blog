@@ -1,7 +1,6 @@
 import { streamText } from "ai";
 import { match } from "ts-pattern";
 import {
-  AIModelNotFoundError,
   type AIOptionType,
   type AIProviderType,
   createProvider,
@@ -9,90 +8,64 @@ import {
   getSystemPrompt,
   getToneSystemPrompt,
 } from "@/lib/ai";
+import { ApiError, withApiHandler } from "@/lib/api-utils";
 
 export const runtime = "edge";
 
-export async function POST(req: Request) {
-  let provider: string | undefined;
-  let modelId: string | undefined;
+export const POST = withApiHandler(async (req: Request) => {
+  const body = await req.json();
+  const { provider, model: modelId, prompt, option, command, tone } = body;
 
-  try {
-    const body = await req.json();
-    provider = body.provider;
-    modelId = body.model;
-    const { prompt, option, command, tone } = body;
+  const systemPrompt = getSystemPrompt(option as AIOptionType);
 
-    const systemPrompt = getSystemPrompt(option as AIOptionType);
-
-    const messages = match(option)
-      .with("zap", () => [
-        {
-          role: "system" as const,
-          content: systemPrompt,
-        },
-        {
-          role: "user" as const,
-          content: `${command}${prompt ? `\n${prompt}` : ""}`,
-        },
-      ])
-      .with("tone", () => [
-        {
-          role: "system" as const,
-          content: getToneSystemPrompt(tone ?? "neutral"),
-        },
-        {
-          role: "user" as const,
-          content: prompt,
-        },
-      ])
-      .otherwise(() => [
-        {
-          role: "system" as const,
-          content: systemPrompt,
-        },
-        {
-          role: "user" as const,
-          content: prompt,
-        },
-      ]);
-
-    if (!modelId) {
-      throw new Error("Model ID is required");
-    }
-
-    const model = getModelById(modelId);
-    if (!model) {
-      throw new AIModelNotFoundError(modelId);
-    }
-
-    const providerInstance = createProvider(provider as AIProviderType);
-    const modelInstance = providerInstance(model.id);
-
-    const result = streamText({
-      model: modelInstance,
-      messages,
-    });
-
-    return result.toTextStreamResponse();
-  } catch (error) {
-    console.error("AI Completion error:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    console.error("Error details:", {
-      errorMessage,
-      errorStack,
-      provider,
-      modelId,
-    });
-    return new Response(
-      JSON.stringify({
-        error: errorMessage,
-        details: errorStack,
-      }),
+  const messages = match(option)
+    .with("zap", () => [
       {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
+        role: "system" as const,
+        content: systemPrompt,
       },
-    );
+      {
+        role: "user" as const,
+        content: `${command}${prompt ? `\n${prompt}` : ""}`,
+      },
+    ])
+    .with("tone", () => [
+      {
+        role: "system" as const,
+        content: getToneSystemPrompt(tone ?? "neutral"),
+      },
+      {
+        role: "user" as const,
+        content: prompt,
+      },
+    ])
+    .otherwise(() => [
+      {
+        role: "system" as const,
+        content: systemPrompt,
+      },
+      {
+        role: "user" as const,
+        content: prompt,
+      },
+    ]);
+
+  if (!modelId) {
+    throw new ApiError(400, "Bad Request", "Model ID is required");
   }
-}
+
+  const model = getModelById(modelId);
+  if (!model) {
+    throw new ApiError(404, "Model not found", `Model '${modelId}' not found`);
+  }
+
+  const providerInstance = createProvider(provider as AIProviderType);
+  const modelInstance = providerInstance(model.id);
+
+  const result = streamText({
+    model: modelInstance,
+    messages,
+  });
+
+  return result.toTextStreamResponse();
+}, { context: "AI Completion error" });
