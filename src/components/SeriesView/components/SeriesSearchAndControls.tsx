@@ -1,11 +1,10 @@
 import React from "react";
 import { Box, Button, Chip } from "@mui/material";
 import { AccessTime, Check, Close } from "@mui/icons-material";
-import { PartitionGranularity } from "@/types/partitioning";
 import { PartitionControl } from "@/components/PostsList/components/PartitionControl";
 import { ViewToggle, type ViewType } from "@/components/shared/ViewToggle";
 import { PendingTimeChange } from "./PostsCompactListView";
-import { SearchField } from "@/components/shared/SearchField";
+import { PartitionGranularity } from "@/types/partitioning";
 
 const timeEditBtnSx = {
   textTransform: "none",
@@ -16,8 +15,6 @@ const timeEditBtnSx = {
 } as const;
 
 interface SeriesSearchAndControlsProps {
-  searchQuery: string;
-  onSearchChange: (q: string) => void;
   granularity: PartitionGranularity;
   onGranularityChange: (g: PartitionGranularity) => void;
   filteredPostCount: number;
@@ -33,8 +30,6 @@ interface SeriesSearchAndControlsProps {
 }
 
 const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
-  searchQuery,
-  onSearchChange,
   granularity,
   onGranularityChange,
   filteredPostCount,
@@ -49,12 +44,6 @@ const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
   onDiscardTimeChanges,
 }) => (
   <Box sx={{ mb: 3, display: "flex", flexDirection: "column", gap: 2 }}>
-    <SearchField
-      value={searchQuery}
-      onChange={onSearchChange}
-      placeholder="Search posts by title, handle, or author..."
-    />
-
     <Box
       sx={{
         display: "flex",

@@ -9,7 +9,6 @@ import { useSelector } from "@/store";
 import { selectAllPosts } from "@/store/selectors/postsSelectors";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { usePostsGrouping } from "@/hooks/usePostsGrouping";
-import { usePostsSearch } from "@/hooks/usePostsSearch";
 import {
   TimeFilterValue,
   usePostsTimeFilter,
@@ -55,7 +54,6 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   const canEdit = isSeries ? !!user && user.id === series!.authorId : !!user;
 
   // ── Common state ──────────────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery] = useState("");
   const [granularity, setGranularity] = useState<PartitionGranularity>(
     "quarter",
   );
@@ -114,15 +112,9 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
     timeFilter: isSeries ? "all" : timeFilter,
   });
 
-  // Search (common to both modes).
-  const { filteredPosts: searchFilteredPosts } = usePostsSearch({
-    posts: timeFilteredPosts,
-    searchQuery,
-  });
-
   // Grouping (unified hook).
   const { timeGroups } = usePostsGrouping({
-    posts: searchFilteredPosts,
+    posts: timeFilteredPosts,
     allPosts: isSeries ? undefined : allPostsFromStore,
     granularity,
     pendingTimeChanges: isSeries ? pendingTimeChanges : undefined,
@@ -132,9 +124,8 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   const totalCount = isSeries
     ? sortedWithPending.length
     : allPostsFromStore.length;
-  const filteredCount = searchFilteredPosts.length;
-  const hasActiveFilters = searchQuery.trim() !== "" ||
-    (!isSeries && timeFilter !== "all");
+  const filteredCount = timeFilteredPosts.length;
+  const hasActiveFilters = !isSeries && timeFilter !== "all";
 
   // In all-posts mode, hide time buckets that have no visible content after
   // applying the posts / series visibility toggles.
@@ -180,8 +171,6 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
           <PostsHeader
             totalCount={hasActiveFilters ? filteredCount : totalCount}
             loading={documentsLoading}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
             timeFilter={timeFilter}
             onTimeFilterChange={setTimeFilter}
             granularity={granularity}
@@ -200,8 +189,6 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
       {/* ── Series search & controls ── */}
       {isSeries && sortedWithPending.length > 0 && (
         <SeriesSearchAndControls
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
           granularity={granularity}
           onGranularityChange={setGranularity}
           filteredPostCount={filteredCount}
@@ -229,9 +216,7 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
           <EmptyState
             emoji={hasActiveFilters ? "🔍" : isSeries ? "📚" : "📝"}
             title={hasActiveFilters
-              ? searchQuery
-                ? `No posts found for "${searchQuery}"`
-                : "No posts found in this time period"
+              ? "No posts found in this time period"
               : isSeries
               ? "No posts in this series yet"
               : "No posts yet"}

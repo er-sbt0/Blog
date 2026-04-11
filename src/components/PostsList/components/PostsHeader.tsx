@@ -22,13 +22,10 @@ import { FILTER_LABELS, TimeFilterValue } from "@/hooks/usePostsTimeFilter";
 import { PartitionGranularity } from "@/types/partitioning";
 import { PartitionControl } from "./PartitionControl";
 import { ViewToggle, ViewType } from "@/components/shared/ViewToggle";
-import { SearchField } from "@/components/shared/SearchField";
 
 interface PostsHeaderProps {
   totalCount: number;
   loading: boolean;
-  searchQuery?: string;
-  onSearchChange?: (query: string) => void;
   timeFilter?: TimeFilterValue;
   onTimeFilterChange?: (filter: TimeFilterValue) => void;
   granularity?: PartitionGranularity;
@@ -80,8 +77,6 @@ const actionButtonSx = {
 const PostsHeader: React.FC<PostsHeaderProps> = ({
   totalCount,
   loading: _loading,
-  searchQuery = "",
-  onSearchChange,
   timeFilter = "all",
   onTimeFilterChange,
   granularity = "quarter",
@@ -157,8 +152,6 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
     [onTimeFilterChange],
   );
 
-  const clearSearch = useCallback(() => onSearchChange?.(""), [onSearchChange]);
-
   const handleClearTimeFilter = useCallback(
     () => onTimeFilterChange?.("all"),
     [onTimeFilterChange],
@@ -193,16 +186,6 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
 
   return (
     <Box component="header" sx={{ mb: 4, pt: 2, pb: 3 }}>
-      {/* Row 1: Search */}
-      <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 2 }}>
-        <SearchField
-          value={searchQuery}
-          onChange={(v) => onSearchChange?.(v)}
-          placeholder="Search posts by title, content, or tags..."
-          ariaLabel="Search posts"
-        />
-      </Box>
-
       {/* Row 2: Create actions */}
       <Box
         sx={{
@@ -284,7 +267,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
       </Box>
 
       {/* Active filter chips */}
-      {(searchQuery || timeFilter !== "all") && (
+      {timeFilter !== "all" && (
         <Box
           sx={{
             display: "flex",
@@ -301,18 +284,7 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
           >
             Active filters:
           </Typography>
-          {searchQuery && (
-            <Chip
-              label={`"${searchQuery}"`}
-              onDelete={clearSearch}
-              size="small"
-              color="primary"
-              variant="outlined"
-              sx={{ borderRadius: 1.5, "& .MuiChip-label": { px: 1 } }}
-            />
-          )}
-          {timeFilter !== "all" && (
-            <Chip
+          <Chip
               label={activeTimeFilter?.label}
               onDelete={handleClearTimeFilter}
               size="small"
@@ -320,7 +292,6 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
               variant="outlined"
               sx={{ borderRadius: 1.5, "& .MuiChip-label": { px: 1 } }}
             />
-          )}
         </Box>
       )}
 
