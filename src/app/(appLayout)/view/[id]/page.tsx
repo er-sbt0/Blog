@@ -5,7 +5,7 @@ import htmr from "htmr";
 import { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import SplashScreen from "@/components/common/SplashScreen";
+import SplashScreen from "@/components/shared/SplashScreen";
 import { cache } from "react";
 import { findRevisionHtml } from "@/app/api/utils";
 import { DocumentRevision } from "@/types";

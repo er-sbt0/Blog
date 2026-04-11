@@ -3,7 +3,7 @@ import { CloudDocumentRevision, Document, User } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import Grid from "@mui/material/Grid2";
 import { Avatar, Box, Chip, IconButton, Typography } from "@mui/material";
-import { DateDisplay } from "@/components/common/DateDisplay";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 import { Edit, History } from "@mui/icons-material";
 import RouterLink from "next/link";
 import ShareDocument from "../DocumentActions/Share";

@@ -9,7 +9,7 @@
 
 import React from "react";
 import { useBlogActions, useBlogData } from "@/hooks/useBlog";
-import { DateDisplay } from "@/components/common/DateDisplay";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 import { DocumentCreateInput, EMPTY_EDITOR_STATE } from "@/types";
 
 export const BlogManager: React.FC = () => {

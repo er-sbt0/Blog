@@ -3,7 +3,7 @@ import { Box, Typography } from "@mui/material";
 import { ArticleOutlined } from "@mui/icons-material";
 import { UserDocument } from "@/types";
 import { useRouter } from "next/navigation";
-import { DateDisplay } from "@/components/common/DateDisplay";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 
 interface RecentPostsPreviewCardProps {
   documents: UserDocument[];

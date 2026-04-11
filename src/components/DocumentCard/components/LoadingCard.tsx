@@ -15,7 +15,7 @@ interface LoadingCardProps {
  * Card-shaped skeleton (Level 2 – domain).
  *
  * Loading-state hierarchy:
- *   Level 1 – common/LoadingState     : generic spinner / skeleton primitives
+ *   Level 1 – shared/LoadingState     : generic spinner / skeleton primitives
  *   Level 2 – LoadingCard             : card-shaped skeleton (domain)  ← you are here
  *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser
  *   Level 3 – PostsList/PostsLoadingState : page-level skeleton for PostsList

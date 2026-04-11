@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import ThemeProvider from "@/components/Layout/ThemeProvider";
-import AuthProvider from "@/components/common/AuthProvider";
+import AuthProvider from "@/components/shared/AuthProvider";
 import { FloatingActionsProvider } from "@/components/Layout/FloatingActions";
 import "mathlive/static.css";
 import "@/editor/theme.css";

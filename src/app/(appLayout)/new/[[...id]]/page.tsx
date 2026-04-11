@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import { ThumbnailProvider } from "@/app/context/ThumbnailContext";
 import { findRevisionThumbnail } from "@/app/api/utils";
-import SplashScreen from "@/components/common/SplashScreen";
+import SplashScreen from "@/components/shared/SplashScreen";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { format } from "date-fns";

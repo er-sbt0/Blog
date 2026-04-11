@@ -4,35 +4,6 @@ Findings from April 2026 audit of `src/components/`.
 
 ---
 
-## 1. Merge `common/` into `shared/`
-
-**Effort:** S — no logic changes, ~50 import-path updates.
-
-There is no enforced distinction between `common/` and `shared/`. Both hold
-app-wide reusable primitives. Merge everything into `shared/`:
-
-```
-shared/
-  AuthProvider.tsx          ← from common/
-  DateDisplay.tsx           ← from common/ (see also #5)
-  EditorSkeleton.tsx        ← from common/
-  EmptyState.tsx            ← already here
-  granularityOptions.ts     ← already here
-  LoadingState.tsx          ← from common/
-  PrintTrigger.tsx          ← from common/
-  RelativeDate.tsx          ← from common/ (see also #5)
-  SearchField.tsx           ← already here
-  SplashScreen.tsx          ← from common/
-  SyncToCloudFab.tsx        ← from common/
-  TimeGroupHeader.tsx       ← already here
-  ToolsContainer.tsx        ← from common/
-  ViewToggle.tsx            ← already here
-```
-
-Delete `src/components/common/` entirely after updating imports.
-
----
-
 ## 2. Three card-shaped error boundaries → one
 
 **Effort:** S — delete 2 files, update ~5 call sites.
@@ -162,7 +133,6 @@ calls become `<DateDisplay date={x} relative addSuffix />`.
 
 | # | Description                                   | Files removed                 | Effort |
 | - | --------------------------------------------- | ----------------------------- | ------ |
-| 1 | Merge `common/` into `shared/`                | dir removed (~10 files moved) | S      |
 | 2 | Three error boundaries → `CardErrorBoundary`  | −2                            | S      |
 | 3 | Four empty states → one upgraded `EmptyState` | −2                            | M      |
 | 4 | Extract `DrawerShell`                         | +1 shared                     | M      |

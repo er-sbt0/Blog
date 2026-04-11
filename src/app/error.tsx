@@ -1,5 +1,5 @@
 "use client";
-import SplashScreen from "@/components/common/SplashScreen";
+import SplashScreen from "@/components/shared/SplashScreen";
 
 export default function Error(
   { error }: {

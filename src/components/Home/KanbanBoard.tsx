@@ -13,7 +13,7 @@ import { UserDocument } from "@/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { DateDisplay } from "@/components/common/DateDisplay";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { apiClient } from "@/api";
 

@@ -3,7 +3,7 @@ import { Box, CircularProgress, Typography } from "@mui/material";
 import { Add, ArticleOutlined } from "@mui/icons-material";
 import { UserDocument } from "@/types";
 import htmr from "htmr";
-import { DateDisplay } from "@/components/common/DateDisplay";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 import { ReadmeData, useReadmeData } from "./hooks/useReadmeData";
 import { useCreateReadme } from "./hooks/useCreateReadme";
 

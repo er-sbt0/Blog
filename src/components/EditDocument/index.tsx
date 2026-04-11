@@ -1,8 +1,8 @@
 "use client";
 import dynamic from "next/dynamic";
 import { Component, ErrorInfo, ReactNode, Suspense } from "react";
-import { EditorSkeleton } from "../common/EditorSkeleton";
-import SplashScreen from "../common/SplashScreen";
+import { EditorSkeleton } from "../shared/EditorSkeleton";
+import SplashScreen from "../shared/SplashScreen";
 
 interface ErrorBoundaryState {
   hasError: boolean;

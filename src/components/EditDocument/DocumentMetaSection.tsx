@@ -1,7 +1,7 @@
 import { DocumentStatus, User } from "@/types";
 import { Avatar, Box, Chip, Typography } from "@mui/material";
 import { CheckCircle, PlayArrow } from "@mui/icons-material";
-import { DateDisplay } from "@/components/common/DateDisplay";
+import { DateDisplay } from "@/components/shared/DateDisplay";
 import RouterLink from "next/link";
 
 // Minimal type shapes needed for display

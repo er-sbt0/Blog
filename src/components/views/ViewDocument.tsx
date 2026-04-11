@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useRef } from "react";
 import ViewAttachmentEnhancer from "./ViewAttachmentEnhancer";
-import SyncToCloudFab from "../common/SyncToCloudFab";
+import SyncToCloudFab from "../shared/SyncToCloudFab";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import EditIcon from "@mui/icons-material/Edit";

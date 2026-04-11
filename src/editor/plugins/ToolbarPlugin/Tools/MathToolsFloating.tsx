@@ -31,7 +31,7 @@ import { Delete, Draw, Edit, Menu, Save } from "@mui/icons-material";
 import { useTheme } from "@mui/material/styles";
 import { ANNOUNCE_COMMAND } from "@/editor/commands";
 import { Announcement } from "@/types";
-import ToolsContainer from "@/components/common/ToolsContainer";
+import ToolsContainer from "@/components/shared/ToolsContainer";
 
 import dynamic from "next/dynamic";
 import type {
