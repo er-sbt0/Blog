@@ -6,11 +6,15 @@ import { Series } from "@/types";
 import { formatFullDate as formatDate } from "@/utils/dateFormat";
 
 interface SeriesHeaderProps {
-  series: Series;
+  /** When omitted the header renders in "All Posts" virtual mode. */
+  series?: Series;
   canEdit: boolean;
   postCount: number;
-  onAddPosts: () => void;
+  /** Only relevant in real-series mode. */
+  onAddPosts?: () => void;
   onNewPost?: () => void;
+  /** Shown only in all-posts virtual mode. */
+  onNewSeries?: () => void;
 }
 
 const SeriesHeader: React.FC<SeriesHeaderProps> = ({
@@ -19,6 +23,7 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
   postCount,
   onAddPosts,
   onNewPost,
+  onNewSeries,
 }) => (
   <Box sx={{ mb: { xs: 3, md: 4 } }}>
     <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1.5 }}>
@@ -39,7 +44,7 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
           flex: 1,
         }}
       >
-        {series.title}
+        {series ? series.title : "All Posts"}
       </Typography>
       {canEdit && (
         <Box
@@ -50,78 +55,96 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
             flexShrink: 0,
           }}
         >
-          <Tooltip title="New post in series">
+          <Tooltip title="New post">
             <IconButton
               onClick={onNewPost}
               size="small"
               sx={{ color: "text.secondary" }}
-              aria-label="Create new post in series"
+              aria-label={series
+                ? "Create new post in series"
+                : "Create new post"}
             >
               <PostAdd fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Add / remove posts">
-            <IconButton
-              onClick={onAddPosts}
-              size="small"
-              sx={{ color: "text.secondary" }}
-              aria-label="Add or remove posts"
-            >
-              <Add fontSize="small" />
-            </IconButton>
-          </Tooltip>
+          {series && onAddPosts && (
+            <Tooltip title="Add / remove posts">
+              <IconButton
+                onClick={onAddPosts}
+                size="small"
+                sx={{ color: "text.secondary" }}
+                aria-label="Add or remove posts"
+              >
+                <Add fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+          {!series && onNewSeries && (
+            <Tooltip title="New series">
+              <IconButton
+                onClick={onNewSeries}
+                size="small"
+                sx={{ color: "text.secondary" }}
+                aria-label="Create new series"
+              >
+                <Add fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
       )}
     </Box>
 
-    <Box
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1.5,
-        flexWrap: "wrap",
-        mb: 2,
-      }}
-    >
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ fontSize: "0.875rem" }}
-      >
-        {formatDate(series.createdAt)}
-      </Typography>
+    {series && (
       <Box
         sx={{
-          width: 4,
-          height: 4,
-          bgcolor: "text.secondary",
-          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          flexWrap: "wrap",
+          mb: 2,
         }}
-      />
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ fontSize: "0.875rem" }}
       >
-        by {series.author?.name || "Unknown"}
-      </Typography>
-      <Box
-        sx={{
-          width: 4,
-          height: 4,
-          bgcolor: "text.secondary",
-          borderRadius: "50%",
-        }}
-      />
-      <Chip
-        label={`${postCount} post${postCount !== 1 ? "s" : ""}`}
-        size="small"
-        color="primary"
-        sx={{ fontWeight: 600, fontSize: "0.75rem" }}
-      />
-    </Box>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ fontSize: "0.875rem" }}
+        >
+          {formatDate(series.createdAt)}
+        </Typography>
+        <Box
+          sx={{
+            width: 4,
+            height: 4,
+            bgcolor: "text.secondary",
+            borderRadius: "50%",
+          }}
+        />
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ fontSize: "0.875rem" }}
+        >
+          by {series.author?.name || "Unknown"}
+        </Typography>
+        <Box
+          sx={{
+            width: 4,
+            height: 4,
+            bgcolor: "text.secondary",
+            borderRadius: "50%",
+          }}
+        />
+        <Chip
+          label={`${postCount} post${postCount !== 1 ? "s" : ""}`}
+          size="small"
+          color="primary"
+          sx={{ fontWeight: 600, fontSize: "0.75rem" }}
+        />
+      </Box>
+    )}
 
-    {series.description && (
+    {series?.description && (
       <Typography
         variant="body1"
         color="text.secondary"

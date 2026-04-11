@@ -21,20 +21,7 @@ export async function generateMetadata(
   if (!id?.length) {
     return {
       title: "All Posts | Blog",
-      description:
-        "Browse all blog posts organized by publication date. Discover insights, tutorials, and thoughts shared over time.",
-      keywords: ["blog posts", "articles", "tutorials", "insights", "archive"],
-      openGraph: {
-        title: "All Posts | Blog",
-        description: "Browse all blog posts organized by publication date",
-        type: "website",
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: "All Posts | Blog",
-        description: "Browse all blog posts organized by publication date",
-      },
-      alternates: { canonical: "/posts" },
+      description: "Browse all blog posts organized by publication date.",
     };
   }
 
@@ -50,21 +37,20 @@ export async function generateMetadata(
 /**
  * /posts              → all-posts view (PostsView with no series prop)
  * /posts/[seriesId]   → series detail view (PostsView with series prop)
+ *
+ * Both paths share the same layout and component tree; only the `series`
+ * prop differs.
  */
 export default async function PostsPage({ params }: PostsPageProps) {
   const { id } = await params;
 
-  if (!id?.length) {
-    return <PostsView />;
-  }
-
-  const seriesId = id[0];
+  const seriesId = id?.[0];
   const [session, series] = await Promise.all([
     getServerSession(authOptions),
-    findSeriesById(seriesId),
+    seriesId ? findSeriesById(seriesId) : Promise.resolve(undefined),
   ]);
 
-  if (!series) notFound();
+  if (seriesId && !series) notFound();
 
   const user = session?.user
     ? {
@@ -77,5 +63,5 @@ export default async function PostsPage({ params }: PostsPageProps) {
     }
     : undefined;
 
-  return <PostsView series={series} user={user} />;
+  return <PostsView series={series ?? undefined} user={user} />;
 }

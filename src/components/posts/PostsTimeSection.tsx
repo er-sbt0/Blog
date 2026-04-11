@@ -4,7 +4,6 @@ import Grid from "@mui/material/Grid2";
 import { TimeGroup } from "@/types/partitioning";
 import { User, UserDocument } from "@/types";
 import DocumentCard from "@/components/DocumentCard";
-import PostsGrid from "./components/PostsGrid";
 import { PostsCompactListView } from "./components/PostsCompactListView";
 import { PendingTimeChange } from "@/types/posts";
 import type { ViewType } from "@/components/shared/ViewToggle";
@@ -14,13 +13,7 @@ interface PostsTimeSectionProps {
   timeGroup: TimeGroup;
   isLatest?: boolean;
   viewType?: ViewType;
-  // ── All-posts mode ────────────────────────────────────────────────────────
-  // When either prop is defined we know we're in all-posts mode and delegate
-  // to <PostsGrid> which handles series grouping within the time bucket.
-  showPosts?: boolean;
-  showSeries?: boolean;
-  // ── Series mode ───────────────────────────────────────────────────────────
-  // Posts are already scoped to one series; render them as a flat list.
+  // Posts are rendered as a flat list (series-style).
   user?: User;
   isTimeEditMode?: boolean;
   pendingChanges?: Map<string, PendingTimeChange>;
@@ -29,36 +22,21 @@ interface PostsTimeSectionProps {
 }
 
 /**
- * Unified time-section component used by both all-posts and series views.
+ * Renders a time-bucket section for the posts view.
+ * Posts are displayed as a flat grid or compact list — no nested series grouping.
  */
 const PostsTimeSection: React.FC<PostsTimeSectionProps> = ({
   timeGroup,
   isLatest = false,
   viewType = "grid",
-  showPosts,
-  showSeries,
   user,
   isTimeEditMode = false,
   pendingChanges = new Map(),
   onTimeAdjust,
   onTimeReset,
 }) => {
-  const isAllPostsMode = showPosts !== undefined || showSeries !== undefined;
-
   const renderContent = () => {
-    if (isAllPostsMode) {
-      return (
-        <PostsGrid
-          posts={timeGroup.posts}
-          emptySeries={timeGroup.emptySeries}
-          viewType={viewType}
-          showPosts={showPosts}
-          showSeries={showSeries}
-        />
-      );
-    }
-
-    // Series-mode: flat rendering, no nested series grouping.
+    // Flat rendering, no nested series grouping.
     switch (viewType) {
       case "compact":
         return (

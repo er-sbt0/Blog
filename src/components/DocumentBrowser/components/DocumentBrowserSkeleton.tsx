@@ -10,7 +10,7 @@ import DocumentGrid from "../../DocumentGrid";
  *   Level 1 – shared/LoadingState     : generic spinner / skeleton primitives
  *   Level 2 – DocumentCard/LoadingCard : card-shaped skeleton (domain)
  *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser  ← you are here
- *   Level 3 – PostsList/PostsLoadingState : page-level skeleton for PostsList
+ *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser ← you are here
  *
  * This component is intentionally feature-specific; do not use it outside
  * DocumentBrowser. For generic loading states use `shared/LoadingState`.

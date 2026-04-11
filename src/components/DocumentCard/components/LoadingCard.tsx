@@ -18,7 +18,7 @@ interface LoadingCardProps {
  *   Level 1 – shared/LoadingState     : generic spinner / skeleton primitives
  *   Level 2 – LoadingCard             : card-shaped skeleton (domain)  ← you are here
  *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser
- *   Level 3 – PostsList/PostsLoadingState : page-level skeleton for PostsList
+ *   Level 3 – DocumentBrowserSkeleton : page-level skeleton for DocumentBrowser
  *
  * Provides a consistent loading card for all PostCard / DocumentGrid slots.
  * Higher-level page skeletons (Level 3) compose this component directly.

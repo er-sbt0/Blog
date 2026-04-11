@@ -9,29 +9,25 @@ import { useSelector } from "@/store";
 import { selectAllPosts } from "@/store/selectors/postsSelectors";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { usePostsGrouping } from "@/hooks/usePostsGrouping";
-import {
-  TimeFilterValue,
-  usePostsTimeFilter,
-} from "@/hooks/usePostsTimeFilter";
 import { useTimeEditing } from "@/hooks/useTimeEditing";
 import { type ViewType } from "@/components/shared/ViewToggle";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { getPostSeriesId } from "@/utils/posts/seriesGrouping";
 import PostsTimeSection from "./PostsTimeSection";
 
-// All-posts mode components
-import PostsHeader from "./components/PostsHeader";
-import PostsLoadingState from "./components/PostsLoadingState";
-import CreatePostDrawer from "@/components/drawers/CreatePostDrawer";
-import CreateSeriesDrawer from "@/components/drawers/CreateSeriesDrawer";
-
-// Series mode components
+// Header & controls
 import SeriesHeader from "./components/SeriesHeader";
 import SeriesSearchAndControls from "./components/SeriesSearchAndControls";
+
+// Drawers & dialogs
+import CreatePostDrawer from "@/components/drawers/CreatePostDrawer";
+import CreateSeriesDrawer from "@/components/drawers/CreateSeriesDrawer";
 import AddPostsDialog from "./AddPostsDialog";
 
 interface PostsViewProps {
-  /** When provided, renders in series mode; otherwise all-posts mode. */
+  /**
+   * When provided, renders in series mode; otherwise renders all posts with
+   * the same series-style header and controls ("All Posts" virtual mode).
+   */
   series?: Series;
   /** Server-side user session (optional; falls back to next-auth client). */
   user?: User;
@@ -40,10 +36,10 @@ interface PostsViewProps {
 /**
  * Unified view for both /posts (all blog posts) and /posts/[id] (series detail).
  *
- * All-posts mode  – no `series` prop.  Reads posts from Redux, supports time
- *                   filtering, search, series/post content toggle, and view type.
  * Series mode      – `series` prop provided.  Posts come from the series object,
  *                   supports time-edit mode for re-ordering posts by date.
+ * All-posts mode   – no `series` prop. Posts come from Redux. Uses the same
+ *                   series-style header and controls layout.
  */
 const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   const isSeries = !!series;
@@ -63,19 +59,13 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
     "grid",
   );
 
-  // ── All-posts mode state ──────────────────────────────────────────────────
+  // ── Drawer / dialog state ─────────────────────────────────────────────────
   const [createPostDrawerOpen, setCreatePostDrawerOpen] = useState(false);
   const [createSeriesDrawerOpen, setCreateSeriesDrawerOpen] = useState(false);
-  const [timeFilter, setTimeFilter] = useState<TimeFilterValue>("all");
-  const [showPosts, setShowPosts] = useLocalStorage("postsShowPosts", true);
-  const [showSeries, setShowSeries] = useLocalStorage("postsShowSeries", true);
-
-  // ── Series mode state ─────────────────────────────────────────────────────
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   // ── Redux (all-posts mode) ────────────────────────────────────────────────
   const allPostsFromStore = useSelector(selectAllPosts);
-  const documentsLoading = useSelector((state) => state.ui.documentsLoading);
 
   // ── Series time-editing (always called – hooks must be unconditional) ─────
   const {
@@ -106,15 +96,9 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   // ── Data pipeline ─────────────────────────────────────────────────────────
   const rawPosts = isSeries ? seriesUserDocs : allPostsFromStore;
 
-  // Time filter (no-op in series mode – pass "all").
-  const { filteredPosts: timeFilteredPosts } = usePostsTimeFilter({
-    posts: rawPosts,
-    timeFilter: isSeries ? "all" : timeFilter,
-  });
-
   // Grouping (unified hook).
   const { timeGroups } = usePostsGrouping({
-    posts: timeFilteredPosts,
+    posts: rawPosts,
     allPosts: isSeries ? undefined : allPostsFromStore,
     granularity,
     pendingTimeChanges: isSeries ? pendingTimeChanges : undefined,
@@ -124,21 +108,7 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   const totalCount = isSeries
     ? sortedWithPending.length
     : allPostsFromStore.length;
-  const filteredCount = timeFilteredPosts.length;
-  const hasActiveFilters = !isSeries && timeFilter !== "all";
-
-  // In all-posts mode, hide time buckets that have no visible content after
-  // applying the posts / series visibility toggles.
-  const displayGroups = useMemo(() => {
-    if (isSeries) return timeGroups;
-    if (showPosts && showSeries) return timeGroups;
-    return timeGroups.filter((group) =>
-      group.posts.some((post) => {
-        const inSeries = !!getPostSeriesId(post);
-        return inSeries ? showSeries : showPosts;
-      })
-    );
-  }, [timeGroups, isSeries, showPosts, showSeries]);
+  const filteredCount = rawPosts.length;
 
   const handlePostsAdded = () => router.refresh();
 
@@ -157,45 +127,26 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
       aria-label={isSeries ? `Series: ${series!.title}` : "Blog posts"}
     >
       {/* ── Header ── */}
-      {isSeries
-        ? (
-          <SeriesHeader
-            series={series!}
-            canEdit={canEdit}
-            postCount={sortedWithPending.length}
-            onAddPosts={() => setAddDialogOpen(true)}
-            onNewPost={() => setCreatePostDrawerOpen(true)}
-          />
-        )
-        : (
-          <PostsHeader
-            totalCount={hasActiveFilters ? filteredCount : totalCount}
-            loading={documentsLoading}
-            timeFilter={timeFilter}
-            onTimeFilterChange={setTimeFilter}
-            granularity={granularity}
-            onGranularityChange={setGranularity}
-            viewType={viewType}
-            onViewTypeChange={setViewType}
-            showPosts={showPosts}
-            onShowPostsChange={setShowPosts}
-            showSeries={showSeries}
-            onShowSeriesChange={setShowSeries}
-            canEdit={canEdit}
-            onNewPost={() => setCreatePostDrawerOpen(true)}
-            onNewSeries={() => setCreateSeriesDrawerOpen(true)}
-          />
-        )}
+      <SeriesHeader
+        series={series}
+        canEdit={canEdit}
+        postCount={isSeries ? sortedWithPending.length : totalCount}
+        onAddPosts={isSeries ? () => setAddDialogOpen(true) : undefined}
+        onNewPost={() => setCreatePostDrawerOpen(true)}
+        onNewSeries={!isSeries
+          ? () => setCreateSeriesDrawerOpen(true)
+          : undefined}
+      />
 
-      {/* ── Series search & controls ── */}
-      {isSeries && sortedWithPending.length > 0 && (
+      {/* ── Controls bar ── */}
+      {rawPosts.length > 0 && (
         <SeriesSearchAndControls
           granularity={granularity}
           onGranularityChange={setGranularity}
           filteredPostCount={filteredCount}
           viewType={viewType}
           onViewChange={setViewType}
-          canEdit={canEdit}
+          canEdit={canEdit && isSeries}
           isTimeEditMode={isTimeEditMode}
           isSavingTimeChanges={isSavingTimeChanges}
           pendingTimeChanges={pendingTimeChanges}
@@ -206,24 +157,12 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
       )}
 
       {/* ── Content ── */}
-      {!isSeries && documentsLoading
-        ? (
-          <section aria-label="Loading posts" aria-live="polite">
-            <PostsLoadingState />
-          </section>
-        )
-        : displayGroups.length === 0
+      {timeGroups.length === 0
         ? (
           <EmptyState
-            emoji={hasActiveFilters ? "🔍" : isSeries ? "📚" : "📝"}
-            title={hasActiveFilters
-              ? "No posts found in this time period"
-              : isSeries
-              ? "No posts in this series yet"
-              : "No posts yet"}
-            description={hasActiveFilters
-              ? "Try adjusting your search or filter criteria"
-              : isSeries
+            emoji={isSeries ? "📚" : "📝"}
+            title={isSeries ? "No posts in this series yet" : "No posts yet"}
+            description={isSeries
               ? canEdit
                 ? "Add your existing posts to organize them in this series"
                 : "This series doesn't have any posts yet"
@@ -232,17 +171,13 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
         )
         : (
           <Box>
-            {displayGroups.map((timeGroup, index) => (
+            {timeGroups.map((timeGroup, index) => (
               <Box key={timeGroup.timeKey}>
                 <PostsTimeSection
                   timeGroup={timeGroup}
                   isLatest={index === 0}
                   viewType={viewType}
-                  // all-posts mode props (undefined = series mode)
-                  showPosts={isSeries ? undefined : showPosts}
-                  showSeries={isSeries ? undefined : showSeries}
-                  // series mode props (undefined = all-posts mode)
-                  user={isSeries ? user : undefined}
+                  user={user}
                   isTimeEditMode={isSeries ? isTimeEditMode : undefined}
                   pendingChanges={isSeries ? pendingTimeChanges : undefined}
                   onTimeAdjust={isSeries && canEdit
@@ -266,12 +201,10 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
         onSuccess={isSeries ? handlePostsAdded : undefined}
       />
 
-      {!isSeries && (
-        <CreateSeriesDrawer
-          open={createSeriesDrawerOpen}
-          onClose={() => setCreateSeriesDrawerOpen(false)}
-        />
-      )}
+      <CreateSeriesDrawer
+        open={createSeriesDrawerOpen}
+        onClose={() => setCreateSeriesDrawerOpen(false)}
+      />
 
       {isSeries && (
         <AddPostsDialog
