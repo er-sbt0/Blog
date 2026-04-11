@@ -4,7 +4,7 @@ import Grid from "@mui/material/Grid2";
 import { Series, UserDocument } from "@/types";
 import { useSelector } from "@/store";
 import DocumentCard from "@/components/DocumentCard";
-import SeriesCard from "@/components/SeriesCard/SeriesCard";
+import SeriesGroupCard from "./SeriesGroupCard";
 import {
   buildSeriesMap,
   groupPostsBySeries,
@@ -16,7 +16,6 @@ import { useExpandedState } from "@/hooks/useExpandedState";
 
 interface PostsGridProps {
   posts?: UserDocument[];
-  series?: Series[];
   /** Zero-post series to show in this partition (injected by TimeSection) */
   emptySeries?: Series[];
   viewType?: ViewType;
@@ -31,7 +30,6 @@ interface PostsGridProps {
  */
 const PostsGrid: React.FC<PostsGridProps> = ({
   posts = [],
-  series,
   emptySeries,
   viewType = "grid",
   showPosts = true,
@@ -108,25 +106,6 @@ const PostsGrid: React.FC<PostsGridProps> = ({
     );
   }
 
-  // Series catalog mode: render detailed series cards
-  if (series) {
-    return (
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {series.map((seriesItem) => (
-          <Grid key={seriesItem.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-            <SeriesCard
-              variant="detailed"
-              series={seriesItem}
-              user={user}
-              showMetadata={true}
-              showActions={true}
-            />
-          </Grid>
-        ))}
-      </Grid>
-    );
-  }
-
   return (
     <Grid
       container
@@ -142,8 +121,7 @@ const PostsGrid: React.FC<PostsGridProps> = ({
               key={`series-${group.series.id}`}
               size={{ xs: 12, sm: 6, md: 4, lg: 3 }}
             >
-              <SeriesCard
-                variant="compact"
+              <SeriesGroupCard
                 series={group.series}
                 posts={group.posts}
                 user={user}

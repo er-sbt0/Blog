@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserDocument } from "@/types";
 
-export function useCompactVariantState(
+export function useSeriesGroupState(
   posts: UserDocument[],
   defaultExpanded: boolean,
   seriesId: string,

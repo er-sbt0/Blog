@@ -7,7 +7,7 @@ interface DocItemProps {
   document: UserDocument;
 }
 
-/** Individual document item within an expanded series card */
+/** Individual document item within an expanded series group card */
 const DocItem: React.FC<DocItemProps> = ({ document }) => {
   const doc = document.local || document.cloud;
   const title = doc?.name || "Untitled";

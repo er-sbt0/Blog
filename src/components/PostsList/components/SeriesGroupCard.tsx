@@ -11,13 +11,62 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { Delete, Edit, MoreVert } from "@mui/icons-material";
-import { CompactVariantProps } from "../types";
-import { UserDocument } from "@/types";
-import { Series } from "@/types";
-import { createCardTheme } from "../../DocumentCard/theme";
-import { formatDate, useSeriesActions } from "../seriesCardUtils";
-import DocItem from "../DocItem";
-import { useCompactVariantState } from "../hooks/useCompactVariantState";
+import { SxProps, Theme } from "@mui/material/styles";
+import { Series, User, UserDocument } from "@/types";
+import { createCardTheme } from "@/components/DocumentCard/theme";
+import { formatFullDate } from "@/utils/dateFormat";
+import { useRouter } from "next/navigation";
+import { useDispatch } from "@/store";
+import { deleteSeries } from "@/store/app";
+import { useMenuState } from "@/hooks/useMenuState";
+import DocItem from "./DocItem";
+import { useSeriesGroupState } from "../hooks/useSeriesGroupState";
+
+interface SeriesGroupCardProps {
+  series: Series;
+  user?: User;
+  posts: UserDocument[];
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  showActions?: boolean;
+  onExpand?: () => void;
+  onCollapse?: () => void;
+  sx?: SxProps<Theme>;
+}
+
+function useSeriesGroupActions(series: Series | null | undefined) {
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const { anchorEl, menuOpen, openMenu, closeMenu } = useMenuState();
+
+  const handleOpenMenu = (e: React.MouseEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openMenu(e);
+  };
+
+  const handleEdit = () => {
+    closeMenu();
+    if (series) router.push(`/series/${series.id}/edit`);
+  };
+
+  const handleDelete = async () => {
+    closeMenu();
+    if (!series) return;
+    if (!confirm("Delete this series? Posts will not be deleted.")) return;
+    await dispatch(deleteSeries(series.id));
+    router.refresh();
+  };
+
+  return {
+    anchorEl,
+    menuOpen,
+    handleOpenMenu,
+    handleCloseMenu: closeMenu,
+    handleEdit,
+    handleDelete,
+  };
+}
 
 interface CollapsedViewProps {
   series: Series;
@@ -79,7 +128,7 @@ function CollapsedView({
               color="text.secondary"
               sx={{ fontSize: "0.875rem", fontWeight: 600 }}
             >
-              {formatDate(series.createdAt)}
+              {formatFullDate(series.createdAt)}
             </Typography>
           </Box>
         )}
@@ -271,13 +320,12 @@ function SeriesContextMenu({
 }
 
 /**
- * Compact variant of SeriesCard
+ * Collapsible card for a series group in the posts grid.
  *
- * Collapsible card showing:
- * - Collapsed: Series title centered with post count
- * - Expanded: Scrollable list of posts with series title in footer
+ * - Collapsed: series title centered (click to expand)
+ * - Expanded: scrollable list of posts with series title in footer
  */
-const CompactVariant: React.FC<CompactVariantProps> = memo(({
+const SeriesGroupCard: React.FC<SeriesGroupCardProps> = memo(({
   series,
   posts,
   user,
@@ -293,7 +341,7 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   const isAuthor = !!user && user.id === series.authorId;
 
   const { isCollapsed, sortedPosts, handleToggle, handleCardClick } =
-    useCompactVariantState(
+    useSeriesGroupState(
       posts,
       defaultExpanded,
       series.id,
@@ -308,7 +356,7 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
     handleCloseMenu,
     handleEdit,
     handleDelete,
-  } = useSeriesActions(series);
+  } = useSeriesGroupActions(series);
 
   return (
     <Box
@@ -370,6 +418,6 @@ const CompactVariant: React.FC<CompactVariantProps> = memo(({
   );
 });
 
-CompactVariant.displayName = "CompactVariant";
+SeriesGroupCard.displayName = "SeriesGroupCard";
 
-export default CompactVariant;
+export default SeriesGroupCard;
