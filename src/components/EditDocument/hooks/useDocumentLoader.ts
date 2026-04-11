@@ -16,6 +16,13 @@ export function useDocumentLoader(
 ) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ title: string; subtitle?: string }>();
+  // Holds the document with real data as loaded from IndexedDB or cloud.
+  // Used by EditDocumentContent to initialise the editor, bypassing the Redux
+  // selector which may return a stale EMPTY_EDITOR_STATE reference due to the
+  // custom equality function (a, b) => a?.id === b?.id.
+  const [loadedDocument, setLoadedDocument] = useState<
+    EditorDocument | undefined
+  >();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
   const errorAnnounce = useErrorAnnounce();
@@ -32,7 +39,10 @@ export function useDocumentLoader(
       }
 
       if (editorDocument) {
-        if (!isCancelled()) setIsLoading(false);
+        if (!isCancelled()) {
+          setLoadedDocument(editorDocument);
+          setIsLoading(false);
+        }
 
         if (user) {
           try {
@@ -65,7 +75,10 @@ export function useDocumentLoader(
           const { cloudDocument: _cloud, ...cloudEditorDoc } = cloudPayload;
           lastSavedCloud.current = JSON.stringify(cloudEditorDoc.data);
           await dispatch(actions.createLocalDocument(cloudEditorDoc));
-          if (!isCancelled()) setIsLoading(false);
+          if (!isCancelled()) {
+            setLoadedDocument(cloudEditorDoc);
+            setIsLoading(false);
+          }
         } catch (err) {
           if (isCancelled()) return;
           if (docId === "notes" && user) {
@@ -107,7 +120,10 @@ export function useDocumentLoader(
               await dispatch(actions.createCloudDocument(cloudDocumentPayload));
               await dispatch(actions.createCloudRevision(revision));
 
-              if (!isCancelled()) setIsLoading(false);
+              if (!isCancelled()) {
+                setLoadedDocument(newDocument);
+                setIsLoading(false);
+              }
             } catch (createErr) {
               errorAnnounce("Failed to create notes document", createErr);
               if (!isCancelled()) {
@@ -138,5 +154,5 @@ export function useDocumentLoader(
     };
   }, [dispatch, user]);
 
-  return { isLoading, error };
+  return { isLoading, error, loadedDocument };
 }

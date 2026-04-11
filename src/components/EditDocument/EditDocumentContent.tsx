@@ -90,16 +90,22 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = (
   );
 
   const { lastSavedCloud } = useCloudSave(document, editorRef);
-  const { isLoading, error } = useDocumentLoader(id, lastSavedCloud);
+  const { isLoading, error, loadedDocument } = useDocumentLoader(
+    id,
+    lastSavedCloud,
+  );
 
-  // Apply data normalization once when the document finishes loading.
-  // isLoading is included so the memo recomputes when loading completes —
-  // Redux may hold EMPTY_EDITOR_STATE for the document until getLocalDocument
-  // populates it with the real data (just before isLoading becomes false).
+  // Apply data normalization once, using the freshly-loaded document from
+  // IndexedDB/cloud rather than the Redux selector value. The selector uses a
+  // custom equality (a, b) => a?.id === b?.id which can freeze a stale
+  // EMPTY_EDITOR_STATE reference from loadLocalDocuments, even after
+  // getLocalDocument has populated Redux with real data.
   const documentForEditor = useMemo(
-    () => (!isLoading && document ? ensureValidDocumentData(document) : undefined),
+    () => (loadedDocument
+      ? ensureValidDocumentData(loadedDocument)
+      : undefined),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [document?.id, isLoading],
+    [loadedDocument?.id],
   );
   const { handleChange } = useAutoSave(document);
   const { handleSaveAndNavigate, handleDiscard } = useDocumentNavigation(
