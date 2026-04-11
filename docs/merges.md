@@ -4,27 +4,6 @@ Findings from April 2026 audit of `src/components/`.
 
 ---
 
-## 2. Three card-shaped error boundaries → one
-
-**Effort:** S — delete 2 files, update ~5 call sites.
-
-Three components implement the same "card that failed to render" pattern:
-
-| File                                  | Capability                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------ |
-| `ErrorBoundary/CardErrorBoundary.tsx` | `onError` callback, dev-mode error detail, `fallback` prop — **keep this one** |
-| `Home/ErrorBoundaryCard.tsx`          | simpler class component, no callback                                           |
-| fallback inside `AppErrorBoundary`    | inline card-shaped JSX, duplicates CardErrorBoundary                           |
-
-**Action:**
-
-- Delete `Home/ErrorBoundaryCard.tsx`; replace its usages in `Home/` with
-  `<CardErrorBoundary>`.
-- Remove the duplicate inline card fallback from `AppErrorBoundary` — use
-  `<CardErrorBoundary>` as the fallback prop instead.
-
----
-
 ## 3. Four "nothing here" empty states → one upgraded `EmptyState`
 
 **Effort:** M — upgrade one component, delete two files, update call sites.
@@ -131,11 +110,10 @@ calls become `<DateDisplay date={x} relative addSuffix />`.
 
 ## Summary
 
-| # | Description                                   | Files removed                 | Effort |
-| - | --------------------------------------------- | ----------------------------- | ------ |
-| 2 | Three error boundaries → `CardErrorBoundary`  | −2                            | S      |
-| 3 | Four empty states → one upgraded `EmptyState` | −2                            | M      |
-| 4 | Extract `DrawerShell`                         | +1 shared                     | M      |
-| 5 | Merge `RelativeDate` into `DateDisplay`       | −1                            | S      |
+| # | Description                                   | Files removed | Effort |
+| - | --------------------------------------------- | ------------- | ------ |
+| 3 | Four empty states → one upgraded `EmptyState` | −2            | M      |
+| 4 | Extract `DrawerShell`                         | +1 shared     | M      |
+| 5 | Merge `RelativeDate` into `DateDisplay`       | −1            | S      |
 
 **Total: up to −7 files, 1 directory eliminated, 2 components upgraded.**

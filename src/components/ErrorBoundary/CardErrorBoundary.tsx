@@ -7,6 +7,7 @@ interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  title?: string;
 }
 
 interface State {
@@ -83,11 +84,15 @@ class CardErrorBoundary extends Component<Props, State> {
             />
 
             <Typography variant="h6" color="error.main" gutterBottom>
-              Card Error
+              {this.props.title
+                ? `Failed to load ${this.props.title}`
+                : "Card Error"}
             </Typography>
 
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              This card couldn't be displayed properly
+              {this.props.title
+                ? `${this.props.title} couldn't be displayed properly`
+                : "This card couldn't be displayed properly"}
             </Typography>
 
             {process.env.NODE_ENV === "development" && this.state.error && (

@@ -15,7 +15,7 @@ import FullViewDialog from "./FullViewDialog";
 import NotesCanvas from "../NotesCanvas";
 import KanbanBoard from "./KanbanBoard";
 import ReadmeViewer from "./ReadmeViewer";
-import ErrorBoundaryCard from "./ErrorBoundaryCard";
+import { CardErrorBoundary } from "@/components/ErrorBoundary";
 import { StickyNote2 } from "@mui/icons-material";
 import { useNotesBoards } from "@/hooks/useNotesBoards";
 import { useNotesZoom } from "@/hooks/useNotesZoom";
@@ -104,7 +104,7 @@ const Home: React.FC<{
           {/* Notes Canvas - Full width at top */}
           <Grid size={{ xs: 12 }}>
             <NotesClipboardProvider>
-              <ErrorBoundaryCard cardName="Notes">
+              <CardErrorBoundary title="Notes">
                 {/* Board selector + canvas in unified container */}
                 <Box
                   sx={{
@@ -186,34 +186,34 @@ const Home: React.FC<{
                     />
                   </Box>
                 </Box>
-              </ErrorBoundaryCard>
+              </CardErrorBoundary>
             </NotesClipboardProvider>
           </Grid>
           <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-            <ErrorBoundaryCard cardName="Board">
+            <CardErrorBoundary title="Board">
               <KanbanPreviewCard
                 documents={documents}
                 onViewFull={() => handleOpenView("kanban")}
               />
-            </ErrorBoundaryCard>
+            </CardErrorBoundary>
           </Grid>
 
           <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-            <ErrorBoundaryCard cardName="README">
+            <CardErrorBoundary title="README">
               <ReadmePreviewCard
                 documents={documents}
                 onViewFull={() => handleOpenView("readme")}
               />
-            </ErrorBoundaryCard>
+            </CardErrorBoundary>
           </Grid>
 
           <Grid size={{ xs: 12, md: 12, lg: 4 }}>
-            <ErrorBoundaryCard cardName="Recent Posts">
+            <CardErrorBoundary title="Recent Posts">
               <RecentPostsPreviewCard
                 documents={recentPosts}
                 onViewFull={() => router.push("/posts")}
               />
-            </ErrorBoundaryCard>
+            </CardErrorBoundary>
           </Grid>
         </Grid>
 
