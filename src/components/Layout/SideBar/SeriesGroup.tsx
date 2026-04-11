@@ -8,7 +8,7 @@ import {
   ListItemText,
   Tooltip,
 } from "@mui/material";
-import { ExpandLess, ExpandMore } from "@mui/icons-material";
+import { ChevronRight, ExpandMore } from "@mui/icons-material";
 import type { Series } from "@/types";
 import type { SeriesGroupItem } from "@/utils/posts/seriesGrouping";
 import type { PostItemActions } from "./hooks/useSidebarActions";
@@ -72,12 +72,12 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
             >
               {isExpanded
                 ? (
-                  <ExpandLess
+                  <ExpandMore
                     sx={{ fontSize: "0.85em", color: "text.secondary" }}
                   />
                 )
                 : (
-                  <ExpandMore
+                  <ChevronRight
                     sx={{ fontSize: "0.85em", color: "text.secondary" }}
                   />
                 )}
