@@ -159,7 +159,14 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
     return (
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
         {titleIcon && (
-          <Box sx={{ mr: 1.5, color: "primary.main", display: "flex", alignItems: "center" }}>
+          <Box
+            sx={{
+              mr: 1.5,
+              color: "primary.main",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
             {titleIcon}
           </Box>
         )}

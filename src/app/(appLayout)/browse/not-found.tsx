@@ -4,15 +4,12 @@ import { Box, Button, Container, Typography } from "@mui/material";
 import { ArrowBack, Folder } from "@mui/icons-material";
 import Link from "next/link";
 
-interface ErrorStateProps {
-  // No legacy props needed for blog structure
-}
-
 /**
- * Error state component for blog posts
- * Simplified for blog structure without directories/domains
+ * Shown by Next.js when notFound() is called inside any browse/* segment,
+ * or when a browse route segment fails to match.
+ * Replaces the former DocumentBrowser/components/ErrorState.tsx.
  */
-const ErrorState: React.FC<ErrorStateProps> = () => {
+export default function BrowseNotFound() {
   return (
     <Container
       maxWidth={false}
@@ -42,7 +39,8 @@ const ErrorState: React.FC<ErrorStateProps> = () => {
         />
         <Typography variant="h6">Post not found</Typography>
         <Typography variant="body2" color="text.secondary" align="center">
-          The blog post you're looking for doesn't exist or has been removed.
+          The blog post you&apos;re looking for doesn&apos;t exist or has been
+          removed.
         </Typography>
         <Button
           component={Link}
@@ -56,6 +54,4 @@ const ErrorState: React.FC<ErrorStateProps> = () => {
       </Box>
     </Container>
   );
-};
-
-export default ErrorState;
+}
