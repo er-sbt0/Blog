@@ -4,7 +4,6 @@ import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { registerSaveCallback, unregisterSaveCallback } from "../saveRegistry";
 import type { EditorDocument, EditorDocumentRevision } from "@/types";
 import type { LexicalEditor } from "lexical";
-import { v4 as uuidv4 } from "uuid";
 
 export function useCloudSave(
   document: EditorDocument | undefined,
@@ -29,13 +28,15 @@ export function useCloudSave(
         return true; // No changes to save
       }
 
-      const revisionId = uuidv4();
-      const now = new Date().toISOString();
+      // Reuse the local document's head ID so local and cloud heads stay in sync,
+      // and we don't create a new revision ID if an unsynced local one already exists.
+      const revisionId = document.head;
+      const timestamp = document.updatedAt || new Date().toISOString();
 
       const revision: EditorDocumentRevision = {
         id: revisionId,
         documentId: document.id,
-        createdAt: now,
+        createdAt: timestamp,
         data,
       };
 
@@ -43,7 +44,7 @@ export function useCloudSave(
         id: document.id,
         partial: {
           head: revisionId,
-          updatedAt: now,
+          updatedAt: timestamp,
           parentId: document.parentId,
         },
       };

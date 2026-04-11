@@ -66,13 +66,6 @@ export function useDocumentLoader(
           lastSavedCloud.current = JSON.stringify(cloudEditorDoc.data);
           await dispatch(actions.createLocalDocument(cloudEditorDoc));
           if (!isCancelled()) setIsLoading(false);
-          const editorDocumentRevision = {
-            id: cloudEditorDoc.head,
-            documentId: cloudEditorDoc.id,
-            createdAt: cloudEditorDoc.updatedAt,
-            data: cloudEditorDoc.data,
-          };
-          dispatch(actions.createLocalRevision(editorDocumentRevision));
         } catch (err) {
           if (isCancelled()) return;
           if (docId === "notes" && user) {

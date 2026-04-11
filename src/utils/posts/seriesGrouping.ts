@@ -66,7 +66,9 @@ export const groupPostsBySeries = (
   const postIdsInPartition = new Set(posts.map((p) => p.id));
 
   // Build a map from post ID to full UserDocument (preserves local draft info)
-  const postsByIdMap = new Map<string, UserDocument>(posts.map((p) => [p.id, p]));
+  const postsByIdMap = new Map<string, UserDocument>(
+    posts.map((p) => [p.id, p]),
+  );
 
   // Collect all post IDs that belong to displayed series
   const seriesPostIds = new Set<string>();

@@ -166,7 +166,13 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                       }}
                     >
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
                           {postCount > 0 && (
                             <ChevronRight
                               sx={{
@@ -174,7 +180,9 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                                 color: "text.secondary",
                                 flexShrink: 0,
                                 transition: "transform 0.2s ease",
-                                transform: isExpanded ? "rotate(90deg)" : "none",
+                                transform: isExpanded
+                                  ? "rotate(90deg)"
+                                  : "none",
                               }}
                             />
                           )}
