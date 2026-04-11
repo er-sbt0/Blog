@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import SideBar from "./SideBar";
 import HydrationManager from "./HydrationManager";
 import Breadcrumbs from "./Breadcrumbs";
-import { Box, Container, Toolbar } from "@mui/material";
+import { Box, Container } from "@mui/material";
 import { CONTENT_RIGHT_PADDING } from "./SideBar/constants";
 import { actions, type RootState, useDispatch, useSelector } from "@/store";
 
@@ -26,13 +26,7 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
           overflow: "auto", /* Allow scrolling but scrollbar is hidden by CSS */
         }}
       >
-        <Toolbar
-          id="back-to-top-anchor"
-          sx={{
-            displayPrint: "none",
-            minHeight: "0 !important",
-          }}
-        />
+        <Box id="back-to-top-anchor" />
         <Breadcrumbs />
         <HydrationManager>
           <Container

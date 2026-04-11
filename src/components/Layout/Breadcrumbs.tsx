@@ -135,7 +135,14 @@ const Breadcrumbs: React.FC = () => {
 
   return (
     <Box
-      sx={{ py: 1, px: 2, borderBottom: "1px solid", borderColor: "divider" }}
+      sx={{
+        minHeight: 65,
+        px: 2,
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        display: "flex",
+        alignItems: "center",
+      }}
     >
       <MuiBreadcrumbs aria-label="breadcrumb" separator="›">
         {breadcrumbs.map((item, index) => {
