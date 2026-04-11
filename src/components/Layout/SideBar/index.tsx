@@ -15,7 +15,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Home, LibraryBooks, StickyNote2 } from "@mui/icons-material";
+import { LibraryBooks, StickyNote2 } from "@mui/icons-material";
 import { styles } from "../styles";
 import { DocumentStatus, type UserDocument } from "@/types";
 import { useSidebarState } from "./hooks/useSidebarState";
@@ -36,7 +36,6 @@ const NAV_ITEM_MIN_HEIGHT = 42;
 const USER_ITEM_MIN_HEIGHT = 48;
 
 const navigationItems = [
-  { text: "Home", icon: <Home />, path: "/" },
   { text: "Posts", icon: <LibraryBooks />, path: "/posts" },
   { text: "Notes", icon: <StickyNote2 />, path: "/notes" },
 ];
