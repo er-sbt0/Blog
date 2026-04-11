@@ -11,6 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import {
+  Add,
   CalendarMonth,
   FilterList,
   Schedule,
@@ -34,6 +35,9 @@ interface PostsHeaderProps {
   onShowPostsChange?: (show: boolean) => void;
   showSeries?: boolean;
   onShowSeriesChange?: (show: boolean) => void;
+  canEdit?: boolean;
+  onNewPost?: () => void;
+  onNewSeries?: () => void;
 }
 
 const toggleGroupSx = {
@@ -83,8 +87,10 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
   onShowPostsChange,
   showSeries = true,
   onShowSeriesChange,
+  canEdit = false,
+  onNewPost,
+  onNewSeries,
 }) => {
-
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(
     null,
   );
@@ -224,6 +230,38 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
 
         {/* View layout */}
         <ViewToggle view={viewType} onChange={handleViewTypeChange} />
+
+        {/* Create actions */}
+        {canEdit && (
+          <>
+            <Button
+              variant="text"
+              size="small"
+              startIcon={<Add />}
+              onClick={onNewPost}
+              sx={{
+                color: "text.secondary",
+                textTransform: "none",
+                fontSize: "0.875rem",
+              }}
+            >
+              New post
+            </Button>
+            <Button
+              variant="text"
+              size="small"
+              startIcon={<Add />}
+              onClick={onNewSeries}
+              sx={{
+                color: "text.secondary",
+                textTransform: "none",
+                fontSize: "0.875rem",
+              }}
+            >
+              New series
+            </Button>
+          </>
+        )}
       </Box>
 
       {/* Active filter chips */}
@@ -245,13 +283,13 @@ const PostsHeader: React.FC<PostsHeaderProps> = ({
             Active filters:
           </Typography>
           <Chip
-              label={activeTimeFilter?.label}
-              onDelete={handleClearTimeFilter}
-              size="small"
-              color="primary"
-              variant="outlined"
-              sx={{ borderRadius: 1.5, "& .MuiChip-label": { px: 1 } }}
-            />
+            label={activeTimeFilter?.label}
+            onDelete={handleClearTimeFilter}
+            size="small"
+            color="primary"
+            variant="outlined"
+            sx={{ borderRadius: 1.5, "& .MuiChip-label": { px: 1 } }}
+          />
         </Box>
       )}
 

@@ -1,7 +1,6 @@
 "use client";
 import React, { useMemo, useState } from "react";
-import { Box, Button } from "@mui/material";
-import { Add } from "@mui/icons-material";
+import { Box } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Series, User, UserDocument } from "@/types";
@@ -165,6 +164,7 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
             canEdit={canEdit}
             postCount={sortedWithPending.length}
             onAddPosts={() => setAddDialogOpen(true)}
+            onNewPost={() => setCreatePostDrawerOpen(true)}
           />
         )
         : (
@@ -181,6 +181,9 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
             onShowPostsChange={setShowPosts}
             showSeries={showSeries}
             onShowSeriesChange={setShowSeries}
+            canEdit={canEdit}
+            onNewPost={() => setCreatePostDrawerOpen(true)}
+            onNewSeries={() => setCreateSeriesDrawerOpen(true)}
           />
         )}
 
@@ -200,40 +203,6 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
           onSaveTimeChanges={handleSaveTimeChanges}
           onDiscardTimeChanges={handleDiscardTimeChanges}
         />
-      )}
-
-      {/* ── Inline CTAs ── */}
-      {canEdit && (isSeries || !documentsLoading) && (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 2 }}>
-          <Button
-            variant="text"
-            size="small"
-            startIcon={<Add />}
-            onClick={() => setCreatePostDrawerOpen(true)}
-            sx={{
-              color: "text.secondary",
-              textTransform: "none",
-              fontSize: "0.875rem",
-            }}
-          >
-            New post
-          </Button>
-          {!isSeries && (
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<Add />}
-              onClick={() => setCreateSeriesDrawerOpen(true)}
-              sx={{
-                color: "text.secondary",
-                textTransform: "none",
-                fontSize: "0.875rem",
-              }}
-            >
-              New series
-            </Button>
-          )}
-        </Box>
       )}
 
       {/* ── Content ── */}

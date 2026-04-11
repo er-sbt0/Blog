@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
-import { Box, Button, Chip, Typography } from "@mui/material";
-import { Add, CollectionsBookmark } from "@mui/icons-material";
+import { Box, Chip, IconButton, Tooltip, Typography } from "@mui/material";
+import { Add, CollectionsBookmark, PostAdd } from "@mui/icons-material";
 import { Series } from "@/types";
 import { formatFullDate as formatDate } from "@/utils/dateFormat";
 
@@ -10,6 +10,7 @@ interface SeriesHeaderProps {
   canEdit: boolean;
   postCount: number;
   onAddPosts: () => void;
+  onNewPost?: () => void;
 }
 
 const SeriesHeader: React.FC<SeriesHeaderProps> = ({
@@ -17,11 +18,16 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
   canEdit,
   postCount,
   onAddPosts,
+  onNewPost,
 }) => (
   <Box sx={{ mb: { xs: 3, md: 4 } }}>
-    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1.5 }}>
       <CollectionsBookmark
-        sx={{ fontSize: { xs: 28, md: 36 }, color: "primary.main" }}
+        sx={{
+          fontSize: { xs: 24, md: 28 },
+          color: "primary.main",
+          flexShrink: 0,
+        }}
       />
       <Typography
         variant="h4"
@@ -30,29 +36,43 @@ const SeriesHeader: React.FC<SeriesHeaderProps> = ({
           fontWeight: 700,
           fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2.125rem" },
           color: "text.primary",
+          flex: 1,
         }}
       >
         {series.title}
       </Typography>
-    </Box>
-
-    {canEdit && (
-      <Box sx={{ mb: 2, display: "flex", gap: 1.5 }}>
-        <Button
-          variant="outlined"
-          startIcon={<Add />}
-          onClick={onAddPosts}
+      {canEdit && (
+        <Box
           sx={{
-            borderRadius: 1.5,
-            textTransform: "none",
-            fontWeight: 600,
-            height: "40px",
+            display: "flex",
+            alignItems: "center",
+            gap: 0.5,
+            flexShrink: 0,
           }}
         >
-          Add/Remove Posts
-        </Button>
-      </Box>
-    )}
+          <Tooltip title="New post in series">
+            <IconButton
+              onClick={onNewPost}
+              size="small"
+              sx={{ color: "text.secondary" }}
+              aria-label="Create new post in series"
+            >
+              <PostAdd fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Add / remove posts">
+            <IconButton
+              onClick={onAddPosts}
+              size="small"
+              sx={{ color: "text.secondary" }}
+              aria-label="Add or remove posts"
+            >
+              <Add fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      )}
+    </Box>
 
     <Box
       sx={{
