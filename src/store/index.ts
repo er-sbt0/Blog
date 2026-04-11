@@ -36,6 +36,7 @@ import {
   syncLocalToCloud,
   updateCloudDocument,
   updateLocalDocument,
+  updateLocalRevision,
   updateSeries,
   updateUser,
 } from "./app";
@@ -65,6 +66,7 @@ export const actions = {
   getLocalRevision,
   getCloudRevision,
   createLocalRevision,
+  updateLocalRevision,
   createCloudRevision,
   deleteLocalRevision,
   deleteCloudRevision,

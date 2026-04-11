@@ -11,7 +11,7 @@ import {
   CardHeader,
   Chip,
 } from "@mui/material";
-import { Cloud, MobileFriendly } from "@mui/icons-material";
+import { Cloud, MobileFriendly, Storage } from "@mui/icons-material";
 import RouterLink from "next/link";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import { useSearchParams } from "next/navigation";
@@ -19,14 +19,31 @@ import { useSearchParams } from "next/navigation";
 const ViewRevisionCard: React.FC<{
   cloudDocument: Document;
   revision: CloudDocumentRevision;
+  isLocal?: boolean;
+  localHead?: string;
   sx?: SxProps<Theme> | undefined;
-}> = memo(({ cloudDocument, revision, sx }) => {
+}> = memo(({ cloudDocument, revision, isLocal, localHead, sx }) => {
   const searchParams = useSearchParams();
-  const currentRevisionId = searchParams.get("v") ?? cloudDocument.head;
+  const queryRevisionId = searchParams.get("v");
   const handle = cloudDocument.handle ?? cloudDocument.id;
-  const href = revision.id === cloudDocument.head
+
+  // When local head is ahead of cloud, the view page renders local content.
+  // The "current" revision in that case is the local head, not the cloud head.
+  const isLocalAhead = Boolean(localHead) && localHead !== cloudDocument.head;
+  const effectiveCurrentId = queryRevisionId ??
+    (isLocalAhead ? localHead : cloudDocument.head);
+
+  // Local-only revisions link to the base view URL (LocalDocumentView handles rendering).
+  // Cloud revisions link to ?v= for non-head revisions.
+  const href = isLocal
+    ? `/view/${handle}`
+    : revision.id === cloudDocument.head
     ? `/view/${handle}`
     : `/view/${handle}?v=${revision.id}`;
+
+  const isCloudRevision = !isLocal;
+  const isCurrent = effectiveCurrentId === revision.id;
+
   return (
     <Card
       variant="outlined"
@@ -72,13 +89,23 @@ const ViewRevisionCard: React.FC<{
           "& .MuiChip-root:last-of-type": { mr: 1 },
         }}
       >
-        <Chip
-          color={cloudDocument.head === revision.id ? "primary" : "default"}
-          sx={{ width: 0, flex: 1, maxWidth: "fit-content" }}
-          icon={<Cloud />}
-          label="Cloud"
-        />
-        {(currentRevisionId.startsWith(revision.id)) && (
+        {isLocal && (
+          <Chip
+            color={isCurrent ? "primary" : "default"}
+            sx={{ width: 0, flex: 1, maxWidth: "fit-content" }}
+            icon={<Storage />}
+            label="Local"
+          />
+        )}
+        {isCloudRevision && (
+          <Chip
+            color={cloudDocument.head === revision.id ? "primary" : "default"}
+            sx={{ width: 0, flex: 1, maxWidth: "fit-content" }}
+            icon={<Cloud />}
+            label="Cloud"
+          />
+        )}
+        {isCurrent && (
           <Chip
             color="primary"
             sx={{ width: 0, flex: 1, maxWidth: "fit-content" }}

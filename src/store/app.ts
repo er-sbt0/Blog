@@ -537,6 +537,23 @@ export const createLocalRevision = createAsyncThunk(
   },
 );
 
+export const updateLocalRevision = createAsyncThunk(
+  "app/updateLocalRevision",
+  async (revision: EditorDocumentRevision, thunkAPI) => {
+    try {
+      await revisionDB.update(revision);
+      const { data: _data, ...rest } = revision;
+      return thunkAPI.fulfillWithValue(rest);
+    } catch (error: unknown) {
+      console.error(error);
+      return thunkAPI.rejectWithValue({
+        title: "Something went wrong",
+        subtitle: toErrorMessage(error),
+      });
+    }
+  },
+);
+
 export const createCloudDocument = createAsyncThunk(
   "app/createCloudDocument",
   async (arg: DocumentCreateInput, thunkAPI) => {
@@ -1015,6 +1032,19 @@ export const appSlice = createSlice({
           ...revision,
           data: EMPTY_EDITOR_STATE,
         });
+      })
+      .addCase(updateLocalRevision.fulfilled, (state, action) => {
+        const revision = action.payload;
+        const userDocument = state.documents.entities[revision.documentId];
+        if (!userDocument) return;
+        const localDocument = userDocument.local;
+        if (!localDocument) return;
+        const existing = localDocument.revisions?.find(
+          (r) => r.id === revision.id,
+        );
+        if (existing) {
+          existing.createdAt = revision.createdAt;
+        }
       })
       .addCase(createCloudDocument.fulfilled, (state, action) => {
         const document = action.payload;

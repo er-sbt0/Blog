@@ -39,6 +39,23 @@ export default function ViewDocumentInfo(
     const doc = documentsSelectors.selectById(state, cloudDocument.id);
     return doc?.local?.revisions ?? [];
   });
+  const localHead = useSelector((state) => {
+    const doc = documentsSelectors.selectById(state, cloudDocument.id);
+    return doc?.local?.head;
+  });
+  const cloudRevisionIds = useMemo(
+    () => new Set(cloudDocument.revisions.map((r) => r.id)),
+    [cloudDocument.revisions],
+  );
+  const localRevisionIds = useMemo(
+    () =>
+      new Set(
+        localRevisions
+          .filter((r) => !cloudRevisionIds.has(r.id))
+          .map((r) => r.id),
+      ),
+    [localRevisions, cloudRevisionIds],
+  );
   const revisions = useMemo(() => {
     const merged: CloudDocumentRevision[] = [...cloudDocument.revisions];
     const localAuthorFallback: User = {
@@ -201,6 +218,8 @@ export default function ViewDocumentInfo(
               <ViewRevisionCard
                 cloudDocument={cloudDocument}
                 revision={revision}
+                isLocal={localRevisionIds.has(revision.id)}
+                localHead={localHead}
               />
             </Grid>
           ))}
