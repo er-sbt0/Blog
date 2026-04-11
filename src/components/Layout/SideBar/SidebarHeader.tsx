@@ -3,26 +3,18 @@ import RouterLink from "next/link";
 import Image from "next/image";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Add, ChevronLeft, ChevronRight, Remove } from "@mui/icons-material";
+import { ChevronLeft, ChevronRight } from "@mui/icons-material";
 
 interface SidebarHeaderProps {
   open: boolean;
-  sidebarFontSize: number;
   toggleSidebar: () => void;
   shortcutHint: string;
-  increaseFontSize: () => void;
-  decreaseFontSize: () => void;
-  resetFontSize: () => void;
 }
 
 export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
   open,
-  sidebarFontSize,
   toggleSidebar,
   shortcutHint,
-  increaseFontSize,
-  decreaseFontSize,
-  resetFontSize,
 }) => {
   const theme = useTheme();
 
@@ -65,46 +57,6 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
       )}
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-        {open && (
-          <>
-            <Tooltip title="Decrease font size">
-              <IconButton
-                size="small"
-                onClick={decreaseFontSize}
-                disabled={sidebarFontSize <= 10}
-                aria-label="Decrease sidebar font size"
-              >
-                <Remove fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip
-              title={`Font size: ${sidebarFontSize}px (click to reset)`}
-            >
-              <IconButton
-                size="small"
-                onClick={resetFontSize}
-                aria-label="Reset sidebar font size"
-                sx={{
-                  fontSize: "0.7em",
-                  minWidth: "32px",
-                  fontWeight: sidebarFontSize !== 16 ? "bold" : "normal",
-                }}
-              >
-                {sidebarFontSize}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Increase font size">
-              <IconButton
-                size="small"
-                onClick={increaseFontSize}
-                disabled={sidebarFontSize >= 24}
-                aria-label="Increase sidebar font size"
-              >
-                <Add fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </>
-        )}
         <Tooltip
           title={`${open ? "Collapse" : "Expand"} sidebar (${shortcutHint})`}
         >

@@ -7,6 +7,7 @@ import {
   Box,
   Divider,
   Drawer,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
@@ -15,7 +16,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { LibraryBooks, StickyNote2 } from "@mui/icons-material";
+import { Add, LibraryBooks, Remove, StickyNote2 } from "@mui/icons-material";
 import { styles } from "../styles";
 import { DocumentStatus, type UserDocument } from "@/types";
 import { useSidebarState } from "./hooks/useSidebarState";
@@ -122,12 +123,8 @@ const SideBar: React.FC = () => {
     >
       <SidebarHeader
         open={open}
-        sidebarFontSize={sidebarFontSize}
         toggleSidebar={toggleSidebar}
         shortcutHint={shortcutHint}
-        increaseFontSize={increaseFontSize}
-        decreaseFontSize={decreaseFontSize}
-        resetFontSize={resetFontSize}
       />
 
       <Divider sx={styles.divider} />
@@ -196,44 +193,111 @@ const SideBar: React.FC = () => {
 
       <Divider sx={styles.dividerBottom} />
 
-      <Box sx={{ ...styles.userBox, flexShrink: 0 }}>
-        <Box sx={{ mt: "auto" }}>
-          <List>
-            <ListItem disablePadding sx={{ display: "block" }}>
-              <Tooltip
-                title={open ? "" : (user ? user.name : "Sign In")}
-                placement="right"
+      <Box
+        sx={{
+          ...styles.userBox,
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: open ? "space-between" : "center",
+          minHeight: USER_ITEM_MIN_HEIGHT,
+          px: 1,
+        }}
+      >
+        <Tooltip
+          title={open ? "" : (user ? user.name : "Sign In")}
+          placement="right"
+        >
+          <Box
+            component={SafeNavigationLink}
+            href={user ? "/dashboard" : "/api/auth/signin"}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              textDecoration: "none",
+              color: "inherit",
+              borderRadius: 1,
+              px: 1.5,
+              py: 0.75,
+              flex: open ? "1 1 0" : "0 0 auto",
+              minWidth: 0,
+              "&:hover": { bgcolor: "action.hover" },
+            }}
+          >
+            <Avatar
+              alt={user?.name}
+              src={user?.image ?? undefined}
+              sx={{ width: 32, height: 32, flexShrink: 0 }}
+            />
+            {open && (
+              <Box
+                sx={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontSize: "0.9em",
+                }}
               >
-                <ListItemButton
-                  component={SafeNavigationLink}
-                  href={user ? "/dashboard" : "/api/auth/signin"}
-                  sx={{
-                    minHeight: USER_ITEM_MIN_HEIGHT,
-                    justifyContent: open ? "initial" : "center",
-                    px: 2.5,
-                  }}
+                {user ? user.name : "Sign In"}
+              </Box>
+            )}
+          </Box>
+        </Tooltip>
+
+        {open && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.25,
+              flexShrink: 0,
+            }}
+          >
+            <Tooltip title="Decrease font size">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={decreaseFontSize}
+                  disabled={sidebarFontSize <= 10}
+                  aria-label="Decrease sidebar font size"
                 >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 0,
-                      mr: open ? 2 : "auto",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Avatar
-                      alt={user?.name}
-                      src={user?.image ?? undefined}
-                      sx={{ width: 32, height: 32 }}
-                    />
-                  </ListItemIcon>
-                  {open && (
-                    <ListItemText primary={user ? user.name : "Sign In"} />
-                  )}
-                </ListItemButton>
-              </Tooltip>
-            </ListItem>
-          </List>
-        </Box>
+                  <Remove sx={{ fontSize: "0.85em" }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title={`Font size: ${sidebarFontSize}px (click to reset)`}>
+              <IconButton
+                size="small"
+                onClick={resetFontSize}
+                aria-label="Reset sidebar font size"
+                sx={{
+                  fontSize: "0.7em",
+                  minWidth: "28px",
+                  fontWeight: sidebarFontSize !== 16 ? "bold" : "normal",
+                  color: sidebarFontSize !== 16
+                    ? "primary.main"
+                    : "text.secondary",
+                }}
+              >
+                {sidebarFontSize}
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Increase font size">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={increaseFontSize}
+                  disabled={sidebarFontSize >= 24}
+                  aria-label="Increase sidebar font size"
+                >
+                  <Add sx={{ fontSize: "0.85em" }} />
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
+        )}
       </Box>
 
       {open && !isMobile && (
