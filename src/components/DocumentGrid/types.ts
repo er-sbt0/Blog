@@ -29,13 +29,6 @@ export interface PerformanceMetrics {
   averageRenderTime: number;
 }
 
-export interface DocumentGridHeaderProps {
-  title: string;
-  titleIcon?: React.ReactNode;
-  isLoading?: boolean;
-  itemCount?: number;
-}
-
 export interface DocumentGridErrorProps {
   error?: Error | string | null;
   onRetry?: () => void;

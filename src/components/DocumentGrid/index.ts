@@ -2,7 +2,6 @@
 export { default } from "./DocumentGrid";
 
 // Sub-components
-export { default as DocumentGridHeader } from "./DocumentGridHeader";
 export { default as DocumentGridError } from "./DocumentGridError";
 export { default as DocumentGridEmpty } from "./DocumentGridEmpty";
 

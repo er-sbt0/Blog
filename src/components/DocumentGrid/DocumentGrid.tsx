@@ -10,7 +10,6 @@ import { SxProps, Theme } from "@mui/material/styles";
 import { createCardTheme } from "../DocumentCard/theme";
 import { useResponsiveDocumentGrid } from "./hooks/useResponsiveDocumentGrid";
 import { useDocumentGridPerformance } from "./hooks/useDocumentGridPerformance";
-import DocumentGridHeader from "./DocumentGridHeader";
 import DocumentGridError from "./DocumentGridError";
 import DocumentGridEmpty from "./DocumentGridEmpty";
 
@@ -155,17 +154,18 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
 
   // Memoize the header component
   const headerComponent = useMemo(() => {
-    if (!title) return null;
+    if (!title && !titleIcon) return null;
 
     return (
-      <DocumentGridHeader
-        title={title}
-        titleIcon={titleIcon}
-        isLoading={isLoading}
-        itemCount={items.length}
-      />
+      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+        {titleIcon && (
+          <Box sx={{ mr: 1.5, color: "primary.main", display: "flex", alignItems: "center" }}>
+            {titleIcon}
+          </Box>
+        )}
+      </Box>
     );
-  }, [title, titleIcon, isLoading, items.length]);
+  }, [title, titleIcon]);
 
   // Handle error state
   if (error) {

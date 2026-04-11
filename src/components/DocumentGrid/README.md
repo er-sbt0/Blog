@@ -117,21 +117,6 @@ The component automatically adapts to different screen sizes:
 
 ## Sub-components
 
-### DocumentGridHeader
-
-Header component with title, icon, and item count.
-
-```tsx
-import { DocumentGridHeader } from "@/components/DocumentGrid";
-
-<DocumentGridHeader
-  title="Documents"
-  titleIcon={<Folder />}
-  isLoading={false}
-  itemCount={documents.length}
-/>;
-```
-
 ### DocumentGridError
 
 Error state component with retry functionality.
