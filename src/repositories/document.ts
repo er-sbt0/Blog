@@ -57,7 +57,7 @@ const documentCoreSelect = {
   seriesOrder: true,
 } as const;
 
-// Helper: map a raw prisma post row to a CloudDocument
+// Helper: map a raw prisma document row to a CloudDocument
 const toCloudDocument = (
   post: Record<string, unknown> & {
     collab: boolean | null;
@@ -92,9 +92,8 @@ const toCloudDocument = (
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Transform: findPublishedDocuments → findPublishedPosts
-const findPublishedPosts = async (limit?: number) => {
-  const posts = await prisma.document.findMany({
+const findPublishedDocuments = async (limit?: number) => {
+  const docs = await prisma.document.findMany({
     where: {
       published: true,
       type: PrismaDocumentType.DOCUMENT,
@@ -109,12 +108,12 @@ const findPublishedPosts = async (limit?: number) => {
     take: limit,
   });
 
-  return posts.map(toCloudDocument);
+  return docs.map(toCloudDocument);
 };
 
-// Find all posts (published and unpublished)
-const findAllPosts = async (limit?: number) => {
-  const posts = await prisma.document.findMany({
+// Find all documents (published and unpublished)
+const findAllDocuments = async (limit?: number) => {
+  const docs = await prisma.document.findMany({
     where: {
       type: PrismaDocumentType.DOCUMENT,
       NOT: { name: { equals: "readme", mode: "insensitive" } },
@@ -128,21 +127,20 @@ const findAllPosts = async (limit?: number) => {
     take: limit,
   });
 
-  return posts.map(toCloudDocument);
+  return docs.map(toCloudDocument);
 };
 
-// Transform: findUserDocument → findUserPost
-const findUserPost = async (
+const findDocument = async (
   handle: string,
   revisions?: "all" | string | null,
 ) => {
   // First, let's check if the document exists at all (without type filter)
-  const anyDocument = await prisma.document.findFirst({
+  await prisma.document.findFirst({
     where: validate(handle) ? { id: handle } : { handle: handle.toLowerCase() },
     select: { id: true, name: true, type: true },
   });
 
-  const post = await prisma.document.findFirst({
+  const doc = await prisma.document.findFirst({
     where: {
       AND: [
         validate(handle) ? { id: handle } : { handle: handle.toLowerCase() },
@@ -182,47 +180,46 @@ const findUserPost = async (
     },
   });
 
-  if (!post) {
+  if (!doc) {
     return null;
   }
 
-  const cloudPost: Document = {
-    ...post,
+  const cloudDoc: Document = {
+    ...doc,
     coauthors: [], // Remove coauthor complexity
     type: PrismaDocumentType.DOCUMENT,
-    head: post.head || "",
-    revisions: post.revisions as DocumentRevision[],
-    status: post.status as DocumentStatus,
+    head: doc.head || "",
+    revisions: doc.revisions as DocumentRevision[],
+    status: doc.status as DocumentStatus,
   };
 
   if (revisions !== "all") {
-    const revisionId = revisions ?? post.head;
+    const revisionId = revisions ?? doc.head;
     let revision = revisionId
-      ? cloudPost.revisions.find((r) => r.id === revisionId)
+      ? cloudDoc.revisions.find((r) => r.id === revisionId)
       : undefined;
 
     if (!revision && !revisions) {
       // head is null or points to a revision not in the list — recover from latest
-      revision = cloudPost.revisions[0];
+      revision = cloudDoc.revisions[0];
       if (!revision) return null;
       await prisma.document.update({
-        where: { id: post.id },
+        where: { id: doc.id },
         data: { head: revision.id },
       });
-      cloudPost.head = revision.id;
+      cloudDoc.head = revision.id;
     }
 
     if (!revision) return null;
-    cloudPost.revisions = [revision];
-    cloudPost.updatedAt = revision.createdAt;
+    cloudDoc.revisions = [revision];
+    cloudDoc.updatedAt = revision.createdAt;
   }
 
-  return cloudPost;
+  return cloudDoc;
 };
 
-// Transform: findDocumentsByAuthorId → findPostsByAuthorId
-const findPostsByAuthorId = async (authorId: string) => {
-  const posts = await prisma.document.findMany({
+const findDocumentsByAuthorId = async (authorId: string) => {
+  const docs = await prisma.document.findMany({
     where: { authorId, type: PrismaDocumentType.DOCUMENT },
     select: {
       ...documentCoreSelect,
@@ -232,12 +229,11 @@ const findPostsByAuthorId = async (authorId: string) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return posts.map(toCloudDocument);
+  return docs.map(toCloudDocument);
 };
 
-// Transform: findPublishedDocumentsByAuthorId → findPublishedPostsByAuthorId
-const findPublishedPostsByAuthorId = async (authorId: string) => {
-  const posts = await prisma.document.findMany({
+const findPublishedDocumentsByAuthorId = async (authorId: string) => {
+  const docs = await prisma.document.findMany({
     where: {
       authorId,
       published: true,
@@ -252,49 +248,46 @@ const findPublishedPostsByAuthorId = async (authorId: string) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return posts.map(toCloudDocument);
+  return docs.map(toCloudDocument);
 };
 
-// Transform: createDocument → createPost
-const createPost = async (data: Prisma.DocumentUncheckedCreateInput) => {
+const createDocument = async (data: Prisma.DocumentUncheckedCreateInput) => {
   if (!data.id) return null;
 
   // Ensure it's always a DOCUMENT type, not DIRECTORY
-  const postData = {
+  const docData = {
     ...data,
     type: PrismaDocumentType.DOCUMENT,
     // For blog posts, we don't use parentId (flat structure)
     parentId: null,
   };
 
-  await prisma.document.create({ data: postData });
-  return findUserPost(data.id);
+  await prisma.document.create({ data: docData });
+  return findDocument(data.id);
 };
 
-// Transform: updateDocument → updatePost
-const updatePost = async (
+const updateDocument = async (
   handle: string,
   data: Prisma.DocumentUncheckedUpdateInput,
 ) => {
   // Ensure type remains DOCUMENT
-  const postData = {
+  const docData = {
     ...data,
     type: PrismaDocumentType.DOCUMENT,
   };
 
   await prisma.document.update({
     where: validate(handle) ? { id: handle } : { handle: handle.toLowerCase() },
-    data: postData,
+    data: docData,
   });
-  return findUserPost(handle, "all");
+  return findDocument(handle, "all");
 };
 
-// Transform: deleteDocument → deletePost
-const deletePost = async (handle: string) => {
+const deleteDocument = async (handle: string) => {
   // Find and delete in a single transaction to ensure consistency
   return await prisma.$transaction(async (tx) => {
-    // Find the post
-    const post = await tx.document.findFirst({
+    // Find the document
+    const doc = await tx.document.findFirst({
       where: {
         AND: [
           validate(handle) ? { id: handle } : { handle: handle.toLowerCase() },
@@ -304,20 +297,19 @@ const deletePost = async (handle: string) => {
       select: { id: true },
     });
 
-    if (!post) {
-      throw new Error("Post not found");
+    if (!doc) {
+      throw new Error("Document not found");
     }
 
-    // Delete the post
+    // Delete the document
     return await tx.document.delete({
-      where: { id: post.id },
+      where: { id: doc.id },
     });
   });
 };
 
-// Transform: findEditorDocument → findEditorPost
-const findEditorPost = async (handle: string) => {
-  let post = await prisma.document.findFirst({
+const findEditorDocument = async (handle: string) => {
+  let doc = await prisma.document.findFirst({
     where: {
       AND: [
         validate(handle) ? { id: handle } : { handle: handle.toLowerCase() },
@@ -326,48 +318,48 @@ const findEditorPost = async (handle: string) => {
     },
   });
 
-  if (!post) return null;
+  if (!doc) return null;
 
-  let revision = post.head ? await getCachedRevision(post.head) : null;
+  let revision = doc.head ? await getCachedRevision(doc.head) : null;
 
   if (!revision) {
     // Head is missing or points to a deleted revision — recover from latest
     const latestRevision = await prisma.revision.findFirst({
-      where: { documentId: post.id },
+      where: { documentId: doc.id },
       orderBy: { createdAt: "desc" },
       select: { id: true, documentId: true, createdAt: true, data: true },
     });
     if (latestRevision) {
       // Repair the document's head pointer
       await prisma.document.update({
-        where: { id: post.id },
+        where: { id: doc.id },
         data: { head: latestRevision.id },
       });
       revision = {
         ...latestRevision,
         data: latestRevision.data as unknown as EditorDocumentRevision["data"],
       };
-      // Update post.head so the editorPost below is consistent
-      post = { ...post, head: latestRevision.id };
+      // Update doc.head so the editorDocument below is consistent
+      doc = { ...doc, head: latestRevision.id };
     }
   }
 
   if (!revision) return null;
 
-  const editorPost: EditorDocument = {
-    ...post,
+  const editorDocument: EditorDocument = {
+    ...doc,
     data: revision.data as unknown as EditorDocument["data"],
     type: PrismaDocumentType.DOCUMENT,
-    status: post.status as DocumentStatus,
-    head: post.head || "",
+    status: doc.status as DocumentStatus,
+    head: doc.head || "",
   };
 
-  return editorPost;
+  return editorDocument;
 };
 
-// Function to find cloud storage usage by author ID (posts only)
+// Find cloud storage usage by author ID (documents only)
 const findCloudStorageUsageByAuthorId = async (authorId: string) => {
-  const postSizes = await prisma.$queryRaw<
+  const docSizes = await prisma.$queryRaw<
     { id: string; name: string; size: number }[]
   >`
     SELECT
@@ -383,25 +375,24 @@ const findCloudStorageUsageByAuthorId = async (authorId: string) => {
     WHERE
       d."authorId" = ${authorId}::uuid
       AND d."type" = 'DOCUMENT'
-    GROUP BY 
+    GROUP BY
       d.id
-    ORDER BY 
+    ORDER BY
       d."createdAt" DESC;
   `;
 
-  return postSizes;
+  return docSizes;
 };
 
-// Export functions with new post naming
 export {
-  createPost,
-  deletePost,
-  findAllPosts,
+  createDocument,
+  deleteDocument,
+  findAllDocuments,
   findCloudStorageUsageByAuthorId,
-  findEditorPost,
-  findPostsByAuthorId,
-  findPublishedPosts,
-  findPublishedPostsByAuthorId,
-  findUserPost,
-  updatePost,
+  findDocument,
+  findDocumentsByAuthorId,
+  findEditorDocument,
+  findPublishedDocuments,
+  findPublishedDocumentsByAuthorId,
+  updateDocument,
 };

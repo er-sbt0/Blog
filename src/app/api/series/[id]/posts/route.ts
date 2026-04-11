@@ -6,7 +6,7 @@ import {
   findSeriesById,
   removePostFromSeries,
 } from "@/repositories/series";
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
@@ -86,7 +86,7 @@ export const POST = withApiHandler(
     }
 
     // Check if post exists and user owns it
-    const post = await findUserPost(postId);
+    const post = await findDocument(postId);
     if (!post) {
       throw new ApiError(404, "Post not found");
     }
@@ -238,7 +238,7 @@ export const DELETE = withApiHandler(
     }
 
     // Check if post exists and belongs to this series
-    const post = await findUserPost(postId);
+    const post = await findDocument(postId);
     if (!post) {
       throw new ApiError(404, "Post not found");
     }

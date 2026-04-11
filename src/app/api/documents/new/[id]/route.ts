@@ -1,6 +1,6 @@
 import { authOptions } from "@/lib/auth";
 import { ApiError, withApiHandler } from "@/lib/api-utils";
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { getCachedRevision } from "@/repositories/revision";
@@ -12,7 +12,7 @@ export const GET = withApiHandler(
     const params = await props.params;
     const { searchParams } = new URL(request.url);
     const revisionId = searchParams.get("v");
-    const cloudDocument = await findUserPost(params.id, revisionId);
+    const cloudDocument = await findDocument(params.id, revisionId);
     if (!cloudDocument) {
       throw new ApiError(404, "Document not found");
     }

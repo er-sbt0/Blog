@@ -1,4 +1,4 @@
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 import { validate } from "uuid";
 
 export const validateHandle = async (handle: string) => {
@@ -20,7 +20,7 @@ export const validateHandle = async (handle: string) => {
       subtitle: "Handle must not be a UUID",
     };
   }
-  const userDocument = await findUserPost(handle);
+  const userDocument = await findDocument(handle);
   if (userDocument) {
     return {
       title: "Handle already in use",

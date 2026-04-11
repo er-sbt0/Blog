@@ -1,6 +1,6 @@
 import { authOptions } from "@/lib/auth";
 import { ApiError, withApiHandler } from "@/lib/api-utils";
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { mkdir, writeFile } from "fs/promises";
@@ -36,7 +36,7 @@ export const POST = withApiHandler(
       );
     }
 
-    const userDocument = await findUserPost(params.id);
+    const userDocument = await findDocument(params.id);
     if (!userDocument) {
       throw new ApiError(404, "Document not found");
     }

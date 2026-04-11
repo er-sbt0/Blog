@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Playground from "@/components/Playground";
 import htmr from "htmr";
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 import { findRevisionHtml } from "@/app/api/utils";
 
 export const metadata: Metadata = {
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const page = async () => {
-  const document = await findUserPost("playground");
+  const document = await findDocument("playground");
   if (!document) return <Playground />;
   const revisionId = document.head;
   const html = await findRevisionHtml(revisionId);

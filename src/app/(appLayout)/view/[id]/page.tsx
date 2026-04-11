@@ -1,5 +1,5 @@
 import type { OgMetadata } from "@/app/api/og/route";
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 import ViewDocument from "@/components/views/ViewDocument";
 import htmr from "htmr";
 import { Metadata } from "next";
@@ -15,7 +15,7 @@ import { format } from "date-fns";
 export const dynamic = "force-dynamic";
 
 const getCachedUserDocument = cache(async (id: string, revisions?: string) =>
-  await findUserPost(id, revisions)
+  await findDocument(id, revisions)
 );
 const getCachedSession = cache(async () => await getServerSession(authOptions));
 

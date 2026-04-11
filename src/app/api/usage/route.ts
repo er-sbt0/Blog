@@ -1,6 +1,6 @@
 import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { authOptions } from "@/lib/auth";
-import { findCloudStorageUsageByAuthorId } from "@/repositories/post";
+import { findCloudStorageUsageByAuthorId } from "@/repositories/document";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 

@@ -16,15 +16,19 @@ interface UpdateTimesRequest {
 }
 
 /**
- * POST /api/posts/update-times
- * Update creation times for multiple posts
- * Only the author can update their posts' times
+ * POST /api/documents/update-times
+ * Update creation times for multiple documents
+ * Only the author can update their documents' times
  */
 export const POST = withApiHandler(async (request) => {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    throw new ApiError(401, "Unauthorized", "Please sign in to update posts");
+    throw new ApiError(
+      401,
+      "Unauthorized",
+      "Please sign in to update documents",
+    );
   }
 
   const body: UpdateTimesRequest = await request.json();
@@ -36,19 +40,19 @@ export const POST = withApiHandler(async (request) => {
 
   const userId = session.user.id;
 
-  // Verify all posts belong to the current user and update them
+  // Verify all documents belong to the current user and update them
   const results = await Promise.all(
     updates.map(async (update) => {
-      const post = await prisma.document.findUnique({
+      const doc = await prisma.document.findUnique({
         where: { id: update.id },
         select: { id: true, authorId: true },
       });
 
-      if (!post) {
-        return { id: update.id, success: false, error: "Post not found" };
+      if (!doc) {
+        return { id: update.id, success: false, error: "Document not found" };
       }
 
-      if (post.authorId !== userId) {
+      if (doc.authorId !== userId) {
         return { id: update.id, success: false, error: "Not authorized" };
       }
 
@@ -78,7 +82,7 @@ export const POST = withApiHandler(async (request) => {
 
   return NextResponse.json({
     success: true,
-    message: `Updated ${updates.length} post(s)`,
+    message: `Updated ${updates.length} document(s)`,
     results,
   });
-}, { context: "Failed to update post times" });
+}, { context: "Failed to update document times" });

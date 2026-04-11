@@ -1,4 +1,4 @@
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
 
     if (!handle) throw new Error("No handle provided");
 
-    const document = await findUserPost(handle, revision);
+    const document = await findDocument(handle, revision);
     if (!document || document.private) {
       throw new Error("Document not found");
     }

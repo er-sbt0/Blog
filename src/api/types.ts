@@ -34,15 +34,15 @@ export interface UpdateSeriesPostsResponse {
 }
 
 // -----------------------------------------------------------------------
-// Post times (POST /api/posts/update-times)
+// Document times (POST /api/documents/update-times)
 // -----------------------------------------------------------------------
-export interface PostTimeUpdate {
+export interface DocumentTimeUpdate {
   id: string;
   createdAt: Date | string;
 }
 
-export interface UpdatePostTimesInput {
-  updates: PostTimeUpdate[];
+export interface UpdateDocumentTimesInput {
+  updates: DocumentTimeUpdate[];
 }
 
 // -----------------------------------------------------------------------

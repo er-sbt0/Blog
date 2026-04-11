@@ -1,13 +1,13 @@
 import { ApiError, withApiHandler } from "@/lib/api-utils";
 import { authOptions } from "@/lib/auth";
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { findRevisionThumbnail } from "../../utils";
 
 export const GET = withApiHandler(async (_request, { params }) => {
   const { id } = await params;
-  const userDocument = await findUserPost(id);
+  const userDocument = await findDocument(id);
   if (!userDocument) {
     throw new ApiError(404, "Document not found");
   }

@@ -1,5 +1,5 @@
 import Home from "@/components/Home";
-import { findAllPosts } from "@/repositories/post";
+import { findAllDocuments } from "@/repositories/document";
 import { findAllSeries } from "@/repositories/series";
 import { UserDocument } from "@/types";
 import type { Metadata } from "next";
@@ -22,7 +22,7 @@ const page = async () => {
 
   // Server-side: fetch public posts (excludes README)
   // README will be fetched client-side by ReadmePreviewCard
-  const allPosts = await findAllPosts(12);
+  const allPosts = await findAllDocuments(12);
   const allSeries = await findAllSeries();
 
   const staticDocuments: UserDocument[] = allPosts.map(

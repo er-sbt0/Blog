@@ -44,7 +44,7 @@ import type {
   DeleteSeriesResponse,
   GetNotesCanvasResponse,
   NotesCanvas,
-  UpdatePostTimesInput,
+  UpdateDocumentTimesInput,
   UpdateSeriesPostsInput,
 } from "./types";
 
@@ -238,6 +238,15 @@ export const apiClient = {
         { method: "POST", body: formData },
       );
     },
+
+    /** POST /api/documents/update-times */
+    updateTimes: (
+      updates: UpdateDocumentTimesInput["updates"],
+    ): Promise<undefined> =>
+      request<undefined>("/api/documents/update-times", {
+        method: "POST",
+        ...json({ updates }),
+      }),
   },
 
   // -------------------------------------------------------------------------
@@ -307,20 +316,6 @@ export const apiClient = {
       request<undefined>(`/api/series/${id}/posts`, {
         method: "PATCH",
         ...json(payload),
-      }),
-  },
-
-  // -------------------------------------------------------------------------
-  // Posts
-  // -------------------------------------------------------------------------
-  posts: {
-    /** POST /api/posts/update-times */
-    updateTimes: (
-      updates: UpdatePostTimesInput["updates"],
-    ): Promise<undefined> =>
-      request<undefined>("/api/posts/update-times", {
-        method: "POST",
-        ...json({ updates }),
       }),
   },
 

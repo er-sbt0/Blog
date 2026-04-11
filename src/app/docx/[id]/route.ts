@@ -1,4 +1,4 @@
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 
 export async function GET(request: Request) {
   try {
@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const handle = url.pathname.split("/").pop()?.split(".docx")[0];
     const revision = search.get("v");
     if (!handle) throw new Error("No handle provided");
-    const document = await findUserPost(handle, revision);
+    const document = await findDocument(handle, revision);
     if (!document || document.private) {
       throw new Error("Document not found");
     }

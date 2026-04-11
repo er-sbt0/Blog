@@ -1,11 +1,11 @@
 import { authOptions } from "@/lib/auth";
 import { ApiError, withApiHandler } from "@/lib/api-utils";
 import {
-  createPost,
-  findAllPosts,
-  findPostsByAuthorId,
-  findUserPost,
-} from "@/repositories/post";
+  createDocument,
+  findAllDocuments,
+  findDocument,
+  findDocumentsByAuthorId,
+} from "@/repositories/document";
 import { DocumentCreateInput } from "@/types";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
@@ -22,7 +22,7 @@ export const GET = withApiHandler(async (request) => {
     : undefined;
   const session = await getServerSession(authOptions);
   if (!session) {
-    const allPosts = await findAllPosts(limit);
+    const allPosts = await findAllDocuments(limit);
     return NextResponse.json({ data: allPosts });
   }
   const { user } = session;
@@ -33,7 +33,7 @@ export const GET = withApiHandler(async (request) => {
       "Account is disabled for violating terms of service",
     );
   }
-  const posts = await findPostsByAuthorId(user.id);
+  const posts = await findDocumentsByAuthorId(user.id);
   return NextResponse.json({ data: posts });
 });
 
@@ -59,7 +59,7 @@ export const POST = withApiHandler(async (request) => {
     throw new ApiError(400, "Bad Request", "No document provided");
   }
 
-  const userPost = await findUserPost(body.id);
+  const userPost = await findDocument(body.id);
   if (userPost) {
     throw new ApiError(
       403,
@@ -130,11 +130,11 @@ export const POST = withApiHandler(async (request) => {
   }
 
   if (body.baseId) {
-    const basePost = await findUserPost(body.baseId);
+    const basePost = await findDocument(body.baseId);
     if (basePost) input.baseId = body.baseId;
   }
 
-  const data = await createPost(input);
+  const data = await createDocument(input);
 
   revalidatePath("/");
   if (body.seriesId) {

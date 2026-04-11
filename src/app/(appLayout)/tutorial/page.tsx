@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Tutorial from "@/components/Tutorial";
 import htmr from "htmr";
 import { findRevisionHtml } from "@/app/api/utils";
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 
 export const metadata: Metadata = {
   title: "Tutorial",
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const page = async () => {
-  const document = await findUserPost("tutorial");
+  const document = await findDocument("tutorial");
   if (!document) return <Tutorial />;
   const revisionId = document.head;
   const html = await findRevisionHtml(revisionId);

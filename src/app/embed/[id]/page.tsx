@@ -2,7 +2,7 @@ import type { OgMetadata } from "@/app/api/og/route";
 import htmr from "htmr";
 import EmbedDocument from "@/components/EmbedDocument";
 import PrintButton from "@/components/common/PrintTrigger";
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 import SplashScreen from "@/components/common/SplashScreen";
 import { cache } from "react";
 import type { Metadata } from "next";
@@ -13,7 +13,7 @@ import { format } from "date-fns";
 export const dynamic = "force-dynamic";
 
 const getCachedUserDocument = cache(async (id: string, revisions?: string) =>
-  await findUserPost(id, revisions)
+  await findDocument(id, revisions)
 );
 
 export async function generateMetadata(

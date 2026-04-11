@@ -1,10 +1,10 @@
-import { findAllPosts } from "@/repositories/post";
+import { findAllDocuments } from "@/repositories/document";
 import { MetadataRoute } from "next";
 
 const PUBLIC_URL = process.env.PUBLIC_URL;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const allPosts = await findAllPosts();
+  const allPosts = await findAllDocuments();
   const now = new Date().toISOString();
   return [
     {

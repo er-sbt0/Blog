@@ -56,7 +56,7 @@ export function useTimeEditing(posts: Document[]) {
     if (pendingTimeChanges.size === 0) return;
     setIsSavingTimeChanges(true);
     try {
-      await apiClient.posts.updateTimes(
+      await apiClient.documents.updateTimes(
         Array.from(pendingTimeChanges.entries()).map(([id, change]) => ({
           id,
           createdAt: change.newDate,

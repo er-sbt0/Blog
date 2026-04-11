@@ -1,6 +1,6 @@
 import { OgMetadata } from "@/app/api/og/route";
 import type { Metadata } from "next";
-import { findPublishedPostsByAuthorId } from "@/repositories/post";
+import { findPublishedDocumentsByAuthorId } from "@/repositories/document";
 import { notFound } from "next/navigation";
 import { findUser } from "@/repositories/user";
 import { cache, Suspense } from "react";
@@ -12,7 +12,7 @@ import { sortDocuments } from "@/components/DocumentControls/sortDocuments";
 
 const getCachedUser = cache(async (id: string) => await findUser(id));
 const getCachedUserDocuments = cache(async (id: string) =>
-  await findPublishedPostsByAuthorId(id)
+  await findPublishedDocumentsByAuthorId(id)
 );
 
 export async function generateMetadata(

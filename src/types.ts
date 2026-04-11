@@ -315,22 +315,6 @@ export interface Pix2textResponse {
   error?: { title: string; subtitle?: string };
 }
 
-// New response types for blog structure
-export interface GetPostsResponse {
-  data?: UserDocument[];
-  error?: { title: string; subtitle?: string };
-}
-
-export interface PostPostsResponse {
-  data?: UserDocument;
-  error?: { title: string; subtitle?: string };
-}
-
-export interface GetPostResponse {
-  data?: UserDocument;
-  error?: { title: string; subtitle?: string };
-}
-
 export interface GetSeriesResponse {
   data?: Series[];
   error?: { title: string; subtitle?: string };
@@ -339,21 +323,4 @@ export interface GetSeriesResponse {
 export interface PostSeriesResponse {
   data?: Series;
   error?: { title: string; subtitle?: string };
-}
-
-// New input types for blog structure
-export interface PostCreateInput {
-  title: string;
-  content?: string;
-  published?: boolean;
-  seriesId?: string;
-  seriesOrder?: number;
-}
-
-export interface PostUpdateInput {
-  title?: string;
-  content?: string;
-  published?: boolean;
-  seriesId?: string;
-  seriesOrder?: number;
 }

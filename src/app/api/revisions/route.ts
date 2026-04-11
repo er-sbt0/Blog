@@ -5,7 +5,7 @@ import { EditorDocumentRevision } from "@/types";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { findUserPost } from "@/repositories/post";
+import { findDocument } from "@/repositories/document";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export const POST = withApiHandler(async (request: Request) => {
     throw new ApiError(400, "Bad Request", "No revision provided");
   }
 
-  const cloudDocument = await findUserPost(body.documentId);
+  const cloudDocument = await findDocument(body.documentId);
   if (!cloudDocument) {
     throw new ApiError(404, "Document not found");
   }

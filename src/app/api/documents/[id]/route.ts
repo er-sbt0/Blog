@@ -1,11 +1,11 @@
 import { authOptions } from "@/lib/auth";
 import { ApiError, withApiHandler } from "@/lib/api-utils";
 import {
-  deletePost,
-  findEditorPost,
-  findUserPost,
-  updatePost,
-} from "@/repositories/post";
+  deleteDocument,
+  findDocument,
+  findEditorDocument,
+  updateDocument,
+} from "@/repositories/document";
 import { DocumentUpdateInput } from "@/types";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
@@ -20,7 +20,7 @@ export const GET = withApiHandler(
   async (request, props: { params: Promise<{ id: string }> }) => {
     const params = await props.params;
     const session = await getServerSession(authOptions);
-    const userPost = await findUserPost(params.id, "all");
+    const userPost = await findDocument(params.id, "all");
     if (!userPost) {
       throw new ApiError(404, "Document not found");
     }
@@ -53,7 +53,7 @@ export const GET = withApiHandler(
         );
       }
     }
-    const editorPost = await findEditorPost(params.id);
+    const editorPost = await findEditorDocument(params.id);
     if (!editorPost) {
       throw new ApiError(404, "Document not found");
     }
@@ -85,7 +85,7 @@ export const PATCH = withApiHandler(
         "Account is disabled for violating terms of service",
       );
     }
-    const userPost = await findUserPost(params.id);
+    const userPost = await findDocument(params.id);
     if (!userPost) {
       throw new ApiError(404, "Document not found");
     }
@@ -178,7 +178,7 @@ export const PATCH = withApiHandler(
       };
     }
 
-    const data = await updatePost(params.id, input);
+    const data = await updateDocument(params.id, input);
 
     revalidatePath("/");
     revalidatePath(`/${userPost.handle || params.id}`);
@@ -214,7 +214,7 @@ export const DELETE = withApiHandler(
         "Account is disabled for violating terms of service",
       );
     }
-    const userPost = await findUserPost(params.id);
+    const userPost = await findDocument(params.id);
     if (!userPost) {
       throw new ApiError(404, "Document not found");
     }
@@ -227,7 +227,7 @@ export const DELETE = withApiHandler(
     }
 
     // Delete post using transaction for consistency
-    await deletePost(params.id);
+    await deleteDocument(params.id);
 
     // Aggressively revalidate all affected paths
     // Using both "page" and "layout" ensures complete cache invalidation
