@@ -7,6 +7,25 @@ const selectDocuments = (state: RootState) =>
 const selectSeries = (state: RootState) => state.series;
 
 /**
+ * Memoized selector that returns only standalone posts — documents that are
+ * not members of any series.  Used by the /posts page to populate the "Posts"
+ * section now that series are rendered separately.
+ */
+export const selectStandalonePosts = createSelector(
+  [selectDocuments, selectSeries],
+  (documents, series): UserDocument[] => {
+    const seriesPostIds = new Set<string>();
+    series.forEach((s) => {
+      s.posts?.forEach((post) => seriesPostIds.add(post.id));
+    });
+    return documents.filter((doc) => {
+      const docData = doc.cloud || doc.local;
+      return docData?.type === "DOCUMENT" && !seriesPostIds.has(doc.id);
+    });
+  },
+);
+
+/**
  * Memoized selector that builds the unified posts list from documents + series.
  * Series posts (sourced from series.posts) take precedence; remaining documents
  * that are standalone DOCUMENT-type entries are appended.

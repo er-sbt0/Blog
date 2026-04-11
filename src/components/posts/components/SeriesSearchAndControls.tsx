@@ -1,10 +1,8 @@
 import React from "react";
 import { Box, Button, Chip } from "@mui/material";
 import { AccessTime, Check, Close } from "@mui/icons-material";
-import { PartitionControl } from "./PartitionControl";
 import { ViewToggle, type ViewType } from "@/components/shared/ViewToggle";
 import { PendingTimeChange } from "@/types/posts";
-import { PartitionGranularity } from "@/types/partitioning";
 
 const timeEditBtnSx = {
   textTransform: "none",
@@ -15,9 +13,6 @@ const timeEditBtnSx = {
 } as const;
 
 interface SeriesSearchAndControlsProps {
-  granularity: PartitionGranularity;
-  onGranularityChange: (g: PartitionGranularity) => void;
-  filteredPostCount: number;
   viewType: ViewType;
   onViewChange: (v: ViewType) => void;
   canEdit: boolean;
@@ -30,9 +25,6 @@ interface SeriesSearchAndControlsProps {
 }
 
 const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
-  granularity,
-  onGranularityChange,
-  filteredPostCount,
   viewType,
   onViewChange,
   canEdit,
@@ -43,77 +35,68 @@ const SeriesSearchAndControls: React.FC<SeriesSearchAndControlsProps> = ({
   onSaveTimeChanges,
   onDiscardTimeChanges,
 }) => (
-  <Box sx={{ mb: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+  <Box
+    sx={{
+      mb: 3,
+      display: "flex",
+      justifyContent: "flex-end",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 2,
+    }}
+  >
     <Box
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: 2,
-      }}
+      sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}
     >
-      <PartitionControl
-        granularity={granularity}
-        onGranularityChange={onGranularityChange}
-        postCount={filteredPostCount}
-        disabled={filteredPostCount === 0}
-      />
+      {canEdit && viewType === "compact" && (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Button
+            size="small"
+            variant={isTimeEditMode ? "contained" : "outlined"}
+            startIcon={<AccessTime />}
+            onClick={onToggleTimeEdit}
+            sx={timeEditBtnSx}
+          >
+            {isTimeEditMode ? "Editing" : "Edit"}
+          </Button>
 
-      <Box
-        sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}
-      >
-        {canEdit && viewType === "compact" && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Button
-              size="small"
-              variant={isTimeEditMode ? "contained" : "outlined"}
-              startIcon={<AccessTime />}
-              onClick={onToggleTimeEdit}
-              sx={timeEditBtnSx}
-            >
-              {isTimeEditMode ? "Editing" : "Edit"}
-            </Button>
-
-            {isTimeEditMode && (
-              <>
-                {pendingTimeChanges.size > 0 && (
-                  <Chip
-                    size="small"
-                    label={`${pendingTimeChanges.size} modified`}
-                    color="warning"
-                    sx={{ fontSize: "0.75rem", height: 24 }}
-                  />
-                )}
-                <Button
+          {isTimeEditMode && (
+            <>
+              {pendingTimeChanges.size > 0 && (
+                <Chip
                   size="small"
-                  variant="contained"
-                  color="success"
-                  startIcon={<Check />}
-                  onClick={onSaveTimeChanges}
-                  disabled={pendingTimeChanges.size === 0 ||
-                    isSavingTimeChanges}
-                  sx={{ ...timeEditBtnSx, minWidth: 80 }}
-                >
-                  {isSavingTimeChanges ? "Saving..." : "Save"}
-                </Button>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  startIcon={<Close />}
-                  onClick={onDiscardTimeChanges}
-                  disabled={isSavingTimeChanges}
-                  sx={timeEditBtnSx}
-                >
-                  Cancel
-                </Button>
-              </>
-            )}
-          </Box>
-        )}
-        <ViewToggle view={viewType} onChange={onViewChange} />
-      </Box>
+                  label={`${pendingTimeChanges.size} modified`}
+                  color="warning"
+                  sx={{ fontSize: "0.75rem", height: 24 }}
+                />
+              )}
+              <Button
+                size="small"
+                variant="contained"
+                color="success"
+                startIcon={<Check />}
+                onClick={onSaveTimeChanges}
+                disabled={pendingTimeChanges.size === 0 || isSavingTimeChanges}
+                sx={{ ...timeEditBtnSx, minWidth: 80 }}
+              >
+                {isSavingTimeChanges ? "Saving..." : "Save"}
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                startIcon={<Close />}
+                onClick={onDiscardTimeChanges}
+                disabled={isSavingTimeChanges}
+                sx={timeEditBtnSx}
+              >
+                Cancel
+              </Button>
+            </>
+          )}
+        </Box>
+      )}
+      <ViewToggle view={viewType} onChange={onViewChange} />
     </Box>
   </Box>
 );

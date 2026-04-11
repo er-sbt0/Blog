@@ -1,22 +1,23 @@
 "use client";
 import React, { useMemo, useState } from "react";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import Grid from "@mui/material/Grid2";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Series, User, UserDocument } from "@/types";
-import { PartitionGranularity } from "@/types/partitioning";
 import { useSelector } from "@/store";
-import { selectAllPosts } from "@/store/selectors/postsSelectors";
+import { selectStandalonePosts } from "@/store/selectors/postsSelectors";
 import useLocalStorage from "@/hooks/useLocalStorage";
-import { usePostsGrouping } from "@/hooks/usePostsGrouping";
 import { useTimeEditing } from "@/hooks/useTimeEditing";
 import { type ViewType } from "@/components/shared/ViewToggle";
 import { EmptyState } from "@/components/shared/EmptyState";
-import PostsTimeSection from "./PostsTimeSection";
+import DocumentCard from "@/components/DocumentCard";
+import { PostsCompactListView } from "./components/PostsCompactListView";
 
 // Header & controls
 import SeriesHeader from "./components/SeriesHeader";
 import SeriesSearchAndControls from "./components/SeriesSearchAndControls";
+import SeriesSection from "./components/SeriesSection";
 
 // Drawers & dialogs
 import CreatePostDrawer from "@/components/drawers/CreatePostDrawer";
@@ -33,13 +34,65 @@ interface PostsViewProps {
   user?: User;
 }
 
+/** Section heading with a trailing divider line — mirrors TimeGroupHeader style. */
+function SectionDivider({ label, color }: { label: string; color: string }) {
+  return (
+    <Box
+      sx={{
+        mb: { xs: 2, md: 3 },
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+      }}
+    >
+      <Typography
+        component="h2"
+        sx={{
+          fontSize: "0.9rem",
+          fontWeight: 600,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color,
+          whiteSpace: "nowrap",
+          flexShrink: 0,
+        }}
+      >
+        {label}
+      </Typography>
+      <Box sx={{ flex: 1, height: "1px", bgcolor: "divider" }} />
+    </Box>
+  );
+}
+
+function sortByDate(posts: UserDocument[]): UserDocument[] {
+  return [...posts].sort((a, b) => {
+    const dateA = new Date(a.cloud?.createdAt || a.local?.createdAt || 0)
+      .getTime();
+    const dateB = new Date(b.cloud?.createdAt || b.local?.createdAt || 0)
+      .getTime();
+    return dateB - dateA;
+  });
+}
+
+const PostsGrid: React.FC<{ posts: UserDocument[]; user?: User }> = (
+  { posts, user },
+) => (
+  <Grid container spacing={3} sx={{ mb: 4 }}>
+    {posts.map((doc) => (
+      <Grid key={doc.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+        <DocumentCard userDocument={doc} user={user} />
+      </Grid>
+    ))}
+  </Grid>
+);
+
 /**
  * Unified view for both /posts (all blog posts) and /posts/[id] (series detail).
  *
- * Series mode      – `series` prop provided.  Posts come from the series object,
- *                   supports time-edit mode for re-ordering posts by date.
- * All-posts mode   – no `series` prop. Posts come from Redux. Uses the same
- *                   series-style header and controls layout.
+ * Series mode    – `series` prop provided. Posts come from the series object,
+ *                 supports time-edit mode (compact view) for re-ordering by date.
+ * All-posts mode – no `series` prop. Posts are split into two sections:
+ *                 standalone posts first, then series, both sorted by date.
  */
 const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   const isSeries = !!series;
@@ -49,10 +102,6 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   const user = serverUser ?? (session?.user as User | undefined);
   const canEdit = isSeries ? !!user && user.id === series!.authorId : !!user;
 
-  // ── Common state ──────────────────────────────────────────────────────────
-  const [granularity, setGranularity] = useState<PartitionGranularity>(
-    "quarter",
-  );
   // Separate localStorage keys so each view retains its own preference.
   const [viewType, setViewType] = useLocalStorage<ViewType>(
     isSeries ? "seriesPostsView" : "postsView",
@@ -65,7 +114,8 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   // ── Redux (all-posts mode) ────────────────────────────────────────────────
-  const allPostsFromStore = useSelector(selectAllPosts);
+  const standalonePosts = useSelector(selectStandalonePosts);
+  const seriesList = useSelector((state) => state.series);
 
   // ── Series time-editing (always called – hooks must be unconditional) ─────
   const {
@@ -80,7 +130,7 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
     handleDiscardTimeChanges,
   } = useTimeEditing(series?.posts ?? []);
 
-  // Wrap series Document[] → UserDocument[] for the shared grouping hook.
+  // Wrap series Document[] → UserDocument[], sorted by date.
   const seriesUserDocs: UserDocument[] = useMemo(
     () =>
       isSeries
@@ -93,22 +143,11 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
     [isSeries, sortedWithPending],
   );
 
-  // ── Data pipeline ─────────────────────────────────────────────────────────
-  const rawPosts = isSeries ? seriesUserDocs : allPostsFromStore;
-
-  // Grouping (unified hook).
-  const { timeGroups } = usePostsGrouping({
-    posts: rawPosts,
-    allPosts: isSeries ? undefined : allPostsFromStore,
-    granularity,
-    pendingTimeChanges: isSeries ? pendingTimeChanges : undefined,
-  });
-
-  // ── Derived counts ────────────────────────────────────────────────────────
-  const totalCount = isSeries
-    ? sortedWithPending.length
-    : allPostsFromStore.length;
-  const filteredCount = rawPosts.length;
+  // Standalone posts sorted newest-first (all-posts mode).
+  const sortedStandalonePosts = useMemo(
+    () => sortByDate(standalonePosts),
+    [standalonePosts],
+  );
 
   const handlePostsAdded = () => router.refresh();
 
@@ -130,7 +169,7 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
       <SeriesHeader
         series={series}
         canEdit={canEdit}
-        postCount={isSeries ? sortedWithPending.length : totalCount}
+        postCount={isSeries ? sortedWithPending.length : standalonePosts.length}
         onAddPosts={isSeries ? () => setAddDialogOpen(true) : undefined}
         onNewPost={() => setCreatePostDrawerOpen(true)}
         onNewSeries={!isSeries
@@ -138,60 +177,106 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
           : undefined}
       />
 
-      {/* ── Controls bar ── */}
-      {rawPosts.length > 0 && (
-        <SeriesSearchAndControls
-          granularity={granularity}
-          onGranularityChange={setGranularity}
-          filteredPostCount={filteredCount}
-          viewType={viewType}
-          onViewChange={setViewType}
-          canEdit={canEdit && isSeries}
-          isTimeEditMode={isTimeEditMode}
-          isSavingTimeChanges={isSavingTimeChanges}
-          pendingTimeChanges={pendingTimeChanges}
-          onToggleTimeEdit={handleToggleTimeEditMode}
-          onSaveTimeChanges={handleSaveTimeChanges}
-          onDiscardTimeChanges={handleDiscardTimeChanges}
-        />
+      {/* ── Content: series mode ── */}
+      {isSeries && (
+        <>
+          {seriesUserDocs.length > 0 && (
+            <SeriesSearchAndControls
+              viewType={viewType}
+              onViewChange={setViewType}
+              canEdit={canEdit}
+              isTimeEditMode={isTimeEditMode}
+              isSavingTimeChanges={isSavingTimeChanges}
+              pendingTimeChanges={pendingTimeChanges}
+              onToggleTimeEdit={handleToggleTimeEditMode}
+              onSaveTimeChanges={handleSaveTimeChanges}
+              onDiscardTimeChanges={handleDiscardTimeChanges}
+            />
+          )}
+          {seriesUserDocs.length === 0
+            ? (
+              <EmptyState
+                emoji="📚"
+                title="No posts in this series yet"
+                description={canEdit
+                  ? "Add your existing posts to organize them in this series"
+                  : "This series doesn't have any posts yet"}
+              />
+            )
+            : viewType === "compact"
+            ? (
+              <PostsCompactListView
+                posts={seriesUserDocs}
+                user={user}
+                isTimeEditMode={isTimeEditMode}
+                pendingChanges={pendingTimeChanges}
+                onTimeAdjust={canEdit ? handleTimeAdjust : undefined}
+                onTimeReset={canEdit ? handleTimeReset : undefined}
+              />
+            )
+            : <PostsGrid posts={seriesUserDocs} user={user} />}
+        </>
       )}
 
-      {/* ── Content ── */}
-      {timeGroups.length === 0
-        ? (
-          <EmptyState
-            emoji={isSeries ? "📚" : "📝"}
-            title={isSeries ? "No posts in this series yet" : "No posts yet"}
-            description={isSeries
-              ? canEdit
-                ? "Add your existing posts to organize them in this series"
-                : "This series doesn't have any posts yet"
-              : "Start writing your first blog post and share your thoughts with the world!"}
-          />
-        )
-        : (
-          <Box>
-            {timeGroups.map((timeGroup, index) => (
-              <Box key={timeGroup.timeKey}>
-                <PostsTimeSection
-                  timeGroup={timeGroup}
-                  isLatest={index === 0}
-                  viewType={viewType}
+      {/* ── Content: all-posts mode — Posts then Series ── */}
+      {!isSeries && (() => {
+        const hasPosts = sortedStandalonePosts.length > 0;
+        const hasSeries = seriesList.length > 0;
+
+        if (!hasPosts && !hasSeries) {
+          return (
+            <EmptyState
+              emoji="📝"
+              title="No posts yet"
+              description="Start writing your first blog post and share your thoughts with the world!"
+            />
+          );
+        }
+
+        return (
+          <>
+            {/* Shared controls bar */}
+            <SeriesSearchAndControls
+              viewType={viewType}
+              onViewChange={setViewType}
+              canEdit={false}
+              isTimeEditMode={false}
+              isSavingTimeChanges={false}
+              pendingTimeChanges={pendingTimeChanges}
+              onToggleTimeEdit={handleToggleTimeEditMode}
+              onSaveTimeChanges={handleSaveTimeChanges}
+              onDiscardTimeChanges={handleDiscardTimeChanges}
+            />
+
+            {/* Posts section */}
+            {hasPosts && (
+              <Box component="section" sx={{ mb: { xs: 4, md: 6 } }}>
+                <SectionDivider label="Posts" color="primary.main" />
+                {viewType === "compact"
+                  ? (
+                    <PostsCompactListView
+                      posts={sortedStandalonePosts}
+                      user={user}
+                    />
+                  )
+                  : <PostsGrid posts={sortedStandalonePosts} user={user} />}
+              </Box>
+            )}
+
+            {/* Series section */}
+            {hasSeries && (
+              <Box component="section">
+                <SectionDivider label="Series" color="secondary.main" />
+                <SeriesSection
+                  series={seriesList}
                   user={user}
-                  showSeriesCards={!isSeries}
-                  isTimeEditMode={isSeries ? isTimeEditMode : undefined}
-                  pendingChanges={isSeries ? pendingTimeChanges : undefined}
-                  onTimeAdjust={isSeries && canEdit
-                    ? handleTimeAdjust
-                    : undefined}
-                  onTimeReset={isSeries && canEdit
-                    ? handleTimeReset
-                    : undefined}
+                  viewType={viewType}
                 />
               </Box>
-            ))}
-          </Box>
-        )}
+            )}
+          </>
+        );
+      })()}
 
       {/* ── Drawers & dialogs ── */}
       <CreatePostDrawer

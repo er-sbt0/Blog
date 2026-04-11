@@ -80,8 +80,9 @@ const SideBar: React.FC = () => {
           cloudDocument.name.toLowerCase() !== "readme"
         );
       }
-      if (localDocument)
+      if (localDocument) {
         return localDocument.name.toLowerCase() !== "readme";
+      }
       return false;
     });
   }, [user, documents]);
