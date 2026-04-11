@@ -96,12 +96,11 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = (
     [document?.id],
   );
 
-  const { saveToCloud, lastSavedCloud } = useCloudSave(document, editorRef);
+  const { lastSavedCloud } = useCloudSave(document, editorRef);
   const { isLoading, error } = useDocumentLoader(id, lastSavedCloud);
   const { handleChange } = useAutoSave(document);
   const { handleSaveAndNavigate, handleDiscard } = useDocumentNavigation(
     document,
-    saveToCloud,
   );
 
   if (error) {

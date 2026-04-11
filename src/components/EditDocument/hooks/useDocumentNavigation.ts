@@ -6,7 +6,6 @@ import type { EditorDocument } from "@/types";
 
 export function useDocumentNavigation(
   document: EditorDocument | undefined,
-  saveToCloud: () => Promise<boolean>,
 ) {
   const router = useRouter();
   const isDirty = useSelector((state) => state.ui.isDirty);
@@ -20,14 +19,12 @@ export function useDocumentNavigation(
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  const handleSaveAndNavigate = useCallback(async () => {
-    const success = await saveToCloud();
-    if (success && document) {
+  const handleSaveAndNavigate = useCallback(() => {
+    if (document) {
       const handle = document.handle || document.id;
       router.push(`/view/${handle}`);
     }
-    return success;
-  }, [saveToCloud, document, router]);
+  }, [document, router]);
 
   const handleDiscard = useCallback(() => {
     if (document) {
