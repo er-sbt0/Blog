@@ -65,6 +65,9 @@ export const groupPostsBySeries = (
   // Build a set of post IDs actually present in this partition
   const postIdsInPartition = new Set(posts.map((p) => p.id));
 
+  // Build a map from post ID to full UserDocument (preserves local draft info)
+  const postsByIdMap = new Map<string, UserDocument>(posts.map((p) => [p.id, p]));
+
   // Collect all post IDs that belong to displayed series
   const seriesPostIds = new Set<string>();
   const result: SeriesGroupItem[] = [];
@@ -81,11 +84,11 @@ export const groupPostsBySeries = (
       // Mark all series post IDs so they don't appear as standalone
       series.posts.forEach((post) => seriesPostIds.add(post.id));
 
-      // Convert series posts to UserDocument format
-      const seriesPosts: UserDocument[] = series.posts.map((post) => ({
-        id: post.id,
-        cloud: post,
-      }));
+      // Convert series posts to UserDocument format, reusing the full UserDocument
+      // (with both local and cloud) when available so the dirty indicator works correctly
+      const seriesPosts: UserDocument[] = series.posts.map((post) =>
+        postsByIdMap.get(post.id) ?? { id: post.id, cloud: post }
+      );
 
       // Sort posts within series by creation time (newest first)
       const sortedPosts = [...seriesPosts].sort((a, b) => {
