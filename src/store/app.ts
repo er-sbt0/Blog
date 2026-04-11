@@ -490,14 +490,14 @@ export const createLocalDocument = createAsyncThunk(
           subtitle: "failed to create document",
         });
       }
-      const { data: _data, ...rest } = document;
+      const { data, ...rest } = document;
       if (revisions) await revisionDB.addMany(revisions);
       const localDocumentRevisions = (revisions ?? []).map((
         { data: _data, ...rest },
       ) => rest);
       const localDocument: EditorDocument = {
         ...rest,
-        data: EMPTY_EDITOR_STATE,
+        data,
         revisions: localDocumentRevisions.map((rev) => ({
           ...rev,
           data: EMPTY_EDITOR_STATE,
