@@ -12,6 +12,7 @@ import ForkDocument from "../DocumentActions/Fork";
 import AppDrawer from "../drawers/AppDrawer";
 import AttachmentDrawer from "../drawers/AttachmentDrawer";
 import ViewRevisionCard from "./ViewRevisionCard";
+import { documentsSelectors, useSelector } from "@/store";
 
 export default function ViewDocumentInfo(
   { cloudDocument, user }: { cloudDocument: Document; user?: User },
@@ -30,6 +31,36 @@ export default function ViewDocumentInfo(
       cloudDocument.author.id,
     )
     : [];
+
+  // Merge local revisions from Redux with cloud revisions so view mode shows
+  // the same revision history as edit mode.
+  const localRevisions = useSelector((state) => {
+    const doc = documentsSelectors.selectById(state, cloudDocument.id);
+    return doc?.local?.revisions ?? [];
+  });
+  const mergedRevisions: CloudDocumentRevision[] = [
+    ...cloudDocument.revisions,
+  ];
+  const localAuthorFallback: User = {
+    id: cloudDocument.author.id,
+    name: cloudDocument.author.name,
+    email: cloudDocument.author.email,
+    handle: cloudDocument.author.handle,
+    image: cloudDocument.author.image,
+  };
+  localRevisions.forEach((r) => {
+    if (!mergedRevisions.some((cr) => cr.id === r.id)) {
+      mergedRevisions.push({
+        id: r.id,
+        documentId: r.documentId,
+        createdAt: r.createdAt,
+        author: localAuthorFallback,
+      });
+    }
+  });
+  const revisions = [...mergedRevisions].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 
   return (
     <>
@@ -163,11 +194,11 @@ export default function ViewDocumentInfo(
             <History sx={{ mr: 1 }} />
             <Typography variant="h6">Revisions</Typography>
           </Grid>
-          {cloudDocument.revisions.map((revision) => (
+          {revisions.map((revision) => (
             <Grid size={{ xs: 12 }} key={revision.id}>
               <ViewRevisionCard
                 cloudDocument={cloudDocument}
-                revision={revision as unknown as CloudDocumentRevision}
+                revision={revision}
               />
             </Grid>
           ))}
