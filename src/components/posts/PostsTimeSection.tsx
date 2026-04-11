@@ -94,7 +94,7 @@ const PostsTimeSection: React.FC<PostsTimeSectionProps> = ({
         return <PostsCompactListView groups={groupedItems} user={user} />;
       }
       return (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={5} sx={{ mb: 4 }}>
           {groupedItems.map((group) => {
             if (group.type === "series" && group.series) {
               const isCollapsed = !expandedSeries.has(group.series.id);
@@ -142,7 +142,7 @@ const PostsTimeSection: React.FC<PostsTimeSectionProps> = ({
       case "grid":
       default:
         return (
-          <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid container spacing={5} sx={{ mb: 4 }}>
             {timeGroup.posts.map((userDoc) => (
               <Grid key={userDoc.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <DocumentCard

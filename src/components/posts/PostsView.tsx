@@ -77,7 +77,7 @@ function sortByDate(posts: UserDocument[]): UserDocument[] {
 const PostsGrid: React.FC<{ posts: UserDocument[]; user?: User }> = (
   { posts, user },
 ) => (
-  <Grid container spacing={3} sx={{ mb: 4 }}>
+  <Grid container spacing={5} sx={{ mb: 4 }}>
     {posts.map((doc) => (
       <Grid key={doc.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
         <DocumentCard userDocument={doc} user={user} />

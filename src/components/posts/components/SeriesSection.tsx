@@ -41,7 +41,7 @@ const SeriesSection: React.FC<SeriesSectionProps> = ({
   }
 
   return (
-    <Grid container spacing={3} sx={{ mb: 4 }}>
+    <Grid container spacing={5} sx={{ mb: 4 }}>
       {series.map((s) => {
         const posts: UserDocument[] = (s.posts ?? []).map((p) => ({
           id: p.id,
