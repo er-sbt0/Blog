@@ -32,6 +32,7 @@ interface PostCompactListItemProps {
   onTimeAdjust?: (postId: string, originalDate: Date, days: number) => void;
   onTimeReset?: (postId: string) => void;
   onDelete: (post: UserDocument) => void;
+  extraIndent?: number;
 }
 
 const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
@@ -46,6 +47,7 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
   onTimeAdjust,
   onTimeReset,
   onDelete,
+  extraIndent = 0,
 }) => {
   const router = useRouter();
   const document = post.cloud || post.local;
@@ -118,8 +120,6 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
       key={post.id}
       disablePadding
       sx={{
-        borderRadius: 1.5,
-        overflow: "hidden",
         bgcolor: hasRowChanges ? "warning.50" : "transparent",
         "&:hover": { bgcolor: hasRowChanges ? "warning.100" : "action.hover" },
         transition: "background-color 0.2s ease",
@@ -129,7 +129,8 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
         onClick={handleNavigate}
         sx={{
           py: 1.25,
-          px: 2,
+          pl: 2 + extraIndent,
+          pr: 2,
           display: "flex",
           alignItems: "center",
           gap: 2,

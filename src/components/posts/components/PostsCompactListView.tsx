@@ -102,11 +102,12 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
     gap: 0.5,
   };
 
-  const renderPostItem = (post: UserDocument) => (
+  const renderPostItem = (post: UserDocument, extraIndent = 0) => (
     <PostCompactListItem
       key={post.id}
       post={post}
       user={user}
+      extraIndent={extraIndent}
       isTimeEditMode={isTimeEditMode}
       pendingChange={pendingChanges.get(post.id)}
       editingName={editingNames.get(post.id)}
@@ -143,8 +144,6 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                   <ListItem
                     disablePadding
                     sx={{
-                      borderRadius: 1.5,
-                      overflow: "hidden",
                       ...(postCount > 0 && {
                         "&:hover": { bgcolor: "action.hover" },
                       }),
@@ -157,51 +156,54 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                         postCount > 0 && toggleSeries(group.series!.id)}
                       sx={{
                         py: 1.25,
-                        px: 2,
+                        pl: 0,
+                        pr: 2,
                         display: "flex",
                         alignItems: "center",
                         gap: 1,
-                        borderRadius: 1.5,
                         cursor: postCount === 0 ? "default" : "pointer",
                         "&:hover": { bgcolor: "transparent" },
                       }}
                     >
                       <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 600,
-                            fontSize: "0.9rem",
-                            letterSpacing: "-0.01em",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {group.series.title}
-                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          {postCount > 0 && (
+                            <ChevronRight
+                              sx={{
+                                fontSize: 18,
+                                color: "text.secondary",
+                                flexShrink: 0,
+                                transition: "transform 0.2s ease",
+                                transform: isExpanded ? "rotate(90deg)" : "none",
+                              }}
+                            />
+                          )}
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: "0.9rem",
+                              letterSpacing: "-0.01em",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {group.series.title}
+                          </Typography>
+                        </Box>
                         <Typography
                           variant="caption"
                           sx={{
                             color: "text.disabled",
                             fontSize: "0.75rem",
+                            pl: postCount > 0 ? "26px" : 0,
                           }}
                         >
                           series · {postCount}{" "}
                           {postCount === 1 ? "post" : "posts"}
                         </Typography>
                       </Box>
-                      {postCount > 0 && (
-                        <ChevronRight
-                          sx={{
-                            fontSize: 18,
-                            color: "text.secondary",
-                            flexShrink: 0,
-                            transition: "transform 0.2s ease",
-                            transform: isExpanded ? "rotate(90deg)" : "none",
-                          }}
-                        />
-                      )}
                     </ListItemButton>
                   </ListItem>
 
@@ -217,7 +219,7 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                         transition: "border-color 0.2s ease",
                       }}
                     >
-                      {group.posts.map(renderPostItem)}
+                      {group.posts.map((p) => renderPostItem(p, 2))}
                     </Box>
                   </Collapse>
                 </Box>
@@ -239,7 +241,7 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
   return (
     <Box sx={{ width: "100%" }}>
       <List sx={listSx}>
-        {posts.map(renderPostItem)}
+        {posts.map((p) => renderPostItem(p))}
       </List>
     </Box>
   );
