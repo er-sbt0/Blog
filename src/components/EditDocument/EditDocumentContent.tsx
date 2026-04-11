@@ -108,6 +108,7 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = (
   );
   const { handleSaveAndNavigate, handleDiscard } = useDocumentNavigation(
     document,
+    editorRef,
   );
 
   if (error) {
