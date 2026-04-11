@@ -1,28 +1,21 @@
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Box, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Series, User, UserDocument } from "@/types";
 import { useSelector } from "@/store";
 import { selectStandalonePosts } from "@/store/selectors/postsSelectors";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { useTimeEditing } from "@/hooks/useTimeEditing";
-import { type ViewType } from "@/components/shared/ViewToggle";
+import { ViewToggle, type ViewType } from "@/components/shared/ViewToggle";
 import { EmptyState } from "@/components/shared/EmptyState";
 import DocumentCard from "@/components/DocumentCard";
 import { PostsCompactListView } from "./components/PostsCompactListView";
 
-// Header & controls
-import SeriesHeader from "./components/SeriesHeader";
+// Controls
 import SeriesSearchAndControls from "./components/SeriesSearchAndControls";
 import SeriesSection from "./components/SeriesSection";
-
-// Drawers & dialogs
-import CreatePostDrawer from "@/components/drawers/CreatePostDrawer";
-import CreateSeriesDrawer from "@/components/drawers/CreateSeriesDrawer";
-import AddPostsDialog from "./AddPostsDialog";
 
 interface PostsViewProps {
   /**
@@ -34,7 +27,7 @@ interface PostsViewProps {
   user?: User;
 }
 
-/** Section heading with a trailing divider line — mirrors TimeGroupHeader style. */
+/** Section heading with a trailing divider line. */
 function SectionDivider({ label, color }: { label: string; color: string }) {
   return (
     <Box
@@ -96,7 +89,6 @@ const PostsGrid: React.FC<{ posts: UserDocument[]; user?: User }> = (
  */
 const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   const isSeries = !!series;
-  const router = useRouter();
 
   const { data: session } = useSession();
   const user = serverUser ?? (session?.user as User | undefined);
@@ -107,11 +99,6 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
     isSeries ? "seriesPostsView" : "postsView",
     "grid",
   );
-
-  // ── Drawer / dialog state ─────────────────────────────────────────────────
-  const [createPostDrawerOpen, setCreatePostDrawerOpen] = useState(false);
-  const [createSeriesDrawerOpen, setCreateSeriesDrawerOpen] = useState(false);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   // ── Redux (all-posts mode) ────────────────────────────────────────────────
   const standalonePosts = useSelector(selectStandalonePosts);
@@ -149,8 +136,6 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
     [standalonePosts],
   );
 
-  const handlePostsAdded = () => router.refresh();
-
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Box
@@ -165,25 +150,21 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
       role="main"
       aria-label={isSeries ? `Series: ${series!.title}` : "Blog posts"}
     >
-      {/* ── Header ── */}
-      <SeriesHeader
-        series={series}
-        canEdit={canEdit}
-        postCount={isSeries ? sortedWithPending.length : standalonePosts.length}
-        onAddPosts={isSeries ? () => setAddDialogOpen(true) : undefined}
-        onNewPost={() => setCreatePostDrawerOpen(true)}
-        onNewSeries={!isSeries
-          ? () => setCreateSeriesDrawerOpen(true)
-          : undefined}
-      />
-
       {/* ── Content: series mode ── */}
       {isSeries && (
         <>
-          {seriesUserDocs.length > 0 && (
+          <Box
+            sx={{
+              mb: 5,
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            <ViewToggle view={viewType} onChange={setViewType} />
             <SeriesSearchAndControls
               viewType={viewType}
-              onViewChange={setViewType}
               canEdit={canEdit}
               isTimeEditMode={isTimeEditMode}
               isSavingTimeChanges={isSavingTimeChanges}
@@ -192,7 +173,8 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
               onSaveTimeChanges={handleSaveTimeChanges}
               onDiscardTimeChanges={handleDiscardTimeChanges}
             />
-          )}
+          </Box>
+          <SectionDivider label="Posts" color="primary.main" />
           {seriesUserDocs.length === 0
             ? (
               <EmptyState
@@ -233,24 +215,18 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
           );
         }
 
+        const viewToggle = (
+          <Box sx={{ mb: 5 }}>
+            <ViewToggle view={viewType} onChange={setViewType} />
+          </Box>
+        );
+
         return (
           <>
-            {/* Shared controls bar */}
-            <SeriesSearchAndControls
-              viewType={viewType}
-              onViewChange={setViewType}
-              canEdit={false}
-              isTimeEditMode={false}
-              isSavingTimeChanges={false}
-              pendingTimeChanges={pendingTimeChanges}
-              onToggleTimeEdit={handleToggleTimeEditMode}
-              onSaveTimeChanges={handleSaveTimeChanges}
-              onDiscardTimeChanges={handleDiscardTimeChanges}
-            />
-
             {/* Posts section */}
             {hasPosts && (
               <Box component="section" sx={{ mb: { xs: 4, md: 6 } }}>
+                {viewToggle}
                 <SectionDivider label="Posts" color="primary.main" />
                 {viewType === "compact"
                   ? (
@@ -266,6 +242,7 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
             {/* Series section */}
             {hasSeries && (
               <Box component="section">
+                {!hasPosts && viewToggle}
                 <SectionDivider label="Series" color="secondary.main" />
                 <SeriesSection
                   series={seriesList}
@@ -277,30 +254,6 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
           </>
         );
       })()}
-
-      {/* ── Drawers & dialogs ── */}
-      <CreatePostDrawer
-        open={createPostDrawerOpen}
-        onClose={() => setCreatePostDrawerOpen(false)}
-        seriesId={isSeries ? series!.id : ""}
-        seriesTitle={isSeries ? series!.title : undefined}
-        onSuccess={isSeries ? handlePostsAdded : undefined}
-      />
-
-      <CreateSeriesDrawer
-        open={createSeriesDrawerOpen}
-        onClose={() => setCreateSeriesDrawerOpen(false)}
-      />
-
-      {isSeries && (
-        <AddPostsDialog
-          open={addDialogOpen}
-          onClose={() => setAddDialogOpen(false)}
-          seriesId={series!.id}
-          existingPosts={sortedWithPending}
-          onPostsAdded={handlePostsAdded}
-        />
-      )}
     </Box>
   );
 };
