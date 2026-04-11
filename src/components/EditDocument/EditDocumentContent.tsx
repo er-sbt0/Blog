@@ -14,7 +14,6 @@ import ConnectedEditor from "../ConnectedEditor";
 import SaveDiscardActions from "./SaveDiscardActions";
 import { useCloudSave } from "./hooks/useCloudSave";
 import { useDocumentLoader } from "./hooks/useDocumentLoader";
-import { useAutoSave } from "./hooks/useAutoSave";
 import { useDocumentNavigation } from "./hooks/useDocumentNavigation";
 
 const EditDocumentInfo = dynamic(
@@ -107,7 +106,6 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [loadedDocument?.id],
   );
-  const { handleChange } = useAutoSave(document);
   const { handleSaveAndNavigate, handleDiscard } = useDocumentNavigation(
     document,
   );
@@ -126,7 +124,6 @@ const DocumentEditor: React.FC<React.PropsWithChildren> = (
       <ConnectedEditor
         document={documentForEditor}
         editorRef={editorRef}
-        onChange={handleChange}
         onSave={handleSaveAndNavigate}
         onDiscard={handleDiscard}
       />

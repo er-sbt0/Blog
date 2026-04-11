@@ -28,6 +28,10 @@ export function useDocumentLoader(
   const errorAnnounce = useErrorAnnounce();
 
   useAsyncEffect(async (isCancelled) => {
+    setIsLoading(true);
+    setLoadedDocument(undefined);
+    setError(undefined);
+
     const loadDocument = async (docId: string) => {
       let editorDocument: EditorDocument | undefined;
       try {
@@ -152,7 +156,7 @@ export function useDocumentLoader(
       dispatch(actions.setDiff({ open: false }));
       dispatch(actions.setDirty(false));
     };
-  }, [dispatch, user]);
+  }, [dispatch, user, id]);
 
   return { isLoading, error, loadedDocument };
 }

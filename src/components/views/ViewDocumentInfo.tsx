@@ -1,4 +1,5 @@
 "use client";
+import { useMemo } from "react";
 import { CloudDocumentRevision, Document, User } from "@/types";
 import { extractCollaborators } from "@/utils/collaborators";
 import Grid from "@mui/material/Grid2";
@@ -38,29 +39,30 @@ export default function ViewDocumentInfo(
     const doc = documentsSelectors.selectById(state, cloudDocument.id);
     return doc?.local?.revisions ?? [];
   });
-  const mergedRevisions: CloudDocumentRevision[] = [
-    ...cloudDocument.revisions,
-  ];
-  const localAuthorFallback: User = {
-    id: cloudDocument.author.id,
-    name: cloudDocument.author.name,
-    email: cloudDocument.author.email,
-    handle: cloudDocument.author.handle,
-    image: cloudDocument.author.image,
-  };
-  localRevisions.forEach((r) => {
-    if (!mergedRevisions.some((cr) => cr.id === r.id)) {
-      mergedRevisions.push({
-        id: r.id,
-        documentId: r.documentId,
-        createdAt: r.createdAt,
-        author: localAuthorFallback,
-      });
-    }
-  });
-  const revisions = [...mergedRevisions].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  const revisions = useMemo(() => {
+    const merged: CloudDocumentRevision[] = [...cloudDocument.revisions];
+    const localAuthorFallback: User = {
+      id: cloudDocument.author.id,
+      name: cloudDocument.author.name,
+      email: cloudDocument.author.email,
+      handle: cloudDocument.author.handle,
+      image: cloudDocument.author.image,
+    };
+    localRevisions.forEach((r) => {
+      if (!merged.some((cr) => cr.id === r.id)) {
+        merged.push({
+          id: r.id,
+          documentId: r.documentId,
+          createdAt: r.createdAt,
+          author: localAuthorFallback,
+        });
+      }
+    });
+    return [...merged].sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }, [cloudDocument.revisions, cloudDocument.author, localRevisions]);
 
   return (
     <>

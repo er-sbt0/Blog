@@ -31,7 +31,7 @@ export function useCloudSave(
       // Reuse the local document's head ID so local and cloud heads stay in sync,
       // and we don't create a new revision ID if an unsynced local one already exists.
       const revisionId = document.head;
-      const timestamp = document.updatedAt || new Date().toISOString();
+      const timestamp = new Date().toISOString();
 
       const revision: EditorDocumentRevision = {
         id: revisionId,
