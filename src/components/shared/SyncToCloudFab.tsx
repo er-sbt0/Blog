@@ -2,6 +2,7 @@
 import { CloudUpload } from "@mui/icons-material";
 import { Fab, Tooltip } from "@mui/material";
 import { actions, documentsSelectors, useDispatch, useSelector } from "@/store";
+import { useRouter } from "next/navigation";
 import { FloatingActionButton } from "../Layout/FloatingActionsContainer";
 
 /**
@@ -11,6 +12,7 @@ import { FloatingActionButton } from "../Layout/FloatingActionsContainer";
  */
 const SyncToCloudFab: React.FC<{ documentId: string }> = ({ documentId }) => {
   const dispatch = useDispatch();
+  const router = useRouter();
   const userDocument = useSelector((state) =>
     documentsSelectors.selectById(state, documentId)
   );
@@ -21,14 +23,19 @@ const SyncToCloudFab: React.FC<{ documentId: string }> = ({ documentId }) => {
 
   const handleSync = async () => {
     if (!userDocument?.local) return;
-    await dispatch(
-      actions.syncLocalToCloud({
-        id: documentId,
-        localHead: userDocument.local.head,
-        updatedAt: userDocument.local.updatedAt,
-        parentId: userDocument.local.parentId,
-      }),
-    );
+    try {
+      await dispatch(
+        actions.syncLocalToCloud({
+          id: documentId,
+          localHead: userDocument.local.head,
+          updatedAt: userDocument.local.updatedAt,
+          parentId: userDocument.local.parentId,
+        }),
+      ).unwrap();
+      router.refresh();
+    } catch {
+      // Sync failed — error is already announced by the thunk
+    }
   };
 
   if (!isDirty) return null;
