@@ -11,7 +11,7 @@ import { createCardTheme } from "../DocumentCard/theme";
 import { useResponsiveDocumentGrid } from "./hooks/useResponsiveDocumentGrid";
 import { useDocumentGridPerformance } from "./hooks/useDocumentGridPerformance";
 import DocumentGridError from "./DocumentGridError";
-import DocumentGridEmpty from "./DocumentGridEmpty";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 interface DocumentGridProps {
   /** The documents to display in the grid */
@@ -201,10 +201,15 @@ const DocumentGrid: React.FC<DocumentGridProps> = ({
         sx={{ ...sx }}
       >
         {headerComponent}
-        <DocumentGridEmpty
-          message={emptyMessage}
-          actionLabel={emptyActionLabel}
-          onAction={onEmptyAction}
+        <EmptyState
+          title={emptyMessage ?? "No documents found"}
+          description="Get started by creating your first document or folder."
+          action={onEmptyAction
+            ? {
+              label: emptyActionLabel ?? "Create Document",
+              onClick: onEmptyAction,
+            }
+            : undefined}
         />
       </Box>
     );

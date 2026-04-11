@@ -2,6 +2,7 @@
 import { documentsSelectors, useSelector } from "@/store";
 import { useMemo, useState } from "react";
 import { Box, Container, Fade } from "@mui/material";
+import { PostAdd } from "@mui/icons-material";
 import { UserDocument } from "@/types";
 import { sortDocuments } from "../DocumentControls/sortDocuments";
 import DocumentGrid from "../DocumentGrid";
@@ -15,7 +16,7 @@ import { useBreadcrumbs } from "./hooks/useBreadcrumbs";
 import { useDocumentNavigation } from "./hooks/useDocumentNavigation";
 import BrowserBreadcrumbs from "./components/BrowserBreadcrumbs";
 import BrowserHeader from "./components/BrowserHeader";
-import BlogPostsEmptyState from "./components/BlogPostsEmptyState";
+import { EmptyState } from "@/components/shared/EmptyState";
 import DocumentBrowserSkeleton from "./components/DocumentBrowserSkeleton";
 
 interface DocumentBrowserProps {
@@ -130,8 +131,21 @@ const DocumentBrowser: React.FC<DocumentBrowserProps> = () => {
               {/* Content section */}
               {hasNoItems
                 ? (
-                  <BlogPostsEmptyState
-                    onCreateDocument={createDocument}
+                  <EmptyState
+                    icon={
+                      <PostAdd
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          color: "text.secondary",
+                          opacity: 0.6,
+                        }}
+                      />
+                    }
+                    title="No blog posts yet"
+                    description="Create your first blog post to get started"
+                    action={{ label: "New Post", onClick: createDocument }}
+                    variant="card"
                   />
                 )
                 : (

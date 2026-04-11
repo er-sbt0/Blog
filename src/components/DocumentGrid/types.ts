@@ -36,14 +36,6 @@ export interface DocumentGridErrorProps {
   showRetry?: boolean;
 }
 
-export interface DocumentGridEmptyProps {
-  message?: string;
-  description?: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  icon?: React.ReactNode;
-}
-
 export interface DocumentGridConfig {
   virtualizationThreshold?: number;
   enableVirtualization?: boolean;
