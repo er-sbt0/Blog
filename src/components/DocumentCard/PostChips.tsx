@@ -187,6 +187,7 @@ export const createSeriesChip = (
   series?: Series | null,
   seriesOrder?: number | null,
   showSeries = true,
+  onNavigate?: (path: string) => void,
 ) => {
   if (!showSeries || !series) return null;
 
@@ -202,7 +203,7 @@ export const createSeriesChip = (
       icon={<LibraryBooks sx={{ fontSize: 14 }} />}
       label={label}
       onClick={() => {
-        window.location.href = `/posts/${series.id}`;
+        onNavigate?.(`/posts/${series.id}`);
       }}
       sx={(theme) => {
         const ct = createCardTheme(theme);

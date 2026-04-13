@@ -158,7 +158,7 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
         }}
       >
         <Typography color="error">{error}</Typography>
-        <Button variant="outlined" onClick={() => window.location.reload()}>
+        <Button variant="outlined" onClick={() => router.refresh()}>
           Retry
         </Button>
       </Box>

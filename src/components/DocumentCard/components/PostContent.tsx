@@ -1,5 +1,7 @@
+"use client";
 import React from "react";
 import { Box, Typography } from "@mui/material";
+import { useRouter } from "next/navigation";
 import { User, UserDocument } from "@/types";
 import { formatFullDate as formatDate } from "@/utils/dateFormat";
 
@@ -19,6 +21,7 @@ export const PostContent: React.FC<PostContentProps> = ({
   userDocument,
   author,
 }) => {
+  const router = useRouter();
   const document = userDocument?.cloud || userDocument?.local;
   const title = document?.name || "Untitled Post";
   const createdAt = document?.createdAt;
@@ -86,7 +89,7 @@ export const PostContent: React.FC<PostContentProps> = ({
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
-                window.location.href = "/dashboard";
+                router.push("/dashboard");
               }}
               sx={{
                 color: "text.secondary",
