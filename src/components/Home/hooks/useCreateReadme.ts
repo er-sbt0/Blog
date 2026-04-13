@@ -4,6 +4,7 @@ import { actions, useDispatch } from "@/store";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { v4 as uuidv4 } from "uuid";
 import type { SerializedEditorState } from "lexical";
+import { README_DOCUMENT_NAME } from "@/constants";
 
 export function useCreateReadme() {
   const dispatch = useDispatch();
@@ -71,7 +72,7 @@ export function useCreateReadme() {
       const result = await dispatch(
         actions.createCloudDocument({
           id,
-          name: "README",
+          name: README_DOCUMENT_NAME,
           description: "Welcome to my blog",
           type: "DOCUMENT" as const,
           head: headId,

@@ -19,6 +19,7 @@ import { useTheme } from "@mui/material/styles";
 import { Add, LibraryBooks, Remove, StickyNote2 } from "@mui/icons-material";
 import { styles } from "../styles";
 import type { UserDocument } from "@/types";
+import { isReadmeDocument } from "@/constants";
 import { useSidebarState } from "./hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
@@ -77,11 +78,11 @@ const SideBar: React.FC = () => {
       if (cloudDocument) {
         return (
           cloudDocument.author.id === user.id &&
-          cloudDocument.name.toLowerCase() !== "readme"
+          !isReadmeDocument(cloudDocument.name)
         );
       }
       if (localDocument) {
-        return localDocument.name.toLowerCase() !== "readme";
+        return !isReadmeDocument(localDocument.name);
       }
       return false;
     });

@@ -4,6 +4,7 @@ import { useAsyncEffect } from "@/hooks/useAsyncEffect";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { UserDocument } from "@/types";
 import { apiClient } from "@/api";
+import { isReadmeDocument } from "@/constants";
 
 export interface ReadmeData {
   id: string;
@@ -23,7 +24,7 @@ export function useReadmeData(documents: UserDocument[]) {
     const readmeDoc = documents.find((doc) => {
       const data = doc.cloud || doc.local;
       const name = data?.name || "";
-      return name.toLowerCase() === "readme";
+      return isReadmeDocument(name);
     });
 
     if (readmeDoc) {
@@ -45,7 +46,7 @@ export function useReadmeData(documents: UserDocument[]) {
       if (isCancelled()) return;
 
       const readmeFromApi = data?.find((doc) =>
-        doc.name?.toLowerCase() === "readme"
+        doc.name != null && isReadmeDocument(doc.name)
       );
 
       if (readmeFromApi) {

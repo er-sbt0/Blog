@@ -1,5 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, documentsSelectors, RootState } from "@/store";
+import { isReadmeDocument } from "@/constants";
 import {
   createCloudDocument,
   createSeries,
@@ -22,7 +23,7 @@ export const usePosts = () => {
     (doc) =>
       doc.cloud !== undefined &&
       doc.cloud.type === "DOCUMENT" &&
-      doc.cloud.name.toLowerCase() !== "readme",
+      !isReadmeDocument(doc.cloud.name),
   );
 };
 
@@ -34,7 +35,7 @@ export const usePublishedPosts = () => {
     (doc) =>
       doc.cloud?.published &&
       doc.cloud.type === "DOCUMENT" &&
-      doc.cloud.name.toLowerCase() !== "readme",
+      !isReadmeDocument(doc.cloud.name),
   );
 };
 

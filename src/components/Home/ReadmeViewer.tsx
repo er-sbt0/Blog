@@ -8,6 +8,7 @@ import htmr from "htmr";
 import { Document, UserDocument } from "@/types";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { apiClient } from "@/api";
+import { isReadmeDocument, README_DOCUMENT_NAME } from "@/constants";
 
 interface ReadmeViewerProps {
   documents: UserDocument[];
@@ -35,7 +36,7 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
       const readmeDoc = documents.find((doc) => {
         const data = doc.cloud || doc.local;
         const name = data?.name || "";
-        return name.toLowerCase() === "readme";
+        return isReadmeDocument(name);
       });
 
       if (readmeDoc) {
@@ -49,7 +50,7 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
         if (cancelled) return;
 
         const readmeFromApi = data?.find((doc: Document) =>
-          doc.name?.toLowerCase() === "readme"
+          doc.name != null && isReadmeDocument(doc.name)
         );
 
         if (readmeFromApi) {
@@ -126,7 +127,7 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
   }, [readmeDocId]);
 
   const handleCreateReadme = () => {
-    router.push("/new?name=README");
+    router.push(`/new?name=${README_DOCUMENT_NAME}`);
   };
 
   if (loading) {
