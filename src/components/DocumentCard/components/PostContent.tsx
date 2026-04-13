@@ -86,7 +86,7 @@ export const PostContent: React.FC<PostContentProps> = ({
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
-                window.location.href = "http://localhost:3000/dashboard";
+                window.location.href = "/dashboard";
               }}
               sx={{
                 color: "text.secondary",

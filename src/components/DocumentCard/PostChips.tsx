@@ -62,7 +62,7 @@ export const createAuthorChip = (author?: User | null, showAuthor = true) => {
       key="author-chip"
       size="small"
       component="a"
-      href="http://localhost:3000/dashboard"
+      href="/dashboard"
       clickable
       onClick={(e: React.MouseEvent) => e.stopPropagation()}
       aria-label={`View ${author.name ?? "author"}'s profile`}
