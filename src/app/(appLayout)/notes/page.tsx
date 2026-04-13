@@ -1,6 +1,7 @@
 "use client";
 import NotesCanvas from "@/components/NotesCanvas";
 import BoardSelector from "@/components/NotesCanvas/BoardSelector";
+import ZoomControls from "@/components/NotesCanvas/ZoomControls";
 import { useNotesBoards } from "@/hooks/useNotesBoards";
 import { useNotesZoom } from "@/hooks/useNotesZoom";
 import { Box } from "@mui/material";
@@ -49,18 +50,19 @@ export default function NotesPage() {
             onCreateBoard={createBoard}
             onRenameBoard={renameBoard}
             onDeleteBoard={deleteBoard}
-            scale={zoom.scale}
-            onZoomIn={zoom.zoomIn}
-            onZoomOut={zoom.zoomOut}
-            onResetZoom={zoom.resetZoom}
-            canZoomIn={zoom.canZoomIn}
-            canZoomOut={zoom.canZoomOut}
           />
+          <ZoomControls zoom={zoom} />
         </Box>
 
         {/* Canvas area */}
         <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-          <NotesCanvas canvasId={activeCanvasId} scale={zoom.scale} />
+          <NotesCanvas
+            canvasId={activeCanvasId}
+            scale={zoom.scale}
+            onZoomIn={zoom.zoomIn}
+            onZoomOut={zoom.zoomOut}
+            onResetZoom={zoom.resetZoom}
+          />
         </Box>
       </Box>
     </NotesClipboardProvider>

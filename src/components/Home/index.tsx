@@ -20,6 +20,7 @@ import { StickyNote2 } from "@mui/icons-material";
 import { useNotesBoards } from "@/hooks/useNotesBoards";
 import { useNotesZoom } from "@/hooks/useNotesZoom";
 import BoardSelector from "../NotesCanvas/BoardSelector";
+import ZoomControls from "../NotesCanvas/ZoomControls";
 import { NotesClipboardProvider } from "@/contexts/NotesClipboardContext";
 
 type ViewType = "notes" | "kanban" | "readme" | "posts" | null;
@@ -138,13 +139,8 @@ const Home: React.FC<{
                       onCreateBoard={createBoard}
                       onRenameBoard={renameBoard}
                       onDeleteBoard={deleteBoard}
-                      scale={zoom.scale}
-                      onZoomIn={zoom.zoomIn}
-                      onZoomOut={zoom.zoomOut}
-                      onResetZoom={zoom.resetZoom}
-                      canZoomIn={zoom.canZoomIn}
-                      canZoomOut={zoom.canZoomOut}
                     />
+                    <ZoomControls zoom={zoom} />
                   </Box>
                   <Box
                     sx={{
@@ -159,7 +155,13 @@ const Home: React.FC<{
                       },
                     }}
                   >
-                    <NotesCanvas canvasId={activeCanvasId} scale={zoom.scale} />
+                    <NotesCanvas
+                      canvasId={activeCanvasId}
+                      scale={zoom.scale}
+                      onZoomIn={zoom.zoomIn}
+                      onZoomOut={zoom.zoomOut}
+                      onResetZoom={zoom.resetZoom}
+                    />
 
                     {/* Resize Handle */}
                     <Box

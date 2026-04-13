@@ -23,8 +23,6 @@ interface NotesCanvasProps {
   onZoomIn?: () => void;
   onZoomOut?: () => void;
   onResetZoom?: () => void;
-  canZoomIn?: boolean;
-  canZoomOut?: boolean;
 }
 
 export default function NotesCanvas(
@@ -36,8 +34,6 @@ export default function NotesCanvas(
     onZoomIn,
     onZoomOut,
     onResetZoom,
-    canZoomIn: _canZoomIn,
-    canZoomOut: _canZoomOut,
   }: NotesCanvasProps,
 ) {
   const {
