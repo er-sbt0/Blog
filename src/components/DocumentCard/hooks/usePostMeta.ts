@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Series, User } from "@/types";
 import { createSeriesChip, createStatusChip, PostState } from "../PostChips";
 
@@ -39,7 +38,6 @@ export const usePostMeta = ({
   options = {},
 }: PostMetaInput) => {
   const { showAuthor = true, showSeries = true } = options;
-  const router = useRouter();
 
   return useMemo(() => {
     // Don't render chips during loading state - let the component handle loading UI
@@ -50,12 +48,12 @@ export const usePostMeta = ({
     // Generate chips in the desired order
     const chips = [
       createStatusChip(postState),
-      createSeriesChip(series, seriesOrder, showSeries, router.push),
+      createSeriesChip(series, seriesOrder, showSeries),
       // createAuthorChip(author, showAuthor),
     ].filter(Boolean); // Remove null/undefined chips
 
     return chips;
-  }, [postState, author, series, seriesOrder, showAuthor, showSeries, router]);
+  }, [postState, author, series, seriesOrder, showAuthor, showSeries]);
 };
 
 /**

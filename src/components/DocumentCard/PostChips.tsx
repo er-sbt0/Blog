@@ -1,4 +1,5 @@
 import React from "react";
+import NextLink from "next/link";
 import { Avatar, Chip, Skeleton } from "@mui/material";
 import { Edit, LibraryBooks, Person } from "@mui/icons-material";
 import { DocumentStatus, Series, User } from "@/types";
@@ -187,7 +188,6 @@ export const createSeriesChip = (
   series?: Series | null,
   seriesOrder?: number | null,
   showSeries = true,
-  onNavigate?: (path: string) => void,
 ) => {
   if (!showSeries || !series) return null;
 
@@ -198,13 +198,13 @@ export const createSeriesChip = (
   return (
     <Chip
       key="series-chip"
+      component={NextLink}
+      href={`/posts/${series.id}`}
       size="small"
       variant="filled"
+      clickable
       icon={<LibraryBooks sx={{ fontSize: 14 }} />}
       label={label}
-      onClick={() => {
-        onNavigate?.(`/posts/${series.id}`);
-      }}
       sx={(theme) => {
         const ct = createCardTheme(theme);
         return {
@@ -214,7 +214,7 @@ export const createSeriesChip = (
           fontWeight: 600,
           fontSize: ct.typography.metaSize,
           height: 28,
-          cursor: "pointer",
+          textDecoration: "none",
           "& .MuiChip-icon": { color: ct.colors.series.icon },
           "&:hover": { background: ct.colors.series.bg },
         };
