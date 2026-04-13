@@ -1,7 +1,8 @@
 "use client";
 import { useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { documentsSelectors, type RootState, useSelector } from "@/store";
+import { type RootState, useSelector } from "@/store";
+import { selectUserFilteredDocuments } from "@/store/selectors/layoutSelectors";
 import {
   Avatar,
   Box,
@@ -18,8 +19,6 @@ import {
 import { useTheme } from "@mui/material/styles";
 import { Add, LibraryBooks, Remove, StickyNote2 } from "@mui/icons-material";
 import { styles } from "../styles";
-import type { UserDocument } from "@/types";
-import { isReadmeDocument } from "@/constants";
 import { useSidebarState } from "./hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
@@ -65,28 +64,8 @@ const SideBar: React.FC = () => {
   });
 
   const user = useSelector((state: RootState) => state.user);
-  const documents = useSelector((state: RootState) =>
-    documentsSelectors.selectAll(state)
-  );
+  const filteredDocuments = useSelector(selectUserFilteredDocuments);
   const seriesList = useSelector((state: RootState) => state.series);
-
-  const filteredDocuments = useMemo((): UserDocument[] => {
-    if (!user || !documents) return [];
-    return documents.filter((doc) => {
-      const cloudDocument = doc.cloud;
-      const localDocument = doc.local;
-      if (cloudDocument) {
-        return (
-          cloudDocument.author.id === user.id &&
-          !isReadmeDocument(cloudDocument.name)
-        );
-      }
-      if (localDocument) {
-        return !isReadmeDocument(localDocument.name);
-      }
-      return false;
-    });
-  }, [user, documents]);
 
   const seriesMap = useMemo(
     () => buildSeriesMap(seriesList || []),

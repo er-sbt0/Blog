@@ -16,6 +16,7 @@ import {
   StickyNote2,
 } from "@mui/icons-material";
 import RouterLink from "next/link";
+import { shallowEqual } from "react-redux";
 import { documentsSelectors, useSelector } from "@/store";
 import type { RootState } from "@/store";
 
@@ -27,34 +28,55 @@ interface BreadcrumbItem {
 
 const Breadcrumbs: React.FC = () => {
   const pathname = usePathname();
-  const seriesList = useSelector((state: RootState) => state.series);
-  const docEntities = useSelector((state: RootState) =>
-    documentsSelectors.selectEntities(state)
+  const segments = React.useMemo(
+    () => pathname.split("/").filter(Boolean),
+    [pathname],
   );
 
-  const getSeriesTitle = React.useCallback(
-    (id: string) => seriesList.find((s) => s.id === id)?.title,
-    [seriesList],
-  );
+  // Extract IDs from the current route so we can select only the data we need
+  const docId = React.useMemo(() => {
+    if (
+      (segments[0] === "edit" || segments[0] === "view") &&
+      segments[1]
+    ) {
+      return segments[1];
+    }
+    return undefined;
+  }, [segments]);
 
-  const getDocName = React.useCallback(
-    (id: string) => {
-      const doc = docEntities[id];
-      return doc?.cloud?.name || doc?.local?.name;
+  const urlSeriesId = React.useMemo(() => {
+    if (
+      (segments[0] === "posts" || segments[0] === "series") &&
+      segments[1]
+    ) {
+      return segments[1];
+    }
+    return undefined;
+  }, [segments]);
+
+  // Single targeted selector – only re-renders when these specific primitive
+  // values change, not on every unrelated document / series mutation.
+  const { docName, docSeriesId, seriesTitle, docSeriesTitle } = useSelector(
+    (state: RootState) => {
+      const doc = docId
+        ? documentsSelectors.selectById(state, docId)
+        : undefined;
+      const dSeriesId = doc?.cloud?.seriesId || doc?.local?.seriesId;
+      return {
+        docName: doc?.cloud?.name || doc?.local?.name,
+        docSeriesId: dSeriesId,
+        seriesTitle: urlSeriesId
+          ? state.series.find((s) => s.id === urlSeriesId)?.title
+          : undefined,
+        docSeriesTitle: dSeriesId
+          ? state.series.find((s) => s.id === dSeriesId)?.title
+          : undefined,
+      };
     },
-    [docEntities],
-  );
-
-  const getDocSeriesId = React.useCallback(
-    (id: string) => {
-      const doc = docEntities[id];
-      return doc?.cloud?.seriesId || doc?.local?.seriesId;
-    },
-    [docEntities],
+    shallowEqual,
   );
 
   const breadcrumbs = React.useMemo((): BreadcrumbItem[] => {
-    const segments = pathname.split("/").filter(Boolean);
     const items: BreadcrumbItem[] = [];
 
     if (segments.length === 0) {
@@ -78,10 +100,9 @@ const Breadcrumbs: React.FC = () => {
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         if (segments.length > 1) {
-          const seriesId = segments[1];
           items.push({
-            label: getSeriesTitle(seriesId) || "Series",
-            href: `/series/${seriesId}`,
+            label: seriesTitle || "Series",
+            href: `/series/${segments[1]}`,
             icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
           });
         }
@@ -94,21 +115,21 @@ const Breadcrumbs: React.FC = () => {
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
         if (segments.length > 1) {
-          const seriesId = segments[1];
+          const sId = segments[1];
           if (segments.length > 2 && segments[2] === "edit") {
             items.push({
-              label: getSeriesTitle(seriesId) || "Series",
-              href: `/series/${seriesId}`,
+              label: seriesTitle || "Series",
+              href: `/series/${sId}`,
               icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
             });
             items.push({
               label: "Edit",
-              href: `/series/${seriesId}/edit`,
+              href: `/series/${sId}/edit`,
             });
           } else {
             items.push({
-              label: getSeriesTitle(seriesId) || "Series",
-              href: `/series/${seriesId}`,
+              label: seriesTitle || "Series",
+              href: `/series/${sId}`,
               icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
             });
           }
@@ -144,21 +165,20 @@ const Breadcrumbs: React.FC = () => {
 
       case "edit": {
         const editId = segments[1];
-        const editSeriesId = editId ? getDocSeriesId(editId) : undefined;
         items.push({
           label: "Posts",
           href: "/posts",
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
-        if (editSeriesId) {
+        if (docSeriesId) {
           items.push({
-            label: getSeriesTitle(editSeriesId) || "Series",
-            href: `/series/${editSeriesId}`,
+            label: docSeriesTitle || "Series",
+            href: `/series/${docSeriesId}`,
             icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
           });
         }
         items.push({
-          label: editId ? getDocName(editId) || "Edit Post" : "Edit Post",
+          label: editId ? docName || "Edit Post" : "Edit Post",
           href: editId ? `/edit/${editId}` : "/edit",
           icon: <Edit sx={{ fontSize: 16, mr: 0.5 }} />,
         });
@@ -167,21 +187,20 @@ const Breadcrumbs: React.FC = () => {
 
       case "view": {
         const viewId = segments[1];
-        const viewSeriesId = viewId ? getDocSeriesId(viewId) : undefined;
         items.push({
           label: "Posts",
           href: "/posts",
           icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
         });
-        if (viewSeriesId) {
+        if (docSeriesId) {
           items.push({
-            label: getSeriesTitle(viewSeriesId) || "Series",
-            href: `/series/${viewSeriesId}`,
+            label: docSeriesTitle || "Series",
+            href: `/series/${docSeriesId}`,
             icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
           });
         }
         items.push({
-          label: viewId ? getDocName(viewId) || "Post" : "Post",
+          label: viewId ? docName || "Post" : "Post",
           href: viewId ? `/view/${viewId}` : "/posts",
         });
         break;
@@ -211,7 +230,7 @@ const Breadcrumbs: React.FC = () => {
     }
 
     return items;
-  }, [pathname, getSeriesTitle, getDocName, getDocSeriesId]);
+  }, [segments, seriesTitle, docSeriesId, docSeriesTitle, docName]);
 
   // Don't show breadcrumbs on home page
   if (pathname === "/") {

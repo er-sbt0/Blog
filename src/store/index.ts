@@ -104,5 +104,7 @@ export const documentsSelectors = documentsAdapter.getSelectors<RootState>(
 );
 
 export const useDispatch: () => AppDispatch = useReduxDispatch;
-export const useSelector: <T>(selector: (state: RootState) => T) => T =
-  useReduxSelector;
+export const useSelector: <T>(
+  selector: (state: RootState) => T,
+  equalityFn?: (left: T, right: T) => boolean,
+) => T = useReduxSelector;
