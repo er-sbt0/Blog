@@ -20,8 +20,13 @@ const RestoreDocument: React.FC<
   }
 > = ({ userDocument, variant = "iconbutton", closeMenu, sx }) => {
   const dispatch = useDispatch();
-  const localDocument = userDocument.local!;
-  const cloudDocument = userDocument.cloud!;
+  const localDocument = userDocument.local;
+  const cloudDocument = userDocument.cloud;
+
+  if (!localDocument || !cloudDocument) {
+    return null;
+  }
+
   const id = userDocument.id;
   const localDocumentRevisions = localDocument.revisions ?? [];
   const isLocalHeadLocalRevision = localDocumentRevisions.some((r) =>
@@ -59,7 +64,7 @@ const RestoreDocument: React.FC<
       await dispatch(actions.createLocalRevision(editorDocumentRevision));
     }
     if (isCloudHeadLocalRevision) {
-      const cloudDocument = userDocument.cloud!;
+      const cloudDocument = userDocument.cloud;
       try {
         const localRevision = await dispatch(
           actions.getLocalRevision(cloudDocument.head),

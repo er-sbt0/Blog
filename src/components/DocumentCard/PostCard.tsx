@@ -38,7 +38,7 @@ const PostCard: React.FC<PostCardProps> = memo(({
   // Local is ahead of cloud when both exist but heads differ
   const isDirty = Boolean(userDocument?.local) &&
     Boolean(userDocument?.cloud) &&
-    userDocument!.local!.head !== userDocument!.cloud!.head;
+    userDocument?.local?.head !== userDocument?.cloud?.head;
 
   // If loading, show unified loading card
   if (postState.isLoading) {

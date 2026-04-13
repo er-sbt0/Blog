@@ -18,12 +18,6 @@ This evaluates to the author **object** (always truthy), not a proper ownership 
 
 ---
 
-### 3. **HIGH — Non-null assertions without guards**
-Restore.tsx: `userDocument.local!` and `userDocument.cloud!` are asserted at the top level, but the component can be rendered when either is null/undefined.
-PostCard.tsx: `userDocument!.local!.head !== userDocument!.cloud!.head` — if either is undefined, this crashes.
-
----
-
 ### 4. **HIGH — `navigator.share()` called without feature detection**
 useShareDocument.ts
 
