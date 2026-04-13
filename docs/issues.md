@@ -103,14 +103,6 @@ the module is ever unloaded.
 
 ---
 
-### 16. **LOW — Unused `title` prop in `CardBase`**
-
-CardBase.tsx
-
-`title` is declared in the props interface but never used in the component body.
-
----
-
 ### 17. **LOW — Commented-out dead code**
 
 usePostMeta.ts: `createAuthorChip(author, showAuthor)` is commented out but

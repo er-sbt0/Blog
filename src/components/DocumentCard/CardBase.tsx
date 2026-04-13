@@ -11,8 +11,6 @@ import { DocumentStatus } from "@/types";
  * Simplified props interface for blog posts
  */
 interface SimplifiedCardBaseProps {
-  /** Title of the post (optional, used for tooltip) */
-  title?: string | ReactNode;
   /** URL that the card links to */
   href: string;
   /** Whether the card is in a loading state */
