@@ -119,13 +119,6 @@ Creates a synthetic `MouseEvent` and dispatches it. Just call `link.click()`.
 
 ---
 
-### 15. **LOW — `uuid()` for ephemeral dialog button IDs**
-DeleteBoth.tsx
-
-Generates v4 UUIDs solely for confirmation dialog button identifiers that are compared once and discarded. Simple string constants would suffice.
-
----
-
 ### 16. **LOW — Unused `title` prop in `CardBase`**
 CardBase.tsx
 

@@ -8,7 +8,6 @@ import {
   ListItemText,
   MenuItem,
 } from "@mui/material";
-import { v4 as uuid } from "uuid";
 import { useRouter } from "next/navigation";
 
 /**
@@ -38,8 +37,8 @@ const DeleteBothDocument: React.FC<{
       content:
         `Are you sure you want to delete post "${name}"? This will remove it from both cloud and local storage.`,
       actions: [
-        { label: "Cancel", id: uuid() },
-        { label: "Delete", id: uuid() },
+        { label: "Cancel", id: "cancel" },
+        { label: "Delete", id: "confirm-delete" },
       ],
     };
     const response = await dispatch(actions.alert(alert));
