@@ -3,22 +3,11 @@ import React from "react";
 import { Breadcrumbs, Typography } from "@mui/material";
 import { LibraryBooks } from "@mui/icons-material";
 
-interface BreadcrumbItem {
-  id: string;
-  name: string;
-}
-
-interface BrowserBreadcrumbsProps {
-  breadcrumbs: BreadcrumbItem[]; // Will be empty for blog structure
-}
-
 /**
  * Breadcrumb navigation component for the blog browser
- * Shows only "Blog Posts" as we don't have directory navigation
+ * Shows "Blog Posts" as the root label
  */
-const BrowserBreadcrumbs: React.FC<BrowserBreadcrumbsProps> = ({
-  breadcrumbs: _breadcrumbs,
-}) => {
+const BrowserBreadcrumbs: React.FC = () => {
   return (
     <Breadcrumbs aria-label="breadcrumb">
       {/* Root breadcrumb - always "Blog Posts" */}

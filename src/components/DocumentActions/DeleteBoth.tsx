@@ -27,13 +27,10 @@ const DeleteBothDocument: React.FC<{
   const id = userDocument.id;
   const name = localDocument?.name || cloudDocument?.name || "This Item";
 
-  // All documents are posts now (no directories)
-  const itemType = "Post";
-
   const handleDelete = async () => {
     if (closeMenu) closeMenu();
     const alert = {
-      title: `Delete ${itemType}`,
+      title: "Delete Post",
       content:
         `Are you sure you want to delete post "${name}"? This will remove it from both cloud and local storage.`,
       actions: [
@@ -70,7 +67,7 @@ const DeleteBothDocument: React.FC<{
   }
   return (
     <IconButton
-      aria-label={`Delete ${itemType}`}
+      aria-label="Delete Post"
       onClick={handleDelete}
       size="small"
     >

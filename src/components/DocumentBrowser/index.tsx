@@ -12,7 +12,6 @@ import { DocumentURLProvider } from "@/contexts/DocumentURLContext";
 
 // Import custom hooks and components
 import { useDocumentFiltering } from "./hooks/useDocumentFiltering";
-import { useBreadcrumbs } from "./hooks/useBreadcrumbs";
 import { useDocumentNavigation } from "./hooks/useDocumentNavigation";
 import BrowserBreadcrumbs from "./components/BrowserBreadcrumbs";
 import BrowserHeader from "./components/BrowserHeader";
@@ -39,7 +38,6 @@ const DocumentBrowser: React.FC<DocumentBrowserProps> = () => {
     documents,
   });
 
-  const breadcrumbs = useBreadcrumbs();
   const { createDocument } = useDocumentNavigation({});
 
   // Function to get the correct URL for a blog post
@@ -116,9 +114,7 @@ const DocumentBrowser: React.FC<DocumentBrowserProps> = () => {
                     gap: 1,
                   }}
                 >
-                  <BrowserBreadcrumbs
-                    breadcrumbs={breadcrumbs}
-                  />
+                  <BrowserBreadcrumbs />
                 </Box>
 
                 <BrowserHeader

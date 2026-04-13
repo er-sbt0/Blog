@@ -83,24 +83,6 @@ cleanup.
 
 ---
 
-### 10. **MEDIUM — Pervasive dead code from removed directory system**
-
-Dozens of lines across many files are vestigial from a removed directory
-feature:
-
-| File                     | Dead code                                                     |
-| ------------------------ | ------------------------------------------------------------- |
-| useBreadcrumbs.ts        | Entire hook always returns `[]`                               |
-| BrowserBreadcrumbs.tsx   | Accepts `breadcrumbs` prop, ignores it (`_breadcrumbs`)       |
-| useDocumentFiltering.ts  | Returns `directories: []` and `currentDirectory: null` always |
-| useDocumentNavigation.ts | `createDirectory` does nothing but `console.warn`             |
-| Edit.tsx                 | `const isDirectory = false;` + dead conditional block         |
-| DeleteBoth.tsx           | `const itemType = "Post";` with comment about no directories  |
-
-This is significant tech debt that adds cognitive load.
-
----
-
 ### 11. **MEDIUM — `@typescript-eslint/no-explicit-any` violations**
 
 sortDocuments.ts: `compareObjectsByKey` takes `(objectA: any, objectB: any)`.

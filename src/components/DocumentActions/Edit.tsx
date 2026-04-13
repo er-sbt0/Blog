@@ -41,7 +41,6 @@ const EditDocumentDialog: React.FC<{
   closeMenu?: () => void;
 }> = ({ userDocument, variant = "iconbutton", closeMenu }) => {
   const isOnline = useOnlineStatus();
-  const isDirectory = false;
 
   const {
     cloudDocument,
@@ -140,24 +139,6 @@ const EditDocumentDialog: React.FC<{
               onChange={(status) => updateInput({ status })}
               disabled={!isAuthor}
             />
-
-            {isDirectory && isAuthor && (
-              <>
-                <Divider sx={{ my: 2 }} />
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  Directory Options
-                </Typography>
-                <BackgroundImageUploader
-                  userDocument={userDocument}
-                  onChange={updateBackgroundImage}
-                  currentImage={document?.background_image || null}
-                />
-              </>
-            )}
 
             {isAuthor && (
               <>
