@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { User } from "@/types";
+import { Series, User } from "@/types";
 import { createSeriesChip, createStatusChip, PostState } from "../PostChips";
 
 /**
@@ -16,7 +16,7 @@ export interface PostMetaOptions {
 export interface PostMetaInput {
   postState: PostState;
   author?: User | null;
-  series?: any | null; // Using any for now to match existing series type
+  series?: Series | null;
   seriesOrder?: number | null;
   options?: PostMetaOptions;
 }

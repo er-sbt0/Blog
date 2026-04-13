@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
-import { User } from "@/types";
+import { Series, User } from "@/types";
 import { PostState } from "../PostChips";
 import { PostMetaOptions, usePostMeta } from "../hooks/usePostMeta";
 
@@ -10,7 +10,7 @@ import { PostMetaOptions, usePostMeta } from "../hooks/usePostMeta";
 export interface PostMetaProps {
   postState: PostState;
   author?: User | null;
-  series?: any | null; // Using any for now to match existing series type
+  series?: Series | null;
   seriesOrder?: number | null;
   options?: PostMetaOptions;
 }
