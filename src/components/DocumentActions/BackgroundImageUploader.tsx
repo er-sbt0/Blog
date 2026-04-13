@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import { Delete, UploadFile } from "@mui/icons-material";
 import { UserDocument } from "@/types";
@@ -17,7 +17,16 @@ const BackgroundImageUploader = (
 ) => {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImage);
+  const blobUrlRef = useRef<string | null>(null);
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+      }
+    };
+  }, []);
   const errorAnnounce = useErrorAnnounce();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,8 +44,12 @@ const BackgroundImageUploader = (
       return;
     }
 
-    // Create a preview URL
+    // Create a preview URL, revoking any previous one
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+    }
     const objectUrl = URL.createObjectURL(file);
+    blobUrlRef.current = objectUrl;
     setPreviewUrl(objectUrl);
 
     // Prepare form data for upload
@@ -84,6 +97,11 @@ const BackgroundImageUploader = (
       const imagePath = responseData.data?.background_image;
 
       if (imagePath) {
+        // Revoke blob URL now that the server path is available
+        if (blobUrlRef.current) {
+          URL.revokeObjectURL(blobUrlRef.current);
+          blobUrlRef.current = null;
+        }
         onChange(imagePath);
         dispatch(actions.announce({
           message: {
@@ -100,12 +118,12 @@ const BackgroundImageUploader = (
         error,
         error instanceof Error ? error.message : "Please try again later.",
       );
-      // Reset preview on error
-      if (currentImage) {
-        setPreviewUrl(currentImage);
-      } else {
-        setPreviewUrl(null);
+      // Reset preview on error, revoking the blob URL we no longer need
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
       }
+      setPreviewUrl(currentImage ?? null);
     } finally {
       setIsUploading(false);
     }

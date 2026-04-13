@@ -52,16 +52,6 @@ then generate HTML from the first 3 children. The "local" fallback and
 
 ---
 
-### 7. **MEDIUM — Memory leak: `URL.createObjectURL` never revoked**
-
-BackgroundImageUploader.tsx
-
-`URL.createObjectURL(file)` is called but `URL.revokeObjectURL()` is never
-called — not when the preview changes, not on unmount, and not on error reset.
-Each upload leaks a blob URL.
-
----
-
 ### 8. **MEDIUM — `useEffect` with missing/incorrect dependencies**
 
 useEditDocumentForm.ts: Effect depends on `[userDocument, editDialogOpen]` but
