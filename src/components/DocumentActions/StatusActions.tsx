@@ -7,16 +7,28 @@ import {
   Menu,
   MenuItem,
 } from "@mui/material";
-import {
-  CheckCircle,
-  PlayArrow,
-  RadioButtonUnchecked,
-} from "@mui/icons-material";
+import { CheckCircle, PlayArrow } from "@mui/icons-material";
 import { actions, useDispatch } from "@/store";
 import { DocumentStatus, UserDocument } from "@/types";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import { useMenuState } from "@/hooks/useMenuState";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
+
+const STATUS_CONFIG: Record<
+  DocumentStatus,
+  { Icon: typeof PlayArrow; label: string; color: string }
+> = {
+  [DocumentStatus.ACTIVE]: {
+    Icon: PlayArrow,
+    label: "Mark as Active",
+    color: "#1976d2",
+  },
+  [DocumentStatus.DONE]: {
+    Icon: CheckCircle,
+    label: "Mark as Done",
+    color: "#2e7d32",
+  },
+};
 
 interface StatusActionsProps {
   userDocument: UserDocument;
@@ -87,27 +99,7 @@ const StatusActions: React.FC<StatusActionsProps> = ({
     }
   };
 
-  const getStatusIcon = (status: DocumentStatus) => {
-    switch (status) {
-      case DocumentStatus.ACTIVE:
-        return <PlayArrow sx={{ color: "#1976d2" }} />;
-      case DocumentStatus.DONE:
-        return <CheckCircle sx={{ color: "#2e7d32" }} />;
-      default:
-        return <RadioButtonUnchecked />;
-    }
-  };
-
-  const getStatusLabel = (status: DocumentStatus) => {
-    switch (status) {
-      case DocumentStatus.ACTIVE:
-        return "Mark as Active";
-      case DocumentStatus.DONE:
-        return "Mark as Done";
-      default:
-        return "Mark as Active";
-    }
-  };
+  const { Icon: CurrentIcon, color } = STATUS_CONFIG[currentStatus];
 
   if (variant === "iconbutton") {
     return (
@@ -116,15 +108,9 @@ const StatusActions: React.FC<StatusActionsProps> = ({
           onClick={handleClick}
           size="small"
           aria-label="Change status"
-          sx={{
-            color: currentStatus === DocumentStatus.ACTIVE
-              ? "#1976d2"
-              : currentStatus === DocumentStatus.DONE
-              ? "#2e7d32"
-              : "inherit",
-          }}
+          sx={{ color }}
         >
-          {getStatusIcon(currentStatus)}
+          <CurrentIcon sx={{ color }} />
         </IconButton>
         <Menu
           anchorEl={anchorEl}
@@ -139,18 +125,21 @@ const StatusActions: React.FC<StatusActionsProps> = ({
             horizontal: "right",
           }}
         >
-          {Object.values(DocumentStatus).map((status) => (
-            <MenuItem
-              key={status}
-              onClick={() => updateStatus(status)}
-              selected={currentStatus === status}
-            >
-              <ListItemIcon>
-                {getStatusIcon(status)}
-              </ListItemIcon>
-              <ListItemText primary={getStatusLabel(status)} />
-            </MenuItem>
-          ))}
+          {Object.values(DocumentStatus).map((status) => {
+            const { Icon, label, color: itemColor } = STATUS_CONFIG[status];
+            return (
+              <MenuItem
+                key={status}
+                onClick={() => updateStatus(status)}
+                selected={currentStatus === status}
+              >
+                <ListItemIcon>
+                  <Icon sx={{ color: itemColor }} />
+                </ListItemIcon>
+                <ListItemText primary={label} />
+              </MenuItem>
+            );
+          })}
         </Menu>
       </>
     );
@@ -161,15 +150,16 @@ const StatusActions: React.FC<StatusActionsProps> = ({
     <>
       {Object.values(DocumentStatus).map((status) => {
         if (status === currentStatus) return null; // Don't show current status
+        const { Icon, label, color: itemColor } = STATUS_CONFIG[status];
         return (
           <MenuItem
             key={status}
             onClick={() => updateStatus(status)}
           >
             <ListItemIcon>
-              {getStatusIcon(status)}
+              <Icon sx={{ color: itemColor }} />
             </ListItemIcon>
-            <ListItemText primary={getStatusLabel(status)} />
+            <ListItemText primary={label} />
           </MenuItem>
         );
       })}

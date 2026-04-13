@@ -7,11 +7,7 @@ import {
   MenuItem,
   Tooltip,
 } from "@mui/material";
-import {
-  CheckCircle,
-  PlayArrow,
-  RadioButtonUnchecked,
-} from "@mui/icons-material";
+import { CheckCircle, PlayArrow } from "@mui/icons-material";
 import { actions, useDispatch, useSelector } from "@/store";
 import { DocumentStatus, UserDocument } from "@/types";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
@@ -22,6 +18,24 @@ interface StatusToggleProps {
   variant?: "menuitem" | "iconbutton";
   closeMenu?: () => void;
 }
+
+const STATUS_CONFIG: Record<
+  DocumentStatus,
+  { Icon: typeof PlayArrow; label: string; next: DocumentStatus; color: string }
+> = {
+  [DocumentStatus.ACTIVE]: {
+    Icon: PlayArrow,
+    label: "Active",
+    next: DocumentStatus.DONE,
+    color: "#ff9800",
+  },
+  [DocumentStatus.DONE]: {
+    Icon: CheckCircle,
+    label: "Done",
+    next: DocumentStatus.ACTIVE,
+    color: "#9e9e9e",
+  },
+};
 
 const StatusToggle: React.FC<StatusToggleProps> = ({
   userDocument,
@@ -44,52 +58,12 @@ const StatusToggle: React.FC<StatusToggleProps> = ({
 
   const document = isLocal ? localDocument : cloudDocument;
   const currentStatus = document?.status || DocumentStatus.ACTIVE;
-
-  // Cycle through statuses: Active → Done → Active
-  const getNextStatus = (current: DocumentStatus): DocumentStatus => {
-    switch (current) {
-      case DocumentStatus.ACTIVE:
-        return DocumentStatus.DONE;
-      case DocumentStatus.DONE:
-        return DocumentStatus.ACTIVE;
-      default:
-        return DocumentStatus.ACTIVE;
-    }
-  };
-
-  const getStatusIcon = (status: DocumentStatus) => {
-    switch (status) {
-      case DocumentStatus.ACTIVE:
-        return <PlayArrow />;
-      case DocumentStatus.DONE:
-        return <CheckCircle />;
-      default:
-        return <RadioButtonUnchecked />;
-    }
-  };
-
-  const getStatusLabel = (status: DocumentStatus) => {
-    switch (status) {
-      case DocumentStatus.ACTIVE:
-        return "Active";
-      case DocumentStatus.DONE:
-        return "Done";
-      default:
-        return "Active";
-    }
-  };
-
-  const getTooltipText = (current: DocumentStatus) => {
-    const next = getNextStatus(current);
-    return `Currently ${getStatusLabel(current)} - Click to mark as ${
-      getStatusLabel(next)
-    }`;
-  };
+  const currentConfig = STATUS_CONFIG[currentStatus];
 
   const handleToggleStatus = async () => {
     if (closeMenu) closeMenu();
 
-    const nextStatus = getNextStatus(currentStatus);
+    const nextStatus = currentConfig.next;
 
     try {
       if (isLocal) {
@@ -120,36 +94,34 @@ const StatusToggle: React.FC<StatusToggleProps> = ({
     }
   };
 
+  const { Icon: CurrentIcon, label, color } = currentConfig;
+  const nextConfig = STATUS_CONFIG[currentConfig.next];
+
   if (variant === "menuitem") {
     return (
       <MenuItem onClick={handleToggleStatus}>
         <ListItemIcon>
-          {getStatusIcon(currentStatus)}
+          <CurrentIcon />
         </ListItemIcon>
         <ListItemText>
-          Mark as {getStatusLabel(getNextStatus(currentStatus))}
+          Mark as {nextConfig.label}
         </ListItemText>
       </MenuItem>
     );
   }
 
   return (
-    <Tooltip title={getTooltipText(currentStatus)} placement="top">
+    <Tooltip
+      title={`Currently ${label} - Click to mark as ${nextConfig.label}`}
+      placement="top"
+    >
       <IconButton
         onClick={handleToggleStatus}
         size="small"
-        aria-label={`Toggle status - currently ${
-          getStatusLabel(currentStatus)
-        }`}
-        sx={{
-          color: currentStatus === DocumentStatus.ACTIVE
-            ? "#ff9800"
-            : currentStatus === DocumentStatus.DONE
-            ? "#9e9e9e"
-            : "inherit",
-        }}
+        aria-label={`Toggle status - currently ${label}`}
+        sx={{ color }}
       >
-        {getStatusIcon(currentStatus)}
+        <CurrentIcon />
       </IconButton>
     </Tooltip>
   );
