@@ -1,14 +1,11 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import useIsHydrated from "@/hooks/useIsHydrated";
 import { EditorSkeleton } from "../shared/EditorSkeleton";
 import SplashScreen from "../shared/SplashScreen";
 
 const Playground: React.FC<React.PropsWithChildren> = ({ children }) => {
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const isClient = useIsHydrated();
   const fallback = children
     ? <EditorSkeleton>{children}</EditorSkeleton>
     : <SplashScreen title="Loading Document" />;

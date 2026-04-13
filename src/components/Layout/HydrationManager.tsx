@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import useIsHydrated from "@/hooks/useIsHydrated";
 
 /**
  * HydrationManager is a utility component that helps avoid hydration mismatches
@@ -10,13 +10,7 @@ import { useEffect, useState } from "react";
 export default function HydrationManager(
   { children }: { children: React.ReactNode },
 ) {
-  // Track whether we're in the browser or server
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  // After the component mounts, mark it as hydrated
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+  const isHydrated = useIsHydrated();
 
   // Return null until hydration is complete to avoid CLS
   if (!isHydrated) {
