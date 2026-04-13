@@ -82,13 +82,7 @@ const DownloadDocument: React.FC<
       ":",
     );
 
-    const evt = new MouseEvent("click", {
-      view: window,
-      bubbles: true,
-      cancelable: true,
-    });
-
-    link.dispatchEvent(evt);
+    link.click();
     link.remove();
   };
 

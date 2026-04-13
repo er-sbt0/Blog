@@ -103,14 +103,6 @@ the module is ever unloaded.
 
 ---
 
-### 14. **LOW — Unnecessary synthetic `MouseEvent` for download**
-
-Download.tsx
-
-Creates a synthetic `MouseEvent` and dispatches it. Just call `link.click()`.
-
----
-
 ### 16. **LOW — Unused `title` prop in `CardBase`**
 
 CardBase.tsx
