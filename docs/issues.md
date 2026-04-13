@@ -52,16 +52,6 @@ then generate HTML from the first 3 children. The "local" fallback and
 
 ---
 
-### 6. **HIGH — Inconsistent status colors between `StatusActions` and `StatusToggle`**
-
-StatusActions.tsx uses `#1976d2` (blue) for ACTIVE / `#2e7d32` (green) for DONE.
-StatusToggle.tsx uses `#ff9800` (orange) for ACTIVE / `#9e9e9e` (grey) for DONE.
-
-These are different color schemes for the same concept, violating consistency.
-Also, both hard-code hex instead of using theme tokens (violating DESIGN.md).
-
----
-
 ### 7. **MEDIUM — Memory leak: `URL.createObjectURL` never revoked**
 
 BackgroundImageUploader.tsx

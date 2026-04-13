@@ -27,13 +27,13 @@ const STATUS_CONFIG: Record<
     Icon: PlayArrow,
     label: "Active",
     next: DocumentStatus.DONE,
-    color: "#ff9800",
+    color: "info.main",
   },
   [DocumentStatus.DONE]: {
     Icon: CheckCircle,
     label: "Done",
     next: DocumentStatus.ACTIVE,
-    color: "#9e9e9e",
+    color: "text.secondary",
   },
 };
 
