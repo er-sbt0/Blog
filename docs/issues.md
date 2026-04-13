@@ -139,13 +139,6 @@ PostContent.tsx: A commented-out `<Chip>` block.
 
 ---
 
-### 18. **LOW — Flawed perf-monitoring hook**
-useDocumentGridPerformance.ts
-
-Uses two `useEffect` calls (one without deps, one without deps) trying to measure render time. Effects run asynchronously after paint, so `startTime` and the measurement don't capture actual render duration — only the time between effects firing.
-
----
-
 ### 19. **LOW — Redundant upload guard split between options array and JSX**
 ActionMenu.tsx
 

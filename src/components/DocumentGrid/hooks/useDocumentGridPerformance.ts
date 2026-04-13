@@ -19,11 +19,11 @@ export const useDocumentGridPerformance = (
   const renderTimes = useRef<number[]>([]);
   const startTime = useRef<number>(0);
 
-  useEffect(() => {
-    if (process.env.NODE_ENV === "development") {
-      startTime.current = performance.now();
-    }
-  });
+  // Capture start time during the synchronous render phase,
+  // not in an effect (which fires asynchronously after paint).
+  if (process.env.NODE_ENV === "development") {
+    startTime.current = performance.now();
+  }
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
