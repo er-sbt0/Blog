@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Series, User, UserDocument } from "@/types";
 import { DragProvider } from "@/contexts/DragContext";
 import TrashBin from "./TrashBin";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useDocuments } from "@/hooks/useDocuments";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import KanbanPreviewCard from "./KanbanPreviewCard";
@@ -46,49 +46,35 @@ const Home: React.FC<{
     400,
   );
   const [isResizing, setIsResizing] = useState(false);
-  const resizeStartRef = useRef<{ startY: number; startHeight: number } | null>(
-    null,
-  );
   const { documents, refresh } = useDocuments(staticDocuments);
 
   const recentPosts = documents.slice(0, 8);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-    resizeStartRef.current = {
-      startY: e.clientY,
-      startHeight: notesHeight,
-    };
-  }, [notesHeight]);
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startHeight = notesHeight;
 
-  const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (!isResizing || !resizeStartRef.current) return;
+      setIsResizing(true);
 
-    const deltaY = e.clientY - resizeStartRef.current.startY;
-    const newHeight = Math.max(
-      200,
-      resizeStartRef.current.startHeight + deltaY,
-    );
-    setNotesHeight(newHeight);
-  }, [isResizing]);
+      const handleResizeMove = (moveEvent: MouseEvent) => {
+        const deltaY = moveEvent.clientY - startY;
+        const newHeight = Math.max(200, startHeight + deltaY);
+        setNotesHeight(newHeight);
+      };
 
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-    resizeStartRef.current = null;
-  }, []);
-
-  // Add/remove global event listeners for resize
-  useEffect(() => {
-    if (isResizing) {
-      document.addEventListener("mousemove", handleResizeMove);
-      document.addEventListener("mouseup", handleResizeEnd);
-      return () => {
+      const handleResizeEnd = () => {
+        setIsResizing(false);
         document.removeEventListener("mousemove", handleResizeMove);
         document.removeEventListener("mouseup", handleResizeEnd);
       };
-    }
-  }, [isResizing, handleResizeMove, handleResizeEnd]);
+
+      document.addEventListener("mousemove", handleResizeMove);
+      document.addEventListener("mouseup", handleResizeEnd);
+    },
+    [notesHeight, setNotesHeight],
+  );
 
   const handleOpenView = (viewType: ViewType) => {
     setActiveView(viewType);
