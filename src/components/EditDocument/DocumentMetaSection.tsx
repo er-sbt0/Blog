@@ -92,14 +92,14 @@ export default function DocumentMetaSection({
                 : "Done"}
               sx={{
                 backgroundColor: localDocument.status === DocumentStatus.ACTIVE
-                  ? "#e3f2fd"
-                  : "#e8f5e8",
+                  ? (theme) => `rgba(${theme.vars.palette.info.mainChannel} / 0.12)`
+                  : (theme) => `rgba(${theme.vars.palette.success.mainChannel} / 0.12)`,
                 color: localDocument.status === DocumentStatus.ACTIVE
-                  ? "#1976d2"
-                  : "#2e7d32",
+                  ? "info.main"
+                  : "success.dark",
                 borderColor: localDocument.status === DocumentStatus.ACTIVE
-                  ? "#2196f3"
-                  : "#4caf50",
+                  ? "info.main"
+                  : "success.main",
                 fontWeight: "bold",
               }}
               variant="outlined"

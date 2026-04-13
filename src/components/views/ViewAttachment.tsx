@@ -22,6 +22,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
@@ -142,11 +143,11 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
     <div
       className="view-attachment"
       style={{
-        border: "1px solid #e0e0e0",
+        border: "1px solid var(--mui-palette-divider)",
         borderRadius: "8px",
         margin: "8px 0",
         overflow: "hidden",
-        backgroundColor: "#fafafa",
+        backgroundColor: "var(--mui-palette-grey-50)",
         maxWidth: "40%",
       }}
     >
@@ -157,15 +158,15 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
           alignItems: "center",
           padding: "8px 12px",
           cursor: canPreview ? "pointer" : "default",
-          backgroundColor: "#f5f5f5",
-          borderBottom: expanded ? "1px solid #e0e0e0" : "none",
+          backgroundColor: "var(--mui-palette-grey-100)",
+          borderBottom: expanded ? "1px solid var(--mui-palette-divider)" : "none",
         }}
         onClick={canPreview ? handleToggleExpand : undefined}
       >
         <span style={{ flex: 1, fontWeight: 500 }}>{filename}</span>
         <span
           style={{
-            color: "#666",
+            color: "var(--mui-palette-text-secondary)",
             fontSize: "0.85em",
             marginRight: "8px",
           }}
@@ -201,7 +202,7 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
           style={{
             maxHeight: "400px",
             overflow: "auto",
-            backgroundColor: "#fff",
+            backgroundColor: "var(--mui-palette-background-paper)",
           }}
         >
           {loading && (
@@ -221,7 +222,7 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
             <div
               style={{
                 padding: "16px",
-                color: "#d32f2f",
+                color: "var(--mui-palette-error-main)",
                 textAlign: "center",
               }}
             >
@@ -266,17 +267,9 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
                 )}
 
               {truncated && (
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    backgroundColor: "#fff3e0",
-                    color: "#e65100",
-                    fontSize: "0.85em",
-                    textAlign: "center",
-                  }}
-                >
+                <Alert severity="warning" sx={{ fontSize: "0.85em", py: 0.5 }}>
                   Content truncated. Download to view full file.
-                </div>
+                </Alert>
               )}
             </>
           )}
@@ -289,7 +282,7 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
           style={{
             padding: "16px",
             textAlign: "center",
-            color: "#666",
+            color: "var(--mui-palette-text-secondary)",
           }}
         >
           Preview not available for this file type. Click download to view.
