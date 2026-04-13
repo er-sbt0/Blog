@@ -159,7 +159,9 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
           padding: "8px 12px",
           cursor: canPreview ? "pointer" : "default",
           backgroundColor: "var(--mui-palette-grey-100)",
-          borderBottom: expanded ? "1px solid var(--mui-palette-divider)" : "none",
+          borderBottom: expanded
+            ? "1px solid var(--mui-palette-divider)"
+            : "none",
         }}
         onClick={canPreview ? handleToggleExpand : undefined}
       >

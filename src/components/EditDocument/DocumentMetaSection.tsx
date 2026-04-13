@@ -92,8 +92,10 @@ export default function DocumentMetaSection({
                 : "Done"}
               sx={{
                 backgroundColor: localDocument.status === DocumentStatus.ACTIVE
-                  ? (theme) => `rgba(${theme.vars.palette.info.mainChannel} / 0.12)`
-                  : (theme) => `rgba(${theme.vars.palette.success.mainChannel} / 0.12)`,
+                  ? (theme) =>
+                    `rgba(${theme.vars.palette.info.mainChannel} / 0.12)`
+                  : (theme) =>
+                    `rgba(${theme.vars.palette.success.mainChannel} / 0.12)`,
                 color: localDocument.status === DocumentStatus.ACTIVE
                   ? "info.main"
                   : "success.dark",

@@ -53,7 +53,8 @@ export const ExportImportPanel: React.FC = () => {
 
       <Tabs
         value={tab}
-        onChange={(_, v) => setTab(v)}
+        onChange={(_, v) =>
+          setTab(v)}
         aria-label="Export / Import tabs"
         sx={{ borderBottom: 1, borderColor: "divider" }}
       >

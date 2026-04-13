@@ -96,7 +96,8 @@ export const ImportTab: React.FC = () => {
         </label>
         {selectedFile && (
           <Typography variant="body2" color="text.secondary">
-            {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)}{" "}
+            {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)}
+            {" "}
             MB)
           </Typography>
         )}
@@ -110,7 +111,8 @@ export const ImportTab: React.FC = () => {
             ? <CircularProgress size={16} color="inherit" />
             : <CloudUpload />}
           onClick={handleImport}
-          disabled={op.loading || !selectedFile || (target === "cloud" && !user)}
+          disabled={op.loading || !selectedFile ||
+            (target === "cloud" && !user)}
         >
           {op.loading ? "Importing…" : "Import backup"}
         </Button>

@@ -199,10 +199,12 @@ export default function DraggableNote({
           overflow: "hidden",
           borderRadius: "6px",
           border: isFocused
-            ? (theme) => `2px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`
+            ? (theme) =>
+              `2px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`
             : "1px solid rgba(0, 0, 0, 0.1)",
           boxShadow: isFocused
-            ? (theme) => `0 8px 32px rgba(0,0,0,0.12), 0 0 0 3px rgba(${theme.vars.palette.primary.mainChannel} / 0.08), inset 0 1px 0 rgba(255,255,255,0.5)`
+            ? (theme) =>
+              `0 8px 32px rgba(0,0,0,0.12), 0 0 0 3px rgba(${theme.vars.palette.primary.mainChannel} / 0.08), inset 0 1px 0 rgba(255,255,255,0.5)`
             : "0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.5)",
           transition: "box-shadow 0.2s ease, border-color 0.2s ease",
           "&:hover": {

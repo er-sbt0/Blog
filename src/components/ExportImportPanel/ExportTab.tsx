@@ -39,7 +39,14 @@ export const ExportTab: React.FC = () => {
     local.execute(async () => {
       const r = await runExportLocal();
       return r.ok
-        ? { ok: true, data: { filename: r.filename, documents: r.documents, warnings: r.warnings } }
+        ? {
+          ok: true,
+          data: {
+            filename: r.filename,
+            documents: r.documents,
+            warnings: r.warnings,
+          },
+        }
         : r;
     });
 
