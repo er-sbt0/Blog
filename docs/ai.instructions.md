@@ -7,6 +7,7 @@ applyTo: 'src/**/*ai*,src/**/*completion*,src/**/*llm*'
 ## Current State (January 2026)
 
 ### SDK Versions (Pinned)
+
 - `ai`: 6.0.27
 - `@ai-sdk/react`: 3.0.29
 - `@ai-sdk/google`: 3.0.6
@@ -14,14 +15,16 @@ applyTo: 'src/**/*ai*,src/**/*completion*,src/**/*llm*'
 - `@ai-sdk/azure`: 3.0.12
 
 ### Active Providers
-| Provider | Models | Use Case |
-|----------|--------|----------|
-| Google | gemini-2.5-flash, gemini-2.5-pro | Default, fast completions |
-| Anthropic | claude-3-5-sonnet-20241022, claude-sonnet-4-20250514 | Complex reasoning |
-| Azure OpenAI | gpt-4o-mini, gpt-5.1-2025-11-13 | Enterprise fallback |
-| Ollama | phi4 | Local/offline |
+
+| Provider     | Models                                               | Use Case                  |
+| ------------ | ---------------------------------------------------- | ------------------------- |
+| Google       | gemini-2.5-flash, gemini-2.5-pro                     | Default, fast completions |
+| Anthropic    | claude-3-5-sonnet-20241022, claude-sonnet-4-20250514 | Complex reasoning         |
+| Azure OpenAI | gpt-4o-mini, gpt-5.1-2025-11-13                      | Enterprise fallback       |
+| Ollama       | phi4                                                 | Local/offline             |
 
 ### Key Files
+
 - `src/app/api/completion/route.ts` - API endpoint
 - `src/editor/plugins/ToolbarPlugin/Dialogs/AIDialog.tsx` - Model selection UI
 - `src/editor/plugins/ToolbarPlugin/Tools/AITools.tsx` - Toolbar actions
@@ -31,6 +34,7 @@ applyTo: 'src/**/*ai*,src/**/*completion*,src/**/*llm*'
 ## Target Architecture
 
 ### Directory Structure
+
 ```
 src/lib/ai/
 ├── index.ts           # Public API exports
@@ -71,7 +75,7 @@ src/lib/ai/
 
 ```typescript
 // src/lib/ai/types.ts
-export type AIProviderType = 'google' | 'anthropic' | 'azure' | 'ollama';
+export type AIProviderType = "google" | "anthropic" | "azure" | "ollama";
 
 export interface AIModel {
   id: string;
@@ -93,33 +97,32 @@ export interface AIOption {
 
 ```typescript
 // src/lib/ai/models.ts
-import type { AIModel } from './types';
+import type { AIModel } from "./types";
 
 export const AI_MODELS: AIModel[] = [
   {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
-    provider: 'google',
-    capabilities: { streaming: true, maxTokens: 8192 }
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
+    provider: "google",
+    capabilities: { streaming: true, maxTokens: 8192 },
   },
   // ... other models
 ];
 
-export const getModelById = (id: string) => 
-  AI_MODELS.find(m => m.id === id);
+export const getModelById = (id: string) => AI_MODELS.find((m) => m.id === id);
 
 export const getModelsByProvider = (provider: AIProviderType) =>
-  AI_MODELS.filter(m => m.provider === provider);
+  AI_MODELS.filter((m) => m.provider === provider);
 ```
 
 ```typescript
 // src/lib/ai/prompts.ts
 export const PROMPTS = {
-  rewrite: 'Rewrite the following text to improve clarity and flow:',
-  continue: 'Continue writing from where the text ends:',
-  shorter: 'Make this text more concise while keeping key information:',
-  longer: 'Expand this text with more detail and examples:',
-  fixSpelling: 'Fix any spelling and grammar errors:',
+  rewrite: "Rewrite the following text to improve clarity and flow:",
+  continue: "Continue writing from where the text ends:",
+  shorter: "Make this text more concise while keeping key information:",
+  longer: "Expand this text with more detail and examples:",
+  fixSpelling: "Fix any spelling and grammar errors:",
   changeTone: (tone: string) => `Rewrite in a ${tone} tone:`,
 } as const;
 ```
@@ -128,19 +131,19 @@ export const PROMPTS = {
 
 ```typescript
 // src/app/api/completion/route.ts
-import { createProvider, getModelInstance } from '@/lib/ai/providers';
-import { PROMPTS } from '@/lib/ai/prompts';
-import { AICompletionError } from '@/lib/ai/errors';
+import { createProvider, getModelInstance } from "@/lib/ai/providers";
+import { PROMPTS } from "@/lib/ai/prompts";
+import { AICompletionError } from "@/lib/ai/errors";
 
 export async function POST(req: Request) {
   const { prompt, model: modelId, option } = await req.json();
-  
+
   const model = getModelById(modelId);
-  if (!model) throw new AICompletionError('Invalid model');
-  
+  if (!model) throw new AICompletionError("Invalid model");
+
   const provider = createProvider(model.provider);
   const systemPrompt = PROMPTS[option] ?? PROMPTS.rewrite;
-  
+
   // ... rest of implementation
 }
 ```
@@ -196,16 +199,20 @@ OLLAMA_API_URL=http://localhost:11434/api
 ## Known Issues & Workarounds
 
 ### SDK Version Compatibility
+
 The AI SDK has frequent breaking changes between major versions:
+
 - v4 → v5: Model interface changes
 - v5 → v6: Support for model specification v3, React hooks architecture updates
 
 **Current Setup (AI SDK v6)**:
+
 - AI SDK v6 supports model specifications v1, v2, and v3
 - `@ai-sdk/anthropic` v3.x uses specification v3 (compatible with SDK v6)
 - Enables access to latest Claude models (Claude Sonnet 4)
 
 **Migration Notes**:
+
 - Upgraded from AI SDK v5 to v6 on January 10, 2026
 - No breaking changes detected in core API usage
 - All existing code continues to work
@@ -213,11 +220,15 @@ The AI SDK has frequent breaking changes between major versions:
 **Mitigation**: Pin exact versions in package.json, test before upgrading.
 
 ### Type Assertions
-Current code uses `model as any` due to interface mismatches between provider SDKs.
 
-**Mitigation**: After refactoring, use discriminated unions and proper type guards.
+Current code uses `model as any` due to interface mismatches between provider
+SDKs.
+
+**Mitigation**: After refactoring, use discriminated unions and proper type
+guards.
 
 ### Model Availability
+
 Models may be deprecated or renamed (e.g., gemini-2.0 → gemini-2.5).
 
 **Mitigation**: Centralize model definitions, monitor provider changelogs.

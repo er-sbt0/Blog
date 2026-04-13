@@ -3,15 +3,20 @@
 ## Root Cause Analysis
 
 The stale data issue occurs because:
+
 1. Pages use `dynamic = "force-dynamic"` which disables Next.js caching
 2. Data is fetched fresh on every server render
-3. **BUT** after client-side mutations (POST/PATCH/DELETE), the router doesn't know to re-fetch
-4. `revalidatePath()` has NO EFFECT with `force-dynamic` (no cache to invalidate)
+3. **BUT** after client-side mutations (POST/PATCH/DELETE), the router doesn't
+   know to re-fetch
+4. `revalidatePath()` has NO EFFECT with `force-dynamic` (no cache to
+   invalidate)
 
 ## The Correct Solution
 
 ### On API Routes: Keep revalidatePath() for Compatibility
+
 Even though `force-dynamic` disables caching, keep `revalidatePath()` calls:
+
 - Provides forward compatibility if caching strategy changes
 - Required if any page doesn't use `force-dynamic`
 - Doesn't hurt performance
@@ -40,17 +45,22 @@ const handleDelete = async () => {
 ## Implementation Checklist
 
 ### ✅ API Routes (Already Fixed)
+
 - All mutation endpoints call `revalidatePath()`
 
 ### ❌ Client Components (NEEDS FIX)
+
 Components that mutate data must call `router.refresh()`:
 
 **CRITICAL MISSING:**
-1. **SideBar.tsx** - `handleDeletePost` after deleteCloudDocument/deleteLocalDocument
+
+1. **SideBar.tsx** - `handleDeletePost` after
+   deleteCloudDocument/deleteLocalDocument
 2. **NewDocument.tsx** - After `createCloudDocument` completes
 3. **Any component dispatching Redux mutations** that affect server data
 
 ### ✅ Pages (Already Fixed)
+
 - Home page now has `dynamic = "force-dynamic"`
 
 ## How to Fix Client Components
@@ -84,10 +94,12 @@ const handleUpdate = async () => {
 
 ## Why Both Are Needed
 
-1. **`revalidatePath()` on server**: Invalidates any cached versions (future-proofing)
+1. **`revalidatePath()` on server**: Invalidates any cached versions
+   (future-proofing)
 2. **`router.refresh()` on client**: Tells router to re-fetch from server NOW
 
-With `dynamic = "force-dynamic"`, only #2 actually matters, but keep #1 for consistency.
+With `dynamic = "force-dynamic"`, only #2 actually matters, but keep #1 for
+consistency.
 
 ## Required Pattern
 
@@ -103,9 +115,9 @@ export async function POST(request: Request) {
   const result = await createResource(data);
 
   // ✅ REQUIRED: Revalidate affected paths
-  revalidatePath("/");                    // Home page
-  revalidatePath("/resources");           // List page
-  revalidatePath(`/resources/${id}`);     // Detail page (if applicable)
+  revalidatePath("/"); // Home page
+  revalidatePath("/resources"); // List page
+  revalidatePath(`/resources/${id}`); // Detail page (if applicable)
 
   return NextResponse.json({ data: result });
 }
@@ -138,30 +150,33 @@ Call `revalidatePath()` after **any database mutation**:
 Revalidate **all pages that display the mutated data**:
 
 ### Posts/Documents
+
 ```typescript
 // Creating/updating/deleting a post
-revalidatePath("/");                          // Home page (post list)
-revalidatePath(`/${post.handle || postId}`);  // Post detail page
+revalidatePath("/"); // Home page (post list)
+revalidatePath(`/${post.handle || postId}`); // Post detail page
 if (post.seriesId) {
-  revalidatePath("/series");                  // Series list
+  revalidatePath("/series"); // Series list
   revalidatePath(`/series/${post.seriesId}`); // Series detail
 }
 ```
 
 ### Series
+
 ```typescript
 // Creating/updating/deleting a series
-revalidatePath("/series");           // Series list page
-revalidatePath(`/series/${id}`);     // Series detail page
-revalidatePath("/");                 // Home page (if series shown)
+revalidatePath("/series"); // Series list page
+revalidatePath(`/series/${id}`); // Series detail page
+revalidatePath("/"); // Home page (if series shown)
 ```
 
 ### Adding/Removing Posts from Series
+
 ```typescript
 // POST/DELETE /api/series/[id]/posts
-revalidatePath("/series");           // Series list (post counts change)
-revalidatePath(`/series/${id}`);     // Series detail (posts list changes)
-revalidatePath("/");                 // Home page (post metadata changes)
+revalidatePath("/series"); // Series list (post counts change)
+revalidatePath(`/series/${id}`); // Series detail (posts list changes)
+revalidatePath("/"); // Home page (post metadata changes)
 ```
 
 ## Implementation Status
@@ -169,6 +184,7 @@ revalidatePath("/");                 // Home page (post metadata changes)
 All mutation routes now implement cache revalidation:
 
 ### ✅ Series Routes (Fixed)
+
 - `POST /api/series` - Create series
 - `PATCH /api/series/[id]` - Update series
 - `DELETE /api/series/[id]` - Delete series
@@ -176,18 +192,23 @@ All mutation routes now implement cache revalidation:
 - `DELETE /api/series/[id]/posts` - Remove post from series
 
 ### ✅ Posts Routes (Fixed)
+
 - `POST /api/posts` - Create post
 - `PATCH /api/posts/[id]` - Update post
 - `DELETE /api/posts/[id]` - Delete post
 
 ### ✅ Documents Routes (Check if needed)
+
 - Verify if `/api/documents/**` routes need similar treatment
 
 ## Why This Pattern
 
-1. **Next.js App Router caching**: Even with `dynamic = "force-dynamic"`, Next.js caches the rendered output of Server Components
-2. **Server-side rendering**: Pages fetch data on the server, so client-side mutations don't automatically trigger re-renders
-3. **On-demand revalidation**: `revalidatePath()` tells Next.js to invalidate specific cached pages
+1. **Next.js App Router caching**: Even with `dynamic = "force-dynamic"`,
+   Next.js caches the rendered output of Server Components
+2. **Server-side rendering**: Pages fetch data on the server, so client-side
+   mutations don't automatically trigger re-renders
+3. **On-demand revalidation**: `revalidatePath()` tells Next.js to invalidate
+   specific cached pages
 4. **Better UX**: Users see updates immediately without manual refresh
 
 ## Testing
