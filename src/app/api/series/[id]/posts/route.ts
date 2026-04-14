@@ -185,7 +185,7 @@ export const PATCH = withApiHandler(
   },
 );
 
-// DELETE /api/series/[id]/posts → remove post from series
+// DELETE /api/series/[id]/posts?postId=<uuid> → remove post from series
 export const DELETE = withApiHandler(
   async (request, props: { params: Promise<{ id: string }> }) => {
     const params = await props.params;
@@ -226,11 +226,11 @@ export const DELETE = withApiHandler(
       );
     }
 
-    const body = await request.json();
-    const { postId } = body;
+    const { searchParams } = new URL(request.url);
+    const postId = searchParams.get("postId");
 
     if (!postId) {
-      throw new ApiError(400, "Bad Request", "Post ID is required");
+      throw new ApiError(400, "Bad Request", "Post ID query parameter is required");
     }
 
     if (!validate(postId)) {

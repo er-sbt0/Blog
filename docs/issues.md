@@ -413,10 +413,6 @@ dateHelpers.ts line 56–67: `getWeekKey` uses a naive week algorithm instead of
 ### 18. Inconsistent Response Shapes
 API responses alternate between `{ data }`, `{ success, data }`, `{ success, message, results }`, `{ revalidated, now }` — no standard envelope.
 
-### 19. HTTP Semantics
-- DELETE with request body ([src/app/api/series/[id]/posts/route.ts](src/app/api/series/%5Bid%5D/posts/route.ts))
-- GET with side effects (revalidate endpoint)
-
 ### 20. Type System Weaknesses
 - `LocalDocumentRevision = Partial<EditorDocumentRevision>` — makes everything optional, allowing revisions with no ID.
 - ~20 API response types in types.ts all duplicate `{ data?: T; error?: { title; subtitle? } }` — should be a generic `ApiResponse<T>`.

@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { revalidatePath, revalidateTag } from "next/cache";
 
-export const GET = withApiHandler(async (request: Request) => {
+export const POST = withApiHandler(async (request: Request) => {
   const session = await getServerSession(authOptions);
   if (!session) {
     throw new ApiError(
@@ -21,14 +21,14 @@ export const GET = withApiHandler(async (request: Request) => {
     );
   }
 
-  const { searchParams } = new URL(request.url);
-  const path = searchParams.get("path");
+  const body = await request.json();
+  const { path, tag } = body;
+
   if (path) {
     revalidatePath(path);
     return Response.json({ revalidated: path, now: Date.now() });
   }
 
-  const tag = searchParams.get("tag");
   if (tag) {
     revalidateTag(tag);
     return Response.json({ revalidated: tag, now: Date.now() });
