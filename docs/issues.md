@@ -64,25 +64,6 @@ effect but missing from deps. `loadContent` captures stale state.
 
 ---
 
-### 9. **MEDIUM — Setting state in cleanup function**
-
-usePostContent.ts
-
-```ts
-return () => {
-  isMounted = false;
-  setThumbnail(null); // state update during unmount
-  setIsLoading(false);
-  setError(null);
-};
-```
-
-Setting state in cleanup fires during unmount, which is the exact problem the
-`isMounted` flag is supposed to prevent. Remove these `setState` calls from
-cleanup.
-
----
-
 ### 11. **MEDIUM — `@typescript-eslint/no-explicit-any` violations**
 
 sortDocuments.ts: `compareObjectsByKey` takes `(objectA: any, objectB: any)`.

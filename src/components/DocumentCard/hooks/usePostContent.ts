@@ -123,10 +123,6 @@ export const usePostContent = (
     // Cleanup function to handle component unmount
     return () => {
       isMounted = false;
-      // Reset state if component unmounts during loading
-      setThumbnail(null);
-      setIsLoading(false);
-      setError(null);
     };
   }, [document?.id, document?.head, contextThumbnail, userDocument]);
 
