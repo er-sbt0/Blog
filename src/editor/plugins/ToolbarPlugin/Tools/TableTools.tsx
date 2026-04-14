@@ -285,6 +285,21 @@ export default function TableTools(
   const textColor = tableCellStyle?.color;
   const backgroundColor = tableCellStyle?.["background-color"];
 
+  const getCellStyle = useCallback((): Record<string, string> | null => {
+    return editor.getEditorState().read(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection) || $isTableSelection(selection)) {
+        const [cell] = $getNodeTriplet(selection.anchor);
+        if ($isTableCellNode(cell)) {
+          const css = cell.getStyle();
+          const style = getStyleObjectFromCSS(css);
+          return style;
+        }
+      }
+      return null;
+    });
+  }, [editor]);
+
   useEffect(() => {
     return editor.registerUpdateListener(() => {
       editor.getEditorState().read(() => {
@@ -311,7 +326,7 @@ export default function TableTools(
         }
       },
     );
-  }, [editor, tableCellNode]);
+  }, [editor, tableCellNode, getCellStyle]);
 
   useEffect(() => {
     if (!open) return;
@@ -410,12 +425,32 @@ export default function TableTools(
     [editor, selectionCounts.columns],
   );
 
+  const restoreFocus = useCallback(() => {
+    setTimeout(() => {
+      editor.update(() => {
+        const selection = $getSelection() || $getPreviousSelection();
+        if (!selection) return;
+        $setSelection(selection.clone());
+      }, {
+        discrete: true,
+        onUpdate() {
+          editor.focus(undefined, { defaultSelection: "rootStart" });
+        },
+      });
+    }, 0);
+  }, [editor]);
+
+  const handleClose = useCallback(() => {
+    closeMenu();
+    restoreFocus();
+  }, [closeMenu, restoreFocus]);
+
   const deleteTableRowAtSelection = useCallback(() => {
     editor.update(() => {
       $deleteTableRow__EXPERIMENTAL();
       handleClose();
     });
-  }, [editor]);
+  }, [editor, handleClose]);
 
   const deleteTableAtSelection = useCallback(() => {
     if (tableCellNode === null) return;
@@ -424,14 +459,14 @@ export default function TableTools(
       node.remove();
       handleClose();
     });
-  }, [editor, node, tableCellNode]);
+  }, [editor, node, tableCellNode, handleClose]);
 
   const deleteTableColumnAtSelection = useCallback(() => {
     editor.update(() => {
       $deleteTableColumn__EXPERIMENTAL();
       handleClose();
     });
-  }, [editor]);
+  }, [editor, handleClose]);
 
   const getTableRowHeaderState = useCallback(() => {
     if (tableCellNode === null) return TableCellHeaderStates.NO_STATUS;
@@ -450,7 +485,7 @@ export default function TableTools(
       }
       return node.__rowStriping;
     });
-  }, [node]);
+  }, [editor, node]);
 
   const toggleTableRowIsHeader = useCallback(() => {
     if (tableCellNode === null) return;
@@ -487,7 +522,7 @@ export default function TableTools(
         tableCell.setHeaderStyles(newStyle, TableCellHeaderStates.ROW);
       });
     });
-  }, [editor, node, tableCellNode]);
+  }, [editor, tableCellNode]);
 
   const toggleTableColumnIsHeader = useCallback(() => {
     if (tableCellNode === null) return;
@@ -538,7 +573,7 @@ export default function TableTools(
         );
       }
     });
-  }, [editor, node, tableCellNode]);
+  }, [editor, tableCellNode]);
 
   const toggleRowStriping = useCallback(() => {
     if (tableCellNode === null) return;
@@ -552,7 +587,7 @@ export default function TableTools(
         }
       }
     });
-  }, [editor, node, tableCellNode]);
+  }, [editor, tableCellNode]);
 
   const applyCellStyle = useCallback(
     (styles: Record<string, string>) => {
@@ -582,7 +617,7 @@ export default function TableTools(
       const styleKey = key === "text" ? "color" : "background-color";
       applyCellStyle({ [styleKey]: value });
     },
-    [editor],
+    [applyCellStyle],
   );
 
   const getCellWritingMode = useCallback(() => {
@@ -594,45 +629,31 @@ export default function TableTools(
       const value = getCellWritingMode() === "" ? "vertical-rl" : "";
       applyCellStyle({ "writing-mode": value });
     },
-    [editor, tableCellStyle],
+    [applyCellStyle, getCellWritingMode],
   );
 
-  function getNodeFormatType(): ElementFormatType {
+  const getNodeFormatType = useCallback((): ElementFormatType => {
     return editor.getEditorState().read(() => {
       return node.getFormatType();
     });
-  }
-  function getNodeFloat(): string {
+  }, [editor, node]);
+
+  const getNodeFloat = useCallback((): string => {
     return editor.getEditorState().read(() => {
       return $getNodeStyleValueForProperty(node, "float", "none");
     });
-  }
+  }, [editor, node]);
 
   useEffect(() => {
     setFormatType(getNodeFormatType());
     setFloat(getNodeFloat());
-  }, [node]);
-
-  function getCellStyle(): Record<string, string> | null {
-    return editor.getEditorState().read(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection) || $isTableSelection(selection)) {
-        const [cell] = $getNodeTriplet(selection.anchor);
-        if ($isTableCellNode(cell)) {
-          const css = cell.getStyle();
-          const style = getStyleObjectFromCSS(css);
-          return style;
-        }
-      }
-      return null;
-    });
-  }
+  }, [node, getNodeFormatType, getNodeFloat]);
 
   useEffect(() => {
     if (tableCellNode === null) return;
     const cellStyle = getCellStyle();
     setTableCellStyle(cellStyle);
-  }, [tableCellNode]);
+  }, [tableCellNode, getCellStyle]);
 
   function updateFloat(newFloat: "left" | "right" | "none") {
     setFloat(newFloat);
@@ -657,26 +678,6 @@ export default function TableTools(
       setTableCellNode(tableCell);
     });
   };
-
-  const restoreFocus = useCallback(() => {
-    setTimeout(() => {
-      editor.update(() => {
-        const selection = $getSelection() || $getPreviousSelection();
-        if (!selection) return;
-        $setSelection(selection.clone());
-      }, {
-        discrete: true,
-        onUpdate() {
-          editor.focus(undefined, { defaultSelection: "rootStart" });
-        },
-      });
-    }, 0);
-  }, [editor]);
-
-  const handleClose = useCallback(() => {
-    closeMenu();
-    restoreFocus();
-  }, [closeMenu, restoreFocus]);
 
   return (
     <>
