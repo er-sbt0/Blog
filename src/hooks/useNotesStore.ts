@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Note, NotesCanvas } from "@/types/notes";
 import { useSession } from "next-auth/react";
 
@@ -136,8 +136,8 @@ export function useNotesStore(canvasId: string | null) {
   );
 
   // Debounced update for frequent changes (drag, resize)
-  const debouncedApiUpdate = useCallback(
-    debounce(async (id: string, updates: any) => {
+  const debouncedApiUpdate = useMemo(
+    () => debounce(async (id: string, updates: any) => {
       try {
         const response = await fetch(`${API_BASE}/${id}`, {
           method: "PATCH",

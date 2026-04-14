@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { validate } from "uuid";
 import { debounce } from "@mui/material/utils";
 import { DocumentCreateInput } from "@/types";
@@ -18,8 +18,8 @@ export function useHandleValidation(
   >({});
   const hasErrors = Object.keys(validationErrors).length > 0;
 
-  const checkHandle = useCallback(
-    debounce(async (handle: string) => {
+  const checkHandle = useMemo(
+    () => debounce(async (handle: string) => {
       try {
         await apiClient.documents.checkHandle(handle);
         setValidationErrors({});

@@ -70,7 +70,7 @@ export function useTimeEditing(posts: Document[]) {
     } finally {
       setIsSavingTimeChanges(false);
     }
-  }, [pendingTimeChanges, router]);
+  }, [pendingTimeChanges, router, errorAnnounce]);
 
   const handleDiscardTimeChanges = useCallback(() => {
     setPendingTimeChanges(new Map());
