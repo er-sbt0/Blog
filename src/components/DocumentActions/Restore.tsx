@@ -64,7 +64,6 @@ const RestoreDocument: React.FC<
       await dispatch(actions.createLocalRevision(editorDocumentRevision));
     }
     if (isCloudHeadLocalRevision) {
-      const cloudDocument = userDocument.cloud;
       try {
         const localRevision = await dispatch(
           actions.getLocalRevision(cloudDocument.head),

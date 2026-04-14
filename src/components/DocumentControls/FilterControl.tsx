@@ -1,5 +1,5 @@
 "use client";
-import { FC, ReactNode, useMemo } from "react";
+import { FC, ReactElement, useMemo } from "react";
 import { Tab, Tabs } from "@mui/material";
 import {
   AccountCircle,
@@ -21,7 +21,7 @@ import { SxProps, Theme } from "@mui/material/styles";
 interface FilterOption {
   key: string;
   label: string;
-  icon: ReactNode;
+  icon: ReactElement;
 }
 
 const options: FilterOption[] = [
