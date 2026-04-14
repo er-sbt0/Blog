@@ -73,14 +73,6 @@ the module is ever unloaded.
 
 ---
 
-### 17. **LOW — Commented-out dead code**
-
-usePostMeta.ts: `createAuthorChip(author, showAuthor)` is commented out but
-`author` is still in the deps array. PostContent.tsx: A commented-out `<Chip>`
-block.
-
----
-
 ### 19. **LOW — Redundant upload guard split between options array and JSX**
 
 ActionMenu.tsx

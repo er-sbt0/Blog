@@ -129,22 +129,6 @@ export const PostContent: React.FC<PostContentProps> = ({
             {formattedDate}
           </Typography>
         )}
-
-        {
-          /* <Chip
-          label="Article"
-          size="small"
-          variant="outlined"
-          sx={{
-            height: 20,
-            fontSize: "0.75rem",
-            fontWeight: 500,
-            color: "primary.main",
-            borderColor: "primary.main",
-            opacity: 0.8
-          }}
-        /> */
-        }
       </Box>
 
       {/* Excerpt/Description */}
