@@ -42,7 +42,8 @@ function DocumentActionMenu(
   const options = ["share"];
   if (isAuthor || isCoauthor || isLocal || isCollab) options.push("download");
   if (isAuthor || isLocal) options.push("delete");
-  if (isAuthor) options.push("edit", "upload");
+  if (isAuthor) options.push("edit");
+  if (isAuthor && isLocal && !isUpToDate) options.push("upload");
   if (isUploaded && !isUpToDate) options.push("restore");
   if (canEditContent) options.push("editContent");
 
@@ -104,7 +105,7 @@ function DocumentActionMenu(
             closeMenu={closeMenu}
           />
         )}
-        {options.includes("upload") && isLocal && !isUpToDate && (
+        {options.includes("upload") && (
           <UploadDocument
             userDocument={userDocument}
             variant="menuitem"

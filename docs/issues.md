@@ -71,12 +71,4 @@ stats reporting — for storing a small number of HTML string previews. A simple
 `Map` with a size cap would suffice. The cache also leaks its `setInterval` if
 the module is ever unloaded.
 
----
 
-### 19. **LOW — Redundant upload guard split between options array and JSX**
-
-ActionMenu.tsx
-
-`"upload"` is pushed into `options` based on `isAuthor`, but the JSX render adds
-_additional_ conditions (`isLocal && !isUpToDate`). These should be consolidated
-into the options computation for clarity.
