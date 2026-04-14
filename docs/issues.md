@@ -41,17 +41,6 @@ unhandled error. Guard with
 
 ---
 
-### 5. **HIGH — Identical functions: `loadFromLocalDocument` ≡ `loadFromIndexedDB`**
-
-postHelpers.ts
-
-Both functions call `documentDB.getByID(documentId)`, check `document?.data`,
-then generate HTML from the first 3 children. The "local" fallback and
-"IndexedDB" fallback are the same code path, so step 3 in
-`loadThumbnailWithFallbacks` always repeats step 2 for no benefit.
-
----
-
 ### 8. **MEDIUM — `useEffect` with missing/incorrect dependencies**
 
 useEditDocumentForm.ts: Effect depends on `[userDocument, editDialogOpen]` but

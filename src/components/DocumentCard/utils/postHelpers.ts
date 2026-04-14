@@ -46,23 +46,14 @@ export const loadThumbnailWithFallbacks = async (
       return cachedThumbnail;
     }
 
-    // 2. Try local document (fastest)
-    if (userDocument.local) {
-      const localThumbnail = await loadFromLocalDocument(documentId);
-      if (localThumbnail) {
-        thumbnailCache.set(cacheKey, localThumbnail);
-        return localThumbnail;
-      }
+    // 2. Try local/IndexedDB document (fastest)
+    const localThumbnail = await loadFromLocalDocument(documentId);
+    if (localThumbnail) {
+      thumbnailCache.set(cacheKey, localThumbnail);
+      return localThumbnail;
     }
 
-    // 3. Try IndexedDB cache
-    const indexedDBThumbnail = await loadFromIndexedDB(documentId);
-    if (indexedDBThumbnail) {
-      thumbnailCache.set(cacheKey, indexedDBThumbnail);
-      return indexedDBThumbnail;
-    }
-
-    // 4. Fallback to API (slowest)
+    // 3. Fallback to API (slowest)
     const apiThumbnail = await loadFromAPI(documentId, fetchThumbnail);
     if (apiThumbnail) {
       thumbnailCache.set(cacheKey, apiThumbnail);
@@ -77,7 +68,7 @@ export const loadThumbnailWithFallbacks = async (
 };
 
 /**
- * Load thumbnail from local document in memory
+ * Load thumbnail from a document stored in IndexedDB
  */
 const loadFromLocalDocument = async (
   documentId: string,
@@ -95,29 +86,6 @@ const loadFromLocalDocument = async (
     return thumbnail;
   } catch (error) {
     console.warn("Failed to load from local document:", error);
-    return null;
-  }
-};
-
-/**
- * Load thumbnail from IndexedDB
- */
-const loadFromIndexedDB = async (
-  documentId: string,
-): Promise<string | null> => {
-  try {
-    const document = await documentDB.getByID(documentId);
-    if (!document?.data) return null;
-
-    const data = document.data;
-    const thumbnail = await generateHtml({
-      ...data,
-      root: { ...data.root, children: data.root.children.slice(0, 3) },
-    });
-
-    return thumbnail;
-  } catch (error) {
-    console.warn("Failed to load from IndexedDB:", error);
     return null;
   }
 };
