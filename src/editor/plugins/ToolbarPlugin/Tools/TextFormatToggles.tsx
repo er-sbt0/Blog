@@ -80,7 +80,7 @@ export default function TextFormatToggles(
       );
       setBackgroundColor(backgroundColor);
     }
-  }, [editor]);
+  }, []);
 
   useEffect(() => {
     return editor.registerCommand(
@@ -149,7 +149,9 @@ export default function TextFormatToggles(
         const { code, ctrlKey, metaKey, shiftKey } = event;
         if (code === "KeyK" && (ctrlKey || metaKey)) {
           event.preventDefault();
-          return openLinkDialog();
+          return editor.dispatchCommand(SET_DIALOGS_COMMAND, {
+            link: { open: true },
+          });
         }
         if (code === "KeyH" && (ctrlKey || metaKey) && shiftKey) {
           event.preventDefault();

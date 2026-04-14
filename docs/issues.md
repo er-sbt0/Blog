@@ -70,5 +70,3 @@ A full LRU cache with TTL, memory budgeting, periodic cleanup intervals, and
 stats reporting — for storing a small number of HTML string previews. A simple
 `Map` with a size cap would suffice. The cache also leaks its `setInterval` if
 the module is ever unloaded.
-
-

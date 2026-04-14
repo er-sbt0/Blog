@@ -19,24 +19,25 @@ export function useHandleValidation(
   const hasErrors = Object.keys(validationErrors).length > 0;
 
   const checkHandle = useMemo(
-    () => debounce(async (handle: string) => {
-      try {
-        await apiClient.documents.checkHandle(handle);
-        setValidationErrors({});
-      } catch (err) {
-        if (err instanceof ApiClientError && err.details) {
-          const { title, subtitle } = err.details;
-          setValidationErrors({
-            handle: subtitle ? `${title}: ${subtitle}` : title,
-          });
-        } else {
-          setValidationErrors({
-            handle: "Something went wrong: Please try again later",
-          });
+    () =>
+      debounce(async (handle: string) => {
+        try {
+          await apiClient.documents.checkHandle(handle);
+          setValidationErrors({});
+        } catch (err) {
+          if (err instanceof ApiClientError && err.details) {
+            const { title, subtitle } = err.details;
+            setValidationErrors({
+              handle: subtitle ? `${title}: ${subtitle}` : title,
+            });
+          } else {
+            setValidationErrors({
+              handle: "Something went wrong: Please try again later",
+            });
+          }
         }
-      }
-      setValidating(false);
-    }, 500),
+        setValidating(false);
+      }, 500),
     [],
   );
 

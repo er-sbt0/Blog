@@ -185,8 +185,6 @@ function ToolbarPlugin(
       setSelectedSticky(null);
       setSelectedTable(null);
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeEditor]);
 
   useEffect(() => {
@@ -261,7 +259,7 @@ function ToolbarPlugin(
         COMMAND_PRIORITY_CRITICAL,
       ),
     );
-  }, [activeEditor, $updateToolbar]);
+  }, [activeEditor, $updateToolbar, editor]);
 
   useEffect(() => {
     return activeEditor.registerCommand<SetDialogsPayload>(
@@ -358,7 +356,7 @@ function ToolbarPlugin(
       });
       activeEditor.getRootElement()?.focus({ preventScroll: true });
     }, 0);
-  }, [isDialogOpen]);
+  }, [isDialogOpen, activeEditor]);
 
   return (
     <>

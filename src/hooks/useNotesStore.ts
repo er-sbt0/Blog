@@ -137,26 +137,29 @@ export function useNotesStore(canvasId: string | null) {
 
   // Debounced update for frequent changes (drag, resize)
   const debouncedApiUpdate = useMemo(
-    () => debounce(async (id: string, updates: any) => {
-      try {
-        const response = await fetch(`${API_BASE}/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updates),
-        });
+    () =>
+      debounce(async (id: string, updates: any) => {
+        try {
+          const response = await fetch(`${API_BASE}/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+          });
 
-        const data = await response.json();
+          const data = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.error?.subtitle || "Failed to update note");
+          if (!response.ok) {
+            throw new Error(data.error?.subtitle || "Failed to update note");
+          }
+        } catch (err) {
+          console.error("Error updating note:", err);
+          setError(
+            err instanceof Error ? err.message : "Failed to update note",
+          );
+          // Refresh to get latest state from server
+          refresh();
         }
-      } catch (err) {
-        console.error("Error updating note:", err);
-        setError(err instanceof Error ? err.message : "Failed to update note");
-        // Refresh to get latest state from server
-        refresh();
-      }
-    }, 500),
+      }, 500),
     [refresh],
   );
 
