@@ -60,7 +60,7 @@ export default function NoteTools(
       );
       setBackgroundColor(backgroundColor);
     });
-  }, [node]);
+  }, [editor, node]);
 
   const deleteNode = () => {
     editor.update(() => {
@@ -107,7 +107,7 @@ export default function NoteTools(
     editor.update(() => {
       node.select();
     });
-  }, [open]);
+  }, [open, editor, node]);
   return (
     <>
       <Button
