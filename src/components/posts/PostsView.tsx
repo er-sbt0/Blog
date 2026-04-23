@@ -1,7 +1,10 @@
 "use client";
-import React, { useMemo } from "react";
-import { Box, Typography } from "@mui/material";
+import React, { useMemo, useState } from "react";
+import { Box, Tooltip, Typography } from "@mui/material";
+import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 import Grid from "@mui/material/Grid2";
+import { Add, CollectionsBookmark, PostAdd } from "@mui/icons-material";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Series, User, UserDocument } from "@/types";
 import { useSelector } from "@/store";
@@ -16,6 +19,11 @@ import { PostsCompactListView } from "./components/PostsCompactListView";
 // Controls
 import SeriesSearchAndControls from "./components/SeriesSearchAndControls";
 import SeriesSection from "./components/SeriesSection";
+
+// Drawers & dialogs
+import CreatePostDrawer from "@/components/drawers/CreatePostDrawer";
+import CreateSeriesDrawer from "@/components/drawers/CreateSeriesDrawer";
+import AddPostsDialog from "./AddPostsDialog";
 
 interface PostsViewProps {
   /**
@@ -79,6 +87,17 @@ const PostsGrid: React.FC<{ posts: UserDocument[]; user?: User }> = (
   </Grid>
 );
 
+const actionGroupSx = {
+  backgroundColor: "background.paper",
+  height: 32,
+  "& .MuiToggleButton-root": {
+    border: 1,
+    borderColor: "divider",
+    height: 32,
+    px: 1,
+  },
+} as const;
+
 /**
  * Unified view for both /posts (all blog posts) and /posts/[id] (series detail).
  *
@@ -89,6 +108,7 @@ const PostsGrid: React.FC<{ posts: UserDocument[]; user?: User }> = (
  */
 const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   const isSeries = !!series;
+  const router = useRouter();
 
   const { data: session } = useSession();
   const user = serverUser ?? (session?.user as User | undefined);
@@ -99,6 +119,11 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
     isSeries ? "seriesPostsView" : "postsView",
     "grid",
   );
+
+  // ── Drawer / dialog state ─────────────────────────────────────────────────
+  const [createPostDrawerOpen, setCreatePostDrawerOpen] = useState(false);
+  const [createSeriesDrawerOpen, setCreateSeriesDrawerOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   // ── Redux (all-posts mode) ────────────────────────────────────────────────
   const standalonePosts = useSelector(selectStandalonePosts);
@@ -163,6 +188,26 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
             }}
           >
             <ViewToggle view={viewType} onChange={setViewType} />
+            {canEdit && (
+              <ToggleButtonGroup size="small" sx={actionGroupSx}>
+                <ToggleButton
+                  value="new-post"
+                  onClick={() => setCreatePostDrawerOpen(true)}
+                  aria-label="Create new post in series"
+                  selected={false}
+                >
+                  <Tooltip title="New post"><PostAdd fontSize="small" /></Tooltip>
+                </ToggleButton>
+                <ToggleButton
+                  value="add-posts"
+                  onClick={() => setAddDialogOpen(true)}
+                  aria-label="Add or remove posts"
+                  selected={false}
+                >
+                  <Tooltip title="Add / remove posts"><CollectionsBookmark fontSize="small" /></Tooltip>
+                </ToggleButton>
+              </ToggleButtonGroup>
+            )}
             <SeriesSearchAndControls
               viewType={viewType}
               canEdit={canEdit}
@@ -216,8 +261,28 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
         }
 
         const viewToggle = (
-          <Box sx={{ mb: 5 }}>
+          <Box sx={{ mb: 5, display: "flex", alignItems: "center", gap: 1 }}>
             <ViewToggle view={viewType} onChange={setViewType} />
+            {canEdit && (
+              <ToggleButtonGroup size="small" sx={actionGroupSx}>
+                <ToggleButton
+                  value="new-post"
+                  onClick={() => router.push("/new")}
+                  aria-label="Create new post"
+                  selected={false}
+                >
+                  <Tooltip title="New post"><PostAdd fontSize="small" /></Tooltip>
+                </ToggleButton>
+                <ToggleButton
+                  value="new-series"
+                  onClick={() => setCreateSeriesDrawerOpen(true)}
+                  aria-label="Create new series"
+                  selected={false}
+                >
+                  <Tooltip title="New series"><Add fontSize="small" /></Tooltip>
+                </ToggleButton>
+              </ToggleButtonGroup>
+            )}
           </Box>
         );
 
@@ -254,6 +319,28 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
           </>
         );
       })()}
+
+      {/* ── Drawers & dialogs ── */}
+      <CreatePostDrawer
+        open={createPostDrawerOpen}
+        onClose={() => setCreatePostDrawerOpen(false)}
+        seriesId={series?.id ?? ""}
+        seriesTitle={series?.title}
+        onSuccess={() => router.refresh()}
+      />
+      <CreateSeriesDrawer
+        open={createSeriesDrawerOpen}
+        onClose={() => setCreateSeriesDrawerOpen(false)}
+      />
+      {isSeries && (
+        <AddPostsDialog
+          open={addDialogOpen}
+          onClose={() => setAddDialogOpen(false)}
+          seriesId={series!.id}
+          existingPosts={series!.posts}
+          onPostsAdded={() => router.refresh()}
+        />
+      )}
     </Box>
   );
 };
