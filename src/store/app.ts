@@ -1057,6 +1057,16 @@ export const appSlice = createSlice({
         } else {
           existing.cloud = document;
         }
+        // Keep series.posts in sync so the sidebar groups the post immediately
+        if (document.seriesId) {
+          const series = state.series.find((s) => s.id === document.seriesId);
+          if (series) {
+            const alreadyInSeries = series.posts.some((p) => p.id === document.id);
+            if (!alreadyInSeries) {
+              series.posts.push(document);
+            }
+          }
+        }
       })
       .addCase(createCloudDocument.rejected, (state, action) => {
         const message = action.payload as {
@@ -1089,6 +1099,7 @@ export const appSlice = createSlice({
       .addCase(updateCloudDocument.fulfilled, (state, action) => {
         const document = action.payload;
         const existing = state.documents.entities[document.id];
+        const previousSeriesId = existing?.cloud?.seriesId;
         if (!existing) {
           prependOneDoc(state.documents, {
             id: document.id,
@@ -1096,6 +1107,24 @@ export const appSlice = createSlice({
           });
         } else {
           existing.cloud = document;
+        }
+        // Sync series.posts so the sidebar reflects series membership changes immediately
+        if (previousSeriesId && previousSeriesId !== document.seriesId) {
+          const oldSeries = state.series.find((s) => s.id === previousSeriesId);
+          if (oldSeries) {
+            oldSeries.posts = oldSeries.posts.filter((p) => p.id !== document.id);
+          }
+        }
+        if (document.seriesId) {
+          const series = state.series.find((s) => s.id === document.seriesId);
+          if (series) {
+            const idx = series.posts.findIndex((p) => p.id === document.id);
+            if (idx === -1) {
+              series.posts.push(document);
+            } else {
+              series.posts[idx] = document;
+            }
+          }
         }
       })
       .addCase(updateCloudDocument.rejected, (state, action) => {
