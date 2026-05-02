@@ -31,6 +31,7 @@ import { SafeNavigationLink } from "./SafeNavigationLink";
 import {
   buildSeriesMap,
   groupPostsBySeries,
+  type SeriesGroupItem,
 } from "@/utils/posts/seriesGrouping";
 
 const NAV_ITEM_MIN_HEIGHT = 42;
@@ -72,10 +73,29 @@ const SideBar: React.FC = () => {
     [seriesList],
   );
 
-  const groupedActivePosts = useMemo(
-    () => groupPostsBySeries(filteredDocuments, seriesMap),
-    [filteredDocuments, seriesMap],
-  );
+  const groupedActivePosts = useMemo((): SeriesGroupItem[] => {
+    const baseGroups = groupPostsBySeries(filteredDocuments, seriesMap);
+    const existingSeriesIds = new Set(
+      baseGroups
+        .filter((g) => g.type === "series" && g.series)
+        .map((g) => g.series!.id),
+    );
+    const emptySeriesGroups: SeriesGroupItem[] = [];
+    seriesMap.forEach((series) => {
+      if (!existingSeriesIds.has(series.id)) {
+        emptySeriesGroups.push({
+          type: "series",
+          series,
+          posts: [],
+          sortKey: series.createdAt ? new Date(series.createdAt).getTime() : 0,
+        });
+      }
+    });
+    if (!emptySeriesGroups.length) return baseGroups;
+    return [...baseGroups, ...emptySeriesGroups].sort(
+      (a, b) => b.sortKey - a.sortKey,
+    );
+  }, [filteredDocuments, seriesMap]);
 
   return (
     <Drawer
@@ -162,7 +182,7 @@ const SideBar: React.FC = () => {
 
       <Divider sx={styles.divider} />
 
-      {user && filteredDocuments.length > 0
+      {user && (filteredDocuments.length > 0 || seriesMap.size > 0)
         ? (
           <ActivePostsSection
             groupedActivePosts={groupedActivePosts}

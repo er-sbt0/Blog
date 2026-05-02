@@ -337,6 +337,7 @@ const SeriesGroupCard: React.FC<SeriesGroupCardProps> = memo(({
   sx,
 }) => {
   const theme = useTheme();
+  const router = useRouter();
   const cardTheme = createCardTheme(theme);
   const isAuthor = !!user && user.id === series.authorId;
 
@@ -382,7 +383,18 @@ const SeriesGroupCard: React.FC<SeriesGroupCardProps> = memo(({
         ...sx,
       }}
     >
-      {isCollapsed && collapsible
+      {posts.length === 0
+        ? (
+          <CollapsedView
+            series={series}
+            showActions={showActions}
+            isAuthor={isAuthor}
+            menuOpen={menuOpen}
+            onToggle={() => router.push(`/posts/${series.id}`)}
+            onMenuOpen={handleOpenMenu}
+          />
+        )
+        : isCollapsed && collapsible
         ? (
           <CollapsedView
             series={series}

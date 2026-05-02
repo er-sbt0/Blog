@@ -3,14 +3,17 @@ import React, { useState } from "react";
 import {
   Box,
   Collapse,
+  IconButton,
   List,
   ListItem,
   ListItemButton,
+  Tooltip,
   Typography,
 } from "@mui/material";
-import { ChevronRight } from "@mui/icons-material";
+import { ChevronRight, DeleteOutline } from "@mui/icons-material";
 import { User, UserDocument } from "@/types";
 import { actions, useDispatch } from "@/store";
+import { deleteSeries } from "@/store/app";
 import { useRouter } from "next/navigation";
 import { v4 as uuid } from "uuid";
 import PostCompactListItem from "./PostCompactListItem";
@@ -71,6 +74,14 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
         partial: { name: newName },
       }),
     );
+    router.refresh();
+  };
+
+  const handleDeleteSeries = async (seriesId: string, seriesTitle: string) => {
+    if (!confirm(`Delete series "${seriesTitle}"? Posts will not be deleted.`)) {
+      return;
+    }
+    await dispatch(deleteSeries(seriesId));
     router.refresh();
   };
 
@@ -143,6 +154,22 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
                 <Box key={`series-${group.series.id}`}>
                   <ListItem
                     disablePadding
+                    secondaryAction={
+                      <Tooltip title="Delete series">
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          onClick={() =>
+                            handleDeleteSeries(
+                              group.series!.id,
+                              group.series!.title,
+                            )}
+                          sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}
+                        >
+                          <DeleteOutline fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    }
                     sx={{
                       ...(postCount > 0 && {
                         "&:hover": { bgcolor: "action.hover" },
