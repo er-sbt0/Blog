@@ -30,8 +30,7 @@ import { PostContextMenu } from "./PostContextMenu";
 import { SafeNavigationLink } from "./SafeNavigationLink";
 import {
   buildSeriesMap,
-  groupPostsBySeries,
-  type SeriesGroupItem,
+  groupPostsBySeriesWithEmpty,
 } from "@/utils/posts/seriesGrouping";
 
 const NAV_ITEM_MIN_HEIGHT = 42;
@@ -73,29 +72,10 @@ const SideBar: React.FC = () => {
     [seriesList],
   );
 
-  const groupedActivePosts = useMemo((): SeriesGroupItem[] => {
-    const baseGroups = groupPostsBySeries(filteredDocuments, seriesMap);
-    const existingSeriesIds = new Set(
-      baseGroups
-        .filter((g) => g.type === "series" && g.series)
-        .map((g) => g.series!.id),
-    );
-    const emptySeriesGroups: SeriesGroupItem[] = [];
-    seriesMap.forEach((series) => {
-      if (!existingSeriesIds.has(series.id)) {
-        emptySeriesGroups.push({
-          type: "series",
-          series,
-          posts: [],
-          sortKey: series.createdAt ? new Date(series.createdAt).getTime() : 0,
-        });
-      }
-    });
-    if (!emptySeriesGroups.length) return baseGroups;
-    return [...baseGroups, ...emptySeriesGroups].sort(
-      (a, b) => b.sortKey - a.sortKey,
-    );
-  }, [filteredDocuments, seriesMap]);
+  const groupedActivePosts = useMemo(
+    () => groupPostsBySeriesWithEmpty(filteredDocuments, seriesMap),
+    [filteredDocuments, seriesMap],
+  );
 
   return (
     <Drawer

@@ -11,15 +11,19 @@ import {
   Typography,
 } from "@mui/material";
 import { ChevronRight, DeleteOutline } from "@mui/icons-material";
-import { User, UserDocument } from "@/types";
+import { Series, User, UserDocument } from "@/types";
 import { actions, useDispatch } from "@/store";
-import { deleteSeries } from "@/store/app";
 import { useRouter } from "next/navigation";
 import { v4 as uuid } from "uuid";
 import PostCompactListItem from "./PostCompactListItem";
 import { SeriesGroupItem } from "@/utils/posts/seriesGrouping";
 import { useExpandedState } from "@/hooks/useExpandedState";
 import { PendingTimeChange } from "@/types/posts";
+
+const deleteIconSx = {
+  color: "text.disabled",
+  "&:hover": { color: "error.main" },
+} as const;
 
 interface PostsCompactListViewProps {
   posts?: UserDocument[];
@@ -78,11 +82,19 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
   };
 
   const handleDeleteSeries = async (seriesId: string, seriesTitle: string) => {
-    if (!confirm(`Delete series "${seriesTitle}"? Posts will not be deleted.`)) {
-      return;
+    const alertPayload = {
+      title: "Delete Series",
+      content: `Delete "${seriesTitle}"? Posts will not be deleted.`,
+      actions: [
+        { label: "Cancel", id: uuid() },
+        { label: "Delete", id: uuid() },
+      ],
+    };
+    const response = await dispatch(actions.alert(alertPayload));
+    if (response.payload === alertPayload.actions[1].id) {
+      await dispatch(actions.deleteSeries(seriesId));
+      router.refresh();
     }
-    await dispatch(deleteSeries(seriesId));
-    router.refresh();
   };
 
   const handleDelete = async (post: UserDocument) => {
@@ -112,6 +124,106 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
     flexDirection: "column" as const,
     gap: 0.5,
   };
+
+  const renderSeriesRow = (
+    series: Series,
+    postCount: number,
+    isExpanded: boolean,
+    isAuthor: boolean,
+    posts: UserDocument[],
+  ) => (
+    <Box key={`series-${series.id}`}>
+      <ListItem
+        disablePadding
+        secondaryAction={isAuthor && (
+          <Tooltip title="Delete series">
+            <IconButton
+              edge="end"
+              size="small"
+              onClick={() => handleDeleteSeries(series.id, series.title)}
+              sx={deleteIconSx}
+            >
+              <DeleteOutline fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+        sx={{
+          ...(postCount > 0 && { "&:hover": { bgcolor: "action.hover" } }),
+          transition: "background-color 0.2s ease",
+        }}
+      >
+        <ListItemButton
+          disableRipple={postCount === 0}
+          onClick={() => postCount > 0 && toggleSeries(series.id)}
+          sx={{
+            py: 1.25,
+            pl: 0,
+            pr: 2,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            cursor: postCount === 0 ? "default" : "pointer",
+            "&:hover": { bgcolor: "transparent" },
+          }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              {postCount > 0 && (
+                <ChevronRight
+                  sx={{
+                    fontSize: 18,
+                    color: "text.secondary",
+                    flexShrink: 0,
+                    transition: "transform 0.2s ease",
+                    transform: isExpanded ? "rotate(90deg)" : "none",
+                  }}
+                />
+              )}
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: "0.9rem",
+                  letterSpacing: "-0.01em",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {series.title}
+              </Typography>
+            </Box>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.disabled",
+                fontSize: "0.75rem",
+                pl: postCount > 0 ? "26px" : 0,
+              }}
+            >
+              series · {postCount} {postCount === 1 ? "post" : "posts"}
+            </Typography>
+          </Box>
+        </ListItemButton>
+      </ListItem>
+
+      <Collapse in={isExpanded} unmountOnExit>
+        <Box
+          sx={{
+            mb: 0.5,
+            display: "flex",
+            flexDirection: "column",
+            gap: 0.5,
+            borderLeft: "2px solid",
+            borderColor: "divider",
+            transition: "border-color 0.2s ease",
+          }}
+        >
+          {posts.map((p) => renderPostItem(p, 2))}
+        </Box>
+      </Collapse>
+    </Box>
+  );
 
   const renderPostItem = (post: UserDocument, extraIndent = 0) => (
     <PostCompactListItem
@@ -146,124 +258,15 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
         <List sx={listSx}>
           {groups.map((group) => {
             if (group.type === "series" && group.series) {
-              const postCount = group.posts.length;
-              const isExpanded = postCount > 0 &&
-                expandedSeries.has(group.series.id);
-
-              return (
-                <Box key={`series-${group.series.id}`}>
-                  <ListItem
-                    disablePadding
-                    secondaryAction={
-                      <Tooltip title="Delete series">
-                        <IconButton
-                          edge="end"
-                          size="small"
-                          onClick={() =>
-                            handleDeleteSeries(
-                              group.series!.id,
-                              group.series!.title,
-                            )}
-                          sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}
-                        >
-                          <DeleteOutline fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    }
-                    sx={{
-                      ...(postCount > 0 && {
-                        "&:hover": { bgcolor: "action.hover" },
-                      }),
-                      transition: "background-color 0.2s ease",
-                    }}
-                  >
-                    <ListItemButton
-                      disableRipple={postCount === 0}
-                      onClick={() =>
-                        postCount > 0 && toggleSeries(group.series!.id)}
-                      sx={{
-                        py: 1.25,
-                        pl: 0,
-                        pr: 2,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        cursor: postCount === 0 ? "default" : "pointer",
-                        "&:hover": { bgcolor: "transparent" },
-                      }}
-                    >
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 0.5,
-                          }}
-                        >
-                          {postCount > 0 && (
-                            <ChevronRight
-                              sx={{
-                                fontSize: 18,
-                                color: "text.secondary",
-                                flexShrink: 0,
-                                transition: "transform 0.2s ease",
-                                transform: isExpanded
-                                  ? "rotate(90deg)"
-                                  : "none",
-                              }}
-                            />
-                          )}
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: 600,
-                              fontSize: "0.9rem",
-                              letterSpacing: "-0.01em",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {group.series.title}
-                          </Typography>
-                        </Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            color: "text.disabled",
-                            fontSize: "0.75rem",
-                            pl: postCount > 0 ? "26px" : 0,
-                          }}
-                        >
-                          series · {postCount}{" "}
-                          {postCount === 1 ? "post" : "posts"}
-                        </Typography>
-                      </Box>
-                    </ListItemButton>
-                  </ListItem>
-
-                  <Collapse in={isExpanded} unmountOnExit>
-                    <Box
-                      sx={{
-                        mb: 0.5,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 0.5,
-                        borderLeft: "2px solid",
-                        borderColor: "divider",
-                        transition: "border-color 0.2s ease",
-                      }}
-                    >
-                      {group.posts.map((p) => renderPostItem(p, 2))}
-                    </Box>
-                  </Collapse>
-                </Box>
-              );
-            } else {
-              const post = group.posts[0];
-              if (!post) return null;
-              return renderPostItem(post);
+              const { series, posts: groupPosts } = group;
+              const postCount = groupPosts.length;
+              const isExpanded = postCount > 0 && expandedSeries.has(series.id);
+              const isAuthor = !!user && user.id === series.authorId;
+              return renderSeriesRow(series, postCount, isExpanded, isAuthor, groupPosts);
             }
+            const post = group.posts[0];
+            if (!post) return null;
+            return renderPostItem(post);
           })}
         </List>
       </Box>

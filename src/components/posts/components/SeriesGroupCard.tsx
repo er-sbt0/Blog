@@ -16,8 +16,8 @@ import { Series, User, UserDocument } from "@/types";
 import { createCardTheme } from "@/components/DocumentCard/theme";
 import { formatFullDate } from "@/utils/dateFormat";
 import { useRouter } from "next/navigation";
-import { useDispatch } from "@/store";
-import { deleteSeries } from "@/store/app";
+import { actions, useDispatch } from "@/store";
+import { v4 as uuid } from "uuid";
 import { useMenuState } from "@/hooks/useMenuState";
 import DocItem from "./DocItem";
 import { useSeriesGroupState } from "../hooks/useSeriesGroupState";
@@ -53,9 +53,23 @@ function useSeriesGroupActions(series: Series | null | undefined) {
   const handleDelete = async () => {
     closeMenu();
     if (!series) return;
-    if (!confirm("Delete this series? Posts will not be deleted.")) return;
-    await dispatch(deleteSeries(series.id));
-    router.refresh();
+    const alertPayload = {
+      title: "Delete Series",
+      content: "Delete this series? Posts will not be deleted.",
+      actions: [
+        { label: "Cancel", id: uuid() },
+        { label: "Delete", id: uuid() },
+      ],
+    };
+    const response = await dispatch(actions.alert(alertPayload));
+    if (response.payload === alertPayload.actions[1].id) {
+      await dispatch(actions.deleteSeries(series.id));
+      router.refresh();
+    }
+  };
+
+  const handleNavigate = () => {
+    if (series) router.push(`/posts/${series.id}`);
   };
 
   return {
@@ -65,6 +79,7 @@ function useSeriesGroupActions(series: Series | null | undefined) {
     handleCloseMenu: closeMenu,
     handleEdit,
     handleDelete,
+    handleNavigate,
   };
 }
 
@@ -337,7 +352,6 @@ const SeriesGroupCard: React.FC<SeriesGroupCardProps> = memo(({
   sx,
 }) => {
   const theme = useTheme();
-  const router = useRouter();
   const cardTheme = createCardTheme(theme);
   const isAuthor = !!user && user.id === series.authorId;
 
@@ -357,7 +371,11 @@ const SeriesGroupCard: React.FC<SeriesGroupCardProps> = memo(({
     handleCloseMenu,
     handleEdit,
     handleDelete,
+    handleNavigate,
   } = useSeriesGroupActions(series);
+
+  const isEmpty = posts.length === 0;
+  const showCollapsed = isEmpty || (isCollapsed && collapsible);
 
   return (
     <Box
@@ -383,25 +401,14 @@ const SeriesGroupCard: React.FC<SeriesGroupCardProps> = memo(({
         ...sx,
       }}
     >
-      {posts.length === 0
+      {showCollapsed
         ? (
           <CollapsedView
             series={series}
             showActions={showActions}
             isAuthor={isAuthor}
             menuOpen={menuOpen}
-            onToggle={() => router.push(`/posts/${series.id}`)}
-            onMenuOpen={handleOpenMenu}
-          />
-        )
-        : isCollapsed && collapsible
-        ? (
-          <CollapsedView
-            series={series}
-            showActions={showActions}
-            isAuthor={isAuthor}
-            menuOpen={menuOpen}
-            onToggle={handleToggle}
+            onToggle={isEmpty ? handleNavigate : handleToggle}
             onMenuOpen={handleOpenMenu}
           />
         )

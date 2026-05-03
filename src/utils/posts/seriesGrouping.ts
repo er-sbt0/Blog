@@ -40,7 +40,7 @@ const getPostCreatedAtTime = (doc: UserDocument): number => {
 /**
  * Get the creation date timestamp from a Series
  */
-const getSeriesCreatedAtTime = (series: Series): number => {
+export const getSeriesCreatedAtTime = (series: Series): number => {
   return series.createdAt ? new Date(series.createdAt).getTime() : 0;
 };
 
@@ -123,6 +123,35 @@ export const groupPostsBySeries = (
   result.sort((a, b) => b.sortKey - a.sortKey);
 
   return result;
+};
+
+/**
+ * Like groupPostsBySeries but also includes series that have no posts in the
+ * current partition, appending them as empty groups sorted by creation time.
+ */
+export const groupPostsBySeriesWithEmpty = (
+  posts: UserDocument[],
+  seriesMap: Map<string, Series>,
+): SeriesGroupItem[] => {
+  const baseGroups = groupPostsBySeries(posts, seriesMap);
+  const existingSeriesIds = new Set(
+    baseGroups.flatMap((g) =>
+      g.type === "series" && g.series ? [g.series.id] : []
+    ),
+  );
+  const emptyGroups: SeriesGroupItem[] = [];
+  seriesMap.forEach((series) => {
+    if (!existingSeriesIds.has(series.id)) {
+      emptyGroups.push({
+        type: "series",
+        series,
+        posts: [],
+        sortKey: getSeriesCreatedAtTime(series),
+      });
+    }
+  });
+  if (!emptyGroups.length) return baseGroups;
+  return [...baseGroups, ...emptyGroups].sort((a, b) => b.sortKey - a.sortKey);
 };
 
 /**
