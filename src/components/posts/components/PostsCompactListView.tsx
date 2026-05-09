@@ -153,10 +153,7 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
         }}
       >
         <ListItemButton
-          onClick={() =>
-            postCount > 0
-              ? toggleSeries(series.id)
-              : router.push(`/posts/${series.id}`)}
+          onClick={() => toggleSeries(series.id)}
           sx={{
             py: 1.25,
             pl: 0,
@@ -259,7 +256,7 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
             if (group.type === "series" && group.series) {
               const { series, posts: groupPosts } = group;
               const postCount = groupPosts.length;
-              const isExpanded = postCount > 0 && expandedSeries.has(series.id);
+              const isExpanded = expandedSeries.has(series.id);
               const isAuthor = !!user && user.id === series.authorId;
               return renderSeriesRow(series, postCount, isExpanded, isAuthor, groupPosts);
             }
