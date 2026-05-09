@@ -34,6 +34,13 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
   pathname,
   itemActions,
 }) => {
+  const hasAnyDirtyChild = group.posts.some(
+    (post) =>
+      Boolean(post.local) &&
+      Boolean(post.cloud) &&
+      post.local!.head !== post.cloud!.head,
+  );
+
   return (
     <Box sx={{ mt: groupIndex > 0 ? 0.5 : 0, mb: 0.5 }}>
       <ListItem disablePadding sx={{ display: "block" }}>
@@ -68,6 +75,7 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                 mr: sidebarOpen ? 1 : "auto",
                 justifyContent: "center",
                 cursor: "pointer",
+                position: "relative",
               }}
             >
               {isExpanded
@@ -81,6 +89,20 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                     sx={{ fontSize: "0.85em", color: "text.secondary" }}
                   />
                 )}
+              {hasAnyDirtyChild && (
+                <Box
+                  component="span"
+                  sx={{
+                    position: "absolute",
+                    top: -1,
+                    right: -3,
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    bgcolor: "primary.main",
+                  }}
+                />
+              )}
             </ListItemIcon>
             {sidebarOpen && (
               <ListItemText
