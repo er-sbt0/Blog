@@ -148,13 +148,15 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
           </Tooltip>
         )}
         sx={{
-          ...(postCount > 0 && { "&:hover": { bgcolor: "action.hover" } }),
+          "&:hover": { bgcolor: "action.hover" },
           transition: "background-color 0.2s ease",
         }}
       >
         <ListItemButton
-          disableRipple={postCount === 0}
-          onClick={() => postCount > 0 && toggleSeries(series.id)}
+          onClick={() =>
+            postCount > 0
+              ? toggleSeries(series.id)
+              : router.push(`/posts/${series.id}`)}
           sx={{
             py: 1.25,
             pl: 0,
@@ -162,23 +164,20 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
             display: "flex",
             alignItems: "center",
             gap: 1,
-            cursor: postCount === 0 ? "default" : "pointer",
             "&:hover": { bgcolor: "transparent" },
           }}
         >
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              {postCount > 0 && (
-                <ChevronRight
-                  sx={{
-                    fontSize: 18,
-                    color: "text.secondary",
-                    flexShrink: 0,
-                    transition: "transform 0.2s ease",
-                    transform: isExpanded ? "rotate(90deg)" : "none",
-                  }}
-                />
-              )}
+              <ChevronRight
+                sx={{
+                  fontSize: 18,
+                  color: "text.secondary",
+                  flexShrink: 0,
+                  transition: "transform 0.2s ease",
+                  transform: isExpanded ? "rotate(90deg)" : "none",
+                }}
+              />
               <Typography
                 variant="body2"
                 sx={{
@@ -198,7 +197,7 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
               sx={{
                 color: "text.disabled",
                 fontSize: "0.75rem",
-                pl: postCount > 0 ? "26px" : 0,
+                pl: "26px",
               }}
             >
               series · {postCount} {postCount === 1 ? "post" : "posts"}
