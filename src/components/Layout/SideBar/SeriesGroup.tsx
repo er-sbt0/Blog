@@ -75,7 +75,6 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                 mr: sidebarOpen ? 1 : "auto",
                 justifyContent: "center",
                 cursor: "pointer",
-                position: "relative",
               }}
             >
               {isExpanded
@@ -89,33 +88,44 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                     sx={{ fontSize: "0.85em", color: "text.secondary" }}
                   />
                 )}
-              {hasAnyDirtyChild && (
-                <Box
-                  component="span"
-                  sx={{
-                    position: "absolute",
-                    top: -1,
-                    right: -3,
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    bgcolor: "primary.main",
-                  }}
-                />
-              )}
             </ListItemIcon>
             {sidebarOpen && (
               <ListItemText
-                primary={`${group.series.title} (${group.posts.length})`}
+                primary={
+                  <Box
+                    component="span"
+                    sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}
+                  >
+                    <Box
+                      component="span"
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {`${group.series.title} (${group.posts.length})`}
+                    </Box>
+                    {hasAnyDirtyChild && (
+                      <Box
+                        component="span"
+                        sx={{
+                          flexShrink: 0,
+                          width: 5,
+                          height: 5,
+                          borderRadius: "50%",
+                          bgcolor: "primary.main",
+                        }}
+                      />
+                    )}
+                  </Box>
+                }
                 primaryTypographyProps={{
+                  component: "span",
                   fontSize: "0.7em",
                   fontWeight: 500,
                   color: "text.secondary",
-                  sx: {
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  },
+                  sx: { display: "block", minWidth: 0 },
                 }}
               />
             )}
