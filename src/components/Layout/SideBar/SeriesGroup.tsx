@@ -96,16 +96,6 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                     component="span"
                     sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}
                   >
-                    <Box
-                      component="span"
-                      sx={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {`${group.series.title} (${group.posts.length})`}
-                    </Box>
                     {hasAnyDirtyChild && (
                       <Box
                         component="span"
@@ -118,6 +108,16 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                         }}
                       />
                     )}
+                    <Box
+                      component="span"
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {`${group.series.title} (${group.posts.length})`}
+                    </Box>
                   </Box>
                 }
                 primaryTypographyProps={{
