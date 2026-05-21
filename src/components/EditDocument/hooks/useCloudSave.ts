@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
 import { actions, useDispatch, useSelector } from "@/store";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { registerSaveCallback, unregisterSaveCallback } from "../saveRegistry";
 import type { EditorDocument, EditorDocumentRevision } from "@/types";
 import type { LexicalEditor } from "lexical";
+import type { RefObject } from "react";
 
 export function useCloudSave(
   document: EditorDocument | undefined,
-  editorRef: React.RefObject<LexicalEditor | null>,
+  editorRef: RefObject<LexicalEditor | null>,
 ) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user);
@@ -28,9 +30,9 @@ export function useCloudSave(
         return true; // No changes to save
       }
 
-      // Reuse the local document's head ID so local and cloud heads stay in sync,
-      // and we don't create a new revision ID if an unsynced local one already exists.
-      const revisionId = document.head;
+      // Always generate a fresh revision ID so the upsert in createRevision
+      // creates a new record rather than hitting the no-op update:{} branch.
+      const revisionId = uuidv4();
       const timestamp = new Date().toISOString();
 
       const revision: EditorDocumentRevision = {
@@ -51,8 +53,14 @@ export function useCloudSave(
 
       await dispatch(actions.createCloudRevision(revision)).unwrap();
       await dispatch(actions.updateCloudDocument(documentUpdate)).unwrap();
+      // Sync local data + head so that on reload useDocumentLoader finds heads
+      // matching and loads the correct content rather than stale local state.
+      await dispatch(actions.updateLocalDocument({
+        id: document.id,
+        partial: { data, head: revisionId, updatedAt: timestamp, parentId: document.parentId },
+      }));
       lastSavedCloud.current = serializedData;
-      dispatch(actions.setDirty(false));
+      dispatch(actions.markTabClean(document.id));
       return true;
     } catch (err) {
       errorAnnounce("Failed to auto-save document to cloud", err);
@@ -60,12 +68,14 @@ export function useCloudSave(
     }
   }, [document, user, dispatch, editorRef, errorAnnounce]);
 
+  const docId = document?.id;
   useEffect(() => {
-    registerSaveCallback(saveToCloud);
+    if (!docId) return;
+    registerSaveCallback(docId, saveToCloud);
     return () => {
-      unregisterSaveCallback();
+      unregisterSaveCallback(docId);
     };
-  }, [saveToCloud]);
+  }, [docId, saveToCloud]);
 
   return { saveToCloud, lastSavedCloud };
 }

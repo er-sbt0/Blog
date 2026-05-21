@@ -103,6 +103,9 @@ export const documentsSelectors = documentsAdapter.getSelectors<RootState>(
   (state) => state.documents,
 );
 
+export const selectIsDirty = (state: RootState) =>
+  state.ui.tabs.dirtyTabIds.length > 0;
+
 export const useDispatch: () => AppDispatch = useReduxDispatch;
 export const useSelector: <T>(
   selector: (state: RootState) => T,

@@ -1,0 +1,130 @@
+"use client";
+import { useMemo, useRef } from "react";
+import { Box } from "@mui/material";
+import type { LexicalEditor, SerializedEditorState } from "lexical";
+import dynamic from "next/dynamic";
+import { useSelector as useReduxSelector } from "react-redux";
+import ConnectedEditor from "@/components/ConnectedEditor";
+import SplashScreen from "@/components/shared/SplashScreen";
+import DiffView from "@/components/Diff";
+import { documentsSelectors, useSelector } from "@/store";
+import type { RootState } from "@/store";
+import { useCloudSave } from "./hooks/useCloudSave";
+import { useDocumentLoader } from "./hooks/useDocumentLoader";
+import type { EditorDocument } from "@/types";
+
+const EditDocumentInfo = dynamic(
+  () => import("@/components/EditDocument/EditDocumentInfo"),
+  { ssr: false },
+);
+
+function ensureValidDocumentData(doc: EditorDocument): EditorDocument {
+  const defaultParagraph = {
+    children: [],
+    direction: null,
+    format: "",
+    indent: 0,
+    type: "paragraph",
+    version: 1,
+  };
+  const defaultRoot: SerializedEditorState = {
+    root: {
+      children: [defaultParagraph],
+      direction: null,
+      format: "",
+      indent: 0,
+      type: "root",
+      version: 1,
+    },
+  };
+
+  if (!doc.data || typeof doc.data !== "object") {
+    return { ...doc, data: defaultRoot };
+  }
+  if (
+    !doc.data.root ||
+    !doc.data.root.children ||
+    !Array.isArray(doc.data.root.children)
+  ) {
+    return { ...doc, data: defaultRoot };
+  }
+  if (doc.data.root.children.length === 0) {
+    return {
+      ...doc,
+      data: {
+        ...doc.data,
+        root: { ...doc.data.root, children: [defaultParagraph] },
+      } as SerializedEditorState,
+    };
+  }
+  return doc;
+}
+
+interface EditorTabPanelProps {
+  docId: string;
+  isActive: boolean;
+  onDiscard?: () => void;
+}
+
+/**
+ * Renders a single document's editor. Lazy-mounts (parent controls whether to
+ * render) and hides via CSS when inactive so undo history is preserved across
+ * tab switches. Each panel registers its own save callback in saveRegistry so
+ * triggerSave() can save all open tabs at once.
+ */
+const EditorTabPanel: React.FC<EditorTabPanelProps> = ({
+  docId,
+  isActive,
+  onDiscard,
+}) => {
+  const editorRef = useRef<LexicalEditor>(null);
+  const showDiff = useSelector((state) => state.ui.diff.open);
+
+  // Redux document for useCloudSave (stable reference, same pattern as EditDocumentContent).
+  const reduxDocument = useReduxSelector(
+    (state: RootState) =>
+      documentsSelectors
+        .selectAll(state)
+        .find((d) => d.local?.id === docId)
+        ?.local,
+    (a, b) => a?.id === b?.id,
+  );
+
+  const { lastSavedCloud } = useCloudSave(reduxDocument, editorRef);
+  const { isLoading, error, loadedDocument } = useDocumentLoader(
+    docId,
+    lastSavedCloud,
+  );
+
+  const documentForEditor = useMemo(
+    () =>
+      loadedDocument ? ensureValidDocumentData(loadedDocument) : undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [loadedDocument?.id],
+  );
+
+  return (
+    <Box sx={{ display: isActive ? "block" : "none" }}>
+      {error && <SplashScreen title={error.title} subtitle={error.subtitle} />}
+      {isLoading && !documentForEditor && <SplashScreen title="Loading…" />}
+      {documentForEditor && (
+        <>
+          {isActive && <title>{documentForEditor.name}</title>}
+          {showDiff && isActive && <DiffView />}
+          <ConnectedEditor
+            document={documentForEditor}
+            editorRef={editorRef}
+            namespace={`matheditor-${docId}`}
+            onDiscard={onDiscard}
+          />
+          <EditDocumentInfo
+            documentId={documentForEditor.id}
+            editorRef={editorRef}
+          />
+        </>
+      )}
+    </Box>
+  );
+};
+
+export default EditorTabPanel;

@@ -65,9 +65,14 @@ const initialState: AppState = {
     diff: {
       open: false,
     },
-    isDirty: false,
     attachmentPreview: null,
     attachmentModified: null,
+    tabs: {
+      rootId: null,
+      tabIds: [],
+      activeTabId: null,
+      dirtyTabIds: [],
+    },
   },
 };
 
@@ -883,8 +888,60 @@ export const appSlice = createSlice({
     ) => {
       state.ui.diff = { ...state.ui.diff, ...action.payload };
     },
-    setDirty: (state, action: PayloadAction<boolean>) => {
-      state.ui.isDirty = action.payload;
+    initTabs: (
+      state,
+      action: PayloadAction<{ rootId: string; childIds: string[] }>,
+    ) => {
+      const { rootId, childIds } = action.payload;
+      state.ui.tabs = {
+        rootId,
+        tabIds: [rootId, ...childIds],
+        activeTabId: rootId,
+        dirtyTabIds: [],
+      };
+    },
+    setActiveTab: (state, action: PayloadAction<string>) => {
+      state.ui.tabs.activeTabId = action.payload;
+    },
+    addTab: (state, action: PayloadAction<string>) => {
+      if (!state.ui.tabs.tabIds.includes(action.payload)) {
+        state.ui.tabs.tabIds.push(action.payload);
+      }
+      state.ui.tabs.activeTabId = action.payload;
+    },
+    removeTab: (state, action: PayloadAction<string>) => {
+      const idx = state.ui.tabs.tabIds.indexOf(action.payload);
+      state.ui.tabs.tabIds = state.ui.tabs.tabIds.filter(
+        (id) => id !== action.payload,
+      );
+      state.ui.tabs.dirtyTabIds = state.ui.tabs.dirtyTabIds.filter(
+        (id) => id !== action.payload,
+      );
+      if (state.ui.tabs.activeTabId === action.payload) {
+        const newIdx = Math.min(idx, state.ui.tabs.tabIds.length - 1);
+        state.ui.tabs.activeTabId = state.ui.tabs.tabIds[newIdx] ?? null;
+      }
+    },
+    reorderTabs: (state, action: PayloadAction<string[]>) => {
+      state.ui.tabs.tabIds = action.payload;
+    },
+    markTabDirty: (state, action: PayloadAction<string>) => {
+      if (!state.ui.tabs.dirtyTabIds.includes(action.payload)) {
+        state.ui.tabs.dirtyTabIds.push(action.payload);
+      }
+    },
+    markTabClean: (state, action: PayloadAction<string>) => {
+      state.ui.tabs.dirtyTabIds = state.ui.tabs.dirtyTabIds.filter(
+        (id) => id !== action.payload,
+      );
+    },
+    clearTabs: (state) => {
+      state.ui.tabs = {
+        rootId: null,
+        tabIds: [],
+        activeTabId: null,
+        dirtyTabIds: [],
+      };
     },
     openAttachmentPreview: (
       state,

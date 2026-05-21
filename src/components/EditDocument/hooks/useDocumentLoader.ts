@@ -59,13 +59,13 @@ export function useDocumentLoader(
                 typeof actions.getCloudDocument.fulfilled
               >["payload"];
             if (editorDocument.head !== cloudEditorDocument.head) {
-              dispatch(actions.setDirty(true));
+              if (id) dispatch(actions.markTabDirty(id));
             } else {
               lastSavedCloud.current = JSON.stringify(editorDocument.data);
             }
           } catch {
             if (isCancelled()) return;
-            dispatch(actions.setDirty(true));
+            if (id) dispatch(actions.markTabDirty(id));
           }
         }
       } else {
@@ -154,7 +154,7 @@ export function useDocumentLoader(
 
     return () => {
       dispatch(actions.setDiff({ open: false }));
-      dispatch(actions.setDirty(false));
+      if (id) dispatch(actions.markTabClean(id));
     };
   }, [dispatch, user, id]);
 

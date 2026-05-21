@@ -50,6 +50,8 @@ const documentCoreSelect = {
   collab: true,
   private: true,
   baseId: true,
+  parentId: true,
+  sort_order: true,
   head: true,
   type: true,
   status: true,
@@ -259,8 +261,6 @@ const createDocument = async (data: Prisma.DocumentUncheckedCreateInput) => {
   const docData = {
     ...data,
     type: PrismaDocumentType.DOCUMENT,
-    // For blog posts, we don't use parentId (flat structure)
-    parentId: null,
   };
 
   await prisma.document.create({ data: docData });
@@ -385,12 +385,21 @@ const findCloudStorageUsageByAuthorId = async (authorId: string) => {
   return docSizes;
 };
 
+const findDocumentChildren = async (parentId: string) => {
+  return prisma.document.findMany({
+    where: { parentId },
+    select: { id: true, name: true, sort_order: true },
+    orderBy: [{ sort_order: "asc" }, { createdAt: "asc" }],
+  });
+};
+
 export {
   createDocument,
   deleteDocument,
   findAllDocuments,
   findCloudStorageUsageByAuthorId,
   findDocument,
+  findDocumentChildren,
   findDocumentsByAuthorId,
   findEditorDocument,
   findPublishedDocuments,

@@ -201,6 +201,15 @@ export const apiClient = {
     delete: (id: string): Promise<string | undefined> =>
       request<string>(`/api/documents/${id}`, { method: "DELETE" }),
 
+    /** GET /api/documents/:id/children */
+    children: (
+      id: string,
+    ): Promise<{ id: string; name: string; sort_order: number | null }[] | undefined> =>
+      request<{ id: string; name: string; sort_order: number | null }[]>(
+        `/api/documents/${id}/children`,
+        { cache: "no-store" },
+      ),
+
     /**
      * GET /api/documents/check?handle=:handle
      * Pass a custom `endpoint` to target a different check route.

@@ -23,6 +23,13 @@ export interface AttachmentPreviewState {
   mimetype: string | null;
 }
 
+export interface TabsState {
+  rootId: string | null;
+  tabIds: string[];
+  activeTabId: string | null;
+  dirtyTabIds: string[];
+}
+
 export interface AppState {
   user?: User;
   documents: EntityState<UserDocument, string>;
@@ -35,9 +42,9 @@ export interface AppState {
     drawer: boolean;
     page: number;
     diff: { open: boolean; old?: string; new?: string };
-    isDirty: boolean;
     attachmentPreview: AttachmentPreviewState | null;
     attachmentModified: { url: string; timestamp: number } | null;
+    tabs: TabsState;
   };
 }
 

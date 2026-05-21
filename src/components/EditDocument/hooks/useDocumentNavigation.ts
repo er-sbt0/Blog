@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect } from "react";
-import { actions, documentsSelectors, useDispatch, useSelector } from "@/store";
+import { actions, documentsSelectors, selectIsDirty, useDispatch, useSelector } from "@/store";
 import { useRouter } from "next/navigation";
 import type { EditorDocument } from "@/types";
 import type { LexicalEditor } from "lexical";
@@ -13,7 +13,7 @@ export function useDocumentNavigation(
 ) {
   const router = useRouter();
   const dispatch = useDispatch();
-  const isDirty = useSelector((state) => state.ui.isDirty);
+  const isDirty = useSelector(selectIsDirty);
   const localRevisions = useSelector((state) => {
     if (!document) return [];
     const doc = documentsSelectors.selectById(state, document.id);

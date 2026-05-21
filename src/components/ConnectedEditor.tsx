@@ -23,8 +23,9 @@ const ConnectedEditor: React.FC<{
   ignoreHistoryMerge?: boolean;
   onSave?: () => void;
   onDiscard?: () => void;
+  namespace?: string;
 }> = (
-  { document, editorRef, onChange, ignoreHistoryMerge, onSave, onDiscard },
+  { document, editorRef, onChange, ignoreHistoryMerge, onSave, onDiscard, namespace },
 ) => {
   const dispatch = useDispatch();
   const editorRefCallback = (editor: LexicalEditor) => {
@@ -96,7 +97,10 @@ const ConnectedEditor: React.FC<{
   };
 
   const editorState = getValidEditorState();
-  const initialConfig = editorState ? { editorState } : {}; // Let Lexical create default state
+  const initialConfig = {
+    ...(editorState ? { editorState } : {}),
+    ...(namespace ? { namespace } : {}),
+  };
 
   return (
     <Editor

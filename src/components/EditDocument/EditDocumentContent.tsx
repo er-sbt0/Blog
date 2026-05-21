@@ -1,144 +1,17 @@
 "use client";
-import { useMemo, useRef } from "react";
-import SplashScreen from "../shared/SplashScreen";
-import { EditorDocument } from "@/types";
-import { useSelector as useReduxSelector } from "react-redux";
-import { useSelector } from "@/store";
-import type { RootState } from "@/store";
-import { documentsSelectors } from "@/store";
 import { usePathname } from "next/navigation";
-import type { LexicalEditor, SerializedEditorState } from "lexical";
-import dynamic from "next/dynamic";
-import DiffView from "../Diff";
-import ConnectedEditor from "../ConnectedEditor";
-import SaveDiscardActions from "./SaveDiscardActions";
-import { useCloudSave } from "./hooks/useCloudSave";
-import { useDocumentLoader } from "./hooks/useDocumentLoader";
-import { useDocumentNavigation } from "./hooks/useDocumentNavigation";
+import SplashScreen from "@/components/shared/SplashScreen";
+import TabbedDocumentEditor from "./TabbedDocumentEditor";
 
-const EditDocumentInfo = dynamic(
-  () => import("@/components/EditDocument/EditDocumentInfo"),
-  { ssr: false },
-);
-
-function ensureValidDocumentData(doc: EditorDocument): EditorDocument {
-  const defaultParagraph = {
-    children: [],
-    direction: null,
-    format: "",
-    indent: 0,
-    type: "paragraph",
-    version: 1,
-  };
-  const defaultRoot: SerializedEditorState = {
-    root: {
-      children: [defaultParagraph],
-      direction: null,
-      format: "",
-      indent: 0,
-      type: "root",
-      version: 1,
-    },
-  };
-
-  if (!doc.data || typeof doc.data !== "object") {
-    return { ...doc, data: defaultRoot };
-  }
-
-  if (
-    !doc.data.root || !doc.data.root.children ||
-    !Array.isArray(doc.data.root.children)
-  ) {
-    return { ...doc, data: defaultRoot };
-  }
-
-  if (doc.data.root.children.length === 0) {
-    return {
-      ...doc,
-      data: {
-        ...doc.data,
-        root: {
-          ...doc.data.root,
-          children: [defaultParagraph],
-        },
-      } as SerializedEditorState,
-    };
-  }
-
-  return doc;
-}
-
-const DocumentEditor: React.FC<React.PropsWithChildren> = (
-  { children: _children },
-) => {
+const DocumentEditor: React.FC<React.PropsWithChildren> = () => {
   const pathname = usePathname();
   const id = pathname.split("/")[2]?.toLowerCase();
-  const editorRef = useRef<LexicalEditor>(null);
-  const showDiff = useSelector((state) => state.ui.diff.open);
-  const isDirty = useSelector((state) => state.ui.isDirty);
 
-  // Single source of truth: document lives in Redux. Custom equality prevents
-  // re-renders from data changes on every edit (only re-render on identity change).
-  const document = useReduxSelector(
-    (state: RootState) =>
-      documentsSelectors
-        .selectAll(state)
-        .find((d) => d.local?.handle === id || d.local?.id === id)
-        ?.local,
-    (a, b) => a?.id === b?.id,
-  );
-
-  const { lastSavedCloud } = useCloudSave(document, editorRef);
-  const { isLoading, error, loadedDocument } = useDocumentLoader(
-    id,
-    lastSavedCloud,
-  );
-
-  // Apply data normalization once, using the freshly-loaded document from
-  // IndexedDB/cloud rather than the Redux selector value. The selector uses a
-  // custom equality (a, b) => a?.id === b?.id which can freeze a stale
-  // EMPTY_EDITOR_STATE reference from loadLocalDocuments, even after
-  // getLocalDocument has populated Redux with real data.
-  const documentForEditor = useMemo(
-    () => (loadedDocument
-      ? ensureValidDocumentData(loadedDocument)
-      : undefined),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [loadedDocument?.id],
-  );
-  const { handleSaveAndNavigate, handleDiscard } = useDocumentNavigation(
-    document,
-    editorRef,
-  );
-
-  if (error) {
-    return <SplashScreen title={error.title} subtitle={error.subtitle} />;
-  }
-  if (isLoading || !documentForEditor) {
-    return <SplashScreen title="Loading Document" />;
+  if (!id) {
+    return <SplashScreen title="Document Not Found" />;
   }
 
-  return (
-    <>
-      <title>{documentForEditor.name}</title>
-      {showDiff && <DiffView />}
-      <ConnectedEditor
-        document={documentForEditor}
-        editorRef={editorRef}
-        onSave={handleSaveAndNavigate}
-        onDiscard={handleDiscard}
-      />
-      <EditDocumentInfo
-        documentId={documentForEditor.id}
-        editorRef={editorRef}
-      />
-      <SaveDiscardActions
-        onSave={handleSaveAndNavigate}
-        onDiscard={handleDiscard}
-        isDirty={isDirty}
-      />
-    </>
-  );
+  return <TabbedDocumentEditor rootId={id} />;
 };
 
 export default DocumentEditor;
