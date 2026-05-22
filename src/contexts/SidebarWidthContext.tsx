@@ -7,13 +7,19 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useTheme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
+import { usePathname } from "next/navigation";
 import {
-  SIDEBAR_COLLAPSED_WIDTH,
+  COMPACT_WIDTH,
   SIDEBAR_DEFAULT_WIDTH,
   SIDEBAR_MAX_WIDTH,
   SIDEBAR_MIN_WIDTH,
+  SIDEBAR_MODE_KEY,
   SIDEBAR_STORAGE_KEY,
 } from "@/components/Layout/SideBar/constants";
+
+export type SidebarMode = "full" | "compact" | "hidden";
 
 interface SidebarWidthContextType {
   /** The user's preferred expanded width (persisted to localStorage) */
@@ -24,8 +30,20 @@ interface SidebarWidthContextType {
   startResize: (e: React.MouseEvent) => void;
   /** Reset width to default */
   resetWidth: () => void;
-  /** Get the effective width based on open/closed state */
-  getEffectiveWidth: (isOpen: boolean) => number;
+  /** Effective sidebar pixel width for the current mode */
+  getEffectiveWidth: () => number;
+  /** Current sidebar mode */
+  sidebarMode: SidebarMode;
+  /** Set sidebar mode directly */
+  setSidebarMode: (mode: SidebarMode) => void;
+  /** Cycle full ↔ compact (desktop); used by chevron + hamburger */
+  toggleSidebarCompact: () => void;
+  /** Toggle hidden ↔ full (mobile open/close) */
+  toggleSidebar: () => void;
+  /** True when sidebar is not hidden (Drawer open prop) */
+  sidebarOpen: boolean;
+  /** Whether the viewport is mobile-sized */
+  isMobile: boolean;
 }
 
 const SidebarWidthContext = createContext<SidebarWidthContextType | undefined>(
@@ -45,10 +63,56 @@ export const useSidebarWidth = () => {
 export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const pathname = usePathname();
+
   const [width, setWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
   const [isResizing, setIsResizing] = useState(false);
+  const [sidebarMode, setSidebarModeState] = useState<SidebarMode>(
+    isMobile ? "hidden" : "full",
+  );
 
-  // Read persisted width from localStorage after mount (can't do this during SSR)
+  // Restore persisted mode (full/compact) on desktop after mount.
+  useEffect(() => {
+    if (isMobile) return;
+    const saved = localStorage.getItem(SIDEBAR_MODE_KEY) as SidebarMode | null;
+    if (saved === "full" || saved === "compact") setSidebarModeState(saved);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setSidebarMode = useCallback((mode: SidebarMode) => {
+    setSidebarModeState(mode);
+    if (mode === "full" || mode === "compact") {
+      localStorage.setItem(SIDEBAR_MODE_KEY, mode);
+    }
+  }, []);
+
+  // Cycle full ↔ compact (desktop).
+  const toggleSidebarCompact = useCallback(() => {
+    setSidebarMode(sidebarMode === "compact" ? "full" : "compact");
+  }, [sidebarMode, setSidebarMode]);
+
+  // Toggle hidden ↔ full (mobile).
+  const toggleSidebar = useCallback(() => {
+    setSidebarModeState((prev) => (prev === "hidden" ? "full" : "hidden"));
+  }, []);
+
+  // Force hidden on mobile navigation.
+  useEffect(() => {
+    if (isMobile) setSidebarModeState("hidden");
+  }, [pathname, isMobile]);
+
+  // Sync mode when screen size flips.
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarModeState("hidden");
+    } else {
+      const saved = localStorage.getItem(SIDEBAR_MODE_KEY) as SidebarMode | null;
+      setSidebarModeState(saved === "compact" ? "compact" : "full");
+    }
+  }, [isMobile]);
+
+  // ── Width persistence ──────────────────────────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem(SIDEBAR_STORAGE_KEY);
     if (!saved) return;
@@ -58,69 +122,61 @@ export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  // Refs to track resize state without stale closures
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
   const currentWidthRef = useRef(width);
 
-  // Keep ref in sync with state
   useEffect(() => {
     currentWidthRef.current = width;
   }, [width]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    const delta = e.clientX - startXRef.current;
-    const newWidth = startWidthRef.current + delta;
-
-    // Clamp width between min and max
-    const clampedWidth = Math.min(
-      Math.max(newWidth, SIDEBAR_MIN_WIDTH),
+    const newWidth = Math.min(
+      Math.max(startWidthRef.current + (e.clientX - startXRef.current), SIDEBAR_MIN_WIDTH),
       SIDEBAR_MAX_WIDTH,
     );
-    setWidth(clampedWidth);
+    setWidth(newWidth);
   }, []);
 
   const handleMouseUp = useCallback(() => {
     setIsResizing(false);
-    // Use ref to get the current width (avoids stale closure)
-    localStorage.setItem(
-      SIDEBAR_STORAGE_KEY,
-      currentWidthRef.current.toString(),
-    );
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, currentWidthRef.current.toString());
   }, []);
 
   useEffect(() => {
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      // Prevent text selection while resizing
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-
-      return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      };
-    }
+    if (!isResizing) return;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
   }, [isResizing, handleMouseMove, handleMouseUp]);
 
-  const startResize = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-    startXRef.current = e.clientX;
-    startWidthRef.current = width;
-  }, [width]);
+  const startResize = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsResizing(true);
+      startXRef.current = e.clientX;
+      startWidthRef.current = width;
+    },
+    [width],
+  );
 
   const resetWidth = useCallback(() => {
     setWidth(SIDEBAR_DEFAULT_WIDTH);
     localStorage.setItem(SIDEBAR_STORAGE_KEY, SIDEBAR_DEFAULT_WIDTH.toString());
   }, []);
 
-  const getEffectiveWidth = useCallback((isOpen: boolean) => {
-    return isOpen ? width : SIDEBAR_COLLAPSED_WIDTH;
-  }, [width]);
+  const getEffectiveWidth = useCallback((): number => {
+    if (sidebarMode === "hidden") return 0;
+    if (sidebarMode === "compact") return COMPACT_WIDTH;
+    return width;
+  }, [width, sidebarMode]);
 
   return (
     <SidebarWidthContext.Provider
@@ -130,6 +186,12 @@ export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
         startResize,
         resetWidth,
         getEffectiveWidth,
+        sidebarMode,
+        setSidebarMode,
+        toggleSidebarCompact,
+        toggleSidebar,
+        sidebarOpen: sidebarMode !== "hidden",
+        isMobile,
       }}
     >
       {children}

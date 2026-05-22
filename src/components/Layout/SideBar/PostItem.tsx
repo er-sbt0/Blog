@@ -12,10 +12,11 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Article, CloudUpload } from "@mui/icons-material";
-import { actions, useDispatch } from "@/store";
+import { actions, documentsSelectors, useDispatch, useSelector, type RootState } from "@/store";
 import type { UserDocument } from "@/types";
 import { SafeNavigationLink } from "./SafeNavigationLink";
 import type { PostItemActions } from "./hooks/useSidebarActions";
+import { SubTabList } from "./SubTabList";
 
 interface PostItemProps {
   post: UserDocument;
@@ -38,6 +39,23 @@ export const PostItem = memo(
       handleRenameBlur,
       handleRenameKeyDown,
     } = itemActions;
+
+    const { tabsState, subTabs } = useSelector((state: RootState) => {
+      const tabs = state.ui.tabs;
+      const isRoot = tabs.rootId === post.id;
+      const count = isRoot ? tabs.tabIds.length : 0;
+      const entries = isRoot && count > 1
+        ? tabs.tabIds.map((id) => {
+          const d = documentsSelectors.selectById(state, id);
+          return {
+            id,
+            name: d?.cloud?.name ?? d?.local?.name ?? "Untitled",
+            dirty: tabs.dirtyTabIds.includes(id),
+          };
+        })
+        : [];
+      return { tabsState: tabs, subTabs: entries };
+    });
 
     const doc = post.cloud || post.local;
     const docName = doc?.name || "Untitled";
@@ -84,12 +102,12 @@ export const PostItem = memo(
               if (sidebarOpen) handleDoubleClick(e, post.id, docName);
             }}
             sx={{
-              minHeight: inSeries ? 30 : 32,
+              minHeight: inSeries ? 26 : 30,
               justifyContent: sidebarOpen ? "initial" : "center",
               ...(inSeries
-                ? { pl: 2, pr: 2.5 }
-                : { px: sidebarOpen ? 3 : 2.5 }),
-              py: inSeries ? 0.25 : 0.5,
+                ? { pl: 1.5, pr: 2 }
+                : { px: 2.5 }),
+              py: inSeries ? 0.25 : 0.375,
               "&.Mui-selected": {
                 bgcolor: "action.selected",
                 "&:hover": {
@@ -105,7 +123,7 @@ export const PostItem = memo(
             <ListItemIcon
               sx={{
                 minWidth: 0,
-                mr: sidebarOpen ? 1.5 : "auto",
+                mr: sidebarOpen ? 1 : "auto",
                 justifyContent: "center",
                 position: "relative",
               }}
@@ -180,6 +198,9 @@ export const PostItem = memo(
             )}
           </ListItemButton>
         </Tooltip>
+        {sidebarOpen && isSelected && subTabs.length > 1 && (
+          <SubTabList tabs={subTabs} activeTabId={tabsState.activeTabId} />
+        )}
       </ListItem>
     );
   },

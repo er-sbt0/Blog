@@ -1,8 +1,6 @@
 "use client";
-import { Document, User } from "@/types";
+import { Document, DocumentStatus } from "@/types";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 import ViewAttachmentEnhancer from "./ViewAttachmentEnhancer";
 import SyncToCloudFab from "../shared/SyncToCloudFab";
@@ -10,8 +8,10 @@ import LocalDocumentView from "./LocalDocumentView";
 import ChildDocumentView from "./ChildDocumentView";
 import ViewTabBar from "./ViewTabBar";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import EditIcon from "@mui/icons-material/Edit";
+import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
+import Typography from "@mui/material/Typography";
+import { format } from "date-fns";
 import { apiClient } from "@/api";
 import type { TabMeta } from "@/components/EditDocument/EditorTabBar";
 
@@ -21,15 +21,8 @@ const ViewDocumentInfo = dynamic(
 );
 
 const ViewDocument: React.FC<
-  React.PropsWithChildren & { cloudDocument: Document; user?: User }
+  React.PropsWithChildren & { cloudDocument: Document }
 > = ({ cloudDocument, children }) => {
-  const router = useRouter();
-  const { data: session } = useSession();
-  const user = session?.user;
-  const handle = cloudDocument.handle || cloudDocument.id;
-  const isAuthor = cloudDocument.author.id === user?.id;
-  const isCollab = cloudDocument.collab;
-  const isEditable = isAuthor || isCollab;
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Determine root: this doc is root when it has no parent.
@@ -58,36 +51,65 @@ const ViewDocument: React.FC<
     return () => { cancelled = true; };
   }, [rootId]);
 
-  const handleTabSwitch = (tabId: string) => {
-    setActiveTabId(tabId);
-  };
+  const handleTabSwitch = (tabId: string) => setActiveTabId(tabId);
 
-  // The "Edit" button should always point to the root doc's edit page.
-  const editHandle = isChild
-    ? rootId
-    : handle;
+  const authorLabel = cloudDocument.author.handle || cloudDocument.author.name;
+  const updatedDate = cloudDocument.updatedAt
+    ? format(new Date(cloudDocument.updatedAt), "MMM d, yyyy")
+    : null;
+  const seriesTitle = cloudDocument.series?.title;
+  const seriesOrder = cloudDocument.seriesOrder;
+  const seriesTotal = cloudDocument.series?.posts?.length;
 
   return (
-    <Box sx={{ minHeight: "100vh", px: { xs: 1, sm: 2, md: 2 } }}>
-      {isEditable && (
-        <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 1 }}>
-          <Button
-            size="small"
-            startIcon={<EditIcon />}
-            onClick={() => router.push(`/edit/${editHandle}`)}
-          >
-            Edit
-          </Button>
-        </Box>
-      )}
-
+    <Box sx={{ minHeight: "100vh" }}>
       <ViewTabBar
         tabs={tabs}
         activeTabId={activeTabId}
         onSwitch={handleTabSwitch}
       />
 
-      <div className="document-container" ref={containerRef}>
+      <Box sx={{ px: { xs: 1, sm: 2, md: 2 } }}>
+      {/* Document header */}
+      <Box sx={{ pt: 2, pb: 0 }}>
+        <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+          {cloudDocument.name}
+        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0.75, mb: 1.5 }}>
+          {cloudDocument.status && (
+            <Chip
+              label={cloudDocument.status === DocumentStatus.ACTIVE ? "Active" : "Done"}
+              size="small"
+              color={cloudDocument.status === DocumentStatus.ACTIVE ? "success" : "default"}
+              variant="outlined"
+              sx={{ height: 22, fontSize: "0.72rem" }}
+            />
+          )}
+          {authorLabel && (
+            <Typography variant="body2" color="text.secondary">
+              By {authorLabel}
+            </Typography>
+          )}
+          {updatedDate && (
+            <>
+              <Typography variant="body2" color="text.secondary">·</Typography>
+              <Typography variant="body2" color="text.secondary">{updatedDate}</Typography>
+            </>
+          )}
+          {seriesTitle && (
+            <>
+              <Typography variant="body2" color="text.secondary">·</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Series: {seriesTitle}
+                {seriesOrder != null && seriesTotal != null ? ` · ${seriesOrder}/${seriesTotal}` : ""}
+              </Typography>
+            </>
+          )}
+        </Box>
+        <Divider />
+      </Box>
+
+      <div className="document-container document-view" ref={containerRef}>
         {/* Root tab: use SSR-rendered children + local-override logic */}
         {activeTabId === cloudDocument.id && (
           <LocalDocumentView
@@ -106,8 +128,9 @@ const ViewDocument: React.FC<
         <ViewAttachmentEnhancer containerRef={containerRef} />
       </div>
 
-      <ViewDocumentInfo cloudDocument={cloudDocument} user={user} />
+      <ViewDocumentInfo cloudDocument={cloudDocument} />
       <SyncToCloudFab documentId={cloudDocument.id} />
+      </Box>
     </Box>
   );
 };

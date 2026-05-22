@@ -4,7 +4,9 @@ import { usePathname } from "next/navigation";
 import {
   Box,
   Breadcrumbs as MuiBreadcrumbs,
+  IconButton,
   Link,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import {
@@ -13,12 +15,16 @@ import {
   Dashboard,
   Edit,
   LibraryBooks,
+  Menu,
   StickyNote2,
+  ViewSidebar,
 } from "@mui/icons-material";
 import RouterLink from "next/link";
 import { shallowEqual } from "react-redux";
 import { documentsSelectors, useSelector } from "@/store";
 import type { RootState } from "@/store";
+import { useLayoutMode } from "@/contexts/LayoutModeContext";
+import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
 
 interface BreadcrumbItem {
   label: string;
@@ -26,8 +32,16 @@ interface BreadcrumbItem {
   icon?: React.ReactNode;
 }
 
+const RAIL_MODE_LABELS: Record<string, string> = {
+  full: "Collapse rail to icons",
+  compact: "Hide rail",
+  hidden: "Show rail",
+};
+
 const Breadcrumbs: React.FC = () => {
   const pathname = usePathname();
+  const { railMode, toggleRail } = useLayoutMode();
+  const { toggleSidebarCompact, sidebarMode } = useSidebarWidth();
   const segments = React.useMemo(
     () => pathname.split("/").filter(Boolean),
     [pathname],
@@ -246,9 +260,20 @@ const Breadcrumbs: React.FC = () => {
         borderColor: "divider",
         display: "flex",
         alignItems: "center",
+        gap: 1,
       }}
     >
-      <MuiBreadcrumbs aria-label="breadcrumb" separator="›">
+      <Tooltip title={sidebarMode === "full" ? "Collapse sidebar" : "Expand sidebar"}>
+        <IconButton
+          size="small"
+          onClick={toggleSidebarCompact}
+          aria-label={sidebarMode === "full" ? "Collapse sidebar" : "Expand sidebar"}
+          sx={{ flexShrink: 0, color: "text.secondary" }}
+        >
+          <Menu fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <MuiBreadcrumbs aria-label="breadcrumb" separator="›" sx={{ flex: 1 }}>
         {breadcrumbs.map((item, index) => {
           const isLast = index === breadcrumbs.length - 1;
 
@@ -293,6 +318,19 @@ const Breadcrumbs: React.FC = () => {
           );
         })}
       </MuiBreadcrumbs>
+      <Tooltip title={RAIL_MODE_LABELS[railMode]}>
+        <IconButton
+          size="small"
+          onClick={toggleRail}
+          aria-label={RAIL_MODE_LABELS[railMode]}
+          sx={{
+            color: railMode === "hidden" ? "text.disabled" : "text.secondary",
+            flexShrink: 0,
+          }}
+        >
+          <ViewSidebar fontSize="small" sx={{ transform: "scaleX(-1)" }} />
+        </IconButton>
+      </Tooltip>
     </Box>
   );
 };

@@ -6,7 +6,6 @@ import { selectUserFilteredDocuments } from "@/store/selectors/layoutSelectors";
 import {
   Avatar,
   Box,
-  Divider,
   Drawer,
   IconButton,
   List,
@@ -17,11 +16,11 @@ import {
   Tooltip,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Add, LibraryBooks, Remove, StickyNote2 } from "@mui/icons-material";
+import { Add, Chat, Description, Remove } from "@mui/icons-material";
 import { styles } from "../styles";
-import { useSidebarState } from "./hooks/useSidebarState";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
+import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { useSidebarFontSize } from "./hooks/useSidebarFontSize";
 import { useSidebarActions } from "./hooks/useSidebarActions";
 import { SidebarHeader } from "./SidebarHeader";
@@ -33,20 +32,31 @@ import {
   groupPostsBySeriesWithEmpty,
 } from "@/utils/posts/seriesGrouping";
 
-const NAV_ITEM_MIN_HEIGHT = 42;
-const USER_ITEM_MIN_HEIGHT = 48;
+const NAV_ITEM_MIN_HEIGHT = 36;
+const USER_ITEM_MIN_HEIGHT = 40;
 
 const navigationItems = [
-  { text: "Posts", icon: <LibraryBooks />, path: "/posts" },
-  { text: "Notes", icon: <StickyNote2 />, path: "/notes" },
+  { text: "Posts", icon: <Description />, path: "/posts" },
+  { text: "Notes", icon: <Chat />, path: "/notes" },
 ];
 
 const SideBar: React.FC = () => {
   const pathname = usePathname();
   const theme = useTheme();
 
-  const { open, toggleSidebar, isMobile } = useSidebarState();
-  const { isResizing, startResize, getEffectiveWidth } = useSidebarWidth();
+  const {
+    sidebarMode,
+    sidebarOpen: open,
+    toggleSidebar,
+    toggleSidebarCompact,
+    isMobile,
+    isResizing,
+    startResize,
+    getEffectiveWidth,
+  } = useSidebarWidth();
+
+  const { viewMode } = useLayoutMode();
+  const isExpanded = sidebarMode === "full" && viewMode !== "focus";
   const { sidebarFontSize, increaseFontSize, decreaseFontSize, resetFontSize } =
     useSidebarFontSize();
   const {
@@ -83,11 +93,11 @@ const SideBar: React.FC = () => {
       open={open}
       onClose={toggleSidebar}
       sx={{
-        width: getEffectiveWidth(open),
+        width: getEffectiveWidth(),
         flexShrink: 0,
         displayPrint: "none",
         "& .MuiDrawer-paper": {
-          width: getEffectiveWidth(open),
+          width: getEffectiveWidth(),
           boxSizing: "border-box",
           transition: isResizing
             ? "none"
@@ -104,22 +114,20 @@ const SideBar: React.FC = () => {
       }}
     >
       <SidebarHeader
-        open={open}
-        toggleSidebar={toggleSidebar}
+        open={isExpanded}
+        toggleSidebarCompact={toggleSidebarCompact}
         shortcutHint={shortcutHint}
       />
-
-      <Divider sx={styles.divider} />
 
       <Box
         role="navigation"
         aria-label="Main navigation"
-        sx={{ ...styles.sectionBox, flexShrink: 0, pb: 0 }}
+        sx={{ ...styles.sectionBox, flexShrink: 0, pb: 0, pt: 0.5 }}
       >
         <List>
           {navigationItems.map((item) => (
             <ListItem key={item.text} disablePadding sx={{ display: "block" }}>
-              <Tooltip title={open ? "" : item.text} placement="right">
+              <Tooltip title={isExpanded ? "" : item.text} placement="right">
                 <ListItemButton
                   component={SafeNavigationLink}
                   href={item.path}
@@ -129,7 +137,7 @@ const SideBar: React.FC = () => {
                   )}
                   sx={{
                     minHeight: NAV_ITEM_MIN_HEIGHT,
-                    justifyContent: open ? "initial" : "center",
+                    justifyContent: isExpanded ? "initial" : "center",
                     px: 2.5,
                     "&.Mui-selected": {
                       bgcolor: "action.selected",
@@ -140,14 +148,14 @@ const SideBar: React.FC = () => {
                   <ListItemIcon
                     sx={{
                       minWidth: 0,
-                      mr: open ? 2 : "auto",
+                      mr: isExpanded ? 2 : "auto",
                       justifyContent: "center",
                       "& .MuiSvgIcon-root": { fontSize: "1.2em" },
                     }}
                   >
                     {item.icon}
                   </ListItemIcon>
-                  {open && (
+                  {isExpanded && (
                     <ListItemText
                       primary={item.text}
                       primaryTypographyProps={{ fontSize: "0.9em" }}
@@ -160,20 +168,16 @@ const SideBar: React.FC = () => {
         </List>
       </Box>
 
-      <Divider sx={styles.divider} />
-
       {user && (filteredDocuments.length > 0 || seriesMap.size > 0)
         ? (
           <ActivePostsSection
             groupedActivePosts={groupedActivePosts}
-            sidebarOpen={open}
+            sidebarOpen={isExpanded}
             pathname={pathname}
             itemActions={postItemActions}
           />
         )
         : <Box sx={{ flex: "1 1 auto", minHeight: 0 }} />}
-
-      <Divider sx={styles.dividerBottom} />
 
       <Box
         sx={{
@@ -182,13 +186,13 @@ const SideBar: React.FC = () => {
           display: "flex",
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: open ? "space-between" : "center",
+          justifyContent: isExpanded ? "space-between" : "center",
           minHeight: USER_ITEM_MIN_HEIGHT,
           px: 1,
         }}
       >
         <Tooltip
-          title={open ? "" : (user ? user.name : "Sign In")}
+          title={isExpanded ? "" : (user ? user.name : "Sign In")}
           placement="right"
         >
           <Box
@@ -203,7 +207,7 @@ const SideBar: React.FC = () => {
               borderRadius: 1,
               px: 1.5,
               py: 0.75,
-              flex: open ? "1 1 0" : "0 0 auto",
+              flex: isExpanded ? "1 1 0" : "0 0 auto",
               minWidth: 0,
               "&:hover": { bgcolor: "action.hover" },
             }}
@@ -213,7 +217,7 @@ const SideBar: React.FC = () => {
               src={user?.image ?? undefined}
               sx={{ width: 32, height: 32, flexShrink: 0 }}
             />
-            {open && (
+            {isExpanded && (
               <Box
                 sx={{
                   overflow: "hidden",
@@ -228,7 +232,7 @@ const SideBar: React.FC = () => {
           </Box>
         </Tooltip>
 
-        {open && (
+        {isExpanded && (
           <Box
             sx={{
               display: "flex",
@@ -282,13 +286,13 @@ const SideBar: React.FC = () => {
         )}
       </Box>
 
-      {open && !isMobile && (
+      {isExpanded && !isMobile && (
         <Box
           onMouseDown={startResize}
           sx={{
             position: "fixed",
             top: 0,
-            left: getEffectiveWidth(open) - 4,
+            left: getEffectiveWidth() - 4,
             bottom: 0,
             width: 4,
             cursor: "col-resize",

@@ -1,14 +1,24 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  List,
+  ListItemButton,
+  ListItemText,
+} from "@mui/material";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
-import { actions, selectIsDirty, useDispatch, useSelector } from "@/store";
+import { actions, documentsSelectors, useDispatch, useSelector } from "@/store";
 import { apiClient } from "@/api";
-import { triggerSave } from "./saveRegistry";
-import SaveDiscardActions from "./SaveDiscardActions";
 import EditorTabBar, { type TabMeta } from "./EditorTabBar";
 import EditorTabPanel from "./EditorTabPanel";
+import TabContextMenu from "./TabContextMenu";
 import type { DocumentCreateInput } from "@/types";
 import { useAsyncEffect } from "@/hooks/useAsyncEffect";
 
@@ -41,9 +51,15 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
 }) => {
   const dispatch = useDispatch();
   const router = useRouter();
-  const isDirty = useSelector(selectIsDirty);
   const tabs = useSelector((state) => state.ui.tabs);
   const user = useSelector((state) => state.user);
+
+  // All root-level posts for the "Move to other post" picker.
+  const allDocuments = useSelector((state) => documentsSelectors.selectAll(state));
+  const availablePosts = allDocuments.filter((doc) => {
+    const d = doc.cloud ?? doc.local;
+    return d?.type === "DOCUMENT" && !d?.parentId && doc.id !== rootId;
+  });
 
   // Which tab panels have been mounted at least once (lazy-mount pattern).
   const [mountedTabIds, setMountedTabIds] = useState<Set<string>>(
@@ -55,6 +71,18 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
 
   // Confirm-delete dialog state.
   const [deleteTarget, setDeleteTarget] = useState<TabMeta | null>(null);
+
+  // Context menu state.
+  const [contextMenuAnchor, setContextMenuAnchor] = useState<HTMLElement | null>(null);
+  const [contextMenuTabId, setContextMenuTabId] = useState<string | null>(null);
+  const [contextMenuIsRoot, setContextMenuIsRoot] = useState(false);
+
+  // Externally-triggered rename (from context menu).
+  const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
+
+  // Move-to-other-post dialog state.
+  const [moveDialogTabId, setMoveDialogTabId] = useState<string | null>(null);
+  const [moveTargetPostId, setMoveTargetPostId] = useState<string>("");
 
   // Load root metadata + children on mount.
   useAsyncEffect(async (isCancelled) => {
@@ -156,15 +184,108 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
     await Promise.all(updates);
   }, [dispatch]);
 
-  const handleSave = useCallback(async () => {
-    const ok = await triggerSave();
-    if (ok) router.push(`/view/${rootId}`);
-  }, [router, rootId]);
-
   const handleDiscard = useCallback(() => {
-    // Navigate to the root doc's view page.
     router.push(`/view/${rootId}`);
   }, [router, rootId]);
+
+  // ---- Context menu ----
+
+  const handleOpenContextMenu = useCallback(
+    (tabId: string, isRoot: boolean, anchor: HTMLElement) => {
+      setContextMenuTabId(tabId);
+      setContextMenuIsRoot(isRoot);
+      setContextMenuAnchor(anchor);
+    },
+    [],
+  );
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenuAnchor(null);
+  }, []);
+
+  // ---- Context menu actions ----
+
+  const handleRenameFromMenu = useCallback((tabId: string) => {
+    setRenamingTabId(tabId);
+  }, []);
+
+  const handleDuplicate = useCallback(async (tabId: string) => {
+    if (!user) return;
+    const source = await apiClient.documents.get(tabId);
+    if (!source) return;
+
+    const now = new Date().toISOString();
+    const id = uuidv4();
+    const revisionId = uuidv4();
+    const sourceName = source.name ?? "Copy";
+    const newName = `${sourceName} (copy)`;
+
+    const newDoc: DocumentCreateInput = {
+      id,
+      name: newName,
+      head: revisionId,
+      createdAt: now,
+      updatedAt: now,
+      type: "DOCUMENT",
+      parentId: rootId,
+      sort_order: tabMetas.length,
+      data: source.data ?? (EMPTY_EDITOR_STATE as DocumentCreateInput["data"]),
+      revisions: [
+        {
+          id: revisionId,
+          documentId: id,
+          createdAt: now,
+          data: source.data ?? (EMPTY_EDITOR_STATE as DocumentCreateInput["data"]),
+        },
+      ],
+    };
+
+    const created = await apiClient.documents.create(newDoc);
+    if (!created) return;
+
+    await dispatch(actions.createLocalDocument(newDoc));
+
+    const newMeta: TabMeta = { id, name: newName };
+    setTabMetas((prev) => [...prev, newMeta]);
+    setMountedTabIds((prev) => new Set([...prev, id]));
+    dispatch(actions.addTab(id));
+  }, [user, rootId, tabMetas.length, dispatch]);
+
+  const handleMoveRequest = useCallback((tabId: string) => {
+    setMoveDialogTabId(tabId);
+    setMoveTargetPostId("");
+  }, []);
+
+  const handleMoveConfirm = useCallback(async () => {
+    if (!moveDialogTabId || !moveTargetPostId) return;
+    const tabId = moveDialogTabId;
+    setMoveDialogTabId(null);
+
+    await apiClient.documents.update(tabId, { parentId: moveTargetPostId });
+    await dispatch(actions.deleteLocalDocument(tabId));
+
+    setTabMetas((prev) => prev.filter((t) => t.id !== tabId));
+    setMountedTabIds((prev) => {
+      const next = new Set(prev);
+      next.delete(tabId);
+      return next;
+    });
+    dispatch(actions.removeTab(tabId));
+  }, [moveDialogTabId, moveTargetPostId, dispatch]);
+
+  const handleSplitOff = useCallback(async (tabId: string) => {
+    // Detach the tab from this post — it becomes a standalone document.
+    await apiClient.documents.update(tabId, { parentId: null });
+    await dispatch(actions.deleteLocalDocument(tabId));
+
+    setTabMetas((prev) => prev.filter((t) => t.id !== tabId));
+    setMountedTabIds((prev) => {
+      const next = new Set(prev);
+      next.delete(tabId);
+      return next;
+    });
+    dispatch(actions.removeTab(tabId));
+  }, [dispatch]);
 
   // Build the ordered tab list from Redux tabIds + local metadata.
   const orderedTabs: TabMeta[] = tabs.tabIds
@@ -179,11 +300,13 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
           activeTabId={tabs.activeTabId}
           dirtyTabIds={tabs.dirtyTabIds}
           rootTabId={rootId}
+          renamingTabId={renamingTabId}
           onSwitch={handleSwitch}
           onClose={handleCloseRequest}
           onAdd={handleAdd}
           onRename={handleRename}
           onReorder={handleReorder}
+          onContextMenu={handleOpenContextMenu}
         />
       )}
 
@@ -191,22 +314,27 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
         <EditorTabPanel
           key={tabId}
           docId={tabId}
+          rootId={rootId}
           isActive={tabId === tabs.activeTabId}
           onDiscard={handleDiscard}
         />
       ))}
 
-      <SaveDiscardActions
-        onSave={handleSave}
-        onDiscard={handleDiscard}
-        isDirty={isDirty}
+      {/* Context menu */}
+      <TabContextMenu
+        anchorEl={contextMenuAnchor}
+        tabId={contextMenuTabId}
+        isRoot={contextMenuIsRoot}
+        onClose={handleCloseContextMenu}
+        onRename={handleRenameFromMenu}
+        onDuplicate={handleDuplicate}
+        onMove={handleMoveRequest}
+        onSplitOff={handleSplitOff}
+        onDelete={handleCloseRequest}
       />
 
       {/* Delete confirmation dialog */}
-      <Dialog
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-      >
+      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>Delete tab?</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -217,6 +345,49 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
           <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
           <Button color="error" onClick={handleDeleteConfirm}>
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Move to other post dialog */}
+      <Dialog
+        open={!!moveDialogTabId}
+        onClose={() => setMoveDialogTabId(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Move tab to another post</DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {availablePosts.length === 0 ? (
+            <DialogContentText sx={{ p: 3 }}>
+              No other posts available.
+            </DialogContentText>
+          ) : (
+            <List dense disablePadding>
+              {availablePosts.map((doc) => {
+                const d = doc.cloud ?? doc.local;
+                const name = d?.name ?? doc.id;
+                return (
+                  <ListItemButton
+                    key={doc.id}
+                    selected={moveTargetPostId === doc.id}
+                    onClick={() => setMoveTargetPostId(doc.id)}
+                  >
+                    <ListItemText primary={name} />
+                  </ListItemButton>
+                );
+              })}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMoveDialogTabId(null)}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={!moveTargetPostId}
+            onClick={handleMoveConfirm}
+          >
+            Move
           </Button>
         </DialogActions>
       </Dialog>

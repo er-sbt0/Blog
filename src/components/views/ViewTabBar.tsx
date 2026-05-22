@@ -1,5 +1,6 @@
 "use client";
 import { Box, Typography } from "@mui/material";
+import { Description } from "@mui/icons-material";
 import type { TabMeta } from "@/components/EditDocument/EditorTabBar";
 
 interface ViewTabBarProps {
@@ -19,9 +20,13 @@ const ViewTabBar: React.FC<ViewTabBarProps> = ({ tabs, activeTabId, onSwitch }) 
         borderBottom: "1px solid",
         borderColor: "divider",
         mb: 2,
+        ml: { xs: -5, sm: -10, md: -12 },
+        mr: { xs: -4, sm: -6, md: -8 },
+        pl: 2,
         overflowX: "auto",
         overflowY: "hidden",
         flexShrink: 0,
+        bgcolor: "background.paper",
         "&::-webkit-scrollbar": { height: 3 },
         "&::-webkit-scrollbar-thumb": { bgcolor: "divider" },
       }}
@@ -35,15 +40,14 @@ const ViewTabBar: React.FC<ViewTabBarProps> = ({ tabs, activeTabId, onSwitch }) 
             sx={{
               display: "flex",
               alignItems: "center",
-              px: 2,
-              py: 1,
+              gap: 0.5,
+              px: 1.5,
+              py: 0.75,
               minWidth: 80,
               maxWidth: 200,
               cursor: "pointer",
               userSelect: "none",
-              borderRight: "1px solid",
-              borderColor: "divider",
-              bgcolor: isActive ? "background.paper" : "action.hover",
+              bgcolor: isActive ? "background.paper" : "transparent",
               borderBottom: "2px solid",
               borderBottomColor: isActive ? "primary.main" : "transparent",
               transition: "background-color 0.15s",
@@ -53,6 +57,7 @@ const ViewTabBar: React.FC<ViewTabBarProps> = ({ tabs, activeTabId, onSwitch }) 
               },
             }}
           >
+            <Description sx={{ fontSize: 14, color: "text.secondary", flexShrink: 0 }} />
             <Typography
               noWrap
               sx={{

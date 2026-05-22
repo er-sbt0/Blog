@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Box, IconButton, Tooltip, Typography } from "@mui/material";
-import { Add, Close } from "@mui/icons-material";
+import { Box, IconButton, Menu, MenuItem, Tooltip, Typography } from "@mui/material";
+import { Add, Close, Description, KeyboardArrowDown, MoreHoriz } from "@mui/icons-material";
 import {
   DragDropContext,
   Draggable,
@@ -19,11 +19,13 @@ interface EditorTabBarProps {
   activeTabId: string | null;
   dirtyTabIds: string[];
   rootTabId: string;
+  renamingTabId?: string | null;
   onSwitch: (tabId: string) => void;
   onClose: (tabId: string) => void;
   onAdd: () => void;
   onRename: (tabId: string, newName: string) => void;
   onReorder: (orderedIds: string[]) => void;
+  onContextMenu: (tabId: string, isRoot: boolean, anchor: HTMLElement) => void;
 }
 
 interface TabItemProps {
@@ -32,9 +34,12 @@ interface TabItemProps {
   isActive: boolean;
   isDirty: boolean;
   isRoot: boolean;
+  isRenaming: boolean;
   onSwitch: () => void;
   onClose: () => void;
   onRename: (newName: string) => void;
+  onContextMenu: (anchor: HTMLElement) => void;
+  onRenameStarted: () => void;
 }
 
 const TabItem: React.FC<TabItemProps> = ({
@@ -43,9 +48,12 @@ const TabItem: React.FC<TabItemProps> = ({
   isActive,
   isDirty,
   isRoot,
+  isRenaming,
   onSwitch,
   onClose,
   onRename,
+  onContextMenu,
+  onRenameStarted,
 }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(tab.name);
@@ -54,6 +62,15 @@ const TabItem: React.FC<TabItemProps> = ({
   useEffect(() => {
     if (editing) inputRef.current?.select();
   }, [editing]);
+
+  // External trigger: enter rename mode when requested from context menu.
+  useEffect(() => {
+    if (isRenaming && !editing) {
+      setDraft(tab.name);
+      setEditing(true);
+      onRenameStarted();
+    }
+  }, [isRenaming, editing, tab.name, onRenameStarted]);
 
   const commitRename = () => {
     setEditing(false);
@@ -70,6 +87,10 @@ const TabItem: React.FC<TabItemProps> = ({
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={onSwitch}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            onContextMenu(e.currentTarget);
+          }}
           sx={{
             display: "flex",
             alignItems: "center",
@@ -80,20 +101,22 @@ const TabItem: React.FC<TabItemProps> = ({
             maxWidth: 180,
             cursor: "pointer",
             userSelect: "none",
-            borderRight: "1px solid",
-            borderColor: "divider",
             bgcolor: isActive
               ? "background.paper"
               : snapshot.isDragging
               ? "action.selected"
-              : "action.hover",
+              : "transparent",
             borderBottom: isActive ? "2px solid" : "2px solid transparent",
             borderBottomColor: isActive ? "primary.main" : "transparent",
             transition: "background-color 0.15s",
             flexShrink: 0,
             "&:hover .tab-close": { opacity: 1 },
+            "&:hover .tab-more": { opacity: 1 },
           }}
         >
+          {/* Tab icon */}
+          <Description sx={{ fontSize: 14, color: "text.secondary", flexShrink: 0 }} />
+
           {/* Dirty indicator */}
           {isDirty && (
             <Box
@@ -101,7 +124,7 @@ const TabItem: React.FC<TabItemProps> = ({
                 width: 7,
                 height: 7,
                 borderRadius: "50%",
-                bgcolor: "primary.main",
+                bgcolor: "warning.main",
                 flexShrink: 0,
               }}
             />
@@ -158,6 +181,28 @@ const TabItem: React.FC<TabItemProps> = ({
             </Typography>
           )}
 
+          {/* More button (⋯) — shown on hover for active tab */}
+          {isActive && (
+            <Tooltip title="Tab actions">
+              <IconButton
+                className="tab-more"
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onContextMenu(e.currentTarget);
+                }}
+                sx={{
+                  opacity: 0,
+                  p: 0.25,
+                  transition: "opacity 0.15s",
+                  color: "text.secondary",
+                }}
+              >
+                <MoreHoriz sx={{ fontSize: 14 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+
           {/* Close button — hidden on root tab */}
           {!isRoot && (
             <Tooltip title="Delete tab">
@@ -191,12 +236,23 @@ const EditorTabBar: React.FC<EditorTabBarProps> = ({
   activeTabId,
   dirtyTabIds,
   rootTabId,
+  renamingTabId,
   onSwitch,
   onClose,
   onAdd,
   onRename,
   onReorder,
+  onContextMenu,
 }) => {
+  // Track which tab's rename was started so we can clear it after one use.
+  const [localRenamingTabId, setLocalRenamingTabId] = useState<string | null>(
+    renamingTabId ?? null,
+  );
+
+  useEffect(() => {
+    setLocalRenamingTabId(renamingTabId ?? null);
+  }, [renamingTabId]);
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     const src = result.source.index;
@@ -218,7 +274,7 @@ const EditorTabBar: React.FC<EditorTabBarProps> = ({
         alignItems: "stretch",
         borderBottom: "1px solid",
         borderColor: "divider",
-        bgcolor: "action.hover",
+        bgcolor: "background.paper",
         overflowX: "auto",
         overflowY: "hidden",
         flexShrink: 0,
@@ -242,9 +298,14 @@ const EditorTabBar: React.FC<EditorTabBarProps> = ({
                   isActive={tab.id === activeTabId}
                   isDirty={dirtyTabIds.includes(tab.id)}
                   isRoot={tab.id === rootTabId}
+                  isRenaming={localRenamingTabId === tab.id}
                   onSwitch={() => onSwitch(tab.id)}
                   onClose={() => onClose(tab.id)}
                   onRename={(name) => onRename(tab.id, name)}
+                  onContextMenu={(anchor) =>
+                    onContextMenu(tab.id, tab.id === rootTabId, anchor)
+                  }
+                  onRenameStarted={() => setLocalRenamingTabId(null)}
                 />
               ))}
               {provided.placeholder}
@@ -253,16 +314,55 @@ const EditorTabBar: React.FC<EditorTabBarProps> = ({
         </Droppable>
       </DragDropContext>
 
-      <Tooltip title="New sub-doc">
+      <Box sx={{ ml: "auto", display: "flex", alignItems: "stretch", flexShrink: 0 }}>
+        <Tooltip title="New sub-doc">
+          <IconButton
+            size="small"
+            onClick={onAdd}
+            sx={{ px: 1.5, borderRadius: 0, borderLeft: "1px solid", borderColor: "divider" }}
+          >
+            <Add fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <TabOverflowMenu tabs={tabs} activeTabId={activeTabId} onSwitch={onSwitch} />
+      </Box>
+    </Box>
+  );
+};
+
+interface TabOverflowMenuProps {
+  tabs: TabMeta[];
+  activeTabId: string | null;
+  onSwitch: (id: string) => void;
+}
+
+const TabOverflowMenu: React.FC<TabOverflowMenuProps> = ({ tabs, activeTabId, onSwitch }) => {
+  const [anchor, setAnchor] = useState<null | HTMLElement>(null);
+  return (
+    <>
+      <Tooltip title="Show all tabs">
         <IconButton
           size="small"
-          onClick={onAdd}
-          sx={{ px: 1.5, borderRadius: 0, flexShrink: 0 }}
+          onClick={(e) => setAnchor(e.currentTarget)}
+          sx={{ px: 1, borderRadius: 0, borderLeft: "1px solid", borderColor: "divider" }}
         >
-          <Add fontSize="small" />
+          <KeyboardArrowDown fontSize="small" />
         </IconButton>
       </Tooltip>
-    </Box>
+      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
+        {tabs.map((tab) => (
+          <MenuItem
+            key={tab.id}
+            selected={tab.id === activeTabId}
+            onClick={() => { onSwitch(tab.id); setAnchor(null); }}
+            sx={{ gap: 1 }}
+          >
+            <Description sx={{ fontSize: 16, color: "text.secondary" }} />
+            {tab.name}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
   );
 };
 

@@ -2,32 +2,62 @@
 import { useEffect } from "react";
 import SideBar from "./SideBar";
 import HydrationManager from "./HydrationManager";
-import Breadcrumbs from "./Breadcrumbs";
+import EditorTopBar from "./EditorTopBar";
+import RightRail from "./RightRail";
 import { Box, Container } from "@mui/material";
-import { CONTENT_RIGHT_PADDING } from "./SideBar/constants";
 import { actions, type RootState, useDispatch, useSelector } from "@/store";
+import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
+import { useLayoutMode } from "@/contexts/LayoutModeContext";
+import { COMPACT_WIDTH } from "@/components/Layout/SideBar/constants";
+import FloatingOutlinePill from "./FloatingOutlinePill";
+
+const RAIL_FULL_W = 280;
+const RAIL_COMPACT_W = 54;
 
 const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useDispatch();
   const initialized = useSelector((state: RootState) => state.ui.initialized);
+  const { isResizing, getEffectiveWidth } = useSidebarWidth();
+  const { railMode, viewMode } = useLayoutMode();
 
   useEffect(() => {
     if (!initialized) dispatch(actions.load());
   }, [dispatch, initialized]);
+
+  const isFocus = viewMode === "focus";
+  const sidebarW = isFocus ? COMPACT_WIDTH : getEffectiveWidth();
+  const railW = isFocus
+    ? 0
+    : railMode === "full"
+    ? RAIL_FULL_W
+    : railMode === "compact"
+    ? RAIL_COMPACT_W
+    : 0;
+
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateColumns: `${sidebarW}px 1fr ${railW}px`,
+        minHeight: "100vh",
+        transition: isResizing
+          ? "none"
+          : "grid-template-columns 225ms cubic-bezier(0.4, 0, 0.6, 1)",
+      }}
+    >
       <SideBar />
       <Box
+        id="app-main"
         component="main"
         sx={{
-          flexGrow: 1,
           minWidth: 0,
-          pr: { sm: `${CONTENT_RIGHT_PADDING}px` },
-          overflow: "auto", /* Allow scrolling but scrollbar is hidden by CSS */
+          overflow: "auto",
+          position: "relative",
         }}
       >
         <Box id="back-to-top-anchor" />
-        <Breadcrumbs />
+        <EditorTopBar />
+        <FloatingOutlinePill />
         <HydrationManager>
           <Container
             className="editor-container"
@@ -36,13 +66,13 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
             sx={{
               display: "flex",
               flexDirection: "column",
-              mx: 0, /* Remove auto centering to allow full width */
+              mx: isFocus ? "auto" : 0,
               my: 2,
               flex: 1,
               position: "relative",
-              overflow:
-                "auto", /* Allow scrolling but scrollbar is hidden by CSS */
+              overflow: "auto",
               width: "100%",
+              maxWidth: isFocus ? 720 : undefined,
               pl: {
                 xs: 5,
                 sm: 10,
@@ -59,6 +89,7 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
           </Container>
         </HydrationManager>
       </Box>
+      <RightRail railMode={isFocus ? "hidden" : railMode} />
     </Box>
   );
 };

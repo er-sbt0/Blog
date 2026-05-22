@@ -3,9 +3,7 @@ import React, { useMemo, useState } from "react";
 import {
   Box,
   IconButton,
-  InputAdornment,
   List,
-  TextField,
 } from "@mui/material";
 import { Clear, Search } from "@mui/icons-material";
 import type { SeriesGroupItem } from "@/utils/posts/seriesGrouping";
@@ -76,65 +74,50 @@ export const ActivePostsSection: React.FC<ActivePostsSectionProps> = ({
         flexDirection: "column",
       }}
     >
-      {sidebarOpen && (
+      {sidebarOpen && showSearch && (
         <Box
           sx={{
-            px: 2.5,
-            py: 1,
+            mx: 1,
+            mt: 1,
+            mb: 0.5,
             display: "flex",
-            flexDirection: "column",
+            alignItems: "center",
             gap: 1,
+            px: "10px",
+            py: "6px",
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: "8px",
+            bgcolor: "action.hover",
+            fontSize: "0.75em",
           }}
         >
-          {showSearch && (
-            <TextField
+          <Search sx={{ fontSize: "1em", color: "text.disabled", flexShrink: 0 }} />
+          <Box
+            component="input"
+            placeholder="Search posts..."
+            value={activePostsSearch}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActivePostsSearch(e.target.value)}
+            sx={{
+              flex: 1,
+              border: "none",
+              background: "transparent",
+              outline: "none",
+              fontFamily: "inherit",
+              fontSize: "inherit",
+              color: "text.primary",
+              minWidth: 0,
+              "&::placeholder": { color: "text.disabled" },
+            }}
+          />
+          {activePostsSearch && (
+            <IconButton
               size="small"
-              placeholder="Search posts..."
-              value={activePostsSearch}
-              onChange={(e) => setActivePostsSearch(e.target.value)}
-              variant="standard"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search
-                      sx={{ fontSize: "0.9em", color: "text.disabled" }}
-                    />
-                  </InputAdornment>
-                ),
-                endAdornment: activePostsSearch && (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={() => setActivePostsSearch("")}
-                      edge="end"
-                      sx={{
-                        padding: 0.25,
-                        opacity: 0.6,
-                        "&:hover": { opacity: 1 },
-                      }}
-                    >
-                      <Clear sx={{ fontSize: "0.9em" }} />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-                disableUnderline: false,
-              }}
-              sx={{
-                width: "100%",
-                "& .MuiInput-root": {
-                  fontSize: "0.75em",
-                  "&:before": { borderBottomColor: "divider" },
-                  "&:hover:not(.Mui-disabled):before": {
-                    borderBottomColor: "text.secondary",
-                  },
-                  "&:after": { borderBottomColor: "primary.main" },
-                },
-                "& .MuiInput-input": {
-                  padding: "4px 0 4px 0",
-                  "&::placeholder": { fontSize: "0.75em", opacity: 0.5 },
-                },
-              }}
-            />
+              onClick={() => setActivePostsSearch("")}
+              sx={{ p: 0.25, opacity: 0.6, "&:hover": { opacity: 1 } }}
+            >
+              <Clear sx={{ fontSize: "0.9em" }} />
+            </IconButton>
           )}
         </Box>
       )}

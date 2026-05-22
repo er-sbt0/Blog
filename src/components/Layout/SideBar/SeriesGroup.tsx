@@ -52,9 +52,9 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
             component={SafeNavigationLink}
             href={`/posts/${group.series.id}`}
             sx={{
-              minHeight: 28,
+              minHeight: 26,
               justifyContent: sidebarOpen ? "initial" : "center",
-              px: 2.5,
+              px: 2,
               py: 0.25,
               "&:hover": {
                 bgcolor: (theme) =>
@@ -72,7 +72,7 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
               }}
               sx={{
                 minWidth: 0,
-                mr: sidebarOpen ? 1 : "auto",
+                mr: 0.5,
                 justifyContent: "center",
                 cursor: "pointer",
               }}
@@ -94,7 +94,7 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                 primary={
                   <Box
                     component="span"
-                    sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}
+                    sx={{ display: "flex", alignItems: "center", width: "100%", minWidth: 0 }}
                   >
                     {hasAnyDirtyChild && (
                       <Box
@@ -105,18 +105,32 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                           height: 5,
                           borderRadius: "50%",
                           bgcolor: "primary.main",
+                          mr: 0.5,
                         }}
                       />
                     )}
                     <Box
                       component="span"
                       sx={{
+                        flex: 1,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {`${group.series.title} (${group.posts.length})`}
+                      {group.series.title}
+                    </Box>
+                    <Box
+                      component="span"
+                      sx={{
+                        ml: "auto",
+                        pl: 1,
+                        flexShrink: 0,
+                        fontSize: "0.9em",
+                        color: "text.disabled",
+                      }}
+                    >
+                      {group.posts.length}
                     </Box>
                   </Box>
                 }
@@ -125,7 +139,7 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                   fontSize: "0.7em",
                   fontWeight: 500,
                   color: "text.secondary",
-                  sx: { display: "block", minWidth: 0 },
+                  sx: { display: "block", minWidth: 0, width: "100%" },
                 }}
               />
             )}

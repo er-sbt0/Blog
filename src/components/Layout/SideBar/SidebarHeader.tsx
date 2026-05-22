@@ -7,13 +7,13 @@ import { ChevronLeft, ChevronRight } from "@mui/icons-material";
 
 interface SidebarHeaderProps {
   open: boolean;
-  toggleSidebar: () => void;
+  toggleSidebarCompact: () => void;
   shortcutHint: string;
 }
 
 export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
   open,
-  toggleSidebar,
+  toggleSidebarCompact,
   shortcutHint,
 }) => {
   const theme = useTheme();
@@ -27,6 +27,8 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
         justifyContent: open ? "space-between" : "center",
         flexShrink: 0,
         minHeight: 64,
+        borderBottom: "1px solid",
+        borderColor: "divider",
       }}
     >
       {open && (
@@ -61,7 +63,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
           title={`${open ? "Collapse" : "Expand"} sidebar (${shortcutHint})`}
         >
           <IconButton
-            onClick={toggleSidebar}
+            onClick={toggleSidebarCompact}
             aria-label={`${open ? "Collapse" : "Expand"} sidebar`}
           >
             {open ? <ChevronLeft /> : <ChevronRight />}

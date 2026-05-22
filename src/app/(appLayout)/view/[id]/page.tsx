@@ -165,7 +165,7 @@ export default async function Page(
       );
     }
     return (
-      <ViewDocument cloudDocument={document} user={session?.user}>
+      <ViewDocument cloudDocument={document}>
         {htmr(html)}
       </ViewDocument>
     );

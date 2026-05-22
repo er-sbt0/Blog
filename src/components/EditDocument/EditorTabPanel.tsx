@@ -12,6 +12,7 @@ import type { RootState } from "@/store";
 import { useCloudSave } from "./hooks/useCloudSave";
 import { useDocumentLoader } from "./hooks/useDocumentLoader";
 import type { EditorDocument } from "@/types";
+import DocumentHeader from "./DocumentHeader";
 
 const EditDocumentInfo = dynamic(
   () => import("@/components/EditDocument/EditDocumentInfo"),
@@ -62,6 +63,7 @@ function ensureValidDocumentData(doc: EditorDocument): EditorDocument {
 
 interface EditorTabPanelProps {
   docId: string;
+  rootId: string;
   isActive: boolean;
   onDiscard?: () => void;
 }
@@ -74,6 +76,7 @@ interface EditorTabPanelProps {
  */
 const EditorTabPanel: React.FC<EditorTabPanelProps> = ({
   docId,
+  rootId,
   isActive,
   onDiscard,
 }) => {
@@ -110,6 +113,7 @@ const EditorTabPanel: React.FC<EditorTabPanelProps> = ({
       {documentForEditor && (
         <>
           {isActive && <title>{documentForEditor.name}</title>}
+          <DocumentHeader docId={docId} rootId={rootId} />
           {showDiff && isActive && <DiffView />}
           <ConnectedEditor
             document={documentForEditor}
@@ -117,10 +121,7 @@ const EditorTabPanel: React.FC<EditorTabPanelProps> = ({
             namespace={`matheditor-${docId}`}
             onDiscard={onDiscard}
           />
-          <EditDocumentInfo
-            documentId={documentForEditor.id}
-            editorRef={editorRef}
-          />
+          <EditDocumentInfo />
         </>
       )}
     </Box>
