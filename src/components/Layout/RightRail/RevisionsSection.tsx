@@ -25,10 +25,12 @@ export default function RevisionsSection({
   const [tabFilter, setTabFilter] = useState<"this" | "all">("this");
   const [showAll, setShowAll] = useState(false);
 
+  const rootIdArray = useMemo(() => [rootId], [rootId]);
+
   const selectRevisions = useMemo(
     () =>
       createSelector(
-        (state: RootState) => isEditMode ? state.ui.tabs.tabIds : [rootId],
+        (state: RootState) => isEditMode ? state.ui.tabs.tabIds : rootIdArray,
         (state: RootState) => state.documents.entities,
         (state: RootState) =>
           activeDocId
@@ -70,7 +72,7 @@ export default function RevisionsSection({
           };
         },
       ),
-    [isEditMode, rootId, activeDocId],
+    [isEditMode, rootIdArray, activeDocId],
   );
 
   const { tabRevisions, allRevisions } = useSelector(selectRevisions);
