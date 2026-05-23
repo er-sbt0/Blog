@@ -159,8 +159,8 @@ export const PostItem = memo(
                     fullWidth
                     sx={{
                       "& .MuiInput-input": {
-                        fontSize: "0.78em",
-                        fontWeight: isSelected ? 600 : 400,
+                        fontSize: "0.7em",
+                        fontWeight: isSelected ? 600 : 500,
                         py: 0,
                       },
                     }}
@@ -171,12 +171,13 @@ export const PostItem = memo(
                     primary={docName}
                     sx={{ minWidth: 0, overflow: "hidden" }}
                     primaryTypographyProps={{
-                      fontSize: "0.78em",
+                      fontSize: "0.7em",
                       sx: {
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
-                        fontWeight: isSelected ? 600 : 400,
+                        fontWeight: isSelected ? 600 : 500,
+                        color: "text.secondary",
                       },
                     }}
                   />
