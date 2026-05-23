@@ -23,7 +23,6 @@ import useFixedBodyScroll from "@/hooks/useFixedBodyScroll";
 import useOnlineStatus from "@/hooks/useOnlineStatus";
 import UploadDocument from "./Upload";
 import UsersAutocomplete from "../User/UsersAutocomplete";
-import BackgroundImageUploader from "./BackgroundImageUploader";
 import { useEditDocumentForm } from "./hooks/useEditDocumentForm";
 import DocumentVisibilityFields from "./DocumentVisibilityFields";
 import {
@@ -44,7 +43,6 @@ const EditDocumentDialog: React.FC<{
 
   const {
     cloudDocument,
-    document,
     isAuthor,
     isCloud,
     input,
@@ -54,7 +52,6 @@ const EditDocumentDialog: React.FC<{
     editDialogOpen,
     updateInput,
     updateCoauthors,
-    updateBackgroundImage,
     updateHandle,
     openEditDialog,
     closeEditDialog,

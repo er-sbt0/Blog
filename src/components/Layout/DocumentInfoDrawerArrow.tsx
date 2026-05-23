@@ -3,7 +3,7 @@ import { actions, useDispatch, useSelector } from "@/store";
 import { Paper } from "@mui/material";
 import { ChevronLeft } from "@mui/icons-material";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { alpha } from "@mui/material/styles";
 
 const DocumentInfoDrawerArrow: React.FC = () => {
@@ -19,9 +19,9 @@ const DocumentInfoDrawerArrow: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
 
-  const toggleDrawer = () => {
+  const toggleDrawer = useCallback(() => {
     dispatch(actions.toggleDrawer());
-  };
+  }, [dispatch]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -78,7 +78,7 @@ const DocumentInfoDrawerArrow: React.FC = () => {
       document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [isDragging, drawerOpen, startX]);
+  }, [isDragging, drawerOpen, startX, toggleDrawer]);
 
   if (!showArrow) {
     return null;

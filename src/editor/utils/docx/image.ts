@@ -29,7 +29,7 @@ export function $convertImageNode(node: ImageNode) {
   const dataURI = node.getSrc();
   const type = dataURI.split(",")[0].split(";")[0].split("/")[1].split(
     "+",
-  )[0] as any;
+  )[0] as "jpg" | "png" | "gif" | "svg" | "bmp";
   const src = dataURI.split(",")[1];
   const data = type === "svg" ? svgToBuffer(src) : Buffer.from(src, "base64");
   const altText = node.getAltText();

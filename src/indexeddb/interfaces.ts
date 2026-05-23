@@ -20,7 +20,7 @@ export interface IndexedDBConfig {
 export interface TransactionOptions {
   storeName: string;
   dbMode: IDBTransactionMode;
-  error: (e: Event) => any;
-  complete: (e: Event) => any;
-  abort?: any;
+  error: (e: Event) => void;
+  complete: (e: Event) => void;
+  abort?: (e: Event) => void;
 }

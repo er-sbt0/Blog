@@ -15,8 +15,8 @@ export const htmlConfig: HTMLConfig = {
         const paragraphNode = node as ParagraphNode;
         const output = paragraphNode.exportDOM(editor);
         const children = paragraphNode.getChildren();
-        const hasDivs = children.some((child: any) =>
-          child.__caption || child.__editor
+        const hasDivs = children.some((child: LexicalNode) =>
+          '__caption' in child || '__editor' in child
         );
         if (!hasDivs) return output;
         const element = output.element;

@@ -1,9 +1,9 @@
 export function mglyph(
   element,
   targetParent,
-  previousSibling,
-  nextSibling,
-  ancestors,
+  _previousSibling,
+  _nextSibling,
+  _ancestors,
 ) {
   // No support in omml. Output alt text.
   if (element.attribs && element.attribs.alt) {

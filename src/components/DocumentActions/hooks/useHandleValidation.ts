@@ -41,7 +41,7 @@ export function useHandleValidation(
         }
         setValidating(false);
       }, 500),
-    [],
+    [checkEndpoint],
   );
 
   const updateHandle = (event: React.ChangeEvent<HTMLInputElement>) => {

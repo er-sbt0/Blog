@@ -73,7 +73,7 @@ export default function ColorPicker(
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     event.preventDefault();
     setAnchorEl(open ? null : event.currentTarget);
-    !open && onOpen?.();
+    if (!open) onOpen?.();
   };
   const handleClose = () => {
     setAnchorEl(null);

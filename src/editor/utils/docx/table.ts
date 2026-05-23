@@ -150,6 +150,6 @@ function $convertTableCellNode(node: TableCellNode) {
       left: { color: "#cccccc", style: "single", size: 1 },
       right: { color: "#cccccc", style: "single", size: 1 },
     },
-    children: children as any,
+    children: children as (Paragraph | Table)[],
   });
 }

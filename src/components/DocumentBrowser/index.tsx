@@ -18,9 +18,7 @@ import BrowserHeader from "./components/BrowserHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import DocumentBrowserSkeleton from "./components/DocumentBrowserSkeleton";
 
-interface DocumentBrowserProps {
-  // No props needed for simplified blog structure
-}
+type DocumentBrowserProps = Record<string, never>;
 
 const DocumentBrowser: React.FC<DocumentBrowserProps> = () => {
   const documents = useSelector((state) => documentsSelectors.selectAll(state));

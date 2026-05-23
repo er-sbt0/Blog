@@ -1,4 +1,4 @@
-import { DocumentType as PrismaDocumentType, Prisma } from "@prisma/client";
+import { DocumentType as PrismaDocumentType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   Document,

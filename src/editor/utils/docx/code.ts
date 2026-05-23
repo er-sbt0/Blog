@@ -1,7 +1,7 @@
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { IRunOptions, Paragraph, TextRun } from "docx";
 
-export function $convertCodeNode(node: CodeNode) {
+export function $convertCodeNode(_node: CodeNode) {
   return new Paragraph({
     shading: {
       type: "solid",

@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Box,
   Button,
@@ -62,7 +62,7 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
   });
 
   // Which tab panels have been mounted at least once (lazy-mount pattern).
-  const [mountedTabIds, setMountedTabIds] = useState<Set<string>>(
+  const [_mountedTabIds, setMountedTabIds] = useState<Set<string>>(
     () => new Set([rootId]),
   );
 

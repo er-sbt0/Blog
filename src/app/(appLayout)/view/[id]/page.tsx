@@ -8,7 +8,6 @@ import { authOptions } from "@/lib/auth";
 import SplashScreen from "@/components/shared/SplashScreen";
 import { cache } from "react";
 import { findRevisionHtml } from "@/app/api/utils";
-import { DocumentRevision } from "@/types";
 import { format } from "date-fns";
 
 // Mark this page as dynamic since it uses searchParams

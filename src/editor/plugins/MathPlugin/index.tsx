@@ -121,10 +121,14 @@ export default function MathPlugin() {
   }, []);
 
   useEffect(() => {
-    const navigation = (window as any).navigation;
+    interface WindowNavigation {
+      addEventListener(type: string, handler: (e: { navigationType: string; preventDefault(): void }) => void): void;
+      removeEventListener(type: string, handler: (e: { navigationType: string; preventDefault(): void }) => void): void;
+    }
+    const navigation = (window as Window & { navigation?: WindowNavigation }).navigation;
     if (!navigation || !IS_MOBILE) return;
 
-    const preventBackNavigation = (event: any) => {
+    const preventBackNavigation = (event: { navigationType: string; preventDefault(): void }) => {
       if (event.navigationType === "push") return;
       const mathVirtualKeyboard = window.mathVirtualKeyboard;
       if (!mathVirtualKeyboard?.visible) return;

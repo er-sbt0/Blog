@@ -56,7 +56,7 @@ export default function MarkdownPlugin(): JSX.Element {
       },
       COMMAND_PRIORITY_LOW,
     );
-  }, [editor]);
+  }, [editor, transformers]);
 
   return <MarkdownShortcutPlugin transformers={transformers} />;
 }

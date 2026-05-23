@@ -1,5 +1,5 @@
 "use client";
-import type { LexicalEditor } from "lexical";
+import type { LexicalEditor, RangeSelection } from "lexical";
 import { $createCodeNode } from "@lexical/code";
 import {
   INSERT_CHECK_LIST_COMMAND,
@@ -94,7 +94,7 @@ export function BlockFormatSelect({ editor, blockType }: {
         $isRangeSelection(selection) ||
         $isTableSelection(selection)
       ) {
-        $setBlocksType(selection as any, () => $createParagraphNode());
+        $setBlocksType(selection as RangeSelection, () => $createParagraphNode());
       }
     });
   };
@@ -108,7 +108,7 @@ export function BlockFormatSelect({ editor, blockType }: {
           $isTableSelection(selection)
         ) {
           $setBlocksType(
-            selection as any,
+            selection as RangeSelection,
             () => $createHeadingNode(headingSize),
           );
         }
@@ -148,7 +148,7 @@ export function BlockFormatSelect({ editor, blockType }: {
           $isRangeSelection(selection) ||
           $isTableSelection(selection)
         ) {
-          $setBlocksType(selection as any, () => $createQuoteNode());
+          $setBlocksType(selection as RangeSelection, () => $createQuoteNode());
         }
       });
     }
@@ -165,7 +165,7 @@ export function BlockFormatSelect({ editor, blockType }: {
         ) {
           if (selection.isCollapsed()) {
             $setBlocksType(
-              selection as any,
+              selection as RangeSelection,
               () => $createCodeNode(),
             );
           } else {

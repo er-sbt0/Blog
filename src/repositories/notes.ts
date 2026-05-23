@@ -1,15 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Note, NotesCanvas } from "@/types/notes";
 
-// Standard author selection for consistency
-const authorSelect = {
-  id: true,
-  handle: true,
-  name: true,
-  email: true,
-  image: true,
-};
-
 // Canvas operations
 
 export async function createCanvas(

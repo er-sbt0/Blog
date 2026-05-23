@@ -49,7 +49,7 @@ const PwaUpdater = () => {
         };
       });
     }
-  }, []);
+  }, [dispatch]);
 
   return null;
 };

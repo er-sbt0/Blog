@@ -15,7 +15,8 @@ import {
   SerializedParagraphNode,
 } from "lexical";
 import { mergeRegister } from "@lexical/utils";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useMenuState } from "@/hooks/useMenuState";
 import {
   Button,
@@ -296,8 +297,8 @@ export default function AITools(
     return headlessEditor.getEditorState().toJSON();
   }, [editor]);
 
-  const updateDocument = useCallback(
-    throttle(() => {
+  const updateDocument = useMemo(
+    () => throttle(() => {
       editor.dispatchCommand(UPDATE_DOCUMENT_COMMAND, undefined);
     }, 1000),
     [editor],
@@ -337,7 +338,7 @@ export default function AITools(
       const lastChild = nodes[nodes.length - 1];
       lastChild.selectStart();
     }, { onUpdate: updateDocument });
-  }, [completion, isLoading]);
+  }, [completion, isLoading, convertMarkdownToJSON, editor, updateDocument]);
 
   useEffect(() => {
     return mergeRegister(
@@ -381,31 +382,32 @@ export default function AITools(
   const currentModel = getModelById(llmConfig.model);
 
   const getProviderIcon = (provider: string) => {
-    const iconStyle = { width: 18, height: 18, display: "block" };
-
     switch (provider) {
       case "google":
         return (
-          <img
+          <Image
             src="/icons/google.svg"
             alt="Google"
-            style={iconStyle}
+            width={18}
+            height={18}
           />
         );
       case "anthropic":
         return (
-          <img
+          <Image
             src="/icons/anthropic.svg"
             alt="Anthropic"
-            style={iconStyle}
+            width={18}
+            height={18}
           />
         );
       case "azure":
         return (
-          <img
+          <Image
             src="/icons/azure.svg"
             alt="Azure"
-            style={iconStyle}
+            width={18}
+            height={18}
           />
         );
       case "ollama":

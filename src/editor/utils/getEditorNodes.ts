@@ -9,19 +9,21 @@ export function getEditorNodes(editor: LexicalEditor): LexicalNode[] {
   const rootEditor = editor._parentEditor?._parentEditor ??
     editor._parentEditor ?? editor;
   const rootNodes = [...rootEditor._editorState._nodeMap.values()];
-  const allNodes = rootNodes.map((node: any) => {
+  type NodeWithCaption = LexicalNode & { __caption: { _editorState: { _nodeMap: Map<string, LexicalNode> } } };
+  type NodeWithEditor = LexicalNode & { __editor: { _editorState: { _nodeMap: Map<string, LexicalNode> } } };
+  const allNodes = rootNodes.map((node: LexicalNode) => {
     if ($isImageNode(node)) {
-      return [node, ...node.__caption._editorState._nodeMap.values()];
+      return [node, ...(node as unknown as NodeWithCaption).__caption._editorState._nodeMap.values()];
     }
     if ($isStickyNode(node)) {
-      const children = [...node.__editor._editorState._nodeMap.values()];
+      const children = [...(node as unknown as NodeWithEditor).__editor._editorState._nodeMap.values()];
       return [
         node,
-        ...children.map((child: any) => {
+        ...children.map((child: LexicalNode) => {
           if ($isImageNode(child)) {
             return [
               child,
-              ...child.__caption._editorState._nodeMap.values(),
+              ...(child as unknown as NodeWithCaption).__caption._editorState._nodeMap.values(),
             ];
           }
           return child;

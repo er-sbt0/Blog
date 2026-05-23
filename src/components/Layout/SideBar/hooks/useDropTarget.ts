@@ -147,7 +147,7 @@ export const useDropTarget = (
         "Failed to move the post. Please try again.",
       );
     }
-  }, [targetId, targetType, dispatch, onDropComplete]);
+  }, [targetId, targetType, dispatch, onDropComplete, errorAnnounce]);
 
   return {
     isDropTarget: dropTargetState.isDropTarget,

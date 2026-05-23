@@ -1,9 +1,9 @@
 export function mtable(
   element,
   targetParent,
-  previousSibling,
-  nextSibling,
-  ancestors,
+  _previousSibling,
+  _nextSibling,
+  _ancestors,
 ) {
   const cellsPerRowCount = Math.max(
     ...element.children.map((row) => row.children.length),
@@ -81,9 +81,9 @@ export function mtable(
 export function mtd(
   element,
   targetParent,
-  previousSibling,
-  nextSibling,
-  ancestors,
+  _previousSibling,
+  _nextSibling,
+  _ancestors,
 ) {
   // table cell
   const targetElement = {
@@ -99,9 +99,9 @@ export function mtd(
 export function mtr(
   element,
   targetParent,
-  previousSibling,
-  nextSibling,
-  ancestors,
+  _previousSibling,
+  _nextSibling,
+  _ancestors,
 ) {
   // table row
   const targetElement = {

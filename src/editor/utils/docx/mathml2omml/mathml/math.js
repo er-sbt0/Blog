@@ -1,9 +1,9 @@
 export function math(
   element,
   targetParent,
-  previousSibling,
-  nextSibling,
-  ancestors,
+  _previousSibling,
+  _nextSibling,
+  _ancestors,
 ) {
   targetParent.name = "m:oMath";
   targetParent.attribs = {
@@ -17,9 +17,9 @@ export function math(
 export function semantics(
   element,
   targetParent,
-  previousSibling,
-  nextSibling,
-  ancestors,
+  _previousSibling,
+  _nextSibling,
+  _ancestors,
 ) {
   // Ignore as default behavior
   return targetParent;

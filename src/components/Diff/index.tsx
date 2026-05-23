@@ -1,6 +1,6 @@
 "use client";
 import HtmlDiff from "@/lib/diff/Diff";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { actions, useDispatch, useSelector } from "@/store";
 import { generateHtml } from "@/editor/utils/generateHtml";
 import htmr from "htmr";
@@ -11,7 +11,7 @@ const DiffView = () => {
   const diff = useSelector((state) => state.ui.diff);
   const [html, setHtml] = useState<string>("");
 
-  const getEditorDocumentRevision = async (revisionId: string) => {
+  const getEditorDocumentRevision = useCallback(async (revisionId: string) => {
     try {
       return await dispatch(actions.getLocalRevision(revisionId))
         .unwrap() as ReturnType<
@@ -31,7 +31,7 @@ const DiffView = () => {
     } catch {
       return undefined;
     }
-  };
+  }, [dispatch]);
 
   useEffect(() => {
     const diffRevisions = async () => {
@@ -53,7 +53,7 @@ const DiffView = () => {
     return () => {
       NProgress.done();
     };
-  }, [diff]);
+  }, [diff, getEditorDocumentRevision]);
 
   if (!diff.open) return null;
   if (!html) return null;

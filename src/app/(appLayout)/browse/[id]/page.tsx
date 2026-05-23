@@ -19,7 +19,7 @@ type Props = {
 
 // Make the component async and properly handle params
 // Note: In blog structure, we redirect to main browse page since we don't have directories
-export default async function DirectoryPage({ params }: Props) {
+export default async function DirectoryPage({ params: _params }: Props) {
   // In blog structure, directory IDs are not used, show regular browser
   return <DocumentBrowser />;
 }

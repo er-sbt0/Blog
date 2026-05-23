@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 const API_BASE = "/api/notes";
 
 // Debounce helper for frequent updates
-function debounce<T extends (...args: any[]) => void>(
+function debounce<T extends (...args: unknown[]) => void>(
   func: T,
   wait: number,
 ): (...args: Parameters<T>) => void {
@@ -18,7 +18,7 @@ function debounce<T extends (...args: any[]) => void>(
 }
 
 export function useNotesStore(canvasId: string | null) {
-  const { data: session, status } = useSession();
+  const { data: _session, status } = useSession();
   const [canvas, setCanvas] = useState<NotesCanvas | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,7 +138,8 @@ export function useNotesStore(canvasId: string | null) {
   // Debounced update for frequent changes (drag, resize)
   const debouncedApiUpdate = useMemo(
     () =>
-      debounce(async (id: string, updates: any) => {
+      debounce(async (...args: unknown[]) => {
+        const [id, updates] = args as [string, Record<string, unknown>];
         try {
           const response = await fetch(`${API_BASE}/${id}`, {
             method: "PATCH",
@@ -181,7 +182,7 @@ export function useNotesStore(canvasId: string | null) {
       });
 
       // Prepare API updates
-      const apiUpdates: any = {};
+      const apiUpdates: Record<string, unknown> = {};
       if (updates.position) {
         apiUpdates.positionX = updates.position.x;
         apiUpdates.positionY = updates.position.y;

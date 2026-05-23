@@ -67,7 +67,7 @@ export default function FontSelect({ editor }: { editor: LexicalEditor }) {
       setFontFamily(currentFontFamily);
     }
     return false;
-  }, [editor]);
+  }, []);
 
   useEffect(() => {
     return mergeRegister(
@@ -96,7 +96,7 @@ export default function FontSelect({ editor }: { editor: LexicalEditor }) {
         });
       }),
     );
-  }, [editor]);
+  }, [editor, updateToolbar]);
 
   const applyStyleText = useCallback(
     (styles: Record<string, string>) => {
@@ -113,7 +113,7 @@ export default function FontSelect({ editor }: { editor: LexicalEditor }) {
         tag: shouldMergeHistoryRef.current ? "history-merge" : undefined,
       });
     },
-    [editor, shouldMergeHistoryRef.current],
+    [editor],
   );
 
   const updateFontSize = useCallback(
@@ -135,7 +135,7 @@ export default function FontSelect({ editor }: { editor: LexicalEditor }) {
       if (!value) return;
       updateFontFamily(value);
     },
-    [applyStyleText],
+    [updateFontFamily],
   );
 
   const FONT_FAMILY_OPTIONS = [
@@ -165,7 +165,7 @@ export default function FontSelect({ editor }: { editor: LexicalEditor }) {
   const handleClose = useCallback(() => {
     shouldMergeHistoryRef.current = false;
     restoreFocus();
-  }, [editor]);
+  }, [restoreFocus]);
 
   return (
     <Box sx={{ display: "flex", gap: 0.5 }}>

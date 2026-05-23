@@ -2,9 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 
-interface UseDocumentNavigationProps {
-  // No props needed for simplified blog structure
-}
+type UseDocumentNavigationProps = Record<string, never>;
 
 /**
  * Custom hook for blog post navigation actions

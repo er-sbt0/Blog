@@ -147,6 +147,7 @@ export function useDocumentRevisions(
     localDocument,
     dispatch,
     viewLocalDocument,
+    errorAnnounce,
   ]);
 
   const handleCompareWithCloudSave = useCallback(async () => {
@@ -184,6 +185,7 @@ export function useDocumentRevisions(
     getLocalEditorData,
     dispatch,
     toggleDiffView,
+    errorAnnounce,
   ]);
 
   return {

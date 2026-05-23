@@ -60,7 +60,7 @@ const EditorTopBar: React.FC = () => {
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
       if (e.key === "f" || e.key === "F") {
-        isFocus ? setRead() : setFocus();
+        if (isFocus) setRead(); else setFocus();
       }
     };
     document.addEventListener("keydown", onKey);

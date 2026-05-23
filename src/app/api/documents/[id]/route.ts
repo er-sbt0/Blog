@@ -43,7 +43,7 @@ export const GET = withApiHandler(
       }
       const isAuthor = user.id === userPost.author.id;
       const isCoauthor = userPost.coauthors.some(
-        (coauthor: any) => coauthor.id === user.id,
+        (coauthor: { id: string }) => coauthor.id === user.id,
       );
       if (!isAuthor && !isCoauthor && !isCollab) {
         throw new ApiError(

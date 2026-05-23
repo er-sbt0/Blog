@@ -495,7 +495,7 @@ export default function TableTools(
       );
 
       const tableRowIndex = $getTableRowIndexFromTableCellNode(
-        tableCellNode as any,
+        tableCellNode,
       );
 
       const tableRows = tableNode.getChildren();
@@ -532,7 +532,7 @@ export default function TableTools(
       );
 
       const tableColumnIndex = $getTableColumnIndexFromTableCellNode(
-        tableCellNode as any,
+        tableCellNode,
       );
 
       const tableRows = tableNode.getChildren<TableRowNode>();

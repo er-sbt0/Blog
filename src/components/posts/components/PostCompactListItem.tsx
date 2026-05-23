@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   Box,
   IconButton,
@@ -54,7 +54,10 @@ const PostCompactListItem: React.FC<PostCompactListItemProps> = ({
   const isDone = document?.status === DocumentStatus.DONE;
   const authorName =
     (document && "author" in document && document.author?.name) || "Unknown";
-  const originalDate = new Date(document?.createdAt || new Date());
+  const originalDate = useMemo(
+    () => new Date(document?.createdAt || new Date()),
+    [document?.createdAt],
+  );
   const displayDate = pendingChange ? pendingChange.newDate : originalDate;
   const hasRowChanges = !!pendingChange;
   const isEditing = editingName !== undefined;

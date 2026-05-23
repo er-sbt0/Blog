@@ -1,5 +1,5 @@
 import { getStore } from "@/indexeddb";
-import { Note, NotesCanvas } from "@/types/notes";
+import { NotesCanvas } from "@/types/notes";
 import { apiClient } from "@/api";
 
 const NOTES_STORE = "notesCanvas";
@@ -70,7 +70,7 @@ export async function migrateNotesFromIndexedDB(): Promise<MigrationResult> {
     }
 
     // Get or create backend canvas
-    const backendCanvas = await apiClient.notes.getCanvas();
+    const _backendCanvas = await apiClient.notes.getCanvas();
 
     // Create notes on backend (batch or individually)
     const migrationPromises = canvas.notes.map(async (note) => {

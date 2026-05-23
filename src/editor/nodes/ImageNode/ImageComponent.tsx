@@ -99,7 +99,7 @@ export default function ImageComponent({
       }
       return false;
     },
-    [caption, editor, setSelected],
+    [caption, setSelected],
   );
 
   const $onDelete = useCallback(
@@ -225,7 +225,7 @@ export default function ImageComponent({
     setIsResizing(true);
   };
 
-  const onLoad = () => {
+  const onLoad = useCallback(() => {
     editor.getEditorState().read(() => {
       const selection = $getSelection();
       if (!$isRangeSelection(selection)) {
@@ -241,13 +241,13 @@ export default function ImageComponent({
         element?.scrollIntoView({ block: "nearest" });
       }
     });
-  };
+  }, [editor]);
 
   const [draggable, setDraggable] = useState(false);
   const [focused, setFocused] = useState(false);
 
   useEffect(() => {
-    isSelected && onLoad();
+    if (isSelected) onLoad();
     editor.getEditorState().read(() => {
       const selection = $getSelection();
       const isDraggable = isSelected && $isNodeSelection(selection) &&
@@ -257,7 +257,7 @@ export default function ImageComponent({
       setDraggable(isDraggable);
       setFocused(isFocused);
     });
-  }, [isSelected]);
+  }, [isSelected, editor, isResizing, onLoad]);
 
   useEffect(() => {
     if (!imageRef.current) return;
@@ -291,7 +291,7 @@ export default function ImageComponent({
       }
       imageRef.current.innerHTML = svg.innerHTML;
     }
-  }, [imageRef, src]);
+  }, [imageRef, src, element, height, width]);
 
   return (
     <>

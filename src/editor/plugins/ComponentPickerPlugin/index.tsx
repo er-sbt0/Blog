@@ -25,6 +25,7 @@ import { INSERT_TABLE_COMMAND, TableNode } from "@/editor/nodes/TableNode";
 import {
   $getSelection,
   $isRangeSelection,
+  ElementFormatType,
   FORMAT_ELEMENT_COMMAND,
   TextNode,
 } from "lexical";
@@ -156,8 +157,7 @@ function IconMenu(
             key={option.key}
             selected={selectedIndex === i}
             ref={(el) => {
-              selectedIndex === i &&
-                el?.scrollIntoView({
+              if (selectedIndex === i) el?.scrollIntoView({
                   block: "nearest",
                   behavior: "smooth",
                 });
@@ -217,22 +217,22 @@ class ComponentPickerOption extends MenuOption {
 export default function ComponentPickerMenuPlugin() {
   const [editor] = useLexicalComposerContext();
   const [queryString, setQueryString] = useState<string | null>(null);
-  const openImageDialog = () =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { image: { open: true } });
-  const openTableDialog = () =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { table: { open: true } });
-  const openGraphDialog = () =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { graph: { open: true } });
-  const openSketchDialog = () =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { sketch: { open: true } });
-  const openIFrameDialog = () =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { iframe: { open: true } });
-  const openLayoutDialog = () =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { layout: { open: true } });
-  const openAttachmentDialog = () =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { attachment: { open: true } });
-  const openOCRDialog = () =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { ocr: { open: true } });
+  const openImageDialog = useCallback(() =>
+    editor.dispatchCommand(SET_DIALOGS_COMMAND, { image: { open: true } }), [editor]);
+  const openTableDialog = useCallback(() =>
+    editor.dispatchCommand(SET_DIALOGS_COMMAND, { table: { open: true } }), [editor]);
+  const openGraphDialog = useCallback(() =>
+    editor.dispatchCommand(SET_DIALOGS_COMMAND, { graph: { open: true } }), [editor]);
+  const openSketchDialog = useCallback(() =>
+    editor.dispatchCommand(SET_DIALOGS_COMMAND, { sketch: { open: true } }), [editor]);
+  const openIFrameDialog = useCallback(() =>
+    editor.dispatchCommand(SET_DIALOGS_COMMAND, { iframe: { open: true } }), [editor]);
+  const openLayoutDialog = useCallback(() =>
+    editor.dispatchCommand(SET_DIALOGS_COMMAND, { layout: { open: true } }), [editor]);
+  const openAttachmentDialog = useCallback(() =>
+    editor.dispatchCommand(SET_DIALOGS_COMMAND, { attachment: { open: true } }), [editor]);
+  const openOCRDialog = useCallback(() =>
+    editor.dispatchCommand(SET_DIALOGS_COMMAND, { ocr: { open: true } }), [editor]);
 
   const checkForTriggerMatch = useBasicTypeaheadTriggerMatch("/", {
     minLength: 0,
@@ -304,7 +304,7 @@ export default function ComponentPickerMenuPlugin() {
                 const selection = $getSelection();
                 if ($isRangeSelection(selection)) {
                   $setBlocksType(selection, () =>
-                    // @ts-ignore Correct types, but since they're dynamic TS doesn't like it.
+                    // @ts-expect-error Correct types, but since they're dynamic TS doesn't like it.
                     $createHeadingNode(`h${n}`));
                 }
               }),
@@ -438,7 +438,7 @@ export default function ComponentPickerMenuPlugin() {
             onSelect: () =>
               editor.dispatchCommand(
                 FORMAT_ELEMENT_COMMAND,
-                alignment as any,
+                alignment as ElementFormatType,
               ),
           }),
       ),
@@ -597,7 +597,7 @@ export default function ComponentPickerMenuPlugin() {
         }),
       ]
       : baseOptions;
-  }, [editor, getDynamicOptions, queryString]);
+  }, [editor, getDynamicOptions, queryString, openAttachmentDialog, openGraphDialog, openIFrameDialog, openImageDialog, openLayoutDialog, openOCRDialog, openSketchDialog, openTableDialog]);
 
   const onSelectOption = useCallback(
     (

@@ -1,9 +1,9 @@
 export function mstyle(
   element,
   targetParent,
-  previousSibling,
-  nextSibling,
-  ancestors,
+  _previousSibling,
+  _nextSibling,
+  _ancestors,
 ) {
   // Ignore as default behavior
   return targetParent;

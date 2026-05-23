@@ -6,11 +6,11 @@
  */
 
 export function setDomHiddenUntilFound(dom: HTMLElement): void {
-  // @ts-expect-error
+  // @ts-expect-error: "until-found" is a non-standard value not in HTMLElement types
   dom.hidden = "until-found";
 }
 
 export function domOnBeforeMatch(dom: HTMLElement, callback: () => void): void {
-  // @ts-expect-error
+  // @ts-expect-error: onbeforematch is a non-standard event not in HTMLElement types
   dom.onbeforematch = callback;
 }

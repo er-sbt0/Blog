@@ -2,7 +2,7 @@
 import { FC, useCallback } from "react";
 import { Box, Button, Tooltip } from "@mui/material";
 import { Storage, UploadFile } from "@mui/icons-material";
-import { actions, useDispatch, useSelector } from "@/store";
+import { actions, useDispatch } from "@/store";
 import { BackupDocument } from "@/types";
 import { v4 as uuid } from "uuid";
 import documentDB, { revisionDB } from "@/indexeddb";
@@ -18,7 +18,6 @@ const ImportExportControl: FC<ImportExportControlProps> = (
   { handleFilesChange, backupFunction },
 ) => {
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.user);
 
   const handleFileUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,7 +69,7 @@ const ImportExportControl: FC<ImportExportControlProps> = (
       // Reset the file input
       e.target.value = "";
     },
-    [handleFilesChange, user, dispatch],
+    [handleFilesChange, dispatch],
   );
 
   const handleBackup = useCallback(async () => {

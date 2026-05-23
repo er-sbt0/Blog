@@ -70,7 +70,7 @@ const NewDocument: React.FC<{ cloudDocument?: Document }> = (
       }
     };
     fetchSeriesOrder();
-  }, [seriesId]);
+  }, [seriesId, errorAnnounce, fetchNextSeriesOrder]);
 
   useEffect(() => {
     if (!isOnline || !user) setSaveToCloud(false);

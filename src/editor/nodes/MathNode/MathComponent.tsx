@@ -27,6 +27,7 @@ import "./index.css";
 type CustomElement<T> = Partial<T & DOMAttributes<T>>;
 
 declare module "react" {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       ["math-field"]: CustomElement<MathfieldElementAttributes>;
@@ -59,7 +60,7 @@ export default function MathComponent(
     if (initialValue !== mathfield.getValue()) {
       mathfield.setValue(initialValue, { silenceNotifications: true });
     }
-  }, [initialValue]);
+  }, [initialValue, editor, nodeKey]);
 
   useEffect(() => {
     return mergeRegister(
@@ -70,7 +71,7 @@ export default function MathComponent(
         }
       }),
     );
-  }, []);
+  }, [editor]);
 
   useEffect(() => {
     const mathfield = editor.getElementByKey(nodeKey)?.querySelector(
@@ -103,7 +104,7 @@ export default function MathComponent(
         );
       });
     }
-  }, [isSelected]);
+  }, [isSelected, editor, nodeKey, setSelected]);
 
   useEffect(() => {
     const mathfield = editor.getElementByKey(nodeKey)?.querySelector(
@@ -146,14 +147,14 @@ export default function MathComponent(
       setSelected(true);
       const mathVirtualKeyboard = window.mathVirtualKeyboard;
       mathVirtualKeyboard.show({ animate: true });
-      const element = (mathVirtualKeyboard as any).element as HTMLElement;
+      const element = (mathVirtualKeyboard as { element?: HTMLElement }).element;
       if (!element) return;
       element.ontransitionend = (event) => {
         if (event.propertyName !== "transform") return;
         mathfield.executeCommand("scrollIntoView");
         const mathTools = document.getElementById("math-tools");
         const virtualKeyboard = window.mathVirtualKeyboard;
-        const container = (virtualKeyboard as any)?.element
+        const container = (virtualKeyboard as { element?: HTMLElement })?.element
           ?.firstElementChild as HTMLElement;
         if (!container || !mathTools) return;
         document.documentElement.style.setProperty(
@@ -223,7 +224,7 @@ export default function MathComponent(
         $setSelection(rangeSelection);
         if (mathfield.value.trim().length === 0) {
           const node = $getNodeByKey(nodeKey);
-          node && node.remove();
+          if (node) node.remove();
         }
       });
     }
@@ -251,7 +252,7 @@ export default function MathComponent(
         capture: true,
       });
     };
-  }, [editor]);
+  }, [editor, clearSelection, initialValue, isSelected, nodeKey, setSelected]);
 
   return (
     <math-field key={nodeKey}>

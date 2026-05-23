@@ -4,7 +4,7 @@ import {
   DetailsContentNode,
   DetailsSummaryNode,
 } from "@/editor/nodes/DetailsNode";
-import { Table, TableCell, TableRow } from "docx";
+import { Paragraph, Table, TableCell, TableRow } from "docx";
 import { $convertNodeToDocx } from ".";
 
 export function $convertDetailsNode(node: DetailsContainerNode) {
@@ -31,7 +31,7 @@ function $convertTableRowNode(node: DetailsSummaryNode | DetailsContentNode) {
   return new TableRow({
     children: [
       new TableCell({
-        children: children as any,
+        children: children as (Paragraph | Table)[],
         verticalAlign: "center",
         shading: { fill: isHeader ? "#f5f5f5" : undefined },
         borders: {

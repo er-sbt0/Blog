@@ -1,9 +1,9 @@
 export function mspace(
   element,
   targetParent,
-  previousSibling,
-  nextSibling,
-  ancestors,
+  _previousSibling,
+  _nextSibling,
+  _ancestors,
 ) {
   targetParent.children.push({
     name: "m:r",

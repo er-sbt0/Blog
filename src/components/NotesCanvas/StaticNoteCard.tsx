@@ -15,12 +15,12 @@ function extractTextFromLexicalState(content: string): string {
     const state = JSON.parse(content);
     const texts: string[] = [];
 
-    function extractText(node: any) {
+    function extractText(node: { text?: string; children?: unknown[] }) {
       if (node.text) {
         texts.push(node.text);
       }
       if (node.children && Array.isArray(node.children)) {
-        node.children.forEach(extractText);
+        node.children.forEach((child) => extractText(child as { text?: string; children?: unknown[] }));
       }
     }
 

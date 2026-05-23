@@ -56,7 +56,7 @@ export const editorConfig = {
     TableCellNode,
     {
       replace: LexicalTableNode,
-      with: (node: any) => new TableNode(),
+      with: (_node: LexicalTableNode) => new TableNode(),
     },
     {
       replace: LexicalTableCellNode,

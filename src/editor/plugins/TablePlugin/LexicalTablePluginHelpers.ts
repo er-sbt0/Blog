@@ -221,7 +221,7 @@ export function registerTableSelectionObserver(
               );
               if (tableSelection === undefined) {
                 initializeTableNode(
-                  tableNode as any,
+                  tableNode as TableNode,
                   nodeKey,
                   tableElement,
                 );
@@ -230,7 +230,7 @@ export function registerTableSelectionObserver(
                 tableSelection[0].removeListeners();
                 tableSelections.delete(nodeKey);
                 initializeTableNode(
-                  tableNode as any,
+                  tableNode as TableNode,
                   nodeKey,
                   tableElement,
                 );

@@ -103,7 +103,7 @@ export default function MathTools(
       setFontSize(fontSize);
       const mathTools = document.getElementById("math-tools");
       const virtualKeyboard = window.mathVirtualKeyboard;
-      const container = (virtualKeyboard as any)?.element
+      const container = (virtualKeyboard as { element?: HTMLElement })?.element
         ?.firstElementChild as HTMLElement;
       if (!container || !mathTools) return;
       document.documentElement.style.setProperty(
@@ -126,7 +126,7 @@ export default function MathTools(
         }
       }
     });
-  }, [node]);
+  }, [node, editor]);
 
   const applyStyleMath = useCallback(
     (styles: Record<string, string>) => {
@@ -161,8 +161,8 @@ export default function MathTools(
       const range = selection.ranges[0];
       mathfield.applyStyle(style, range);
     }
-    key === "text" ? setTextColor(value) : setBackgroundColor(value);
-  }, [applyStyleMath, node]);
+    if (key === "text") setTextColor(value); else setBackgroundColor(value);
+  }, [applyStyleMath, node, editor]);
 
   const readMathfieldColor = useCallback(() => {
     editor.getEditorState().read(() => {
@@ -209,20 +209,21 @@ export default function MathTools(
     }, 0);
   }, [open]);
 
-  const handleClose = () => {
-    setOpen(false);
-    if (value === "draw") {
-      setTimeout(() => window.mathVirtualKeyboard.hide(), 0);
-    } else restoreFocus();
-  };
-  const restoreFocus = () => {
+  const restoreFocus = useCallback(() => {
     window.mathVirtualKeyboard.show();
     const mathfield = editor.getElementByKey(node.__key)?.querySelector(
       "math-field",
     ) as MathfieldElement | null;
     if (!mathfield) return;
     setTimeout(() => mathfield.focus(), 0);
-  };
+  }, [editor, node]);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+    if (value === "draw") {
+      setTimeout(() => window.mathVirtualKeyboard.hide(), 0);
+    } else restoreFocus();
+  }, [value, restoreFocus]);
 
   const mathfieldRef = useRef<MathfieldElement>(null);
   const [formData, setFormData] = useState({ value: node.getValue() });
@@ -231,7 +232,7 @@ export default function MathTools(
     if (value === "draw") {
       setTimeout(() => window.mathVirtualKeyboard.hide(), 0);
     }
-  }, [node]);
+  }, [node, value]);
 
   const updateFormData = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -275,7 +276,7 @@ export default function MathTools(
     setTimeout(() => {
       setValue(null);
     }, 0);
-  }, [node]);
+  }, [node, editor]);
 
   useFixedBodyScroll(open);
 
@@ -300,11 +301,11 @@ export default function MathTools(
       }
       const result = await response.json();
       return result.generated_text;
-    } catch (error: any) {
+    } catch (error: unknown) {
       annouunce({
         message: {
           title: "Something went wrong",
-          subtitle: error.message,
+          subtitle: error instanceof Error ? error.message : String(error),
         },
       });
     } finally {
@@ -331,7 +332,7 @@ export default function MathTools(
     if (!mathfield) return;
     mathfield.executeCommand(["insert", latex]);
     handleClose();
-  }, [excalidrawAPI, node, ocr]);
+  }, [excalidrawAPI, node, ocr, editor, handleClose]);
 
   const handleToggle = (
     event: React.MouseEvent<HTMLElement>,

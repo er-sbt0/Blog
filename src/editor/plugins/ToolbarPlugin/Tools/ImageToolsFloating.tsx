@@ -4,7 +4,7 @@ import { ImageNode } from "@/editor/nodes/ImageNode";
 import { $isSketchNode, SketchNode } from "@/editor/nodes/SketchNode";
 import { $isGraphNode, GraphNode } from "@/editor/nodes/GraphNode";
 import { $patchStyle, getStyleObjectFromCSS } from "@/editor/nodes/utils";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SET_DIALOGS_COMMAND } from "../Dialogs/commands";
 import { SxProps, Theme } from "@mui/material/styles";
 import { Box, SvgIcon, ToggleButton, ToggleButtonGroup } from "@mui/material";
@@ -65,11 +65,7 @@ export default function ImageToolsFloating(
 
   const [style, setStyle] = useState<Record<string, string | null> | null>();
 
-  useEffect(() => {
-    setStyle(currentNodeStyle());
-  }, [node]);
-
-  function currentNodeStyle(): Record<string, string | null> | null {
+  const currentNodeStyle = useCallback((): Record<string, string | null> | null => {
     return editor.getEditorState().read(() => {
       if ("getStyle" in node === false) return null;
       const css = node.getStyle();
@@ -77,7 +73,11 @@ export default function ImageToolsFloating(
       const style = getStyleObjectFromCSS(css);
       return style;
     });
-  }
+  }, [editor, node]);
+
+  useEffect(() => {
+    setStyle(currentNodeStyle());
+  }, [node, currentNodeStyle]);
 
   function updateStyle(newStyle: Record<string, string | null>) {
     setStyle({ ...style, ...newStyle });

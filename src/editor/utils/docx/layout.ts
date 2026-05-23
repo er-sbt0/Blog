@@ -1,5 +1,5 @@
 import { LayoutContainerNode, LayoutItemNode } from "@/editor/nodes/LayoutNode";
-import { Table, TableBorders, TableCell, TableRow } from "docx";
+import { Paragraph, Table, TableBorders, TableCell, TableRow } from "docx";
 import { $convertNodeToDocx } from ".";
 
 export function $convertLayoutNode(node: LayoutContainerNode) {
@@ -7,10 +7,11 @@ export function $convertLayoutNode(node: LayoutContainerNode) {
   const templateSum = template.reduce((a, b) => a + b, 0);
   const layoutItemNodes = node.getChildren<LayoutItemNode>();
   const tableCells = layoutItemNodes.map((node, index) => {
-    const children = $convertNodeToDocx(node) as any;
+    const result = $convertNodeToDocx(node);
+    const children = (Array.isArray(result) ? result : result ? [result] : []) as (Paragraph | Table)[];
     const width = 100 * template[index] / templateSum;
     return new TableCell({
-      children: Array.isArray(children) ? children : [children],
+      children,
       width: { size: width, type: "pct" },
     });
   });

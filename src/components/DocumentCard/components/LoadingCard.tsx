@@ -98,7 +98,7 @@ export const LoadingCard: React.FC<LoadingCardProps> = ({ sx }) => {
  * Skeleton for the main content area with enhanced shimmer animation
  */
 interface SkeletonProps {
-  shimmerStyles: any;
+  shimmerStyles: SxProps<Theme>;
 }
 
 const ContentSkeleton: React.FC<SkeletonProps> = ({ shimmerStyles }) => (

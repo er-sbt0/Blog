@@ -22,6 +22,7 @@ import {
   ElementNode,
   KEY_BACKSPACE_COMMAND,
   KEY_DELETE_COMMAND,
+  Klass,
   LexicalNode,
   PASTE_COMMAND,
   SerializedElementNode,
@@ -36,14 +37,14 @@ interface NodeSelectionPluginProps {
    * Node classes that should be selectable.
    * Defaults to [CodeNode, TableNode, AttachmentNode] if not provided.
    */
-  selectableNodes?: Array<new (...args: any[]) => LexicalNode>;
+  selectableNodes?: Array<Klass<LexicalNode>>;
 }
 
 /**
  * Type guard generator for checking if a node is of a selectable type
  */
 function createIsSelectableNode(
-  selectableNodes: Array<new (...args: any[]) => LexicalNode>,
+  selectableNodes: Array<Klass<LexicalNode>>,
 ) {
   return (node: LexicalNode | null | undefined): boolean => {
     if (!node) return false;
@@ -160,7 +161,7 @@ export default function NodeSelectionPlugin({
     getDefaultNodes().then((nodes) => {
       // Validate that nodes are registered
       const unregisteredNodes = nodes.filter(
-        (NodeClass) => !editor.hasNodes([NodeClass as any]),
+        (NodeClass) => !editor.hasNodes([NodeClass as Klass<LexicalNode>]),
       );
 
       if (unregisteredNodes.length > 0) {
@@ -373,7 +374,7 @@ export default function NodeSelectionPlugin({
               return nodes.some(
                 (NodeClass) =>
                   serializedNode.type ===
-                    (NodeClass as any).getType?.() ||
+                    (NodeClass as Klass<LexicalNode>).getType?.() ||
                   serializedNode.type ===
                     NodeClass.name.replace("Node", "").toLowerCase(),
               );

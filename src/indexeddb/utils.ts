@@ -10,7 +10,7 @@ interface WaitUntilProps {
 }
 
 export const waitUntil = (
-  condition: { (): boolean; (): any },
+  condition: () => boolean,
   options?: WaitUntilProps,
 ) => {
   return new Promise<void>((resolve, reject) => {

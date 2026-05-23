@@ -1,9 +1,9 @@
 export function menclose(
   element,
   targetParent,
-  previousSibling,
-  nextSibling,
-  ancestors,
+  _previousSibling,
+  _nextSibling,
+  _ancestors,
 ) {
   const type = element.attribs?.notation?.split(" ")[0] || "longdiv";
 

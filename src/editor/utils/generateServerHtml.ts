@@ -33,7 +33,7 @@ export const generateServerHtml = (data: SerializedEditorState) =>
 
       try {
         // Set global values for headless browser environment
-        global.window = dom.window as any;
+        global.window = dom.window as unknown as typeof globalThis.window;
         global.document = dom.window.document;
         // Define navigator with Object.defineProperty to handle the case
         // where it might be a read-only property
@@ -84,7 +84,7 @@ export const generateServerHtml = (data: SerializedEditorState) =>
           // Generate HTML from the state
           const html = editorState.read(() => $generateHtmlFromNodes(editor));
           resolve(html);
-        } catch (setStateError) {
+        } catch (_setStateError) {
           // If setting state fails due to empty root, create a minimal valid state
           const emptyStateData = {
             root: {
@@ -106,7 +106,7 @@ export const generateServerHtml = (data: SerializedEditorState) =>
             },
           };
 
-          const emptyState = editor.parseEditorState(emptyStateData as any);
+          const emptyState = editor.parseEditorState(emptyStateData as unknown as SerializedEditorState);
           editor.setEditorState(emptyState);
 
           // Generate HTML from the empty state
@@ -141,10 +141,10 @@ export const generateServerHtml = (data: SerializedEditorState) =>
 
         // Clean up any other globals we set
         if (global.getComputedStyle !== undefined) {
-          delete (global as any).getComputedStyle;
+          delete (globalThis as Record<string, unknown>).getComputedStyle;
         }
         if (global.MutationObserver !== undefined) {
-          delete (global as any).MutationObserver;
+          delete (globalThis as Record<string, unknown>).MutationObserver;
         }
       }
     } catch (error) {

@@ -157,7 +157,7 @@ export function useAttachmentContent(
     } finally {
       setIsDownloading(false);
     }
-  }, [url, filename]);
+  }, [url, filename, errorAnnounce]);
 
   const handleSave = useCallback(async (newContent: string) => {
     if (!url) return;

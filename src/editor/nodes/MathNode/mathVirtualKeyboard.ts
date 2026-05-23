@@ -5,7 +5,7 @@ export const customizeMathVirtualKeyboard = () => {
   const mathVirtualKeyboardLayout = [
     ...window.mathVirtualKeyboard.normalizedLayouts,
   ];
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   mathVirtualKeyboardLayout[0].layers[0].rows[1][6] = {
     variants: [
       {
@@ -22,37 +22,37 @@ export const customizeMathVirtualKeyboard = () => {
     },
     class: "big-op hide-shift",
   };
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   mathVirtualKeyboardLayout[0].layers[0].rows[3][9].command = [
     "performWithFeedback",
     "addRowAfter",
   ];
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   delete mathVirtualKeyboardLayout[0].layers[0].rows[3][9].shift;
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   mathVirtualKeyboardLayout[1].layers[0].rows[3][8].command = [
     "performWithFeedback",
     "addRowAfter",
   ];
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   delete mathVirtualKeyboardLayout[1].layers[0].rows[3][8].shift;
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   mathVirtualKeyboardLayout[2].layers[0].rows.shift();
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   mathVirtualKeyboardLayout[2].layers[0].rows[3][8].command = [
     "performWithFeedback",
     "addRowAfter",
   ];
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   delete mathVirtualKeyboardLayout[2].layers[0].rows[3][8].shift;
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   mathVirtualKeyboardLayout[3].layers[0].rows[3][8].command = [
     "performWithFeedback",
     "addRowAfter",
   ];
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   delete mathVirtualKeyboardLayout[3].layers[0].rows[3][8].shift;
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   mathVirtualKeyboardLayout[0].layers[0].rows[2][9].variants = [
     { latex: "\\exists", aside: "there is" },
     { latex: "\\nexists", aside: "there isn’t" },
@@ -90,7 +90,7 @@ export const customizeMathVirtualKeyboard = () => {
     "\\dashv",
   ];
 
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   mathVirtualKeyboardLayout[2].layers[0].rows[3][3].variants = [
     {
       latex: '\\char"203A\\ \\char"2039',
@@ -114,14 +114,14 @@ export const customizeMathVirtualKeyboard = () => {
     },
   ];
 
-  // @ts-expect-error
+  // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
   mathVirtualKeyboardLayout[3].layers[0].rows[3].shift();
 
   // Ensure the path exists before accessing it
   const targetKey = mathVirtualKeyboardLayout[2]?.layers?.[0]?.rows?.[3]?.[3];
 
   if (targetKey) {
-    // @ts-expect-error
+    // @ts-expect-error: mathVirtualKeyboard layout rows have untyped structure
     mathVirtualKeyboardLayout[3].layers[0].rows[3].splice(
       3,
       0,

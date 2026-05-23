@@ -11,8 +11,8 @@ const textContainerNames = ["mtext", "mi", "mn", "mo", "ms"];
 const empty = Object.create(null);
 
 export function parse(html, options) {
-  options || (options = {});
-  options.components || (options.components = empty);
+  if (!options) options = {};
+  if (!options.components) options.components = empty;
   const result = [];
   const arr = [];
   let current;

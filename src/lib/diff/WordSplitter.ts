@@ -7,7 +7,7 @@ type State = {
   words: string[];
 };
 
-function convertHtmlToListOfWords(text: string, blockExpressions: RegExp[]) {
+function convertHtmlToListOfWords(text: string, _blockExpressions: RegExp[]) {
   let state: State = {
     mode: Mode.character,
     currentWord: [],

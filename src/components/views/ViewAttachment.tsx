@@ -95,7 +95,7 @@ const ViewAttachment: React.FC<ViewAttachmentProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [url, canPreview]);
+  }, [url, canPreview, errorAnnounce]);
 
   useEffect(() => {
     if (expanded && content === null && !loading && !error) {

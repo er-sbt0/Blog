@@ -4,7 +4,7 @@ import {
   INSERT_SKETCH_COMMAND,
   InsertSketchPayload,
 } from "@/editor/plugins/SketchPlugin";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { $isSketchNode } from "@/editor/nodes/SketchNode";
 import { SET_DIALOGS_COMMAND } from "../commands";
 import { getImageDimensions } from "@/editor/nodes/utils";
@@ -75,9 +75,12 @@ function SketchDialog(
   const [lastSceneVersion, setLastSceneVersion] = useState(0);
   const theme = useTheme();
 
+  const loadSceneOrLibraryRef = useRef<() => Promise<void>>(async () => {});
+  loadSceneOrLibraryRef.current = loadSceneOrLibrary;
+
   useEffect(() => {
     if (!excalidrawAPI) return;
-    loadSceneOrLibrary();
+    loadSceneOrLibraryRef.current();
   }, [excalidrawAPI]);
 
   const insertSketch = (payload: InsertSketchPayload) => {
@@ -140,14 +143,15 @@ function SketchDialog(
       };
       editor.dispatchCommand(ALERT_COMMAND, alert);
       const id = await new Promise((resolve) => {
-        const handler = (event: MouseEvent): any => {
+        const handler = (event: MouseEvent): void => {
           const target = event.target as HTMLElement;
           const button = target.closest("button");
           const paper = target.closest(".MuiDialog-paper");
           if (paper && !button) {
-            return document.addEventListener("click", handler, {
+            document.addEventListener("click", handler, {
               once: true,
             });
+            return;
           }
           resolve(button?.id ?? null);
         };
@@ -197,14 +201,15 @@ function SketchDialog(
       };
       editor.dispatchCommand(ALERT_COMMAND, alert);
       const id = await new Promise((resolve) => {
-        const handler = (event: MouseEvent): any => {
+        const handler = (event: MouseEvent): void => {
           const target = event.target as HTMLElement;
           const button = target.closest("button");
           const paper = target.closest(".MuiDialog-paper");
           if (paper && !button) {
-            return document.addEventListener("click", handler, {
+            document.addEventListener("click", handler, {
               once: true,
             });
+            return;
           }
           resolve(button?.id ?? null);
         };
@@ -258,7 +263,7 @@ function SketchDialog(
               getSceneVersion(contents.data.elements),
             );
             excalidrawAPI?.updateScene({
-              ...contents.data as any,
+              ...(contents.data as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]),
               appState: { theme: theme.palette.mode },
             });
           } else if (contents.type === MIME_TYPES.excalidrawlib) {
@@ -326,12 +331,12 @@ function SketchDialog(
             updated: now,
             locked: false,
             link: null,
-          } as any;
+          } as unknown as ExcalidrawImageElement;
 
           excalidrawAPI?.addFiles([
             {
               id: now.toString() as FileId,
-              mimeType: mimeType as any,
+              mimeType: mimeType as BinaryFileData['mimeType'],
               dataURL: base64data as DataURL,
               created: now,
               lastRetrieved: now,
@@ -392,14 +397,17 @@ function SketchDialog(
 
   const loading = !excalidrawAPI;
 
+  const handleCloseRef = useRef(handleClose);
+  handleCloseRef.current = handleClose;
+
   useEffect(() => {
-    const navigation = (window as any).navigation;
+    const navigation = (window as Window & { navigation?: { addEventListener(t: 'navigate', h: (e: Event & { navigationType: string }) => void): void; removeEventListener(t: 'navigate', h: (e: Event & { navigationType: string }) => void): void } }).navigation;
     if (!navigation) return;
 
-    const preventBackNavigation = (event: any) => {
+    const preventBackNavigation = (event: Event & { navigationType: string }) => {
       if (event.navigationType === "push") return;
       event.preventDefault();
-      handleClose();
+      handleCloseRef.current();
     };
 
     navigation.addEventListener("navigate", preventBackNavigation);

@@ -31,12 +31,12 @@ const getRevisionHtml = async (id: string) => {
 
       const html = await response.text();
       return html;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // During build, the API might not be available
       // This is not a critical error during build time
       console.warn(
         "HTML fetch error (likely during build):",
-        error.message || String(error),
+        error instanceof Error ? error.message : String(error),
       );
       return null;
     }
@@ -95,7 +95,7 @@ const getRevisionThumbnail = async (id: string) => {
 
       const html = await response.text();
       return html;
-    } catch (error: any) {
+    } catch (_error) {
       // During build, the API might not be available
       // This is not a critical error during build time
       return null;

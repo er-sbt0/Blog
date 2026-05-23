@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Box, Chip, Collapse, IconButton, Tooltip, Typography } from "@mui/material";
+import { Box, Chip, Collapse, IconButton, Typography } from "@mui/material";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 
 interface RailSectionProps {

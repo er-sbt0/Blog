@@ -48,6 +48,7 @@ export function ImageCaption({
   }, [
     editor,
     nodeKey,
+    parentEditor,
   ]);
 
   return (

@@ -78,7 +78,7 @@ export default function CodeTools(
 
     const width = editor.getEditorState().read(() => node.getWidth());
     setCurrentWidth(width || "100%");
-  }, [node]);
+  }, [node, editor]);
 
   const handleClose = useCallback(() => {
     setTimeout(() => {

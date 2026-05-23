@@ -2,8 +2,8 @@ export function mrow(
   element,
   targetParent,
   previousSibling,
-  nextSibling,
-  ancestors,
+  _nextSibling,
+  _ancestors,
 ) {
   if (previousSibling.isNary) {
     const targetSibling =

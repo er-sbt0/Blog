@@ -11,7 +11,7 @@ import {
   SerializedParagraphNode,
 } from "lexical";
 import { mergeRegister } from "@lexical/utils";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CircularProgress, Divider, IconButton, Tooltip } from "@mui/material";
 import { Autorenew, UnfoldLess, UnfoldMore } from "@mui/icons-material";
 import { useCompletion } from "@ai-sdk/react";
@@ -79,8 +79,8 @@ export default function FloatingAITools(
     return headlessEditor.getEditorState().toJSON();
   }, [editor]);
 
-  const updateDocument = useCallback(
-    throttle(() => {
+  const updateDocument = useMemo(
+    () => throttle(() => {
       editor.dispatchCommand(UPDATE_DOCUMENT_COMMAND, undefined);
     }, 1000),
     [editor],
@@ -120,7 +120,7 @@ export default function FloatingAITools(
       const lastChild = nodes[nodes.length - 1];
       lastChild.selectStart();
     }, { onUpdate: updateDocument });
-  }, [completion, isLoading]);
+  }, [completion, isLoading, convertMarkdownToJSON, editor, updateDocument]);
 
   useEffect(() => {
     return mergeRegister(

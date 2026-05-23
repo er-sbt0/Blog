@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function middleware(_request: NextRequest) {
   // You can add any middleware logic here, such as:
   // - Authentication checks
   // - Request/response manipulation

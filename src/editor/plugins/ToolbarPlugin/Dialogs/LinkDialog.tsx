@@ -47,8 +47,9 @@ function LinkDialog(
         $isImageNode(node) || $isMathNode(node) || $isTableNode(node)
       )
     );
+    type ContentEditableEl = HTMLElement & { __lexicalEditor?: LexicalEditor };
     const editors = [
-      ...document.querySelectorAll<any>('[contenteditable="true"]'),
+      ...document.querySelectorAll<ContentEditableEl>('[contenteditable="true"]'),
     ].map((el) => el.__lexicalEditor).filter(Boolean) as LexicalEditor[];
     return nodes.reduce((map, node) => {
       const ownerEditor = editors.find((editor) =>
@@ -62,7 +63,7 @@ function LinkDialog(
       map.set(node.getKey(), element);
       return map;
     }, new Map());
-  }, []);
+  }, [editor]);
 
   useEffect(() => {
     setUrl(node?.__url ?? "https://");
@@ -81,7 +82,7 @@ function LinkDialog(
         : "none";
       setFigure(figure);
     }
-  }, [node]);
+  }, [node, figures]);
 
   const updateUrl = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value.trim();
@@ -162,8 +163,9 @@ function LinkDialog(
   }, [editor, node]);
 
   const setNodeId = (key: string, id: string) => {
+    type ContentEditableEl = HTMLElement & { __lexicalEditor?: LexicalEditor };
     const editors = [
-      ...document.querySelectorAll<any>('[contenteditable="true"]'),
+      ...document.querySelectorAll<ContentEditableEl>('[contenteditable="true"]'),
     ].map((el) => el.__lexicalEditor).filter(Boolean) as LexicalEditor[];
     const previousFigureKey = [...figures.entries()].find(([k, element]) =>
       element.id === id && k !== key
@@ -235,7 +237,7 @@ function LinkDialog(
           autoFocus
           autoComplete="off"
           inputRef={(input) => {
-            input && setTimeout(() => input.focus(), 0);
+            if (input) setTimeout(() => input.focus(), 0);
           }}
         />
         {rel === "bookmark" &&

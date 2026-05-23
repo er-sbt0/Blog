@@ -2,7 +2,7 @@
 import { Box, IconButton, SwipeableDrawer, Typography } from "@mui/material";
 import { Article, Close } from "@mui/icons-material";
 import { actions, useDispatch, useSelector } from "@/store";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { alpha } from "@mui/material/styles";
 
 const AppDrawer: React.FC<React.PropsWithChildren<{ title: string }>> = (
@@ -14,9 +14,9 @@ const AppDrawer: React.FC<React.PropsWithChildren<{ title: string }>> = (
   const [startX, setStartX] = useState(0);
   const dragHandleRef = useRef<HTMLDivElement>(null);
 
-  const toggleDrawer = () => {
+  const toggleDrawer = useCallback(() => {
     dispatch(actions.toggleDrawer());
-  };
+  }, [dispatch]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -73,13 +73,13 @@ const AppDrawer: React.FC<React.PropsWithChildren<{ title: string }>> = (
       document.removeEventListener("touchmove", handleTouchMove);
       document.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [isDragging, open, startX]);
+  }, [isDragging, open, startX, toggleDrawer]);
 
   useEffect(() => {
     return () => {
       dispatch(actions.toggleDrawer(false));
     };
-  }, []);
+  }, [dispatch]);
 
   return (
     <>

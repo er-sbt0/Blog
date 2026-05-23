@@ -29,7 +29,7 @@ const AddLibraries = (
     const libraryItems = [
       ...LogicGates.library,
       ...CircuitComponents.libraryItems,
-    ] as any as LibraryItems_anyVersion;
+    ] as unknown as LibraryItems_anyVersion;
     return libraryItems;
   };
   useHandleLibrary({

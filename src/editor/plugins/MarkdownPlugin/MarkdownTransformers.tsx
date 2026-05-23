@@ -52,7 +52,6 @@ export type ElementTransformer = {
    */
   export: (
     node: LexicalNode,
-    // eslint-disable-next-line no-shadow
     traverseChildren: (node: ElementNode) => string,
   ) => string | null;
   regExp: RegExp;
@@ -95,7 +94,6 @@ export type MultilineElementTransformer = {
    */
   export?: (
     node: LexicalNode,
-    // eslint-disable-next-line no-shadow
     traverseChildren: (node: ElementNode) => string,
   ) => string | null;
   /**
@@ -156,9 +154,7 @@ export type TextMatchTransformer = Readonly<{
    */
   export?: (
     node: LexicalNode,
-    // eslint-disable-next-line no-shadow
     exportChildren: (node: ElementNode) => string,
-    // eslint-disable-next-line no-shadow
     exportFormat: (node: TextNode, textContent: string) => string,
   ) => string | null;
   /**

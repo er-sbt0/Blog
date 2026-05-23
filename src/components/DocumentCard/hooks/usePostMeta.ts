@@ -32,12 +32,12 @@ export interface PostMetaInput {
  */
 export const usePostMeta = ({
   postState,
-  author,
+  author: _author,
   series,
   seriesOrder,
   options = {},
 }: PostMetaInput) => {
-  const { showAuthor = true, showSeries = true } = options;
+  const { showAuthor: _showAuthor = true, showSeries = true } = options;
 
   return useMemo(() => {
     // Don't render chips during loading state - let the component handle loading UI
@@ -52,7 +52,7 @@ export const usePostMeta = ({
     ].filter(Boolean); // Remove null/undefined chips
 
     return chips;
-  }, [postState, series, seriesOrder, showAuthor, showSeries]);
+  }, [postState, series, seriesOrder, showSeries]);
 };
 
 /**

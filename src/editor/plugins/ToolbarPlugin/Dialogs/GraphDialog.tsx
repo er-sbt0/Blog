@@ -5,7 +5,7 @@ import {
   InsertGraphPayload,
 } from "@/editor/plugins/GraphPlugin";
 import { GraphNode } from "@/editor/nodes/GraphNode";
-import { memo, useEffect, useId, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useId, useRef, useState } from "react";
 import { SET_DIALOGS_COMMAND } from "./commands";
 import Script from "next/script";
 import { getImageDimensions } from "@/editor/nodes/utils";
@@ -21,11 +21,46 @@ import {
 import { ALERT_COMMAND } from "@/editor/commands";
 import { v4 as uuid } from "uuid";
 
+interface GeoGebraAPI {
+  getBase64(): string;
+  setBase64(value: string): void;
+  getXML(): string;
+  getPNGBase64(scale: number, transparent: boolean, dpi: number): string;
+  exportSVG(callback: (html: string) => void): void;
+  setSize(width: number, height: number): void;
+}
+
+interface GeoGebraParameters {
+  key: string;
+  language: string;
+  showToolBar: boolean;
+  borderColor: null;
+  showMenuBar: boolean;
+  allowStyleBar: boolean;
+  showAlgebraInput: boolean;
+  enableLabelDrags: boolean;
+  enableShiftDragZoom: boolean;
+  capturingThreshold: null;
+  showToolBarHelp: boolean;
+  errorDialogsActive: boolean;
+  showTutorialLink: boolean;
+  width: number;
+  height: number;
+  appName: string;
+  ggbBase64: string;
+  appletOnLoad: (api: GeoGebraAPI) => void;
+}
+
+interface NavigationEventTarget {
+  addEventListener(type: 'navigate', handler: (event: Event & { navigationType: string }) => void): void;
+  removeEventListener(type: 'navigate', handler: (event: Event & { navigationType: string }) => void): void;
+}
+
 function GraphDialog(
   { editor, node }: { editor: LexicalEditor; node: GraphNode | null },
 ) {
   const key = useId();
-  const [geogebraAPI, setGeogebraAPI] = useState<any>(null);
+  const [geogebraAPI, setGeogebraAPI] = useState<GeoGebraAPI | null>(null);
 
   const parameters = {
     key,
@@ -45,7 +80,7 @@ function GraphDialog(
     height: window.innerHeight - 52.5,
     appName: "suite",
     ggbBase64: node?.getValue() ?? "",
-    appletOnLoad(api: any) {
+    appletOnLoad(api: GeoGebraAPI) {
       setGeogebraAPI(api);
       const container = document.querySelector<HTMLDivElement>(
         ".ggb-container",
@@ -57,7 +92,11 @@ function GraphDialog(
       }, 300);
     },
   };
-  const loadGgbBase64 = async () => {
+  const clearLocalStorage = useCallback(() => {
+    localStorage.removeItem("geogebra");
+  }, []);
+
+  const loadGgbBase64 = useCallback(async () => {
     const unsavedValue = localStorage.getItem("geogebra");
     if (unsavedValue) {
       const alert = {
@@ -71,14 +110,15 @@ function GraphDialog(
       };
       editor.dispatchCommand(ALERT_COMMAND, alert);
       const id = await new Promise((resolve) => {
-        const handler = (event: MouseEvent): any => {
+        const handler = (event: MouseEvent): void => {
           const target = event.target as HTMLElement;
           const button = target.closest("button");
           const paper = target.closest(".MuiDialog-paper");
           if (paper && !button) {
-            return document.addEventListener("click", handler, {
+            document.addEventListener("click", handler, {
               once: true,
             });
+            return;
           }
           resolve(button?.id ?? null);
         };
@@ -89,18 +129,14 @@ function GraphDialog(
       if (!id || id === alert.actions[0].id) {
         clearLocalStorage();
       }
-      if (id === alert.actions[1].id) geogebraAPI.setBase64(unsavedValue);
+      if (id === alert.actions[1].id) geogebraAPI?.setBase64(unsavedValue);
     }
-  };
+  }, [editor, clearLocalStorage, geogebraAPI]);
 
   useEffect(() => {
     if (!geogebraAPI) return;
     loadGgbBase64();
-  }, [geogebraAPI]);
-
-  const clearLocalStorage = () => {
-    localStorage.removeItem("geogebra");
-  };
+  }, [geogebraAPI, loadGgbBase64]);
 
   useEffect(() => {
   }, [node]);
@@ -112,6 +148,7 @@ function GraphDialog(
 
   const handleSubmit = async () => {
     const app = geogebraAPI;
+    if (!app) return;
     const src = await getBase64Src();
     const value = app.getBase64();
     const dimensions = await getImageDimensions(src);
@@ -126,6 +163,7 @@ function GraphDialog(
   const getBase64Src = () =>
     new Promise<string>((resolve, _reject) => {
       const app = geogebraAPI;
+      if (!app) { _reject(new Error('No GeoGebra API')); return; }
       const xml = app.getXML();
       const subApp = xml.match(/subApp="(.+?)"/)?.[1];
       switch (subApp) {
@@ -148,11 +186,11 @@ function GraphDialog(
       }
     });
 
-  const closeDialog = () => {
+  const closeDialog = useCallback(() => {
     editor.dispatchCommand(SET_DIALOGS_COMMAND, { graph: { open: false } });
-  };
+  }, [editor]);
 
-  const handleClose = async () => {
+  const handleClose = useCallback(async () => {
     function discard() {
       clearLocalStorage();
       closeDialog();
@@ -172,14 +210,15 @@ function GraphDialog(
       };
       editor.dispatchCommand(ALERT_COMMAND, alert);
       const id = await new Promise((resolve) => {
-        const handler = (event: MouseEvent): any => {
+        const handler = (event: MouseEvent): void => {
           const target = event.target as HTMLElement;
           const button = target.closest("button");
           const paper = target.closest(".MuiDialog-paper");
           if (paper && !button) {
-            return document.addEventListener("click", handler, {
+            document.addEventListener("click", handler, {
               once: true,
             });
+            return;
           }
           resolve(button?.id ?? null);
         };
@@ -189,15 +228,15 @@ function GraphDialog(
       });
       if (id === alert.actions[1].id) discard();
     } else cancel();
-  };
+  }, [editor, clearLocalStorage, closeDialog]);
 
   const loading = !geogebraAPI;
 
   useEffect(() => {
-    const navigation = (window as any).navigation;
+    const navigation = (window as Window & { navigation?: NavigationEventTarget }).navigation;
     if (!navigation) return;
 
-    const preventBackNavigation = (event: any) => {
+    const preventBackNavigation = (event: Event & { navigationType: string }) => {
       if (event.navigationType === "push") return;
       event.preventDefault();
       handleClose();
@@ -208,7 +247,7 @@ function GraphDialog(
       document.body.classList.remove("fullscreen");
       navigation.removeEventListener("navigate", preventBackNavigation);
     };
-  }, []);
+  }, [handleClose]);
 
   return (
     <Dialog
@@ -250,17 +289,20 @@ function GraphDialog(
 }
 
 const GeogebraApplet = memo(
-  ({ parameters }: { parameters: any }) => {
+  ({ parameters }: { parameters: GeoGebraParameters }) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
     const injectContainer = () => {
-      const applet = new (window as any).GGBApplet(parameters, "5.0");
+      type GGBAppletConstructor = new (params: GeoGebraParameters, version: string) => { inject(el: HTMLDivElement | null): void; setHTML5Codebase(path: string): void };
+      const GGBApplet = (window as Window & { GGBApplet?: GGBAppletConstructor }).GGBApplet;
+      if (!GGBApplet) return;
+      const applet = new GGBApplet(parameters, "5.0");
       applet.setHTML5Codebase("/geogebra/HTML5/5.0/web3d/");
       applet.inject(containerRef.current);
     };
 
     const resizeHandler = () =>
-      (window as any).ggbApplet?.setSize(
+      (window as Window & { ggbApplet?: GeoGebraAPI }).ggbApplet?.setSize(
         window.innerWidth,
         window.innerHeight - 52.5,
       );

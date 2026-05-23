@@ -140,7 +140,7 @@ function onDragStart(event: DragEvent): boolean {
         src: node.__src,
         width: node.__width,
         height: node.__height,
-        value: (node as any).__value,
+        value: (node as { __value?: unknown }).__value,
         altText: node.__altText,
         style: node.__style,
         id: node.__id,

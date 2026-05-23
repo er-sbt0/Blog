@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useErrorAnnounce } from "@/hooks/useErrorAnnounce";
 import { UserDocument } from "@/types";
 import { useThumbnailContext } from "../../../app/context/ThumbnailContext";
@@ -47,7 +47,7 @@ export const usePostContent = (
   const thumbnailContext = useThumbnailContext();
   const contextThumbnail = thumbnailContext?.[document?.head ?? ""];
 
-  const loadContent = async () => {
+  const loadContent = useCallback(async () => {
     if (!document?.id || !document?.head) {
       setIsLoading(false);
       setError("No document ID or head available");
@@ -88,7 +88,7 @@ export const usePostContent = (
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [contextThumbnail, document?.id, document?.head, userDocument]);
 
   // Retry function to reload content
   const retry = () => {
@@ -124,7 +124,7 @@ export const usePostContent = (
     return () => {
       isMounted = false;
     };
-  }, [document?.id, document?.head, contextThumbnail, userDocument]);
+  }, [document?.id, document?.head, contextThumbnail, userDocument, errorAnnounce, loadContent]);
 
   return {
     thumbnail,

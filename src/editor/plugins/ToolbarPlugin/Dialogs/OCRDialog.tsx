@@ -1,4 +1,5 @@
 import { ContentPaste, UploadFile } from "@mui/icons-material";
+import type { ChangeEvent } from "react";
 import {
   Button,
   Dialog,
@@ -33,7 +34,7 @@ const OCRDialog: React.FC<{ editor: LexicalEditor }> = ({ editor }) => {
   const [formData, setFormData] = useState({ value: "" });
   const [loading, setLoading] = useState(false);
 
-  const updateFormData = async (event: any) => {
+  const updateFormData = async (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
     setFormData({ ...formData, [name]: value });
   };
@@ -59,11 +60,11 @@ const OCRDialog: React.FC<{ editor: LexicalEditor }> = ({ editor }) => {
       }
       const result = await response.json();
       return result.generated_text;
-    } catch (error: any) {
+    } catch (error: unknown) {
       annouunce({
         message: {
           title: "Something went wrong",
-          subtitle: error.message,
+          subtitle: error instanceof Error ? error.message : String(error),
         },
       });
     } finally {
@@ -110,11 +111,11 @@ const OCRDialog: React.FC<{ editor: LexicalEditor }> = ({ editor }) => {
         },
       );
       updateValue(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       annouunce({
         message: {
           title: "Reading image failed",
-          subtitle: err.message,
+          subtitle: err instanceof Error ? err.message : String(err),
         },
       });
     }

@@ -41,7 +41,7 @@ export const PATCH = withApiHandler(async (request, { params }) => {
     zIndex,
   } = body;
 
-  const updates: any = {};
+  const updates: Record<string, number | string | undefined> = {};
   if (typeof positionX === "number") updates.positionX = positionX;
   if (typeof positionY === "number") updates.positionY = positionY;
   if (typeof width === "number") updates.width = width;

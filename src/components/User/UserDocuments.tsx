@@ -17,7 +17,7 @@ const UserDocuments: React.FC<{ documents?: UserDocument[]; pages?: number }> =
     const showLoading = !documents;
     const showEmpty = !showLoading && !documents.length;
 
-    const handlePageChange = (_: any, value: number) => {
+    const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
       const params = new URLSearchParams(searchParams.toString());
       if (value === 1) params.delete("page");
       else params.set("page", value.toString());

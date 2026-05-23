@@ -70,7 +70,7 @@ export default function AlignTextMenu(
     if (!element) return;
     setFormatType(element.getFormatType() || "left");
     setIndentationLevel(element.getIndent() || 0);
-  }, [editor]);
+  }, []);
 
   useEffect(() => {
     return mergeRegister(

@@ -80,7 +80,7 @@ export const useGridKeyboardNavigation = (
         onFocusChange(nextIndex);
       }
     }
-  }, [numColumns, totalItems, onFocusChange]);
+  }, [numColumns, onFocusChange]);
 
   useEffect(() => {
     const currentGridRef = gridRef.current;

@@ -73,7 +73,7 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
     return () => {
       cancelled = true;
     };
-  }, [documents]);
+  }, [documents, errorAnnounce]);
 
   // Fetch README HTML when we have the ID
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function ReadmeViewer({ documents }: ReadmeViewerProps) {
     return () => {
       cancelled = true;
     };
-  }, [readmeDocId]);
+  }, [readmeDocId, errorAnnounce]);
 
   const handleCreateReadme = () => {
     router.push(`/new?name=${README_DOCUMENT_NAME}`);

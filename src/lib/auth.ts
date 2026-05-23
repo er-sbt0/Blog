@@ -4,6 +4,13 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import GitHubProvider from "next-auth/providers/github";
 import { findUserByEmail, updateUser } from "@/repositories/user";
 
+interface GitHubProfile {
+  name?: string;
+  login?: string;
+  avatar_url?: string;
+  emailVerified?: Date | null;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GitHubProvider({
@@ -14,13 +21,13 @@ export const authOptions: NextAuthOptions = {
   ],
   adapter: PrismaAdapter(prisma),
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if ((user as any)?.emailVerified) return true;
+    async signIn({ user, account: _account, profile }) {
+      if ((user as { emailVerified?: Date | null })?.emailVerified) return true;
       const unverifiedUser = await findUserByEmail(user.email!);
       if (!unverifiedUser) return true;
       if (unverifiedUser.emailVerified) return true;
       // For GitHub, profile may have different fields
-      const githubProfile = profile as any;
+      const githubProfile = profile as GitHubProfile;
       const now = new Date();
       await updateUser(unverifiedUser.id, {
         name: githubProfile.name || githubProfile.login,
@@ -30,7 +37,7 @@ export const authOptions: NextAuthOptions = {
       });
       return true;
     },
-    async session({ session, token }) {
+    async session({ session, token: _token }) {
       if (session.user) {
         const user = await findUserByEmail(session.user.email);
         if (!user) return session;

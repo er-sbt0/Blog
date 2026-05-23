@@ -1,6 +1,6 @@
 declare module "prismjs" {
   export interface Grammar {
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   export interface Languages {
