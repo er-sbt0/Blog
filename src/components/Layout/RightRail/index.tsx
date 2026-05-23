@@ -14,7 +14,7 @@ interface RightRailProps {
 }
 
 const RightRail: React.FC<RightRailProps> = ({ railMode }) => {
-  const { toggleRail } = useLayoutMode();
+  const { toggleRail, isRailResizing, startRailResize } = useLayoutMode();
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
   const mode = segments[0] === "edit"
@@ -81,6 +81,26 @@ const RightRail: React.FC<RightRailProps> = ({ railMode }) => {
       component="aside"
       role="complementary"
       aria-label="Document information"
+      sx={{ position: "relative" }}
+    >
+      {/* Drag handle on the left edge */}
+      <Box
+        onMouseDown={startRailResize}
+        sx={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: 4,
+          cursor: "col-resize",
+          backgroundColor: isRailResizing ? "primary.main" : "transparent",
+          transition: isRailResizing ? "none" : "background-color 0.2s",
+          "&:hover": { backgroundColor: "primary.main", opacity: 0.5 },
+          "&:active": { backgroundColor: "primary.main", opacity: 1 },
+          zIndex: 1300,
+        }}
+      />
+      <Box
       sx={{
         borderLeft: "1px solid",
         borderColor: "divider",
@@ -116,6 +136,7 @@ const RightRail: React.FC<RightRailProps> = ({ railMode }) => {
           <BacklinksSection rootId={rootId} />
         </Box>
       )}
+      </Box>
     </Box>
   );
 };

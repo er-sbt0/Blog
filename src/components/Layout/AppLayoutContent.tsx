@@ -9,16 +9,14 @@ import { actions, type RootState, useDispatch, useSelector } from "@/store";
 import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
 import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { COMPACT_WIDTH } from "@/components/Layout/SideBar/constants";
+import { RAIL_COMPACT_W } from "@/contexts/LayoutModeContext";
 import FloatingOutlinePill from "./FloatingOutlinePill";
-
-const RAIL_FULL_W = 280;
-const RAIL_COMPACT_W = 54;
 
 const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useDispatch();
   const initialized = useSelector((state: RootState) => state.ui.initialized);
   const { isResizing, getEffectiveWidth } = useSidebarWidth();
-  const { railMode, viewMode } = useLayoutMode();
+  const { railMode, railWidth, isRailResizing, viewMode } = useLayoutMode();
 
   useEffect(() => {
     if (!initialized) dispatch(actions.load());
@@ -29,7 +27,7 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   const railW = isFocus
     ? 0
     : railMode === "full"
-    ? RAIL_FULL_W
+    ? railWidth
     : railMode === "compact"
     ? RAIL_COMPACT_W
     : 0;
@@ -40,7 +38,7 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
         display: "grid",
         gridTemplateColumns: `${sidebarW}px 1fr ${railW}px`,
         minHeight: "100vh",
-        transition: isResizing
+        transition: isResizing || isRailResizing
           ? "none"
           : "grid-template-columns 225ms cubic-bezier(0.4, 0, 0.6, 1)",
       }}
