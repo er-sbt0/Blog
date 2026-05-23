@@ -37,7 +37,8 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
       sx={{
         display: "grid",
         gridTemplateColumns: `${sidebarW}px 1fr ${railW}px`,
-        minHeight: "100vh",
+        height: "100vh",
+        overflow: "hidden",
         transition: isResizing || isRailResizing
           ? "none"
           : "grid-template-columns 225ms cubic-bezier(0.4, 0, 0.6, 1)",
