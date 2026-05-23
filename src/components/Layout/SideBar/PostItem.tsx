@@ -104,9 +104,10 @@ export const PostItem = memo(
             sx={{
               minHeight: inSeries ? 26 : 30,
               justifyContent: sidebarOpen ? "initial" : "center",
+              overflow: "hidden",
               ...(inSeries
-                ? { pl: 1.5, pr: 2 }
-                : { px: 2.5 }),
+                ? { pl: 1.5, pr: 5 }
+                : { pl: 2.5, pr: 5 }),
               py: inSeries ? 0.25 : 0.375,
               "&.Mui-selected": {
                 bgcolor: "action.selected",
@@ -168,6 +169,7 @@ export const PostItem = memo(
                 : (
                   <ListItemText
                     primary={docName}
+                    sx={{ minWidth: 0, overflow: "hidden" }}
                     primaryTypographyProps={{
                       fontSize: "0.78em",
                       sx: {
