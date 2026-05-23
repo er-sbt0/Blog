@@ -75,7 +75,9 @@ function ImageDialog(
     }
   }, [node]);
 
-  const updateFormData = async (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const updateFormData = async (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = event.target;
     if (name === "src") {
       try {
@@ -85,7 +87,10 @@ function ImageDialog(
         setFormData({ ...formData, [name]: value });
       }
     } else if (name === "showCaption") {
-      setFormData({ ...formData, [name]: (event.target as HTMLInputElement).checked });
+      setFormData({
+        ...formData,
+        [name]: (event.target as HTMLInputElement).checked,
+      });
     } else {
       setFormData({ ...formData, [name]: value });
     }

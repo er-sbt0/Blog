@@ -1,9 +1,14 @@
 "use client";
 import { Box, IconButton, Tooltip } from "@mui/material";
-import { History, Info, Link as LinkIcon, TableChart } from "@mui/icons-material";
+import {
+  History,
+  Info,
+  Link as LinkIcon,
+  TableChart,
+} from "@mui/icons-material";
 import { usePathname } from "next/navigation";
 import { useSelector } from "@/store";
-import { useLayoutMode, type RailMode } from "@/contexts/LayoutModeContext";
+import { type RailMode, useLayoutMode } from "@/contexts/LayoutModeContext";
 import OutlineSection from "./OutlineSection";
 import PropertiesSection from "./PropertiesSection";
 import RevisionsSection from "./RevisionsSection";
@@ -53,22 +58,38 @@ const RightRail: React.FC<RightRailProps> = ({ railMode }) => {
         }}
       >
         <Tooltip title="Expand outline" placement="left">
-          <IconButton size="small" onClick={toggleRail} aria-label="Expand outline">
+          <IconButton
+            size="small"
+            onClick={toggleRail}
+            aria-label="Expand outline"
+          >
             <TableChart fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Expand properties" placement="left">
-          <IconButton size="small" onClick={toggleRail} aria-label="Expand properties">
+          <IconButton
+            size="small"
+            onClick={toggleRail}
+            aria-label="Expand properties"
+          >
             <Info fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Expand revisions" placement="left">
-          <IconButton size="small" onClick={toggleRail} aria-label="Expand revisions">
+          <IconButton
+            size="small"
+            onClick={toggleRail}
+            aria-label="Expand revisions"
+          >
             <History fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title="Expand backlinks" placement="left">
-          <IconButton size="small" onClick={toggleRail} aria-label="Expand backlinks">
+          <IconButton
+            size="small"
+            onClick={toggleRail}
+            aria-label="Expand backlinks"
+          >
             <LinkIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -101,41 +122,45 @@ const RightRail: React.FC<RightRailProps> = ({ railMode }) => {
         }}
       />
       <Box
-      sx={{
-        borderLeft: "1px solid",
-        borderColor: "divider",
-        bgcolor: "background.default",
-        display: "flex",
-        flexDirection: "column",
-        height: "100vh",
-        position: "sticky",
-        top: 0,
-        overflowY: "auto",
-        overflowX: "hidden",
-        flexShrink: 0,
-        displayPrint: "none",
-      }}
-    >
-      {!rootId ? (
-        <Box sx={{ p: 2, color: "text.disabled", fontSize: "0.75rem" }}>
-          Open a document to see its info here.
-        </Box>
-      ) : (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, p: 1 }}>
-          <OutlineSection activeDocId={activeDocId} />
-          <PropertiesSection
-            rootId={rootId}
-            activeDocId={activeDocId}
-            isEditMode={mode === "edit"}
-          />
-          <RevisionsSection
-            rootId={rootId}
-            activeDocId={activeDocId}
-            isEditMode={mode === "edit"}
-          />
-          <BacklinksSection rootId={rootId} />
-        </Box>
-      )}
+        sx={{
+          borderLeft: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.default",
+          display: "flex",
+          flexDirection: "column",
+          height: "100vh",
+          position: "sticky",
+          top: 0,
+          overflowY: "auto",
+          overflowX: "hidden",
+          flexShrink: 0,
+          displayPrint: "none",
+        }}
+      >
+        {!rootId
+          ? (
+            <Box sx={{ p: 2, color: "text.disabled", fontSize: "0.75rem" }}>
+              Open a document to see its info here.
+            </Box>
+          )
+          : (
+            <Box
+              sx={{ display: "flex", flexDirection: "column", gap: 1, p: 1 }}
+            >
+              <OutlineSection activeDocId={activeDocId} />
+              <PropertiesSection
+                rootId={rootId}
+                activeDocId={activeDocId}
+                isEditMode={mode === "edit"}
+              />
+              <RevisionsSection
+                rootId={rootId}
+                activeDocId={activeDocId}
+                isEditMode={mode === "edit"}
+              />
+              <BacklinksSection rootId={rootId} />
+            </Box>
+          )}
       </Box>
     </Box>
   );

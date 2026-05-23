@@ -16,7 +16,12 @@ import {
   Tooltip,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Add, ChatOutlined, DescriptionOutlined, Remove } from "@mui/icons-material";
+import {
+  Add,
+  ChatOutlined,
+  DescriptionOutlined,
+  Remove,
+} from "@mui/icons-material";
 import { styles } from "../styles";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useSidebarWidth } from "@/contexts/SidebarWidthContext";

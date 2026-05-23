@@ -63,10 +63,9 @@ export default function SaveStateIndicator({
     );
   }
 
-  const timeLabel =
-    !isDirty && updatedAt
-      ? relativeTime(new Date(updatedAt))
-      : undefined;
+  const timeLabel = !isDirty && updatedAt
+    ? relativeTime(new Date(updatedAt))
+    : undefined;
 
   return (
     <Box

@@ -84,7 +84,8 @@ export default function NoteTools(
   }
 
   function updateColor(key: "color" | "background-color", value: string) {
-    if (key === "color") setTextColor(value); else setBackgroundColor(value);
+    if (key === "color") setTextColor(value);
+    else setBackgroundColor(value);
     editor.update(() => {
       node.select();
       $patchStyle(node, { [key]: value });

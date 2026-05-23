@@ -94,7 +94,10 @@ export function BlockFormatSelect({ editor, blockType }: {
         $isRangeSelection(selection) ||
         $isTableSelection(selection)
       ) {
-        $setBlocksType(selection as RangeSelection, () => $createParagraphNode());
+        $setBlocksType(
+          selection as RangeSelection,
+          () => $createParagraphNode(),
+        );
       }
     });
   };

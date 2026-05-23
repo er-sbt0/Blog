@@ -14,7 +14,9 @@ interface SubTabListProps {
   activeTabId: string | null;
 }
 
-export const SubTabList: React.FC<SubTabListProps> = ({ tabs, activeTabId }) => {
+export const SubTabList: React.FC<SubTabListProps> = (
+  { tabs, activeTabId },
+) => {
   const dispatch = useDispatch();
 
   return (
@@ -58,7 +60,9 @@ export const SubTabList: React.FC<SubTabListProps> = ({ tabs, activeTabId }) => 
               cursor: "pointer",
               color: isActive ? "info.main" : "text.secondary",
               fontWeight: isActive ? 700 : 400,
-              bgcolor: isActive ? "rgba(var(--mui-palette-info-mainChannel) / 0.12)" : "transparent",
+              bgcolor: isActive
+                ? "rgba(var(--mui-palette-info-mainChannel) / 0.12)"
+                : "transparent",
               "&:hover": {
                 bgcolor: isActive
                   ? "rgba(var(--mui-palette-info-mainChannel) / 0.18)"

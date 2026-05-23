@@ -40,7 +40,9 @@ const ChildDocumentView: React.FC<ChildDocumentViewProps> = ({ docId }) => {
         if (!cancelled) setLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [docId]);
 
   if (loading) {

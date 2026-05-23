@@ -161,7 +161,8 @@ export default function MathTools(
       const range = selection.ranges[0];
       mathfield.applyStyle(style, range);
     }
-    if (key === "text") setTextColor(value); else setBackgroundColor(value);
+    if (key === "text") setTextColor(value);
+    else setBackgroundColor(value);
   }, [applyStyleMath, node, editor]);
 
   const readMathfieldColor = useCallback(() => {

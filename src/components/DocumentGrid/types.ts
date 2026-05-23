@@ -2,7 +2,7 @@
  * Type definitions for DocumentGrid component and related utilities
  */
 
-import type { EditorDocument, Document } from "@/types";
+import type { Document, EditorDocument } from "@/types";
 
 export interface GridBreakpointInfo {
   isXs: boolean;
@@ -80,7 +80,10 @@ export interface PerformanceWarning {
 // Testing types
 export interface MockDocument {
   id: string;
-  local?: Pick<EditorDocument, "id" | "name" | "head" | "data" | "createdAt" | "updatedAt" | "type">;
+  local?: Pick<
+    EditorDocument,
+    "id" | "name" | "head" | "data" | "createdAt" | "updatedAt" | "type"
+  >;
   cloud?: Document;
 }
 

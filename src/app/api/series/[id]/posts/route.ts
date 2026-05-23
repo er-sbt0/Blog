@@ -230,7 +230,11 @@ export const DELETE = withApiHandler(
     const postId = searchParams.get("postId");
 
     if (!postId) {
-      throw new ApiError(400, "Bad Request", "Post ID query parameter is required");
+      throw new ApiError(
+        400,
+        "Bad Request",
+        "Post ID query parameter is required",
+      );
     }
 
     if (!validate(postId)) {

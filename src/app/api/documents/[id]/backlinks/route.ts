@@ -22,7 +22,9 @@ export const GET = withApiHandler(
 
     // Find documents (root-level, not child tabs) whose latest revision JSON
     // contains a reference to the target document id.
-    const rows = await prisma.$queryRaw<{ id: string; name: string; handle: string | null }[]>`
+    const rows = await prisma.$queryRaw<
+      { id: string; name: string; handle: string | null }[]
+    >`
       SELECT DISTINCT d.id, d.name, d.handle
       FROM "Revision" r
       JOIN "Document" d ON d.id = r."documentId"

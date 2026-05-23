@@ -8,7 +8,11 @@ export function $convertLayoutNode(node: LayoutContainerNode) {
   const layoutItemNodes = node.getChildren<LayoutItemNode>();
   const tableCells = layoutItemNodes.map((node, index) => {
     const result = $convertNodeToDocx(node);
-    const children = (Array.isArray(result) ? result : result ? [result] : []) as (Paragraph | Table)[];
+    const children =
+      (Array.isArray(result) ? result : result ? [result] : []) as (
+        | Paragraph
+        | Table
+      )[];
     const width = 100 * template[index] / templateSum;
     return new TableCell({
       children,

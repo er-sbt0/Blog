@@ -122,13 +122,26 @@ export default function MathPlugin() {
 
   useEffect(() => {
     interface WindowNavigation {
-      addEventListener(type: string, handler: (e: { navigationType: string; preventDefault(): void }) => void): void;
-      removeEventListener(type: string, handler: (e: { navigationType: string; preventDefault(): void }) => void): void;
+      addEventListener(
+        type: string,
+        handler: (
+          e: { navigationType: string; preventDefault(): void },
+        ) => void,
+      ): void;
+      removeEventListener(
+        type: string,
+        handler: (
+          e: { navigationType: string; preventDefault(): void },
+        ) => void,
+      ): void;
     }
-    const navigation = (window as Window & { navigation?: WindowNavigation }).navigation;
+    const navigation =
+      (window as Window & { navigation?: WindowNavigation }).navigation;
     if (!navigation || !IS_MOBILE) return;
 
-    const preventBackNavigation = (event: { navigationType: string; preventDefault(): void }) => {
+    const preventBackNavigation = (
+      event: { navigationType: string; preventDefault(): void },
+    ) => {
       if (event.navigationType === "push") return;
       const mathVirtualKeyboard = window.mathVirtualKeyboard;
       if (!mathVirtualKeyboard?.visible) return;

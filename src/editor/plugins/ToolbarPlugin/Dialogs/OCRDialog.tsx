@@ -34,7 +34,9 @@ const OCRDialog: React.FC<{ editor: LexicalEditor }> = ({ editor }) => {
   const [formData, setFormData] = useState({ value: "" });
   const [loading, setLoading] = useState(false);
 
-  const updateFormData = async (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const updateFormData = async (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = event.target;
     setFormData({ ...formData, [name]: value });
   };

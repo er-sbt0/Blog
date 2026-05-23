@@ -1,7 +1,20 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Box, IconButton, Menu, MenuItem, Tooltip, Typography } from "@mui/material";
-import { Add, Close, Description, KeyboardArrowDown, MoreHoriz } from "@mui/icons-material";
+import {
+  Box,
+  IconButton,
+  Menu,
+  MenuItem,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import {
+  Add,
+  Close,
+  Description,
+  KeyboardArrowDown,
+  MoreHoriz,
+} from "@mui/icons-material";
 import {
   DragDropContext,
   Draggable,
@@ -115,7 +128,9 @@ const TabItem: React.FC<TabItemProps> = ({
           }}
         >
           {/* Tab icon */}
-          <Description sx={{ fontSize: 14, color: "text.secondary", flexShrink: 0 }} />
+          <Description
+            sx={{ fontSize: 14, color: "text.secondary", flexShrink: 0 }}
+          />
 
           {/* Dirty indicator */}
           {isDirty && (
@@ -131,55 +146,57 @@ const TabItem: React.FC<TabItemProps> = ({
           )}
 
           {/* Label or inline input */}
-          {editing ? (
-            <Box
-              component="input"
-              ref={inputRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={commitRename}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") commitRename();
-                if (e.key === "Escape") {
+          {editing
+            ? (
+              <Box
+                component="input"
+                ref={inputRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commitRename();
+                  if (e.key === "Escape") {
+                    setDraft(tab.name);
+                    setEditing(false);
+                  }
+                }}
+                onClick={(e) => e.stopPropagation()}
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  border: "none",
+                  outline: "1px solid",
+                  outlineColor: "primary.main",
+                  borderRadius: 0.5,
+                  bgcolor: "background.paper",
+                  color: "text.primary",
+                  fontSize: "0.8rem",
+                  fontFamily: "inherit",
+                  px: 0.5,
+                  py: 0,
+                }}
+              />
+            )
+            : (
+              <Typography
+                noWrap
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
                   setDraft(tab.name);
-                  setEditing(false);
-                }
-              }}
-              onClick={(e) => e.stopPropagation()}
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                border: "none",
-                outline: "1px solid",
-                outlineColor: "primary.main",
-                borderRadius: 0.5,
-                bgcolor: "background.paper",
-                color: "text.primary",
-                fontSize: "0.8rem",
-                fontFamily: "inherit",
-                px: 0.5,
-                py: 0,
-              }}
-            />
-          ) : (
-            <Typography
-              noWrap
-              onDoubleClick={(e) => {
-                e.stopPropagation();
-                setDraft(tab.name);
-                setEditing(true);
-              }}
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                fontSize: "0.8rem",
-                fontWeight: isActive ? 600 : 400,
-                color: isActive ? "text.primary" : "text.secondary",
-              }}
-            >
-              {tab.name}
-            </Typography>
-          )}
+                  setEditing(true);
+                }}
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: "0.8rem",
+                  fontWeight: isActive ? 600 : 400,
+                  color: isActive ? "text.primary" : "text.secondary",
+                }}
+              >
+                {tab.name}
+              </Typography>
+            )}
 
           {/* More button (⋯) — shown on hover for active tab */}
           {isActive && (
@@ -303,8 +320,7 @@ const EditorTabBar: React.FC<EditorTabBarProps> = ({
                   onClose={() => onClose(tab.id)}
                   onRename={(name) => onRename(tab.id, name)}
                   onContextMenu={(anchor) =>
-                    onContextMenu(tab.id, tab.id === rootTabId, anchor)
-                  }
+                    onContextMenu(tab.id, tab.id === rootTabId, anchor)}
                   onRenameStarted={() => setLocalRenamingTabId(null)}
                 />
               ))}
@@ -314,17 +330,33 @@ const EditorTabBar: React.FC<EditorTabBarProps> = ({
         </Droppable>
       </DragDropContext>
 
-      <Box sx={{ ml: "auto", display: "flex", alignItems: "stretch", flexShrink: 0 }}>
+      <Box
+        sx={{
+          ml: "auto",
+          display: "flex",
+          alignItems: "stretch",
+          flexShrink: 0,
+        }}
+      >
         <Tooltip title="New sub-doc">
           <IconButton
             size="small"
             onClick={onAdd}
-            sx={{ px: 1.5, borderRadius: 0, borderLeft: "1px solid", borderColor: "divider" }}
+            sx={{
+              px: 1.5,
+              borderRadius: 0,
+              borderLeft: "1px solid",
+              borderColor: "divider",
+            }}
           >
             <Add fontSize="small" />
           </IconButton>
         </Tooltip>
-        <TabOverflowMenu tabs={tabs} activeTabId={activeTabId} onSwitch={onSwitch} />
+        <TabOverflowMenu
+          tabs={tabs}
+          activeTabId={activeTabId}
+          onSwitch={onSwitch}
+        />
       </Box>
     </Box>
   );
@@ -336,7 +368,9 @@ interface TabOverflowMenuProps {
   onSwitch: (id: string) => void;
 }
 
-const TabOverflowMenu: React.FC<TabOverflowMenuProps> = ({ tabs, activeTabId, onSwitch }) => {
+const TabOverflowMenu: React.FC<TabOverflowMenuProps> = (
+  { tabs, activeTabId, onSwitch },
+) => {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   return (
     <>
@@ -344,17 +378,29 @@ const TabOverflowMenu: React.FC<TabOverflowMenuProps> = ({ tabs, activeTabId, on
         <IconButton
           size="small"
           onClick={(e) => setAnchor(e.currentTarget)}
-          sx={{ px: 1, borderRadius: 0, borderLeft: "1px solid", borderColor: "divider" }}
+          sx={{
+            px: 1,
+            borderRadius: 0,
+            borderLeft: "1px solid",
+            borderColor: "divider",
+          }}
         >
           <KeyboardArrowDown fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
+      <Menu
+        anchorEl={anchor}
+        open={Boolean(anchor)}
+        onClose={() => setAnchor(null)}
+      >
         {tabs.map((tab) => (
           <MenuItem
             key={tab.id}
             selected={tab.id === activeTabId}
-            onClick={() => { onSwitch(tab.id); setAnchor(null); }}
+            onClick={() => {
+              onSwitch(tab.id);
+              setAnchor(null);
+            }}
             sx={{ gap: 1 }}
           >
             <Description sx={{ fontSize: 16, color: "text.secondary" }} />

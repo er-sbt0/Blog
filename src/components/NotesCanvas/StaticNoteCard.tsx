@@ -20,7 +20,9 @@ function extractTextFromLexicalState(content: string): string {
         texts.push(node.text);
       }
       if (node.children && Array.isArray(node.children)) {
-        node.children.forEach((child) => extractText(child as { text?: string; children?: unknown[] }));
+        node.children.forEach((child) =>
+          extractText(child as { text?: string; children?: unknown[] })
+        );
       }
     }
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Box, LinearProgress, Link, Typography } from "@mui/material";
 import { TableChart } from "@mui/icons-material";
 import { documentsSelectors, useSelector } from "@/store";
-import { extractHeadings, countWords } from "@/utils/editorContent";
+import { countWords, extractHeadings } from "@/utils/editorContent";
 import RailSection from "./RailSection";
 
 const WORDS_PER_MIN = 200;
@@ -84,42 +84,44 @@ export default function OutlineSection({ activeDocId }: OutlineSectionProps) {
           />
         </>
       )}
-      {headings.length === 0 ? (
-        <Typography variant="caption" color="text.disabled">
-          No headings found
-        </Typography>
-      ) : (
-        <Box
-          component="nav"
-          aria-label="Document outline"
-          sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
-        >
-          {headings.map((h) => (
-            <Link
-              key={h.key}
-              component="button"
-              underline="none"
-              onClick={() => scrollTo(h.text)}
-              sx={{
-                display: "block",
-                textAlign: "left",
-                fontSize: h.level === 2 ? "0.78rem" : "0.72rem",
-                pl: h.level === 3 ? 2 : 0.75,
-                py: 0.25,
-                color: "text.secondary",
-                borderLeft: "2px solid",
-                borderColor: "divider",
-                "&:hover": {
-                  color: "text.primary",
-                  borderColor: "primary.main",
-                },
-              }}
-            >
-              {h.text}
-            </Link>
-          ))}
-        </Box>
-      )}
+      {headings.length === 0
+        ? (
+          <Typography variant="caption" color="text.disabled">
+            No headings found
+          </Typography>
+        )
+        : (
+          <Box
+            component="nav"
+            aria-label="Document outline"
+            sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}
+          >
+            {headings.map((h) => (
+              <Link
+                key={h.key}
+                component="button"
+                underline="none"
+                onClick={() => scrollTo(h.text)}
+                sx={{
+                  display: "block",
+                  textAlign: "left",
+                  fontSize: h.level === 2 ? "0.78rem" : "0.72rem",
+                  pl: h.level === 3 ? 2 : 0.75,
+                  py: 0.25,
+                  color: "text.secondary",
+                  borderLeft: "2px solid",
+                  borderColor: "divider",
+                  "&:hover": {
+                    color: "text.primary",
+                    borderColor: "primary.main",
+                  },
+                }}
+              >
+                {h.text}
+              </Link>
+            ))}
+          </Box>
+        )}
     </RailSection>
   );
 }

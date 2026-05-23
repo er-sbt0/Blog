@@ -65,7 +65,11 @@ const RailSection: React.FC<RailSectionProps> = ({
           <Chip
             label={count}
             size="small"
-            sx={{ height: 16, fontSize: "0.65rem", "& .MuiChip-label": { px: 0.75 } }}
+            sx={{
+              height: 16,
+              fontSize: "0.65rem",
+              "& .MuiChip-label": { px: 0.75 },
+            }}
           />
         )}
         <IconButton
@@ -75,15 +79,15 @@ const RailSection: React.FC<RailSectionProps> = ({
           aria-hidden="true"
           sx={{ p: 0, pointerEvents: "none" }}
         >
-          {open ? (
-            <ExpandLess fontSize="small" />
-          ) : (
-            <ExpandMore fontSize="small" />
-          )}
+          {open
+            ? <ExpandLess fontSize="small" />
+            : <ExpandMore fontSize="small" />}
         </IconButton>
       </Box>
       <Collapse in={open}>
-        <Box sx={{ px: 1.25, pb: 1.25, pt: 0.5, bgcolor: "background.default" }}>
+        <Box
+          sx={{ px: 1.25, pb: 1.25, pt: 0.5, bgcolor: "background.default" }}
+        >
           {children}
         </Box>
       </Collapse>

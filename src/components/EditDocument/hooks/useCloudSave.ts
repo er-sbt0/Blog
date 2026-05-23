@@ -57,7 +57,12 @@ export function useCloudSave(
       // matching and loads the correct content rather than stale local state.
       await dispatch(actions.updateLocalDocument({
         id: document.id,
-        partial: { data, head: revisionId, updatedAt: timestamp, parentId: document.parentId },
+        partial: {
+          data,
+          head: revisionId,
+          updatedAt: timestamp,
+          parentId: document.parentId,
+        },
       }));
       lastSavedCloud.current = serializedData;
       dispatch(actions.markTabClean(document.id));

@@ -64,15 +64,18 @@ export default function ImageTools(
 
   const [style, setStyle] = useState<Record<string, string | null> | null>();
 
-  const currentNodeStyle = useCallback((): Record<string, string | null> | null => {
-    return editor.getEditorState().read(() => {
-      if ("getStyle" in node === false) return null;
-      const css = node.getStyle();
-      if (!css) return null;
-      const style = getStyleObjectFromCSS(css);
-      return style;
-    });
-  }, [editor, node]);
+  const currentNodeStyle = useCallback(
+    (): Record<string, string | null> | null => {
+      return editor.getEditorState().read(() => {
+        if ("getStyle" in node === false) return null;
+        const css = node.getStyle();
+        if (!css) return null;
+        const style = getStyleObjectFromCSS(css);
+        return style;
+      });
+    },
+    [editor, node],
+  );
 
   useEffect(() => {
     setStyle(currentNodeStyle());

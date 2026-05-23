@@ -107,7 +107,9 @@ export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (isMobile) {
       setSidebarModeState("hidden");
     } else {
-      const saved = localStorage.getItem(SIDEBAR_MODE_KEY) as SidebarMode | null;
+      const saved = localStorage.getItem(SIDEBAR_MODE_KEY) as
+        | SidebarMode
+        | null;
       setSidebarModeState(saved === "compact" ? "compact" : "full");
     }
   }, [isMobile]);
@@ -132,7 +134,10 @@ export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     const newWidth = Math.min(
-      Math.max(startWidthRef.current + (e.clientX - startXRef.current), SIDEBAR_MIN_WIDTH),
+      Math.max(
+        startWidthRef.current + (e.clientX - startXRef.current),
+        SIDEBAR_MIN_WIDTH,
+      ),
       SIDEBAR_MAX_WIDTH,
     );
     setWidth(newWidth);
@@ -140,7 +145,10 @@ export const SidebarWidthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleMouseUp = useCallback(() => {
     setIsResizing(false);
-    localStorage.setItem(SIDEBAR_STORAGE_KEY, currentWidthRef.current.toString());
+    localStorage.setItem(
+      SIDEBAR_STORAGE_KEY,
+      currentWidthRef.current.toString(),
+    );
   }, []);
 
   useEffect(() => {

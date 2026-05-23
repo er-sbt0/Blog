@@ -1,12 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import {
-  Avatar,
-  Box,
-  Chip,
-  Link,
-  Typography,
-} from "@mui/material";
+import { Avatar, Box, Chip, Link, Typography } from "@mui/material";
 import { Cloud, History, MobileFriendly } from "@mui/icons-material";
 import { createSelector } from "@reduxjs/toolkit";
 import { documentsSelectors, useSelector } from "@/store";
@@ -34,18 +28,20 @@ export default function RevisionsSection({
   const selectRevisions = useMemo(
     () =>
       createSelector(
-        (state: RootState) =>
-          isEditMode ? state.ui.tabs.tabIds : [rootId],
+        (state: RootState) => isEditMode ? state.ui.tabs.tabIds : [rootId],
         (state: RootState) => state.documents.entities,
         (state: RootState) =>
-          activeDocId ? documentsSelectors.selectById(state, activeDocId) : undefined,
+          activeDocId
+            ? documentsSelectors.selectById(state, activeDocId)
+            : undefined,
         (tabIds, entities, activeDoc) => {
           const sort = (
             list: (DocumentRevision | EditorDocumentRevision)[],
           ) =>
             [...list].sort(
               (a, b) =>
-                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime(),
             );
 
           const all: (DocumentRevision | EditorDocumentRevision)[] = [];
@@ -114,85 +110,88 @@ export default function RevisionsSection({
         </Box>
       )}
 
-      {revisions.length === 0 ? (
-        <Typography variant="caption" color="text.disabled">
-          No revisions yet
-        </Typography>
-      ) : (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-          {visible.map((rev) => {
-            const author =
-              "author" in rev && rev.author ? rev.author : undefined;
-            const isCloud = "author" in rev && !!rev.author;
+      {revisions.length === 0
+        ? (
+          <Typography variant="caption" color="text.disabled">
+            No revisions yet
+          </Typography>
+        )
+        : (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+            {visible.map((rev) => {
+              const author = "author" in rev && rev.author
+                ? rev.author
+                : undefined;
+              const isCloud = "author" in rev && !!rev.author;
 
-            return (
-              <Box
-                key={rev.id}
-                sx={{
-                  display: "flex",
-                  gap: 0.75,
-                  alignItems: "center",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 1,
-                  p: 0.75,
-                  bgcolor: "background.paper",
-                }}
-              >
-                <Avatar
-                  src={author?.image ?? undefined}
-                  alt={author?.name ?? "Local"}
-                  sx={{ width: 22, height: 22, flexShrink: 0 }}
-                />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{ display: "block", fontWeight: 600 }}
-                    noWrap
-                  >
-                    {author?.name ?? "Local"}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ fontSize: "0.65rem" }}
-                  >
-                    <DateDisplay date={rev.createdAt} variant="full" />
-                  </Typography>
-                </Box>
-                <Chip
-                  size="small"
-                  icon={
-                    isCloud ? (
-                      <Cloud sx={{ fontSize: "0.7rem !important" }} />
-                    ) : (
-                      <MobileFriendly sx={{ fontSize: "0.7rem !important" }} />
-                    )
-                  }
-                  label={isCloud ? "Cloud" : "Local"}
+              return (
+                <Box
+                  key={rev.id}
                   sx={{
-                    height: 16,
-                    fontSize: "0.62rem",
-                    "& .MuiChip-label": { px: 0.5 },
+                    display: "flex",
+                    gap: 0.75,
+                    alignItems: "center",
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    p: 0.75,
+                    bgcolor: "background.paper",
                   }}
-                />
-              </Box>
-            );
-          })}
+                >
+                  <Avatar
+                    src={author?.image ?? undefined}
+                    alt={author?.name ?? "Local"}
+                    sx={{ width: 22, height: 22, flexShrink: 0 }}
+                  />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ display: "block", fontWeight: 600 }}
+                      noWrap
+                    >
+                      {author?.name ?? "Local"}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: "0.65rem" }}
+                    >
+                      <DateDisplay date={rev.createdAt} variant="full" />
+                    </Typography>
+                  </Box>
+                  <Chip
+                    size="small"
+                    icon={isCloud
+                      ? <Cloud sx={{ fontSize: "0.7rem !important" }} />
+                      : (
+                        <MobileFriendly
+                          sx={{ fontSize: "0.7rem !important" }}
+                        />
+                      )}
+                    label={isCloud ? "Cloud" : "Local"}
+                    sx={{
+                      height: 16,
+                      fontSize: "0.62rem",
+                      "& .MuiChip-label": { px: 0.5 },
+                    }}
+                  />
+                </Box>
+              );
+            })}
 
-          {!showAll && hiddenCount > 0 && (
-            <Link
-              component="button"
-              variant="caption"
-              underline="hover"
-              onClick={() => setShowAll(true)}
-              sx={{ textAlign: "center", mt: 0.25 }}
-            >
-              show {hiddenCount} more ▾
-            </Link>
-          )}
-        </Box>
-      )}
+            {!showAll && hiddenCount > 0 && (
+              <Link
+                component="button"
+                variant="caption"
+                underline="hover"
+                onClick={() => setShowAll(true)}
+                sx={{ textAlign: "center", mt: 0.25 }}
+              >
+                show {hiddenCount} more ▾
+              </Link>
+            )}
+          </Box>
+        )}
     </RailSection>
   );
 }

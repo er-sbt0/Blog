@@ -1,10 +1,6 @@
 "use client";
 import React, { useMemo, useState } from "react";
-import {
-  Box,
-  IconButton,
-  List,
-} from "@mui/material";
+import { Box, IconButton, List } from "@mui/material";
 import { Clear, Search } from "@mui/icons-material";
 import type { SeriesGroupItem } from "@/utils/posts/seriesGrouping";
 import type { PostItemActions } from "./hooks/useSidebarActions";
@@ -92,12 +88,15 @@ export const ActivePostsSection: React.FC<ActivePostsSectionProps> = ({
             fontSize: "0.75em",
           }}
         >
-          <Search sx={{ fontSize: "1em", color: "text.disabled", flexShrink: 0 }} />
+          <Search
+            sx={{ fontSize: "1em", color: "text.disabled", flexShrink: 0 }}
+          />
           <Box
             component="input"
             placeholder="Search posts..."
             value={activePostsSearch}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActivePostsSearch(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setActivePostsSearch(e.target.value)}
             sx={{
               flex: 1,
               border: "none",

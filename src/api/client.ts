@@ -202,7 +202,9 @@ export const apiClient = {
     /** GET /api/documents/:id/children */
     children: (
       id: string,
-    ): Promise<{ id: string; name: string; sort_order: number | null }[] | undefined> =>
+    ): Promise<
+      { id: string; name: string; sort_order: number | null }[] | undefined
+    > =>
       request<{ id: string; name: string; sort_order: number | null }[]>(
         `/api/documents/${id}/children`,
         { cache: "no-store" },

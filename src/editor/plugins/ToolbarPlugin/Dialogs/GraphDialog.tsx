@@ -52,8 +52,14 @@ interface GeoGebraParameters {
 }
 
 interface NavigationEventTarget {
-  addEventListener(type: 'navigate', handler: (event: Event & { navigationType: string }) => void): void;
-  removeEventListener(type: 'navigate', handler: (event: Event & { navigationType: string }) => void): void;
+  addEventListener(
+    type: "navigate",
+    handler: (event: Event & { navigationType: string }) => void,
+  ): void;
+  removeEventListener(
+    type: "navigate",
+    handler: (event: Event & { navigationType: string }) => void,
+  ): void;
 }
 
 function GraphDialog(
@@ -163,7 +169,10 @@ function GraphDialog(
   const getBase64Src = () =>
     new Promise<string>((resolve, _reject) => {
       const app = geogebraAPI;
-      if (!app) { _reject(new Error('No GeoGebra API')); return; }
+      if (!app) {
+        _reject(new Error("No GeoGebra API"));
+        return;
+      }
       const xml = app.getXML();
       const subApp = xml.match(/subApp="(.+?)"/)?.[1];
       switch (subApp) {
@@ -233,10 +242,13 @@ function GraphDialog(
   const loading = !geogebraAPI;
 
   useEffect(() => {
-    const navigation = (window as Window & { navigation?: NavigationEventTarget }).navigation;
+    const navigation =
+      (window as Window & { navigation?: NavigationEventTarget }).navigation;
     if (!navigation) return;
 
-    const preventBackNavigation = (event: Event & { navigationType: string }) => {
+    const preventBackNavigation = (
+      event: Event & { navigationType: string },
+    ) => {
       if (event.navigationType === "push") return;
       event.preventDefault();
       handleClose();
@@ -293,8 +305,15 @@ const GeogebraApplet = memo(
     const containerRef = useRef<HTMLDivElement>(null);
 
     const injectContainer = () => {
-      type GGBAppletConstructor = new (params: GeoGebraParameters, version: string) => { inject(el: HTMLDivElement | null): void; setHTML5Codebase(path: string): void };
-      const GGBApplet = (window as Window & { GGBApplet?: GGBAppletConstructor }).GGBApplet;
+      type GGBAppletConstructor = new (
+        params: GeoGebraParameters,
+        version: string,
+      ) => {
+        inject(el: HTMLDivElement | null): void;
+        setHTML5Codebase(path: string): void;
+      };
+      const GGBApplet =
+        (window as Window & { GGBApplet?: GGBAppletConstructor }).GGBApplet;
       if (!GGBApplet) return;
       const applet = new GGBApplet(parameters, "5.0");
       applet.setHTML5Codebase("/geogebra/HTML5/5.0/web3d/");

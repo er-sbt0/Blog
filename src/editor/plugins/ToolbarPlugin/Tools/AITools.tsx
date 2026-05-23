@@ -298,9 +298,10 @@ export default function AITools(
   }, [editor]);
 
   const updateDocument = useMemo(
-    () => throttle(() => {
-      editor.dispatchCommand(UPDATE_DOCUMENT_COMMAND, undefined);
-    }, 1000),
+    () =>
+      throttle(() => {
+        editor.dispatchCommand(UPDATE_DOCUMENT_COMMAND, undefined);
+      }, 1000),
     [editor],
   );
 

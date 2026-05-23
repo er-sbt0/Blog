@@ -263,7 +263,9 @@ function SketchDialog(
               getSceneVersion(contents.data.elements),
             );
             excalidrawAPI?.updateScene({
-              ...(contents.data as unknown as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]),
+              ...(contents.data as unknown as Parameters<
+                ExcalidrawImperativeAPI["updateScene"]
+              >[0]),
               appState: { theme: theme.palette.mode },
             });
           } else if (contents.type === MIME_TYPES.excalidrawlib) {
@@ -336,7 +338,7 @@ function SketchDialog(
           excalidrawAPI?.addFiles([
             {
               id: now.toString() as FileId,
-              mimeType: mimeType as BinaryFileData['mimeType'],
+              mimeType: mimeType as BinaryFileData["mimeType"],
               dataURL: base64data as DataURL,
               created: now,
               lastRetrieved: now,
@@ -401,10 +403,23 @@ function SketchDialog(
   handleCloseRef.current = handleClose;
 
   useEffect(() => {
-    const navigation = (window as Window & { navigation?: { addEventListener(t: 'navigate', h: (e: Event & { navigationType: string }) => void): void; removeEventListener(t: 'navigate', h: (e: Event & { navigationType: string }) => void): void } }).navigation;
+    const navigation = (window as Window & {
+      navigation?: {
+        addEventListener(
+          t: "navigate",
+          h: (e: Event & { navigationType: string }) => void,
+        ): void;
+        removeEventListener(
+          t: "navigate",
+          h: (e: Event & { navigationType: string }) => void,
+        ): void;
+      };
+    }).navigation;
     if (!navigation) return;
 
-    const preventBackNavigation = (event: Event & { navigationType: string }) => {
+    const preventBackNavigation = (
+      event: Event & { navigationType: string },
+    ) => {
       if (event.navigationType === "push") return;
       event.preventDefault();
       handleCloseRef.current();

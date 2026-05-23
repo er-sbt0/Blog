@@ -106,7 +106,9 @@ export const generateServerHtml = (data: SerializedEditorState) =>
             },
           };
 
-          const emptyState = editor.parseEditorState(emptyStateData as unknown as SerializedEditorState);
+          const emptyState = editor.parseEditorState(
+            emptyStateData as unknown as SerializedEditorState,
+          );
           editor.setEditorState(emptyState);
 
           // Generate HTML from the empty state

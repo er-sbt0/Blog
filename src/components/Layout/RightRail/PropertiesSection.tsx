@@ -46,8 +46,8 @@ export default function PropertiesSection({
       const activeUserDoc = activeDocId
         ? documentsSelectors.selectById(state, activeDocId)
         : undefined;
-      const seriesId =
-        rootUserDoc?.cloud?.seriesId ?? rootUserDoc?.local?.seriesId;
+      const seriesId = rootUserDoc?.cloud?.seriesId ??
+        rootUserDoc?.local?.seriesId;
       return {
         localDoc: activeUserDoc?.local ?? rootUserDoc?.local,
         cloudDoc: rootUserDoc?.cloud,
@@ -62,9 +62,7 @@ export default function PropertiesSection({
   );
 
   const hasMultipleTabs = tabIds.length > 1;
-  const isTabDirty = activeDocId
-    ? dirtyTabIds.includes(activeDocId)
-    : false;
+  const isTabDirty = activeDocId ? dirtyTabIds.includes(activeDocId) : false;
 
   const activeLocalDoc = useSelector((state: RootState) => {
     if (!activeDocId) return undefined;
@@ -120,7 +118,8 @@ export default function PropertiesSection({
               <Chip
                 label={status === DocumentStatus.ACTIVE ? "Active" : "Done"}
                 size="small"
-                color={(statusColors[status] as "info" | "success") ?? "default"}
+                color={(statusColors[status] as "info" | "success") ??
+                  "default"}
                 variant="outlined"
                 sx={{ height: 18, fontSize: "0.65rem" }}
               />
@@ -158,7 +157,11 @@ export default function PropertiesSection({
         {series && (
           <KVRow
             k="Series"
-            v={`${series.title}${cloudDoc?.seriesOrder != null ? ` · ${cloudDoc.seriesOrder}/${series.posts?.length ?? "?"}` : ""}`}
+            v={`${series.title}${
+              cloudDoc?.seriesOrder != null
+                ? ` · ${cloudDoc.seriesOrder}/${series.posts?.length ?? "?"}`
+                : ""
+            }`}
           />
         )}
 
@@ -221,11 +224,16 @@ export default function PropertiesSection({
             {activeLocalDoc?.updatedAt && (
               <KVRow
                 k="Updated"
-                v={<DateDisplay date={activeLocalDoc.updatedAt} variant="full" />}
+                v={
+                  <DateDisplay date={activeLocalDoc.updatedAt} variant="full" />
+                }
               />
             )}
             {wordCount > 0 && (
-              <KVRow k="Words" v={`${wordCount.toLocaleString()} · ${readMin} min`} />
+              <KVRow
+                k="Words"
+                v={`${wordCount.toLocaleString()} · ${readMin} min`}
+              />
             )}
             <KVRow
               k="Save"

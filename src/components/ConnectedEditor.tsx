@@ -25,7 +25,15 @@ const ConnectedEditor: React.FC<{
   onDiscard?: () => void;
   namespace?: string;
 }> = (
-  { document, editorRef, onChange, ignoreHistoryMerge, onSave, onDiscard, namespace },
+  {
+    document,
+    editorRef,
+    onChange,
+    ignoreHistoryMerge,
+    onSave,
+    onDiscard,
+    namespace,
+  },
 ) => {
   const dispatch = useDispatch();
   const editorRefCallback = (editor: LexicalEditor) => {

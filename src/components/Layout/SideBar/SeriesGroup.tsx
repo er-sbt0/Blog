@@ -94,7 +94,12 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                 primary={
                   <Box
                     component="span"
-                    sx={{ display: "flex", alignItems: "center", width: "100%", minWidth: 0 }}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      width: "100%",
+                      minWidth: 0,
+                    }}
                   >
                     {hasAnyDirtyChild && (
                       <Box

@@ -58,9 +58,13 @@ const EditorTopBar: React.FC = () => {
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      if (
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) return;
       if (e.key === "f" || e.key === "F") {
-        if (isFocus) setRead(); else setFocus();
+        if (isFocus) setRead();
+        else setFocus();
       }
     };
     document.addEventListener("keydown", onKey);
@@ -91,39 +95,44 @@ const EditorTopBar: React.FC = () => {
 
   const isDirty = useSelector(selectIsDirty);
 
-  const { docName, docSeriesId, seriesTitle, docSeriesTitle, activeTabName, userDocument } =
-    useSelector(
-      (state: RootState) => {
-        const doc = docId
-          ? documentsSelectors.selectById(state, docId)
-          : undefined;
-        const dSeriesId = doc?.cloud?.seriesId || doc?.local?.seriesId;
+  const {
+    docName,
+    docSeriesId,
+    seriesTitle,
+    docSeriesTitle,
+    activeTabName,
+    userDocument,
+  } = useSelector(
+    (state: RootState) => {
+      const doc = docId
+        ? documentsSelectors.selectById(state, docId)
+        : undefined;
+      const dSeriesId = doc?.cloud?.seriesId || doc?.local?.seriesId;
 
-        const { activeTabId, tabIds } = state.ui.tabs;
-        const isMultiTab = tabIds.length > 1;
-        const activeDoc =
-          isMultiTab && activeTabId && activeTabId !== docId
-            ? documentsSelectors.selectById(state, activeTabId)
-            : undefined;
-        const activeTabName = isMultiTab && activeDoc
-          ? activeDoc.local?.name ?? activeDoc.cloud?.name
-          : undefined;
+      const { activeTabId, tabIds } = state.ui.tabs;
+      const isMultiTab = tabIds.length > 1;
+      const activeDoc = isMultiTab && activeTabId && activeTabId !== docId
+        ? documentsSelectors.selectById(state, activeTabId)
+        : undefined;
+      const activeTabName = isMultiTab && activeDoc
+        ? activeDoc.local?.name ?? activeDoc.cloud?.name
+        : undefined;
 
-        return {
-          docName: doc?.cloud?.name || doc?.local?.name,
-          docSeriesId: dSeriesId,
-          seriesTitle: urlSeriesId
-            ? state.series.find((s) => s.id === urlSeriesId)?.title
-            : undefined,
-          docSeriesTitle: dSeriesId
-            ? state.series.find((s) => s.id === dSeriesId)?.title
-            : undefined,
-          activeTabName,
-          userDocument: doc,
-        };
-      },
-      shallowEqual,
-    );
+      return {
+        docName: doc?.cloud?.name || doc?.local?.name,
+        docSeriesId: dSeriesId,
+        seriesTitle: urlSeriesId
+          ? state.series.find((s) => s.id === urlSeriesId)?.title
+          : undefined,
+        docSeriesTitle: dSeriesId
+          ? state.series.find((s) => s.id === dSeriesId)?.title
+          : undefined,
+        activeTabName,
+        userDocument: doc,
+      };
+    },
+    shallowEqual,
+  );
 
   const breadcrumbs = React.useMemo((): BreadcrumbItem[] => {
     const items: BreadcrumbItem[] = [];
@@ -131,45 +140,93 @@ const EditorTopBar: React.FC = () => {
 
     switch (segments[0]) {
       case "browse":
-        items.push({ label: "Posts", href: "/posts", icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} /> });
+        items.push({
+          label: "Posts",
+          href: "/posts",
+          icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
         break;
 
       case "posts":
-        items.push({ label: "Posts", href: "/posts", icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} /> });
+        items.push({
+          label: "Posts",
+          href: "/posts",
+          icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
         if (segments.length > 1) {
-          items.push({ label: seriesTitle || "Series", href: `/series/${segments[1]}`, icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} /> });
+          items.push({
+            label: seriesTitle || "Series",
+            href: `/series/${segments[1]}`,
+            icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+          });
         }
         break;
 
       case "series":
-        items.push({ label: "Posts", href: "/posts", icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} /> });
+        items.push({
+          label: "Posts",
+          href: "/posts",
+          icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
         if (segments.length > 1) {
           const sId = segments[1];
           if (segments.length > 2 && segments[2] === "edit") {
-            items.push({ label: seriesTitle || "Series", href: `/series/${sId}`, icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} /> });
+            items.push({
+              label: seriesTitle || "Series",
+              href: `/series/${sId}`,
+              icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+            });
             items.push({ label: "Edit", href: `/series/${sId}/edit` });
           } else {
-            items.push({ label: seriesTitle || "Series", href: `/series/${sId}`, icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} /> });
+            items.push({
+              label: seriesTitle || "Series",
+              href: `/series/${sId}`,
+              icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+            });
           }
         }
         break;
 
       case "dashboard":
-        items.push({ label: "Dashboard", href: "/dashboard", icon: <Dashboard sx={{ fontSize: 16, mr: 0.5 }} /> });
+        items.push({
+          label: "Dashboard",
+          href: "/dashboard",
+          icon: <Dashboard sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
         break;
 
       case "new":
-        items.push({ label: "Posts", href: "/posts", icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} /> });
-        items.push({ label: "New Post", href: "/new", icon: <Create sx={{ fontSize: 16, mr: 0.5 }} /> });
+        items.push({
+          label: "Posts",
+          href: "/posts",
+          icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
+        items.push({
+          label: "New Post",
+          href: "/new",
+          icon: <Create sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
         break;
 
       case "edit": {
         const editId = segments[1];
-        items.push({ label: "Posts", href: "/posts", icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} /> });
+        items.push({
+          label: "Posts",
+          href: "/posts",
+          icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
         if (docSeriesId) {
-          items.push({ label: docSeriesTitle || "Series", href: `/series/${docSeriesId}`, icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} /> });
+          items.push({
+            label: docSeriesTitle || "Series",
+            href: `/series/${docSeriesId}`,
+            icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+          });
         }
-        items.push({ label: editId ? docName || "Edit Post" : "Edit Post", href: editId ? `/edit/${editId}` : "/edit", icon: <Edit sx={{ fontSize: 16, mr: 0.5 }} /> });
+        items.push({
+          label: editId ? docName || "Edit Post" : "Edit Post",
+          href: editId ? `/edit/${editId}` : "/edit",
+          icon: <Edit sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
         if (activeTabName) {
           items.push({ label: activeTabName });
         }
@@ -178,11 +235,22 @@ const EditorTopBar: React.FC = () => {
 
       case "view": {
         const viewId = segments[1];
-        items.push({ label: "Posts", href: "/posts", icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} /> });
+        items.push({
+          label: "Posts",
+          href: "/posts",
+          icon: <LibraryBooks sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
         if (docSeriesId) {
-          items.push({ label: docSeriesTitle || "Series", href: `/series/${docSeriesId}`, icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} /> });
+          items.push({
+            label: docSeriesTitle || "Series",
+            href: `/series/${docSeriesId}`,
+            icon: <CollectionsBookmark sx={{ fontSize: 16, mr: 0.5 }} />,
+          });
         }
-        items.push({ label: viewId ? docName || "Post" : "Post", href: viewId ? `/view/${viewId}` : "/posts" });
+        items.push({
+          label: viewId ? docName || "Post" : "Post",
+          href: viewId ? `/view/${viewId}` : "/posts",
+        });
         if (activeTabName) {
           items.push({ label: activeTabName });
         }
@@ -190,11 +258,18 @@ const EditorTopBar: React.FC = () => {
       }
 
       case "user":
-        items.push({ label: "User Profile", href: segments[1] ? `/user/${segments[1]}` : "/" });
+        items.push({
+          label: "User Profile",
+          href: segments[1] ? `/user/${segments[1]}` : "/",
+        });
         break;
 
       case "notes":
-        items.push({ label: "Notes", href: "/notes", icon: <StickyNote2 sx={{ fontSize: 16, mr: 0.5 }} /> });
+        items.push({
+          label: "Notes",
+          href: "/notes",
+          icon: <StickyNote2 sx={{ fontSize: 16, mr: 0.5 }} />,
+        });
         break;
 
       default:
@@ -203,7 +278,14 @@ const EditorTopBar: React.FC = () => {
     }
 
     return items;
-  }, [segments, seriesTitle, docSeriesId, docSeriesTitle, docName, activeTabName]);
+  }, [
+    segments,
+    seriesTitle,
+    docSeriesId,
+    docSeriesTitle,
+    docName,
+    activeTabName,
+  ]);
 
   const handleMoreClose = React.useCallback(() => setMoreAnchor(null), []);
 
@@ -230,16 +312,14 @@ const EditorTopBar: React.FC = () => {
     >
       {/* Hamburger */}
       <Tooltip
-        title={
-          sidebarMode === "full" ? "Collapse sidebar" : "Expand sidebar"
-        }
+        title={sidebarMode === "full" ? "Collapse sidebar" : "Expand sidebar"}
       >
         <IconButton
           size="small"
           onClick={toggleSidebarCompact}
-          aria-label={
-            sidebarMode === "full" ? "Collapse sidebar" : "Expand sidebar"
-          }
+          aria-label={sidebarMode === "full"
+            ? "Collapse sidebar"
+            : "Expand sidebar"}
           sx={{ flexShrink: 0, color: "text.secondary" }}
         >
           <MenuIcon fontSize="small" />
@@ -324,49 +404,63 @@ const EditorTopBar: React.FC = () => {
             open={Boolean(moreAnchor)}
             onClose={handleMoreClose}
           >
-            <ShareDocument userDocument={userDocument} variant="menuitem" closeMenu={handleMoreClose} />
-            <DownloadDocument userDocument={userDocument} variant="menuitem" closeMenu={handleMoreClose} />
-            <ForkDocument userDocument={userDocument} variant="menuitem" closeMenu={handleMoreClose} />
+            <ShareDocument
+              userDocument={userDocument}
+              variant="menuitem"
+              closeMenu={handleMoreClose}
+            />
+            <DownloadDocument
+              userDocument={userDocument}
+              variant="menuitem"
+              closeMenu={handleMoreClose}
+            />
+            <ForkDocument
+              userDocument={userDocument}
+              variant="menuitem"
+              closeMenu={handleMoreClose}
+            />
           </Menu>
 
           {/* Edit / Done primary button */}
-          {isEditPage ? (
-            <>
-              <Tooltip title="Save changes">
+          {isEditPage
+            ? (
+              <>
+                <Tooltip title="Save changes">
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={triggerSave}
+                    startIcon={<Save fontSize="small" />}
+                    sx={{
+                      flexShrink: 0,
+                      ...(isDirty && {
+                        borderColor: "primary.main",
+                        color: "primary.main",
+                      }),
+                    }}
+                  >
+                    Save
+                  </Button>
+                </Tooltip>
                 <Button
                   variant="outlined"
                   size="small"
-                  onClick={triggerSave}
-                  startIcon={<Save fontSize="small" />}
-                  sx={{
-                    flexShrink: 0,
-                    ...(isDirty && {
-                      borderColor: "primary.main",
-                      color: "primary.main",
-                    }),
-                  }}
+                  onClick={() => router.push(`/view/${docId}`)}
+                  sx={{ flexShrink: 0 }}
                 >
-                  Save
+                  Done
                 </Button>
-              </Tooltip>
-              <Button
-                variant="outlined"
+              </>
+            )
+            : (
+              <IconButton
                 size="small"
-                onClick={() => router.push(`/view/${docId}`)}
-                sx={{ flexShrink: 0 }}
+                onClick={() => router.push(`/edit/${docId}`)}
+                aria-label="Edit document"
               >
-                Done
-              </Button>
-            </>
-          ) : (
-            <IconButton
-              size="small"
-              onClick={() => router.push(`/edit/${docId}`)}
-              aria-label="Edit document"
-            >
-              <Edit fontSize="small" />
-            </IconButton>
-          )}
+                <Edit fontSize="small" />
+              </IconButton>
+            )}
         </>
       )}
 
@@ -392,8 +486,7 @@ const EditorTopBar: React.FC = () => {
           onClick={toggleRail}
           aria-label={RAIL_MODE_LABELS[railMode]}
           sx={{
-            color:
-              railMode === "hidden" ? "text.disabled" : "text.secondary",
+            color: railMode === "hidden" ? "text.disabled" : "text.secondary",
             flexShrink: 0,
           }}
         >

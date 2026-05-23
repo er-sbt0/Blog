@@ -157,10 +157,12 @@ function IconMenu(
             key={option.key}
             selected={selectedIndex === i}
             ref={(el) => {
-              if (selectedIndex === i) el?.scrollIntoView({
+              if (selectedIndex === i) {
+                el?.scrollIntoView({
                   block: "nearest",
                   behavior: "smooth",
                 });
+              }
             }}
             onClick={() => {
               setHighlightedIndex(i);
@@ -217,22 +219,47 @@ class ComponentPickerOption extends MenuOption {
 export default function ComponentPickerMenuPlugin() {
   const [editor] = useLexicalComposerContext();
   const [queryString, setQueryString] = useState<string | null>(null);
-  const openImageDialog = useCallback(() =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { image: { open: true } }), [editor]);
-  const openTableDialog = useCallback(() =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { table: { open: true } }), [editor]);
-  const openGraphDialog = useCallback(() =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { graph: { open: true } }), [editor]);
-  const openSketchDialog = useCallback(() =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { sketch: { open: true } }), [editor]);
-  const openIFrameDialog = useCallback(() =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { iframe: { open: true } }), [editor]);
-  const openLayoutDialog = useCallback(() =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { layout: { open: true } }), [editor]);
-  const openAttachmentDialog = useCallback(() =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { attachment: { open: true } }), [editor]);
-  const openOCRDialog = useCallback(() =>
-    editor.dispatchCommand(SET_DIALOGS_COMMAND, { ocr: { open: true } }), [editor]);
+  const openImageDialog = useCallback(
+    () =>
+      editor.dispatchCommand(SET_DIALOGS_COMMAND, { image: { open: true } }),
+    [editor],
+  );
+  const openTableDialog = useCallback(
+    () =>
+      editor.dispatchCommand(SET_DIALOGS_COMMAND, { table: { open: true } }),
+    [editor],
+  );
+  const openGraphDialog = useCallback(
+    () =>
+      editor.dispatchCommand(SET_DIALOGS_COMMAND, { graph: { open: true } }),
+    [editor],
+  );
+  const openSketchDialog = useCallback(
+    () =>
+      editor.dispatchCommand(SET_DIALOGS_COMMAND, { sketch: { open: true } }),
+    [editor],
+  );
+  const openIFrameDialog = useCallback(
+    () =>
+      editor.dispatchCommand(SET_DIALOGS_COMMAND, { iframe: { open: true } }),
+    [editor],
+  );
+  const openLayoutDialog = useCallback(
+    () =>
+      editor.dispatchCommand(SET_DIALOGS_COMMAND, { layout: { open: true } }),
+    [editor],
+  );
+  const openAttachmentDialog = useCallback(
+    () =>
+      editor.dispatchCommand(SET_DIALOGS_COMMAND, {
+        attachment: { open: true },
+      }),
+    [editor],
+  );
+  const openOCRDialog = useCallback(
+    () => editor.dispatchCommand(SET_DIALOGS_COMMAND, { ocr: { open: true } }),
+    [editor],
+  );
 
   const checkForTriggerMatch = useBasicTypeaheadTriggerMatch("/", {
     minLength: 0,
@@ -597,7 +624,19 @@ export default function ComponentPickerMenuPlugin() {
         }),
       ]
       : baseOptions;
-  }, [editor, getDynamicOptions, queryString, openAttachmentDialog, openGraphDialog, openIFrameDialog, openImageDialog, openLayoutDialog, openOCRDialog, openSketchDialog, openTableDialog]);
+  }, [
+    editor,
+    getDynamicOptions,
+    queryString,
+    openAttachmentDialog,
+    openGraphDialog,
+    openIFrameDialog,
+    openImageDialog,
+    openLayoutDialog,
+    openOCRDialog,
+    openSketchDialog,
+    openTableDialog,
+  ]);
 
   const onSelectOption = useCallback(
     (

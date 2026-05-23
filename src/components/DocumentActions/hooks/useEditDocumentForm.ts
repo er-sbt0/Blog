@@ -76,7 +76,22 @@ export function useEditDocumentForm(userDocument: UserDocument) {
       status: currentStatus,
     });
     resetValidation();
-  }, [userDocument, editDialogOpen, cloudDocument?.coauthors, currentStatus, document?.background_image, document?.createdAt, document?.description, document?.sort_order, handle, isCollab, isPrivate, isPublished, name, resetValidation]);
+  }, [
+    userDocument,
+    editDialogOpen,
+    cloudDocument?.coauthors,
+    currentStatus,
+    document?.background_image,
+    document?.createdAt,
+    document?.description,
+    document?.sort_order,
+    handle,
+    isCollab,
+    isPrivate,
+    isPublished,
+    name,
+    resetValidation,
+  ]);
 
   const updateCoauthors = (users: (User | string)[]) => {
     const coauthors = users.map((u) => (typeof u === "string" ? u : u.email));

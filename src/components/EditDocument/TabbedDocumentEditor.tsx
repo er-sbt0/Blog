@@ -55,7 +55,9 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
   const user = useSelector((state) => state.user);
 
   // All root-level posts for the "Move to other post" picker.
-  const allDocuments = useSelector((state) => documentsSelectors.selectAll(state));
+  const allDocuments = useSelector((state) =>
+    documentsSelectors.selectAll(state)
+  );
   const availablePosts = allDocuments.filter((doc) => {
     const d = doc.cloud ?? doc.local;
     return d?.type === "DOCUMENT" && !d?.parentId && doc.id !== rootId;
@@ -73,7 +75,9 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
   const [deleteTarget, setDeleteTarget] = useState<TabMeta | null>(null);
 
   // Context menu state.
-  const [contextMenuAnchor, setContextMenuAnchor] = useState<HTMLElement | null>(null);
+  const [contextMenuAnchor, setContextMenuAnchor] = useState<
+    HTMLElement | null
+  >(null);
   const [contextMenuTabId, setContextMenuTabId] = useState<string | null>(null);
   const [contextMenuIsRoot, setContextMenuIsRoot] = useState(false);
 
@@ -127,7 +131,12 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
       parentId: rootId,
       sort_order: tabMetas.length,
       data: EMPTY_EDITOR_STATE as DocumentCreateInput["data"],
-      revisions: [{ id: revisionId, documentId: id, createdAt: now, data: EMPTY_EDITOR_STATE as DocumentCreateInput["data"] }],
+      revisions: [{
+        id: revisionId,
+        documentId: id,
+        createdAt: now,
+        data: EMPTY_EDITOR_STATE as DocumentCreateInput["data"],
+      }],
     };
 
     const created = await apiClient.documents.create(newDoc);
@@ -235,7 +244,8 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
           id: revisionId,
           documentId: id,
           createdAt: now,
-          data: source.data ?? (EMPTY_EDITOR_STATE as DocumentCreateInput["data"]),
+          data: source.data ??
+            (EMPTY_EDITOR_STATE as DocumentCreateInput["data"]),
         },
       ],
     };
@@ -358,27 +368,29 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
       >
         <DialogTitle>Move tab to another post</DialogTitle>
         <DialogContent sx={{ p: 0 }}>
-          {availablePosts.length === 0 ? (
-            <DialogContentText sx={{ p: 3 }}>
-              No other posts available.
-            </DialogContentText>
-          ) : (
-            <List dense disablePadding>
-              {availablePosts.map((doc) => {
-                const d = doc.cloud ?? doc.local;
-                const name = d?.name ?? doc.id;
-                return (
-                  <ListItemButton
-                    key={doc.id}
-                    selected={moveTargetPostId === doc.id}
-                    onClick={() => setMoveTargetPostId(doc.id)}
-                  >
-                    <ListItemText primary={name} />
-                  </ListItemButton>
-                );
-              })}
-            </List>
-          )}
+          {availablePosts.length === 0
+            ? (
+              <DialogContentText sx={{ p: 3 }}>
+                No other posts available.
+              </DialogContentText>
+            )
+            : (
+              <List dense disablePadding>
+                {availablePosts.map((doc) => {
+                  const d = doc.cloud ?? doc.local;
+                  const name = d?.name ?? doc.id;
+                  return (
+                    <ListItemButton
+                      key={doc.id}
+                      selected={moveTargetPostId === doc.id}
+                      onClick={() => setMoveTargetPostId(doc.id)}
+                    >
+                      <ListItemText primary={name} />
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setMoveDialogTabId(null)}>Cancel</Button>

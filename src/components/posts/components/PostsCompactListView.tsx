@@ -258,7 +258,13 @@ export const PostsCompactListView: React.FC<PostsCompactListViewProps> = ({
               const postCount = groupPosts.length;
               const isExpanded = expandedSeries.has(series.id);
               const isAuthor = !!user && user.id === series.authorId;
-              return renderSeriesRow(series, postCount, isExpanded, isAuthor, groupPosts);
+              return renderSeriesRow(
+                series,
+                postCount,
+                isExpanded,
+                isAuthor,
+                groupPosts,
+              );
             }
             const post = group.posts[0];
             if (!post) return null;

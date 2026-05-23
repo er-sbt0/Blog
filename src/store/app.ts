@@ -1118,7 +1118,9 @@ export const appSlice = createSlice({
         if (document.seriesId) {
           const series = state.series.find((s) => s.id === document.seriesId);
           if (series) {
-            const alreadyInSeries = series.posts.some((p) => p.id === document.id);
+            const alreadyInSeries = series.posts.some((p) =>
+              p.id === document.id
+            );
             if (!alreadyInSeries) {
               series.posts.push(document);
             }
@@ -1169,7 +1171,9 @@ export const appSlice = createSlice({
         if (previousSeriesId && previousSeriesId !== document.seriesId) {
           const oldSeries = state.series.find((s) => s.id === previousSeriesId);
           if (oldSeries) {
-            oldSeries.posts = oldSeries.posts.filter((p) => p.id !== document.id);
+            oldSeries.posts = oldSeries.posts.filter((p) =>
+              p.id !== document.id
+            );
           }
         }
         if (document.seriesId) {

@@ -1,12 +1,31 @@
 import type { UserDocument } from "@/types";
 
 function compareObjectsByKey(key: string, ascending = true) {
-  return function innerSort(objectA: Record<string, unknown>, objectB: Record<string, unknown>) {
-    const valueA = key.split(".").reduce((o: Record<string, unknown> | undefined, i) => o?.[i] as Record<string, unknown> | undefined, objectA as Record<string, unknown>);
-    const valueB = key.split(".").reduce((o: Record<string, unknown> | undefined, i) => o?.[i] as Record<string, unknown> | undefined, objectB as Record<string, unknown>);
+  return function innerSort(
+    objectA: Record<string, unknown>,
+    objectB: Record<string, unknown>,
+  ) {
+    const valueA = key.split(".").reduce(
+      (o: Record<string, unknown> | undefined, i) =>
+        o?.[i] as Record<string, unknown> | undefined,
+      objectA as Record<string, unknown>,
+    );
+    const valueB = key.split(".").reduce(
+      (o: Record<string, unknown> | undefined, i) =>
+        o?.[i] as Record<string, unknown> | undefined,
+      objectB as Record<string, unknown>,
+    );
     const a = valueA as string | number | null | undefined;
     const b = valueB as string | number | null | undefined;
-    const sortValue = a == null ? -1 : b == null ? 1 : a > b ? 1 : a < b ? -1 : 0;
+    const sortValue = a == null
+      ? -1
+      : b == null
+      ? 1
+      : a > b
+      ? 1
+      : a < b
+      ? -1
+      : 0;
     return ascending ? sortValue : -1 * sortValue;
   };
 }

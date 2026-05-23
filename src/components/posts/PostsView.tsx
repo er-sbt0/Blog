@@ -196,7 +196,9 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
                   aria-label="Create new post in series"
                   selected={false}
                 >
-                  <Tooltip title="New post"><PostAdd fontSize="small" /></Tooltip>
+                  <Tooltip title="New post">
+                    <PostAdd fontSize="small" />
+                  </Tooltip>
                 </ToggleButton>
                 <ToggleButton
                   value="add-posts"
@@ -204,7 +206,9 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
                   aria-label="Add or remove posts"
                   selected={false}
                 >
-                  <Tooltip title="Add / remove posts"><CollectionsBookmark fontSize="small" /></Tooltip>
+                  <Tooltip title="Add / remove posts">
+                    <CollectionsBookmark fontSize="small" />
+                  </Tooltip>
                 </ToggleButton>
               </ToggleButtonGroup>
             )}
@@ -271,15 +275,20 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
                   aria-label="Create new post"
                   selected={false}
                 >
-                  <Tooltip title="New post"><PostAdd fontSize="small" /></Tooltip>
+                  <Tooltip title="New post">
+                    <PostAdd fontSize="small" />
+                  </Tooltip>
                 </ToggleButton>
                 <ToggleButton
                   value="new-series"
-                  onClick={() => setCreateSeriesDrawerOpen(true)}
+                  onClick={() =>
+                    setCreateSeriesDrawerOpen(true)}
                   aria-label="Create new series"
                   selected={false}
                 >
-                  <Tooltip title="New series"><Add fontSize="small" /></Tooltip>
+                  <Tooltip title="New series">
+                    <Add fontSize="small" />
+                  </Tooltip>
                 </ToggleButton>
               </ToggleButtonGroup>
             )}

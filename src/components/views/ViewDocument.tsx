@@ -48,7 +48,9 @@ const ViewDocument: React.FC<
       setTabs(metas);
     }).catch(() => {});
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [rootId]);
 
   const handleTabSwitch = (tabId: string) => setActiveTabId(tabId);
@@ -70,66 +72,86 @@ const ViewDocument: React.FC<
       />
 
       <Box sx={{ px: { xs: 1, sm: 2, md: 2 } }}>
-      {/* Document header */}
-      <Box sx={{ pt: 2, pb: 0 }}>
-        <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
-          {cloudDocument.name}
-        </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0.75, mb: 1.5 }}>
-          {cloudDocument.status && (
-            <Chip
-              label={cloudDocument.status === DocumentStatus.ACTIVE ? "Active" : "Done"}
-              size="small"
-              color={cloudDocument.status === DocumentStatus.ACTIVE ? "success" : "default"}
-              variant="outlined"
-              sx={{ height: 22, fontSize: "0.72rem" }}
-            />
-          )}
-          {authorLabel && (
-            <Typography variant="body2" color="text.secondary">
-              By {authorLabel}
-            </Typography>
-          )}
-          {updatedDate && (
-            <>
-              <Typography variant="body2" color="text.secondary">·</Typography>
-              <Typography variant="body2" color="text.secondary">{updatedDate}</Typography>
-            </>
-          )}
-          {seriesTitle && (
-            <>
-              <Typography variant="body2" color="text.secondary">·</Typography>
-              <Typography variant="body2" color="text.secondary">
-                Series: {seriesTitle}
-                {seriesOrder != null && seriesTotal != null ? ` · ${seriesOrder}/${seriesTotal}` : ""}
-              </Typography>
-            </>
-          )}
-        </Box>
-        <Divider />
-      </Box>
-
-      <div className="document-container document-view" ref={containerRef}>
-        {/* Root tab: use SSR-rendered children + local-override logic */}
-        {activeTabId === cloudDocument.id && (
-          <LocalDocumentView
-            documentId={cloudDocument.id}
-            cloudHead={cloudDocument.head}
+        {/* Document header */}
+        <Box sx={{ pt: 2, pb: 0 }}>
+          <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+            {cloudDocument.name}
+          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 0.75,
+              mb: 1.5,
+            }}
           >
-            {children}
-          </LocalDocumentView>
-        )}
+            {cloudDocument.status && (
+              <Chip
+                label={cloudDocument.status === DocumentStatus.ACTIVE
+                  ? "Active"
+                  : "Done"}
+                size="small"
+                color={cloudDocument.status === DocumentStatus.ACTIVE
+                  ? "success"
+                  : "default"}
+                variant="outlined"
+                sx={{ height: 22, fontSize: "0.72rem" }}
+              />
+            )}
+            {authorLabel && (
+              <Typography variant="body2" color="text.secondary">
+                By {authorLabel}
+              </Typography>
+            )}
+            {updatedDate && (
+              <>
+                <Typography variant="body2" color="text.secondary">
+                  ·
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {updatedDate}
+                </Typography>
+              </>
+            )}
+            {seriesTitle && (
+              <>
+                <Typography variant="body2" color="text.secondary">
+                  ·
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Series: {seriesTitle}
+                  {seriesOrder != null && seriesTotal != null
+                    ? ` · ${seriesOrder}/${seriesTotal}`
+                    : ""}
+                </Typography>
+              </>
+            )}
+          </Box>
+          <Divider />
+        </Box>
 
-        {/* Child tabs: fetch content client-side */}
-        {activeTabId !== cloudDocument.id && (
-          <ChildDocumentView key={activeTabId} docId={activeTabId} />
-        )}
+        <div className="document-container document-view" ref={containerRef}>
+          {/* Root tab: use SSR-rendered children + local-override logic */}
+          {activeTabId === cloudDocument.id && (
+            <LocalDocumentView
+              documentId={cloudDocument.id}
+              cloudHead={cloudDocument.head}
+            >
+              {children}
+            </LocalDocumentView>
+          )}
 
-        <ViewAttachmentEnhancer containerRef={containerRef} />
-      </div>
+          {/* Child tabs: fetch content client-side */}
+          {activeTabId !== cloudDocument.id && (
+            <ChildDocumentView key={activeTabId} docId={activeTabId} />
+          )}
 
-      <ViewDocumentInfo cloudDocument={cloudDocument} />
-      <SyncToCloudFab documentId={cloudDocument.id} />
+          <ViewAttachmentEnhancer containerRef={containerRef} />
+        </div>
+
+        <ViewDocumentInfo cloudDocument={cloudDocument} />
+        <SyncToCloudFab documentId={cloudDocument.id} />
       </Box>
     </Box>
   );

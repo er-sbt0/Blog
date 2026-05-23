@@ -147,14 +147,16 @@ export default function MathComponent(
       setSelected(true);
       const mathVirtualKeyboard = window.mathVirtualKeyboard;
       mathVirtualKeyboard.show({ animate: true });
-      const element = (mathVirtualKeyboard as { element?: HTMLElement }).element;
+      const element =
+        (mathVirtualKeyboard as { element?: HTMLElement }).element;
       if (!element) return;
       element.ontransitionend = (event) => {
         if (event.propertyName !== "transform") return;
         mathfield.executeCommand("scrollIntoView");
         const mathTools = document.getElementById("math-tools");
         const virtualKeyboard = window.mathVirtualKeyboard;
-        const container = (virtualKeyboard as { element?: HTMLElement })?.element
+        const container = (virtualKeyboard as { element?: HTMLElement })
+          ?.element
           ?.firstElementChild as HTMLElement;
         if (!container || !mathTools) return;
         document.documentElement.style.setProperty(

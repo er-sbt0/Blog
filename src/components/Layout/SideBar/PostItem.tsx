@@ -12,7 +12,13 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Article, CloudUpload } from "@mui/icons-material";
-import { actions, documentsSelectors, useDispatch, useSelector, type RootState } from "@/store";
+import {
+  actions,
+  documentsSelectors,
+  type RootState,
+  useDispatch,
+  useSelector,
+} from "@/store";
 import type { UserDocument } from "@/types";
 import { SafeNavigationLink } from "./SafeNavigationLink";
 import type { PostItemActions } from "./hooks/useSidebarActions";
@@ -105,9 +111,7 @@ export const PostItem = memo(
               minHeight: inSeries ? 26 : 30,
               justifyContent: sidebarOpen ? "initial" : "center",
               overflow: "hidden",
-              ...(inSeries
-                ? { pl: 1.5, pr: 5 }
-                : { pl: 2.5, pr: 5 }),
+              ...(inSeries ? { pl: 1.5, pr: 5 } : { pl: 2.5, pr: 5 }),
               py: inSeries ? 0.25 : 0.375,
               "&.Mui-selected": {
                 bgcolor: "action.selected",

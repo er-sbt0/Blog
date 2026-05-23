@@ -49,7 +49,9 @@ function LinkDialog(
     );
     type ContentEditableEl = HTMLElement & { __lexicalEditor?: LexicalEditor };
     const editors = [
-      ...document.querySelectorAll<ContentEditableEl>('[contenteditable="true"]'),
+      ...document.querySelectorAll<ContentEditableEl>(
+        '[contenteditable="true"]',
+      ),
     ].map((el) => el.__lexicalEditor).filter(Boolean) as LexicalEditor[];
     return nodes.reduce((map, node) => {
       const ownerEditor = editors.find((editor) =>
@@ -165,7 +167,9 @@ function LinkDialog(
   const setNodeId = (key: string, id: string) => {
     type ContentEditableEl = HTMLElement & { __lexicalEditor?: LexicalEditor };
     const editors = [
-      ...document.querySelectorAll<ContentEditableEl>('[contenteditable="true"]'),
+      ...document.querySelectorAll<ContentEditableEl>(
+        '[contenteditable="true"]',
+      ),
     ].map((el) => el.__lexicalEditor).filter(Boolean) as LexicalEditor[];
     const previousFigureKey = [...figures.entries()].find(([k, element]) =>
       element.id === id && k !== key

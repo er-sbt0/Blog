@@ -68,7 +68,8 @@ export const LayoutModeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const toggleRail = useCallback(() => {
     setRailMode((prev) => {
-      const next = RAIL_CYCLE[(RAIL_CYCLE.indexOf(prev) + 1) % RAIL_CYCLE.length];
+      const next =
+        RAIL_CYCLE[(RAIL_CYCLE.indexOf(prev) + 1) % RAIL_CYCLE.length];
       localStorage.setItem(RAIL_MODE_KEY, next);
       return next;
     });
@@ -85,7 +86,10 @@ export const LayoutModeProvider: React.FC<{ children: React.ReactNode }> = ({
   const handleRailMouseMove = useCallback((e: MouseEvent) => {
     // Rail is on the right; dragging left (smaller clientX) widens it
     const newWidth = Math.min(
-      Math.max(startWidthRef.current - (e.clientX - startXRef.current), RAIL_MIN_W),
+      Math.max(
+        startWidthRef.current - (e.clientX - startXRef.current),
+        RAIL_MIN_W,
+      ),
       RAIL_MAX_W,
     );
     setRailWidth(newWidth);
@@ -93,7 +97,10 @@ export const LayoutModeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleRailMouseUp = useCallback(() => {
     setIsRailResizing(false);
-    localStorage.setItem(RAIL_WIDTH_KEY, currentRailWidthRef.current.toString());
+    localStorage.setItem(
+      RAIL_WIDTH_KEY,
+      currentRailWidthRef.current.toString(),
+    );
   }, []);
 
   useEffect(() => {
@@ -121,7 +128,18 @@ export const LayoutModeProvider: React.FC<{ children: React.ReactNode }> = ({
   const setRead = useCallback(() => setViewMode("read"), []);
 
   return (
-    <LayoutModeContext.Provider value={{ railMode, toggleRail, viewMode, setFocus, setRead, railWidth, isRailResizing, startRailResize }}>
+    <LayoutModeContext.Provider
+      value={{
+        railMode,
+        toggleRail,
+        viewMode,
+        setFocus,
+        setRead,
+        railWidth,
+        isRailResizing,
+        startRailResize,
+      }}
+    >
       {children}
     </LayoutModeContext.Provider>
   );

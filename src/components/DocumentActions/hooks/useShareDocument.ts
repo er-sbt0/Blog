@@ -51,7 +51,9 @@ export function useShareDocument(userDocument: UserDocument) {
       const landscape = formdata.get("landscape") as string;
       const fmt = formdata.get("format") as string;
       if (scale !== "1") url.searchParams.append("scale", scale);
-      if (landscape !== "false") url.searchParams.append("landscape", landscape);
+      if (landscape !== "false") {
+        url.searchParams.append("landscape", landscape);
+      }
       if (fmt !== "a4") url.searchParams.append("format", fmt);
     }
     if (format === "docx") url.pathname += ".docx";

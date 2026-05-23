@@ -8,7 +8,9 @@ import {
 } from "docx";
 import { $convertNodeToDocx } from ".";
 
-export function $convertLinkNode(node: LinkNode): ExternalHyperlink | (BookmarkStart | ExternalHyperlink | BookmarkEnd)[] {
+export function $convertLinkNode(
+  node: LinkNode,
+): ExternalHyperlink | (BookmarkStart | ExternalHyperlink | BookmarkEnd)[] {
   const url = node.getURL();
   const children = node.getChildren().map($convertNodeToDocx).filter(Boolean)
     .flat() as ParagraphChild[];

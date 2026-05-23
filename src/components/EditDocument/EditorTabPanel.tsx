@@ -100,8 +100,7 @@ const EditorTabPanel: React.FC<EditorTabPanelProps> = ({
   );
 
   const documentForEditor = useMemo(
-    () =>
-      loadedDocument ? ensureValidDocumentData(loadedDocument) : undefined,
+    () => loadedDocument ? ensureValidDocumentData(loadedDocument) : undefined,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [loadedDocument?.id],
   );

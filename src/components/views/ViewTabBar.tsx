@@ -9,7 +9,9 @@ interface ViewTabBarProps {
   onSwitch: (tabId: string) => void;
 }
 
-const ViewTabBar: React.FC<ViewTabBarProps> = ({ tabs, activeTabId, onSwitch }) => {
+const ViewTabBar: React.FC<ViewTabBarProps> = (
+  { tabs, activeTabId, onSwitch },
+) => {
   if (tabs.length <= 1) return null;
 
   return (
@@ -57,7 +59,9 @@ const ViewTabBar: React.FC<ViewTabBarProps> = ({ tabs, activeTabId, onSwitch }) 
               },
             }}
           >
-            <Description sx={{ fontSize: 14, color: "text.secondary", flexShrink: 0 }} />
+            <Description
+              sx={{ fontSize: 14, color: "text.secondary", flexShrink: 0 }}
+            />
             <Typography
               noWrap
               sx={{
