@@ -8,6 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Cloud, History, MobileFriendly } from "@mui/icons-material";
+import { createSelector } from "@reduxjs/toolkit";
 import { documentsSelectors, useSelector } from "@/store";
 import type { RootState } from "@/store";
 import { DateDisplay } from "@/components/shared/DateDisplay";
@@ -30,47 +31,53 @@ export default function RevisionsSection({
   const [tabFilter, setTabFilter] = useState<"this" | "all">("this");
   const [showAll, setShowAll] = useState(false);
 
-  const { tabRevisions, allRevisions } = useSelector((state: RootState) => {
-    const tabIds = isEditMode ? state.ui.tabs.tabIds : [rootId];
+  const selectRevisions = useMemo(
+    () =>
+      createSelector(
+        (state: RootState) =>
+          isEditMode ? state.ui.tabs.tabIds : [rootId],
+        (state: RootState) => state.documents.entities,
+        (state: RootState) =>
+          activeDocId ? documentsSelectors.selectById(state, activeDocId) : undefined,
+        (tabIds, entities, activeDoc) => {
+          const sort = (
+            list: (DocumentRevision | EditorDocumentRevision)[],
+          ) =>
+            [...list].sort(
+              (a, b) =>
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            );
 
-    // Collect revisions from all tab documents
-    const all: (DocumentRevision | EditorDocumentRevision)[] = [];
-    for (const id of tabIds) {
-      const doc = documentsSelectors.selectById(state, id);
-      if (!doc) continue;
-      const cloud = doc.cloud?.revisions ?? [];
-      const local = (doc.local?.revisions ?? []).filter(
-        (lr) => !cloud.some((cr) => cr.id === lr.id),
-      );
-      all.push(...cloud, ...local);
-    }
+          const all: (DocumentRevision | EditorDocumentRevision)[] = [];
+          for (const id of tabIds) {
+            const doc = entities[id];
+            if (!doc) continue;
+            const cloud = doc.cloud?.revisions ?? [];
+            const local = (doc.local?.revisions ?? []).filter(
+              (lr) => !cloud.some((cr) => cr.id === lr.id),
+            );
+            all.push(...cloud, ...local);
+          }
 
-    // Revisions just for the active tab
-    const thisTab: (DocumentRevision | EditorDocumentRevision)[] = [];
-    if (activeDocId) {
-      const doc = documentsSelectors.selectById(state, activeDocId);
-      if (doc) {
-        const cloud = doc.cloud?.revisions ?? [];
-        const local = (doc.local?.revisions ?? []).filter(
-          (lr) => !cloud.some((cr) => cr.id === lr.id),
-        );
-        thisTab.push(...cloud, ...local);
-      }
-    }
+          const thisTab: (DocumentRevision | EditorDocumentRevision)[] = [];
+          if (activeDoc) {
+            const cloud = activeDoc.cloud?.revisions ?? [];
+            const local = (activeDoc.local?.revisions ?? []).filter(
+              (lr) => !cloud.some((cr) => cr.id === lr.id),
+            );
+            thisTab.push(...cloud, ...local);
+          }
 
-    const sort = (
-      list: (DocumentRevision | EditorDocumentRevision)[],
-    ) =>
-      [...list].sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
+          return {
+            tabRevisions: sort(thisTab),
+            allRevisions: sort(all),
+          };
+        },
+      ),
+    [isEditMode, rootId, activeDocId],
+  );
 
-    return {
-      tabRevisions: sort(thisTab),
-      allRevisions: sort(all),
-    };
-  });
+  const { tabRevisions, allRevisions } = useSelector(selectRevisions);
 
   const revisions = useMemo(
     () => (tabFilter === "this" ? tabRevisions : allRevisions),
