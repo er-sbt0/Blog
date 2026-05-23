@@ -28,11 +28,12 @@ export const selectUserFilteredDocuments = createSelector(
       if (cloudDocument) {
         return (
           cloudDocument.author.id === user.id &&
-          !isReadmeDocument(cloudDocument.name)
+          !isReadmeDocument(cloudDocument.name) &&
+          !cloudDocument.parentId
         );
       }
       if (localDocument) {
-        return !isReadmeDocument(localDocument.name);
+        return !isReadmeDocument(localDocument.name) && !localDocument.parentId;
       }
       return false;
     });
