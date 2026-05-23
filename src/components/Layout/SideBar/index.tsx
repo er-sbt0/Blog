@@ -111,6 +111,7 @@ const SideBar: React.FC = () => {
               duration: theme.transitions.duration.enteringScreen,
             }),
           overflowX: "hidden",
+          overscrollBehavior: "contain",
           display: "flex",
           flexDirection: "column",
           height: "100vh",

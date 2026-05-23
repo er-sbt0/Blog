@@ -121,7 +121,7 @@ export const ActivePostsSection: React.FC<ActivePostsSectionProps> = ({
         </Box>
       )}
 
-      <Box sx={{ overflow: "auto", flex: "1 1 auto" }}>
+      <Box sx={{ overflow: "auto", flex: "1 1 auto", overscrollBehavior: "contain" }}>
         <List dense>
           {filteredGroups.map((group, groupIndex) => {
             if (group.type === "series" && group.series) {
