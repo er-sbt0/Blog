@@ -9,7 +9,6 @@ import {
   Typography,
 } from "@mui/material";
 import { ChevronRight } from "@mui/icons-material";
-import { GripVertical } from "lucide-react";
 import { Series, User, UserDocument } from "@/types";
 import { formatRelativeDate } from "@/utils/dateFormat";
 import { ListDensity, TagStyle } from "../types";
@@ -82,7 +81,6 @@ export const SeriesRow = React.memo(function SeriesRow({
   onDragOverSeries,
 }: SeriesRowProps) {
   const postCount = posts.length;
-  const seriesRowHeight = density === "compact" ? 36 : 44;
   const isDragOver = dragOverSeriesId === series.id;
 
   const mostRecentDate = posts.reduce<string | undefined>((latest, p) => {
@@ -143,9 +141,11 @@ export const SeriesRow = React.memo(function SeriesRow({
     })
     .slice(0, SERIES_PREVIEW_COUNT);
 
+  const padY = density === "compact" ? 7 : 11;
+
   return (
     <Box>
-      {/* Series header row */}
+      {/* Series header row — whole row is the hover-bg, matching variant-a.jsx */}
       <Box
         className="post-list-row series-row"
         onClick={handleRowClick}
@@ -155,10 +155,9 @@ export const SeriesRow = React.memo(function SeriesRow({
         sx={{
           display: "flex",
           alignItems: "center",
-          minHeight: seriesRowHeight,
-          pl: 1,
-          pr: 1,
-          borderRadius: 0.5,
+          py: `${padY}px`,
+          px: 1,
+          borderRadius: 1,
           position: "relative",
           cursor: "pointer",
           bgcolor: isSelected
@@ -166,63 +165,54 @@ export const SeriesRow = React.memo(function SeriesRow({
             : isDragOver
             ? "action.selected"
             : "transparent",
-          outline: isDragOver ? "2px solid" : "none",
-          outlineColor: "primary.main",
-          transition: "background-color 0.15s, outline 0.1s",
+          outline: isDragOver ? "1.5px solid" : isSelected ? "1px solid" : "none",
+          outlineColor: isDragOver ? "primary.main" : "secondary.main",
+          outlineOffset: -1,
+          transition: "background-color 80ms",
           "&:hover": {
-            bgcolor: isSelected || isDragOver
-              ? "action.selected"
-              : "action.hover",
+            bgcolor: isSelected || isDragOver ? "action.selected" : "action.hover",
           },
           "&:hover .row-checkbox-grip": { visibility: "visible" },
           "&:hover .row-actions-btn": { opacity: 1 },
-          "&:hover .row-date": { opacity: 0.45 },
+          "&:hover .row-date": { opacity: 0 },
         }}
       >
-        {/* Gutter */}
+        {/* Gutter — 22px, checkbox only, no drag handle for series */}
         <Box
           className="row-checkbox-grip"
           sx={{
-            visibility: isSelected ? "visible" : "hidden",
+            width: 22,
             display: "flex",
-            alignItems: "center",
-            gap: 0.25,
+            justifyContent: "center",
             flexShrink: 0,
-            mr: 0.5,
-            width: 36,
+            visibility: isSelected ? "visible" : "hidden",
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <Box
-            sx={{
-              cursor: "default",
-              color: "text.disabled",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <GripVertical size={14} />
-          </Box>
           <Checkbox
             size="small"
             checked={isSelected}
             onClick={handleCheckboxClick}
-            sx={{ p: 0, width: 18, height: 18 }}
+            sx={{ p: 0, width: 14, height: 14 }}
           />
         </Box>
 
-        {/* Chevron + Title area */}
-        <Box sx={{ flex: 1, minWidth: 0, mr: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <ChevronRight
-              sx={{
-                fontSize: 18,
-                color: "text.secondary",
-                flexShrink: 0,
-                transition: "transform 0.2s ease",
-                transform: isExpanded ? "rotate(90deg)" : "none",
-              }}
-            />
+        {/* Chevron — direct flex sibling so it aligns with the gutter */}
+        <ChevronRight
+          sx={{
+            fontSize: 16,
+            color: "text.secondary",
+            flexShrink: 0,
+            mr: 0.75,
+            transition: "transform 120ms",
+            transform: isExpanded ? "rotate(90deg)" : "none",
+          }}
+        />
+
+        {/* Title area — title row + sub-line; being the tallest child drives
+            the row height, and both gutter + chevron center against it */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             {editingSeriesName !== undefined
               ? (
                 <InputBase
@@ -260,21 +250,18 @@ export const SeriesRow = React.memo(function SeriesRow({
                     fontWeight: 600,
                     fontSize: "0.875rem",
                     color: "text.primary",
-                    flex: 1,
-                    minWidth: 0,
                   }}
                 >
                   {series.title}
                 </Typography>
               )}
           </Box>
-          {/* Sub-line */}
           <Typography
             variant="caption"
             sx={{
               color: "text.disabled",
-              fontSize: "0.6875rem",
-              pl: "26px",
+              fontSize: "0.71875rem",
+              mt: "2px",
               display: "block",
             }}
           >
@@ -283,18 +270,6 @@ export const SeriesRow = React.memo(function SeriesRow({
               ` · updated ${formatRelativeDate(mostRecentDate)}`}
           </Typography>
         </Box>
-
-        {/* Tags placeholder */}
-        <Box
-          sx={{
-            display: "flex",
-            gap: 0.5,
-            flexShrink: 0,
-            mr: 1.5,
-            minWidth: 0,
-            maxWidth: 160,
-          }}
-        />
 
         {/* Date */}
         <Typography
@@ -307,7 +282,7 @@ export const SeriesRow = React.memo(function SeriesRow({
             flexShrink: 0,
             mr: 0.5,
             fontSize: "0.6875rem",
-            transition: "opacity 0.15s",
+            transition: "opacity 80ms",
             fontVariantNumeric: "tabular-nums",
             whiteSpace: "nowrap",
           }}
