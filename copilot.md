@@ -74,13 +74,13 @@ src/
 
 Existing files modified:
 
-| File | Change |
-|---|---|
+| File                                                   | Change                                   |
+| ------------------------------------------------------ | ---------------------------------------- |
 | `src/components/EditDocument/TabbedDocumentEditor.tsx` | Add split layout, track active editorRef |
-| `src/components/EditDocument/EditorTabPanel.tsx` | Expose editorRef via callback prop |
-| `src/editor/plugins/ToolbarPlugin/index.tsx` | Add copilot toggle button |
-| `src/store/app.ts` | Add `ui.copilot` state |
-| `src/lib/ai/prompts.ts` | Add copilot system prompt |
+| `src/components/EditDocument/EditorTabPanel.tsx`       | Expose editorRef via callback prop       |
+| `src/editor/plugins/ToolbarPlugin/index.tsx`           | Add copilot toggle button                |
+| `src/store/app.ts`                                     | Add `ui.copilot` state                   |
+| `src/lib/ai/prompts.ts`                                | Add copilot system prompt                |
 
 ---
 
@@ -106,31 +106,31 @@ export function serializeForCopilot(editor: LexicalEditor): string {
 
 ### Node serialization rules
 
-Each node emits an XML element. The `key` attribute is always included.
-Text content is inlined. Custom nodes get a self-closing tag with their
-relevant attributes.
+Each node emits an XML element. The `key` attribute is always included. Text
+content is inlined. Custom nodes get a self-closing tag with their relevant
+attributes.
 
-| Lexical node | XML output |
-|---|---|
-| HeadingNode (h1–h6) | `<heading level="2" key="k1">text</heading>` |
-| ParagraphNode | `<paragraph key="k2">text</paragraph>` |
-| QuoteNode | `<quote key="k3">text</quote>` |
-| ListNode (bullet) | `<list type="bullet" key="k4"><item>…</item></list>` |
-| ListNode (numbered) | `<list type="numbered" key="k5">…</list>` |
-| HorizontalRuleNode | `<hr key="k6" />` |
-| ImageNode | `<image key="k7" src="…" alt="…" />` |
-| TableNode | `<table key="k8" rows="3" cols="4">markdown table</table>` |
-| CodeNode | `<code key="k9" language="ts">…</code>` |
-| MathNode | `<math key="k10" latex="\int x dx" />` |
-| GraphNode | `<graph key="k11" title="…" />` |
-| SketchNode | `<sketch key="k12" />` |
-| AttachmentNode | `<attachment key="k13" name="…" />` |
-| IFrameNode | `<iframe key="k14" src="…" />` |
-| KanbanNode | `<kanban key="k15" />` |
-| DetailsNode | `<details key="k16" summary="…">content</details>` |
+| Lexical node        | XML output                                                 |
+| ------------------- | ---------------------------------------------------------- |
+| HeadingNode (h1–h6) | `<heading level="2" key="k1">text</heading>`               |
+| ParagraphNode       | `<paragraph key="k2">text</paragraph>`                     |
+| QuoteNode           | `<quote key="k3">text</quote>`                             |
+| ListNode (bullet)   | `<list type="bullet" key="k4"><item>…</item></list>`       |
+| ListNode (numbered) | `<list type="numbered" key="k5">…</list>`                  |
+| HorizontalRuleNode  | `<hr key="k6" />`                                          |
+| ImageNode           | `<image key="k7" src="…" alt="…" />`                       |
+| TableNode           | `<table key="k8" rows="3" cols="4">markdown table</table>` |
+| CodeNode            | `<code key="k9" language="ts">…</code>`                    |
+| MathNode            | `<math key="k10" latex="\int x dx" />`                     |
+| GraphNode           | `<graph key="k11" title="…" />`                            |
+| SketchNode          | `<sketch key="k12" />`                                     |
+| AttachmentNode      | `<attachment key="k13" name="…" />`                        |
+| IFrameNode          | `<iframe key="k14" src="…" />`                             |
+| KanbanNode          | `<kanban key="k15" />`                                     |
+| DetailsNode         | `<details key="k16" summary="…">content</details>`         |
 
-Inline formatting (bold, italic, underline) is omitted — the AI does not need
-it to make structural edits. Plain text content is sufficient.
+Inline formatting (bold, italic, underline) is omitted — the AI does not need it
+to make structural edits. Plain text content is sufficient.
 
 The serialized output is kept under ~3000 tokens. If the document exceeds this,
 truncate body paragraphs to their first sentence and note `[truncated]`.
@@ -186,7 +186,14 @@ const editorTools = {
   insert_heading: {
     description: "Insert a heading",
     parameters: z.object({
-      level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
+      level: z.union([
+        z.literal(1),
+        z.literal(2),
+        z.literal(3),
+        z.literal(4),
+        z.literal(5),
+        z.literal(6),
+      ]),
       text: z.string(),
       afterNodeKey: z.string().optional(),
     }),
@@ -256,7 +263,7 @@ const result = streamText({
           return { success: true };
         },
       },
-    ])
+    ]),
   ),
   maxSteps: 5,
 });
@@ -264,8 +271,8 @@ const result = streamText({
 
 ### Response format
 
-Stream the text response normally. After the text stream ends, append a
-sentinel line with the serialized tool calls:
+Stream the text response normally. After the text stream ends, append a sentinel
+line with the serialized tool calls:
 
 ```
 \n\n__COPILOT_ACTIONS__:{"actions":[{"type":"insert_table","params":{...}}]}
@@ -279,7 +286,11 @@ This avoids a second round-trip or a custom streaming protocol.
 Add to `src/lib/ai/prompts.ts`:
 
 ```ts
-export const COPILOT_SYSTEM_PROMPT = (title: string, context: string, selection?: string) =>
+export const COPILOT_SYSTEM_PROMPT = (
+  title: string,
+  context: string,
+  selection?: string,
+) =>
   `You are a writing assistant embedded in a blog editor. ` +
   `The user is editing a document titled "${title}". ` +
   `\n\nDocument structure:\n${context}` +
@@ -308,8 +319,8 @@ export type CopilotMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
-  actions?: CopilotAction[];   // present on assistant messages after Apply is available
-  applied?: boolean;           // true once Apply has been clicked
+  actions?: CopilotAction[]; // present on assistant messages after Apply is available
+  applied?: boolean; // true once Apply has been clicked
   timestamp: number;
 };
 
@@ -325,8 +336,8 @@ ui: {
   // ... existing fields
   copilot: {
     open: boolean;
-    threads: Record<string, CopilotThread>;  // keyed by documentId
-  };
+    threads: Record<string, CopilotThread>; // keyed by documentId
+  }
 }
 ```
 
@@ -360,18 +371,24 @@ Lexical `editor.update()` call.
 
 **New file:** `src/editor/utils/copilotToolExecutors.ts`
 
-All executors take `(editor: LexicalEditor, params: unknown)` and return
-`void`. They are synchronous wrappers around `editor.update()`.
+All executors take `(editor: LexicalEditor, params: unknown)` and return `void`.
+They are synchronous wrappers around `editor.update()`.
 
 ### Executor implementations
 
 ```ts
 import {
-  $getNodeByKey, $getRoot, $getSelection, $isRangeSelection,
-  $createParagraphNode, $createTextNode, $insertNodes, LexicalEditor,
+  $createParagraphNode,
+  $createTextNode,
+  $getNodeByKey,
+  $getRoot,
+  $getSelection,
+  $insertNodes,
+  $isRangeSelection,
+  LexicalEditor,
 } from "lexical";
 import { $createHeadingNode, $createQuoteNode } from "@lexical/rich-text";
-import { $createListNode, $createListItemNode } from "@lexical/list";
+import { $createListItemNode, $createListNode } from "@lexical/list";
 import { $createCodeNode } from "@lexical/code";
 import { $createTableNodeWithDimensions } from "@lexical/table";
 import { $createHorizontalRuleNode } from "@/editor/nodes/HorizontalRuleNode";
@@ -379,6 +396,7 @@ import { $createMathNode } from "@/editor/nodes/MathNode";
 ```
 
 **`remove_node`**
+
 ```ts
 editor.update(() => {
   const node = $getNodeByKey(params.nodeKey);
@@ -387,6 +405,7 @@ editor.update(() => {
 ```
 
 **`replace_text`**
+
 ```ts
 editor.update(() => {
   const node = $getNodeByKey(params.nodeKey);
@@ -398,6 +417,7 @@ editor.update(() => {
 ```
 
 **`replace_selection`**
+
 ```ts
 editor.update(() => {
   const selection = $getSelection();
@@ -407,16 +427,20 @@ editor.update(() => {
 ```
 
 **`insert_table`**
+
 ```ts
 editor.update(() => {
   const table = $createTableNodeWithDimensions(
-    params.rows, params.cols, params.headers?.length > 0
+    params.rows,
+    params.cols,
+    params.headers?.length > 0,
   );
   insertAfterNodeOrAtEnd(table, params.afterNodeKey);
 });
 ```
 
 **`insert_heading`**
+
 ```ts
 editor.update(() => {
   const heading = $createHeadingNode(`h${params.level}`);
@@ -426,6 +450,7 @@ editor.update(() => {
 ```
 
 **`insert_list`**
+
 ```ts
 editor.update(() => {
   const list = $createListNode(params.type === "bullet" ? "bullet" : "number");
@@ -439,6 +464,7 @@ editor.update(() => {
 ```
 
 **`insert_code_block`**
+
 ```ts
 editor.update(() => {
   const code = $createCodeNode(params.language);
@@ -448,6 +474,7 @@ editor.update(() => {
 ```
 
 **`insert_math`**
+
 ```ts
 editor.update(() => {
   const math = $createMathNode(params.latex, false);
@@ -458,6 +485,7 @@ editor.update(() => {
 ```
 
 **`insert_horizontal_rule`**
+
 ```ts
 editor.update(() => {
   const hr = $createHorizontalRuleNode();
@@ -466,6 +494,7 @@ editor.update(() => {
 ```
 
 **Helper:**
+
 ```ts
 function insertAfterNodeOrAtEnd(node: LexicalNode, afterNodeKey?: string) {
   if (afterNodeKey) {
@@ -481,7 +510,10 @@ function insertAfterNodeOrAtEnd(node: LexicalNode, afterNodeKey?: string) {
 calls the right executor:
 
 ```ts
-export function applyActions(editor: LexicalEditor, actions: CopilotAction[]): void {
+export function applyActions(
+  editor: LexicalEditor,
+  actions: CopilotAction[],
+): void {
   for (const action of actions) {
     EXECUTORS[action.type]?.(editor, action.params);
   }
@@ -562,8 +594,8 @@ useEffect(() => {
 
 ### Toggle button in `ToolbarPlugin`
 
-Add a `SmartToyOutlined` (or `AutoAwesome`) icon button at the far right of
-the toolbar. Dispatches `actions.setCopilotOpen(!copilotOpen)`.
+Add a `SmartToyOutlined` (or `AutoAwesome`) icon button at the far right of the
+toolbar. Dispatches `actions.setCopilotOpen(!copilotOpen)`.
 
 ```tsx
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
@@ -577,7 +609,7 @@ import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
   >
     <SmartToyOutlinedIcon fontSize="small" />
   </IconButton>
-</Tooltip>
+</Tooltip>;
 ```
 
 ### `CopilotPanel` component
@@ -601,18 +633,30 @@ the editor to shrink). Use `borderLeft: 1, borderColor: "divider"`.
   }}
 >
   {/* Header */}
-  <Box sx={{ px: 2, py: 1, borderBottom: 1, borderColor: "divider",
-             display: "flex", alignItems: "center", gap: 1 }}>
+  <Box
+    sx={{
+      px: 2,
+      py: 1,
+      borderBottom: 1,
+      borderColor: "divider",
+      display: "flex",
+      alignItems: "center",
+      gap: 1,
+    }}
+  >
     <SmartToyOutlinedIcon fontSize="small" color="primary" />
     <Typography variant="subtitle2" sx={{ flex: 1 }}>Copilot</Typography>
-    <IconButton size="small" onClick={() => dispatch(actions.setCopilotOpen(false))}>
+    <IconButton
+      size="small"
+      onClick={() => dispatch(actions.setCopilotOpen(false))}
+    >
       <CloseIcon fontSize="small" />
     </IconButton>
   </Box>
 
   {/* Chat */}
   <CopilotChat documentId={documentId} editorRef={editorRef} />
-</Box>
+</Box>;
 ```
 
 ---
@@ -626,6 +670,7 @@ the editor to shrink). Use `borderLeft: 1, borderColor: "divider"`.
 Owns the input state and streaming logic. Reads messages from Redux.
 
 **Props:**
+
 ```ts
 {
   documentId: string;
@@ -634,6 +679,7 @@ Owns the input state and streaming logic. Reads messages from Redux.
 ```
 
 **Layout:**
+
 ```
 flex column, full height
 ├── QuickActions (fixed top, shown only when thread is empty)
@@ -669,7 +715,12 @@ const handleSend = async (text: string) => {
   const assistantId = crypto.randomUUID();
   dispatch(actions.addCopilotMessage({
     documentId,
-    message: { id: assistantId, role: "assistant", content: "", timestamp: Date.now() },
+    message: {
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      timestamp: Date.now(),
+    },
   }));
 
   // 5. Call /api/copilot and stream into the placeholder
@@ -718,15 +769,23 @@ const handleSend = async (text: string) => {
 ```
 
 **Input row:**
+
 ```tsx
-<Box sx={{ p: 1, borderTop: 1, borderColor: "divider", display: "flex", gap: 1 }}>
+<Box
+  sx={{ p: 1, borderTop: 1, borderColor: "divider", display: "flex", gap: 1 }}
+>
   <TextField
     fullWidth
     size="small"
     placeholder="Ask anything…"
     value={input}
     onChange={(e) => setInput(e.target.value)}
-    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(input); }}}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSend(input);
+      }
+    }}
     multiline
     maxRows={4}
     disabled={isStreaming}
@@ -738,7 +797,7 @@ const handleSend = async (text: string) => {
   >
     <SendIcon fontSize="small" />
   </IconButton>
-</Box>
+</Box>;
 ```
 
 ### `CopilotMessage` component
@@ -752,45 +811,56 @@ and split on newlines).
 Apply button shown only when `message.actions?.length > 0 && !message.applied`:
 
 ```tsx
-{message.actions?.length > 0 && !message.applied && (
-  <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
-    <Button
-      size="small"
-      variant="contained"
-      startIcon={<CheckIcon />}
-      onClick={() => {
-        applyActions(editorRef.current!, message.actions!);
-        dispatch(actions.updateCopilotMessage({
-          documentId,
-          messageId: message.id,
-          patch: { applied: true },
-        }));
-      }}
-    >
-      Apply
-    </Button>
-    <Button
-      size="small"
-      variant="outlined"
-      onClick={() =>
-        dispatch(actions.updateCopilotMessage({
-          documentId,
-          messageId: message.id,
-          patch: { actions: undefined },
-        }))
-      }
-    >
-      Dismiss
-    </Button>
-  </Box>
-)}
+{
+  message.actions?.length > 0 && !message.applied && (
+    <Box sx={{ mt: 1, display: "flex", gap: 1 }}>
+      <Button
+        size="small"
+        variant="contained"
+        startIcon={<CheckIcon />}
+        onClick={() => {
+          applyActions(editorRef.current!, message.actions!);
+          dispatch(actions.updateCopilotMessage({
+            documentId,
+            messageId: message.id,
+            patch: { applied: true },
+          }));
+        }}
+      >
+        Apply
+      </Button>
+      <Button
+        size="small"
+        variant="outlined"
+        onClick={() =>
+          dispatch(actions.updateCopilotMessage({
+            documentId,
+            messageId: message.id,
+            patch: { actions: undefined },
+          }))}
+      >
+        Dismiss
+      </Button>
+    </Box>
+  );
+}
 ```
 
 After applying, replace the Apply/Dismiss row with a quiet confirmation chip:
+
 ```tsx
-{message.applied && (
-  <Chip size="small" icon={<CheckIcon />} label="Applied" color="success" variant="outlined" sx={{ mt: 1 }} />
-)}
+{
+  message.applied && (
+    <Chip
+      size="small"
+      icon={<CheckIcon />}
+      label="Applied"
+      color="success"
+      variant="outlined"
+      sx={{ mt: 1 }}
+    />
+  );
+}
 ```
 
 ### `QuickActions` component
@@ -801,11 +871,20 @@ Row of Chip buttons shown when the thread is empty, to bootstrap common flows:
 
 ```tsx
 const QUICK_ACTIONS = [
-  { label: "Improve writing", prompt: "Improve the writing quality of this document." },
-  { label: "Fix grammar",     prompt: "Fix any grammar and spelling mistakes." },
-  { label: "Make shorter",    prompt: "Shorten this document while keeping all key information." },
-  { label: "Add examples",    prompt: "Add concrete examples to illustrate the main points." },
-  { label: "Summarize",       prompt: "Summarize this document in 3 bullet points." },
+  {
+    label: "Improve writing",
+    prompt: "Improve the writing quality of this document.",
+  },
+  { label: "Fix grammar", prompt: "Fix any grammar and spelling mistakes." },
+  {
+    label: "Make shorter",
+    prompt: "Shorten this document while keeping all key information.",
+  },
+  {
+    label: "Add examples",
+    prompt: "Add concrete examples to illustrate the main points.",
+  },
+  { label: "Summarize", prompt: "Summarize this document in 3 bullet points." },
 ];
 
 // Render as wrapping row of outlined Chips
@@ -817,7 +896,8 @@ const QUICK_ACTIONS = [
 
 After all stages are implemented, verify the following end-to-end flows:
 
-- [ ] Copilot toggle button appears in toolbar; clicking it opens/closes the panel
+- [ ] Copilot toggle button appears in toolbar; clicking it opens/closes the
+      panel
 - [ ] Panel slides in and the editor shrinks (not overlapped)
 - [ ] Sending a message shows the user bubble immediately
 - [ ] Assistant response streams in token-by-token
@@ -839,12 +919,16 @@ Follow DESIGN.md conventions throughout.
 - Colors: use MUI palette tokens only (`primary.main`, `text.secondary`, etc.)
 - Typography: `body2` for message text, `caption` for timestamps
 - Spacing: `p: 1` (8px) / `p: 2` (16px) grid; no raw pixel values
-- Panel width: 320px fixed (not responsive — collapse to closed state on narrow viewports rather than shrinking)
-- User messages: right-aligned, `bgcolor: "primary.main"`, `color: "primary.contrastText"`, `borderRadius: 2`
+- Panel width: 320px fixed (not responsive — collapse to closed state on narrow
+  viewports rather than shrinking)
+- User messages: right-aligned, `bgcolor: "primary.main"`,
+  `color: "primary.contrastText"`, `borderRadius: 2`
 - Assistant messages: left-aligned, `bgcolor: "action.hover"`, `borderRadius: 2`
 - Loading state: `LinearProgress` at the top of the panel while streaming
-- Empty state: centered `Typography color="text.secondary"` prompt to start chatting, with the quick actions below
-- Accessibility: focus the input when the panel opens; trap focus within the panel when it is open
+- Empty state: centered `Typography color="text.secondary"` prompt to start
+  chatting, with the quick actions below
+- Accessibility: focus the input when the panel opens; trap focus within the
+  panel when it is open
 
 ---
 
@@ -854,7 +938,8 @@ These are reasonable next iterations, not required for the first version:
 
 - **Multiple named threads per document** — single thread is fine initially
 - **Thread persistence** — saving threads to IndexedDB or the database
-- **Image insertion** — `insert_image` requires knowing a valid URL; leave for later
+- **Image insertion** — `insert_image` requires knowing a valid URL; leave for
+  later
 - **Graph/Sketch insertion** — these require separate creation UIs
 - **Model selector in the panel** — reuse the global AI provider setting
 - **Undo integration** — Lexical history already tracks mutations; Ctrl+Z works

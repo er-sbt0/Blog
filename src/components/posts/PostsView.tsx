@@ -1,8 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
-import { Box, IconButton, Tooltip, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import { BookMarked, FolderPlus, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Series, User, UserDocument } from "@/types";
@@ -15,6 +14,12 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import DocumentCard from "@/components/DocumentCard";
 import { PostsCompactListView } from "./components/PostsCompactListView";
 import { useTopBarActions } from "@/contexts/TopBarActionsContext";
+import {
+  type ListDensity,
+  PostsListView,
+  type TagStyle,
+} from "./components/PostsListView";
+import { NewPostSplitButton } from "./components/NewPostSplitButton";
 
 // Controls
 import SeriesSearchAndControls from "./components/SeriesSearchAndControls";
@@ -35,7 +40,7 @@ interface PostsViewProps {
   user?: User;
 }
 
-/** Section heading with a trailing divider line. */
+/** Section heading with a trailing divider line (used for grid view and series mode). */
 function SectionDivider({ label, color }: { label: string; color: string }) {
   return (
     <Box
@@ -87,7 +92,6 @@ const PostsGrid: React.FC<{ posts: UserDocument[]; user?: User }> = (
   </Grid>
 );
 
-
 /**
  * Unified view for both /posts (all blog posts) and /posts/[id] (series detail).
  *
@@ -95,6 +99,7 @@ const PostsGrid: React.FC<{ posts: UserDocument[]; user?: User }> = (
  *                 supports time-edit mode (compact view) for re-ordering by date.
  * All-posts mode – no `series` prop. Posts are split into two sections:
  *                 standalone posts first, then series, both sorted by date.
+ *                 Compact view uses the new PostsListView with POSTS+SERIES bands.
  */
 const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   const isSeries = !!series;
@@ -109,6 +114,13 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
     isSeries ? "seriesPostsView" : "postsView",
     "grid",
   );
+
+  // List-view display preferences (persistent, shared across both modes).
+  const [density] = useLocalStorage<ListDensity>(
+    "postsListDensity",
+    "comfortable",
+  );
+  const [tagStyle] = useLocalStorage<TagStyle>("postsListTagStyle", "filled");
 
   // ── Drawer / dialog state ─────────────────────────────────────────────────
   const [createPostDrawerOpen, setCreatePostDrawerOpen] = useState(false);
@@ -157,39 +169,22 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
   useEffect(() => {
     const toolbarNode = isSeries
       ? (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            flexWrap: "wrap",
+          }}
+        >
           <ViewToggle view={viewType} onChange={setViewType} />
-          {canEdit && (
-            <Box sx={{
-              display: "flex",
-              alignItems: "center",
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 1,
-              overflow: "hidden",
-            }}>
-              <Tooltip title="New post">
-                <IconButton
-                  size="small"
-                  onClick={() => setCreatePostDrawerOpen(true)}
-                  aria-label="Create new post in series"
-                  sx={{ color: "text.secondary", borderRadius: 0 }}
-                >
-                  <Plus size={16} strokeWidth={2} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Add / remove posts">
-                <IconButton
-                  size="small"
-                  onClick={() => setAddDialogOpen(true)}
-                  aria-label="Add or remove posts"
-                  sx={{ color: "text.secondary", borderRadius: 0 }}
-                >
-                  <BookMarked size={16} strokeWidth={2} />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          )}
+          <NewPostSplitButton
+            isSeries
+            canEdit={canEdit}
+            onNewPost={() => setCreatePostDrawerOpen(true)}
+            onNewSeries={() => {}}
+            onAddRemovePosts={() => setAddDialogOpen(true)}
+          />
           <SeriesSearchAndControls
             viewType={viewType}
             canEdit={canEdit}
@@ -205,37 +200,11 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
       : (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <ViewToggle view={viewType} onChange={setViewType} />
-          {canEdit && (
-            <Box sx={{
-              display: "flex",
-              alignItems: "center",
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 1,
-              overflow: "hidden",
-            }}>
-              <Tooltip title="New post">
-                <IconButton
-                  size="small"
-                  onClick={() => router.push("/new")}
-                  aria-label="Create new post"
-                  sx={{ color: "text.secondary", borderRadius: 0 }}
-                >
-                  <Plus size={16} strokeWidth={2} />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="New series">
-                <IconButton
-                  size="small"
-                  onClick={() => setCreateSeriesDrawerOpen(true)}
-                  aria-label="Create new series"
-                  sx={{ color: "text.secondary", borderRadius: 0 }}
-                >
-                  <FolderPlus size={16} strokeWidth={2} />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          )}
+          <NewPostSplitButton
+            canEdit={canEdit}
+            onNewPost={() => router.push("/new")}
+            onNewSeries={() => setCreateSeriesDrawerOpen(true)}
+          />
         </Box>
       );
 
@@ -318,24 +287,28 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
           );
         }
 
+        // List view: single component handles POSTS + SERIES sections
+        if (viewType === "compact") {
+          return (
+            <PostsListView
+              posts={sortedStandalonePosts}
+              series={seriesList}
+              user={user}
+              density={density}
+              tagStyle={tagStyle}
+            />
+          );
+        }
+
+        // Grid view: separate sections
         return (
           <>
-            {/* Posts section */}
             {hasPosts && (
               <Box component="section" sx={{ mb: { xs: 4, md: 6 } }}>
                 <SectionDivider label="Posts" color="primary.main" />
-                {viewType === "compact"
-                  ? (
-                    <PostsCompactListView
-                      posts={sortedStandalonePosts}
-                      user={user}
-                    />
-                  )
-                  : <PostsGrid posts={sortedStandalonePosts} user={user} />}
+                <PostsGrid posts={sortedStandalonePosts} user={user} />
               </Box>
             )}
-
-            {/* Series section */}
             {hasSeries && (
               <Box component="section">
                 <SectionDivider label="Series" color="secondary.main" />

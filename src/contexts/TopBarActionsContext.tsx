@@ -7,7 +7,9 @@ interface TopBarActionsContextType {
   clearActions: () => void;
 }
 
-const TopBarActionsContext = createContext<TopBarActionsContextType | undefined>(
+const TopBarActionsContext = createContext<
+  TopBarActionsContextType | undefined
+>(
   undefined,
 );
 
@@ -32,7 +34,9 @@ export const TopBarActionsProvider: React.FC<{ children: React.ReactNode }> = ({
   const clearActions = useCallback(() => setActionsState(null), []);
 
   return (
-    <TopBarActionsContext.Provider value={{ actions, setActions, clearActions }}>
+    <TopBarActionsContext.Provider
+      value={{ actions, setActions, clearActions }}
+    >
       {children}
     </TopBarActionsContext.Provider>
   );
