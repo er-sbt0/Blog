@@ -12,19 +12,16 @@ import {
   Typography,
 } from "@mui/material";
 import {
-  CenterFocusWeak,
   CollectionsBookmark,
   Create,
   Dashboard,
   Edit,
   LibraryBooks,
-  Menu as MenuIcon,
   MoreHoriz,
   Save,
-  Search,
   StickyNote2,
-  ViewSidebar,
 } from "@mui/icons-material";
+import { Maximize2, Menu as MenuIcon, PanelRight, Search } from "lucide-react";
 import RouterLink from "next/link";
 import { shallowEqual } from "react-redux";
 import { documentsSelectors, selectIsDirty, useSelector } from "@/store";
@@ -32,6 +29,7 @@ import type { RootState } from "@/store";
 import { triggerSave } from "@/components/EditDocument/saveRegistry";
 import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
+import { useTopBarActions } from "@/contexts/TopBarActionsContext";
 import ShareDocument from "@/components/DocumentActions/Share";
 import DownloadDocument from "@/components/DocumentActions/Download";
 import ForkDocument from "@/components/DocumentActions/Fork";
@@ -53,6 +51,7 @@ const EditorTopBar: React.FC = () => {
   const router = useRouter();
   const { railMode, toggleRail, viewMode, setFocus, setRead } = useLayoutMode();
   const { toggleSidebarCompact, sidebarMode } = useSidebarWidth();
+  const { actions } = useTopBarActions();
   const isFocus = viewMode === "focus";
 
   React.useEffect(() => {
@@ -322,7 +321,7 @@ const EditorTopBar: React.FC = () => {
             : "Expand sidebar"}
           sx={{ flexShrink: 0, color: "text.secondary" }}
         >
-          <MenuIcon fontSize="small" />
+          <MenuIcon size={16} strokeWidth={2} />
         </IconButton>
       </Tooltip>
 
@@ -384,7 +383,7 @@ const EditorTopBar: React.FC = () => {
               aria-label="Search"
               sx={{ color: "text.secondary" }}
             >
-              <Search fontSize="small" />
+              <Search size={16} strokeWidth={2} />
             </IconButton>
           </Tooltip>
 
@@ -464,6 +463,9 @@ const EditorTopBar: React.FC = () => {
         </>
       )}
 
+      {/* Page-level actions (e.g. view toggle, new post/series on posts pages) */}
+      {actions}
+
       {/* Focus mode toggle */}
       <Tooltip title={isFocus ? "Exit focus mode (F)" : "Focus mode (F)"}>
         <IconButton
@@ -475,7 +477,7 @@ const EditorTopBar: React.FC = () => {
             flexShrink: 0,
           }}
         >
-          <CenterFocusWeak fontSize="small" />
+          <Maximize2 size={16} strokeWidth={2} />
         </IconButton>
       </Tooltip>
 
@@ -490,10 +492,7 @@ const EditorTopBar: React.FC = () => {
             flexShrink: 0,
           }}
         >
-          <ViewSidebar
-            fontSize="small"
-            sx={{ transform: "scaleX(-1)" }}
-          />
+          <PanelRight size={16} strokeWidth={2} />
         </IconButton>
       </Tooltip>
     </Box>

@@ -1,6 +1,6 @@
 import React from "react";
 import { ToggleButton, ToggleButtonGroup, Tooltip } from "@mui/material";
-import { ViewList, ViewModule } from "@mui/icons-material";
+import { LayoutGrid, List } from "lucide-react";
 
 export type ViewType = "grid" | "compact";
 
@@ -31,11 +31,14 @@ export const ViewToggle: React.FC<ViewToggleProps> = ({ view, onChange }) => {
       size="small"
       sx={{
         backgroundColor: "background.paper",
-        height: 32,
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 1,
+        overflow: "hidden",
         "& .MuiToggleButton-root": {
-          border: 1,
-          borderColor: "divider",
-          height: 32,
+          border: "none",
+          borderRadius: 0,
+          padding: "5px 8px",
           "&.Mui-selected": {
             backgroundColor: "primary.main",
             color: "primary.contrastText",
@@ -48,12 +51,12 @@ export const ViewToggle: React.FC<ViewToggleProps> = ({ view, onChange }) => {
     >
       <ToggleButton value="grid" aria-label="grid view">
         <Tooltip title="Grid View">
-          <ViewModule />
+          <LayoutGrid size={16} strokeWidth={2} />
         </Tooltip>
       </ToggleButton>
       <ToggleButton value="compact" aria-label="compact list view">
         <Tooltip title="Compact List">
-          <ViewList />
+          <List size={16} strokeWidth={2} />
         </Tooltip>
       </ToggleButton>
     </ToggleButtonGroup>

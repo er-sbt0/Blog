@@ -6,6 +6,7 @@ import AppLayoutContent from "./AppLayoutContent";
 import { Suspense } from "react";
 import { SidebarWidthProvider } from "@/contexts/SidebarWidthContext";
 import { LayoutModeProvider } from "@/contexts/LayoutModeContext";
+import { TopBarActionsProvider } from "@/contexts/TopBarActionsContext";
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -16,9 +17,11 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       <StoreProvider>
         <SidebarWidthProvider>
           <LayoutModeProvider>
-            <AppLayoutContent>{children}</AppLayoutContent>
-            <AlertDialog />
-            <Announcer />
+            <TopBarActionsProvider>
+              <AppLayoutContent>{children}</AppLayoutContent>
+              <AlertDialog />
+              <Announcer />
+            </TopBarActionsProvider>
           </LayoutModeProvider>
         </SidebarWidthProvider>
       </StoreProvider>

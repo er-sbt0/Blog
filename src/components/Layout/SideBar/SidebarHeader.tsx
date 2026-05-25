@@ -3,7 +3,7 @@ import RouterLink from "next/link";
 import Image from "next/image";
 import { Box, IconButton, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { ChevronLeft, ChevronRight } from "@mui/icons-material";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SidebarHeaderProps {
   open: boolean;
@@ -63,10 +63,13 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
           title={`${open ? "Collapse" : "Expand"} sidebar (${shortcutHint})`}
         >
           <IconButton
+            size="small"
             onClick={toggleSidebarCompact}
             aria-label={`${open ? "Collapse" : "Expand"} sidebar`}
           >
-            {open ? <ChevronLeft /> : <ChevronRight />}
+            {open
+              ? <ChevronLeft size={18} strokeWidth={2} />
+              : <ChevronRight size={18} strokeWidth={2} />}
           </IconButton>
         </Tooltip>
       </Box>

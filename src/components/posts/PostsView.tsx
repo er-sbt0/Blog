@@ -1,9 +1,8 @@
 "use client";
-import React, { useMemo, useState } from "react";
-import { Box, Tooltip, Typography } from "@mui/material";
-import { ToggleButton, ToggleButtonGroup } from "@mui/material";
+import React, { useEffect, useMemo, useState } from "react";
+import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import Grid from "@mui/material/Grid2";
-import { Add, CollectionsBookmark, PostAdd } from "@mui/icons-material";
+import { BookMarked, FolderPlus, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Series, User, UserDocument } from "@/types";
@@ -15,6 +14,7 @@ import { ViewToggle, type ViewType } from "@/components/shared/ViewToggle";
 import { EmptyState } from "@/components/shared/EmptyState";
 import DocumentCard from "@/components/DocumentCard";
 import { PostsCompactListView } from "./components/PostsCompactListView";
+import { useTopBarActions } from "@/contexts/TopBarActionsContext";
 
 // Controls
 import SeriesSearchAndControls from "./components/SeriesSearchAndControls";
@@ -87,16 +87,6 @@ const PostsGrid: React.FC<{ posts: UserDocument[]; user?: User }> = (
   </Grid>
 );
 
-const actionGroupSx = {
-  backgroundColor: "background.paper",
-  height: 32,
-  "& .MuiToggleButton-root": {
-    border: 1,
-    borderColor: "divider",
-    height: 32,
-    px: 1,
-  },
-} as const;
 
 /**
  * Unified view for both /posts (all blog posts) and /posts/[id] (series detail).
@@ -161,6 +151,115 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
     [standalonePosts],
   );
 
+  // ── Top bar actions ───────────────────────────────────────────────────────
+  const { setActions, clearActions } = useTopBarActions();
+
+  useEffect(() => {
+    const toolbarNode = isSeries
+      ? (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+          <ViewToggle view={viewType} onChange={setViewType} />
+          {canEdit && (
+            <Box sx={{
+              display: "flex",
+              alignItems: "center",
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
+              overflow: "hidden",
+            }}>
+              <Tooltip title="New post">
+                <IconButton
+                  size="small"
+                  onClick={() => setCreatePostDrawerOpen(true)}
+                  aria-label="Create new post in series"
+                  sx={{ color: "text.secondary", borderRadius: 0 }}
+                >
+                  <Plus size={16} strokeWidth={2} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Add / remove posts">
+                <IconButton
+                  size="small"
+                  onClick={() => setAddDialogOpen(true)}
+                  aria-label="Add or remove posts"
+                  sx={{ color: "text.secondary", borderRadius: 0 }}
+                >
+                  <BookMarked size={16} strokeWidth={2} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          )}
+          <SeriesSearchAndControls
+            viewType={viewType}
+            canEdit={canEdit}
+            isTimeEditMode={isTimeEditMode}
+            isSavingTimeChanges={isSavingTimeChanges}
+            pendingTimeChanges={pendingTimeChanges}
+            onToggleTimeEdit={handleToggleTimeEditMode}
+            onSaveTimeChanges={handleSaveTimeChanges}
+            onDiscardTimeChanges={handleDiscardTimeChanges}
+          />
+        </Box>
+      )
+      : (
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <ViewToggle view={viewType} onChange={setViewType} />
+          {canEdit && (
+            <Box sx={{
+              display: "flex",
+              alignItems: "center",
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
+              overflow: "hidden",
+            }}>
+              <Tooltip title="New post">
+                <IconButton
+                  size="small"
+                  onClick={() => router.push("/new")}
+                  aria-label="Create new post"
+                  sx={{ color: "text.secondary", borderRadius: 0 }}
+                >
+                  <Plus size={16} strokeWidth={2} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="New series">
+                <IconButton
+                  size="small"
+                  onClick={() => setCreateSeriesDrawerOpen(true)}
+                  aria-label="Create new series"
+                  sx={{ color: "text.secondary", borderRadius: 0 }}
+                >
+                  <FolderPlus size={16} strokeWidth={2} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          )}
+        </Box>
+      );
+
+    setActions(toolbarNode);
+    return () => clearActions();
+  }, [
+    isSeries,
+    viewType,
+    setViewType,
+    canEdit,
+    isTimeEditMode,
+    isSavingTimeChanges,
+    pendingTimeChanges,
+    handleToggleTimeEditMode,
+    handleSaveTimeChanges,
+    handleDiscardTimeChanges,
+    setCreatePostDrawerOpen,
+    setAddDialogOpen,
+    setCreateSeriesDrawerOpen,
+    router,
+    setActions,
+    clearActions,
+  ]);
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Box
@@ -178,51 +277,6 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
       {/* ── Content: series mode ── */}
       {isSeries && (
         <>
-          <Box
-            sx={{
-              mb: 5,
-              display: "flex",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 1,
-            }}
-          >
-            <ViewToggle view={viewType} onChange={setViewType} />
-            {canEdit && (
-              <ToggleButtonGroup size="small" sx={actionGroupSx}>
-                <ToggleButton
-                  value="new-post"
-                  onClick={() => setCreatePostDrawerOpen(true)}
-                  aria-label="Create new post in series"
-                  selected={false}
-                >
-                  <Tooltip title="New post">
-                    <PostAdd fontSize="small" />
-                  </Tooltip>
-                </ToggleButton>
-                <ToggleButton
-                  value="add-posts"
-                  onClick={() => setAddDialogOpen(true)}
-                  aria-label="Add or remove posts"
-                  selected={false}
-                >
-                  <Tooltip title="Add / remove posts">
-                    <CollectionsBookmark fontSize="small" />
-                  </Tooltip>
-                </ToggleButton>
-              </ToggleButtonGroup>
-            )}
-            <SeriesSearchAndControls
-              viewType={viewType}
-              canEdit={canEdit}
-              isTimeEditMode={isTimeEditMode}
-              isSavingTimeChanges={isSavingTimeChanges}
-              pendingTimeChanges={pendingTimeChanges}
-              onToggleTimeEdit={handleToggleTimeEditMode}
-              onSaveTimeChanges={handleSaveTimeChanges}
-              onDiscardTimeChanges={handleDiscardTimeChanges}
-            />
-          </Box>
           <SectionDivider label="Posts" color="primary.main" />
           {seriesUserDocs.length === 0
             ? (
@@ -264,43 +318,11 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
           );
         }
 
-        const viewToggle = (
-          <Box sx={{ mb: 5, display: "flex", alignItems: "center", gap: 1 }}>
-            <ViewToggle view={viewType} onChange={setViewType} />
-            {canEdit && (
-              <ToggleButtonGroup size="small" sx={actionGroupSx}>
-                <ToggleButton
-                  value="new-post"
-                  onClick={() => router.push("/new")}
-                  aria-label="Create new post"
-                  selected={false}
-                >
-                  <Tooltip title="New post">
-                    <PostAdd fontSize="small" />
-                  </Tooltip>
-                </ToggleButton>
-                <ToggleButton
-                  value="new-series"
-                  onClick={() =>
-                    setCreateSeriesDrawerOpen(true)}
-                  aria-label="Create new series"
-                  selected={false}
-                >
-                  <Tooltip title="New series">
-                    <Add fontSize="small" />
-                  </Tooltip>
-                </ToggleButton>
-              </ToggleButtonGroup>
-            )}
-          </Box>
-        );
-
         return (
           <>
             {/* Posts section */}
             {hasPosts && (
               <Box component="section" sx={{ mb: { xs: 4, md: 6 } }}>
-                {viewToggle}
                 <SectionDivider label="Posts" color="primary.main" />
                 {viewType === "compact"
                   ? (
@@ -316,7 +338,6 @@ const PostsView: React.FC<PostsViewProps> = ({ series, user: serverUser }) => {
             {/* Series section */}
             {hasSeries && (
               <Box component="section">
-                {!hasPosts && viewToggle}
                 <SectionDivider label="Series" color="secondary.main" />
                 <SeriesSection
                   series={seriesList}

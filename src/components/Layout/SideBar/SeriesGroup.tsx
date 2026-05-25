@@ -8,7 +8,7 @@ import {
   ListItemText,
   Tooltip,
 } from "@mui/material";
-import { ChevronRight, ExpandMore } from "@mui/icons-material";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import type { Series } from "@/types";
 import type { SeriesGroupItem } from "@/utils/posts/seriesGrouping";
 import type { PostItemActions } from "./hooks/useSidebarActions";
@@ -78,16 +78,8 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
               }}
             >
               {isExpanded
-                ? (
-                  <ExpandMore
-                    sx={{ fontSize: "0.85em", color: "text.secondary" }}
-                  />
-                )
-                : (
-                  <ChevronRight
-                    sx={{ fontSize: "0.85em", color: "text.secondary" }}
-                  />
-                )}
+                ? <ChevronDown size={14} strokeWidth={2} />
+                : <ChevronRight size={14} strokeWidth={2} />}
             </ListItemIcon>
             {sidebarOpen && (
               <ListItemText

@@ -44,6 +44,7 @@
     "jsdom": "^26.1.0",
     "jszip": "^3.10.1",
     "lexical": "^0.28.0",
+    "lucide-react": "^1.16.0",
     "mathlive": "^0.104.1",
     "next": "15.2.3",
     "next-auth": "^4.24.11",
