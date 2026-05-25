@@ -141,7 +141,7 @@ export const SeriesRow = React.memo(function SeriesRow({
     })
     .slice(0, SERIES_PREVIEW_COUNT);
 
-  const padY = density === "compact" ? 7 : 11;
+  const padY = density === "compact" ? 2 : 5;
 
   return (
     <Box>
@@ -174,7 +174,7 @@ export const SeriesRow = React.memo(function SeriesRow({
           },
           "&:hover .row-checkbox-grip": { visibility: "visible" },
           "&:hover .row-actions-btn": { opacity: 1 },
-          "&:hover .row-date": { opacity: 0 },
+          "&:hover .row-date": { opacity: 0.45 },
         }}
       >
         {/* Gutter — 22px, checkbox only, no drag handle for series */}
@@ -313,7 +313,7 @@ export const SeriesRow = React.memo(function SeriesRow({
           sx={{
             borderLeft: "2px solid",
             borderColor: "divider",
-            ml: 2.5,
+            ml: "37px",
             mb: 0.5,
           }}
         >

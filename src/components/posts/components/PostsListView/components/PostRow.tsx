@@ -193,7 +193,6 @@ export const PostRow = React.memo(function PostRow({
                 color: "text.primary",
                 display: "block",
                 cursor: "pointer",
-                "&:hover": { textDecoration: "underline" },
               }}
             >
               {name}
