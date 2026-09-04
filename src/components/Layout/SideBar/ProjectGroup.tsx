@@ -29,6 +29,7 @@ import {
   dropIndicatorSx,
   dropIntoSx,
   rowHoverRevealSx,
+  rowTextSelectSx,
 } from "@/theme/treeRow";
 import { useSelector } from "@/store";
 import {
@@ -157,6 +158,7 @@ export const ProjectGroup: React.FC<ProjectGroupProps> = ({
             alignItems: "center",
             gap: 0.75,
             position: "relative",
+            ...rowTextSelectSx,
             // The divider isn't a "selectable pill", so no filled-pill hover —
             // just a light tint (the pointer cursor signals it's clickable).
             "&:hover": { bgcolor: "action.hover" },

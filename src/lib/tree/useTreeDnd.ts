@@ -185,6 +185,23 @@ export function useTreeDnd(
       ids,
       targetInfoRef.current.get(primaryId)?.label,
     );
+    // Name the ghost, rather than leaving the browser to pick one. Blink checks
+    // whether the grab point is inside a *text selection* before it walks up for
+    // a `draggable` ancestor, so a stale selection left by a Shift-range (or a
+    // double-click) turns the gesture into a selection drag, and the ghost
+    // becomes a snapshot of every row the selection covers instead of the one
+    // row being moved. The rows also carry `user-select: none` now; this is the
+    // half that holds when a selection reaches them anyway.
+    //
+    // Offset by where inside the row the pointer actually is, so the ghost sits
+    // under the cursor where it was grabbed. One layout read per gesture.
+    const row = event.currentTarget;
+    const rect = row.getBoundingClientRect();
+    event.dataTransfer.setDragImage(
+      row,
+      event.clientX - rect.left,
+      event.clientY - rect.top,
+    );
     setIsDragging(true);
   };
 

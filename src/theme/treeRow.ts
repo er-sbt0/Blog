@@ -61,6 +61,21 @@ const ROW_TINT = {
 export const ROW_TRANSITION = `background-color ${MOTION.fast}ms`;
 
 /**
+ * A tree row is chrome, not a text surface — its label is a name to click and
+ * drag, not prose to select.
+ *
+ * Load-bearing for the drag, not only for the feel: a Shift-click range leaves
+ * the browser's own text selection spanning every row it crossed (the selection
+ * is made on mousedown, so `useRowSelection`'s handler cannot suppress it), and
+ * Blink prefers a selection drag over an element drag when the grab point falls
+ * inside one — which drew a ghost of the whole selected band instead of the
+ * grabbed row. Pairs with the explicit `setDragImage` in `useTreeDnd`.
+ *
+ * The rename `TextField` inside a row is a form control and stays selectable.
+ */
+export const rowTextSelectSx = { userSelect: "none" } as const;
+
+/**
  * How wide a `.row-create-slot` may open. The slot holds the row's create
  * button (`RowCreateButton`) and is clipped shut at rest, so a control that only
  * exists on hover does not hold its width the rest of the time — the row's rule

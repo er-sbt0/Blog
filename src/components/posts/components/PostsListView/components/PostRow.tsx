@@ -12,6 +12,7 @@ import {
   dropIndicatorSx,
   ROW_TRANSITION,
   rowHoverRevealSx,
+  rowTextSelectSx,
   TREE_ROW_RADIUS,
 } from "@/theme/treeRow";
 import type { InlineRenameResult } from "@/hooks/useInlineRename";
@@ -139,6 +140,7 @@ export const PostRow = React.memo(function PostRow({
           borderRadius: TREE_ROW_RADIUS,
           position: "relative",
           cursor: "default",
+          ...rowTextSelectSx,
           ...(dropIndicator && dropIndicatorSx(dropIndicator)),
           bgcolor: isSelected ? "action.selected" : "transparent",
           transition: ROW_TRANSITION,

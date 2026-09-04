@@ -28,6 +28,7 @@ import {
   dropIntoSx,
   multiSelectSx,
   rowHoverRevealSx,
+  rowTextSelectSx,
 } from "@/theme/treeRow";
 import { ICON_SIZE } from "@/theme/icons";
 import { useSelector } from "@/store";
@@ -148,6 +149,7 @@ export const SeriesGroup: React.FC<SeriesGroupProps> = ({
                 py: 0.25,
                 borderRadius: SB_ITEM_RADIUS,
                 position: "relative",
+                ...rowTextSelectSx,
                 ...(isSeriesActive && { bgcolor: "action.selected" }),
                 "&:hover": { bgcolor: "action.hover" },
                 // Drop-a-post-into-series: the shared fill, plus an outline that

@@ -33,6 +33,7 @@ import {
   chromeFocusRingSx,
   dropIndicatorSx,
   multiSelectSx,
+  rowTextSelectSx,
 } from "@/theme/treeRow";
 import { AgentMarker } from "./AgentMarker";
 import { RowAgentActions } from "./RowAgentActions";
@@ -288,6 +289,7 @@ export const PostItem = memo(
                 justifyContent: sidebarOpen ? "initial" : "center",
                 overflow: "hidden",
                 position: "relative",
+                ...rowTextSelectSx,
                 ...(dropIndicator && dropIndicatorSx(dropIndicator)),
                 // Square-edged select band, shared with sub-tabs and series rows.
                 borderRadius: SB_ITEM_RADIUS,

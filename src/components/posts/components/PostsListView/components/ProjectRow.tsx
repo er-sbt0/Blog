@@ -26,6 +26,7 @@ import {
   dropIntoSx,
   ROW_TRANSITION,
   rowHoverRevealSx,
+  rowTextSelectSx,
   TREE_ROW_RADIUS,
 } from "@/theme/treeRow";
 
@@ -204,6 +205,7 @@ export const ProjectRow = React.memo(function ProjectRow({
           borderRadius: TREE_ROW_RADIUS,
           position: "relative",
           cursor: "pointer",
+          ...rowTextSelectSx,
           bgcolor: isSelected ? "action.selected" : "transparent",
           outline: isSelected ? "1px solid" : "none",
           outlineColor: "secondary.main",
