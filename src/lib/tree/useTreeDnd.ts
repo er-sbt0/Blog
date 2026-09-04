@@ -56,6 +56,49 @@ const resolveDrag = (
   return { dragged: FOREIGN_DRAG, foreign: true };
 };
 
+/**
+ * Give the gesture a drag ghost of the grabbed row — a clone parked at body
+ * level, not the row itself.
+ *
+ * **The row cannot be handed to `setDragImage` directly here.** Blink builds a
+ * ghost by painting the node's nearest *stacking context* and cropping the
+ * result to the node's own bounds (`DraggedNodeImageBuilder`), and that crop is
+ * wrong when the node sits inside a composited layer: the sidebar's pane track
+ * carries `transform` + `will-change: transform` (`SideBar/index.tsx`), which
+ * promotes the whole tree into one, and the ghost came out a band three rows
+ * tall — the grabbed row with a neighbour above and below it. Passing the row
+ * explicitly does not help, because the explicit path is the same painter; the
+ * only way out is a node whose stacking context is the root.
+ *
+ * So: clone the row, size it to what it measured on screen (a block-level clone
+ * of a flex row would otherwise take the body's width), park it off-screen —
+ * rendered, because an unrendered node photographs blank — and let Blink
+ * photograph that instead. Chrome takes the snapshot synchronously while
+ * `dragstart` is dispatching, so the clone is dropped on the next task.
+ *
+ * The hotspot is where inside the row the pointer actually is, so the ghost
+ * sits under the cursor at the point it was grabbed by.
+ */
+const setDragGhost = (event: React.DragEvent) => {
+  const row = event.currentTarget;
+  const rect = row.getBoundingClientRect();
+  const ghost = row.cloneNode(true) as HTMLElement;
+  ghost.removeAttribute("id");
+  ghost.style.cssText =
+    `position:fixed;top:0;left:-10000px;margin:0;box-sizing:border-box;` +
+    `width:${rect.width}px;height:${rect.height}px;pointer-events:none;`;
+  // The row's type scale comes from the sidebar paper, which the clone is no
+  // longer inside; its classes carry everything else.
+  ghost.style.font = getComputedStyle(row).font;
+  document.body.appendChild(ghost);
+  event.dataTransfer.setDragImage(
+    ghost,
+    event.clientX - rect.left,
+    event.clientY - rect.top,
+  );
+  setTimeout(() => ghost.remove(), 0);
+};
+
 /** Resolve the full set of ids a grab should drag (e.g. the multi-selection). */
 type DragSetResolver = (primaryId: string) => string[];
 
@@ -185,23 +228,7 @@ export function useTreeDnd(
       ids,
       targetInfoRef.current.get(primaryId)?.label,
     );
-    // Name the ghost, rather than leaving the browser to pick one. Blink checks
-    // whether the grab point is inside a *text selection* before it walks up for
-    // a `draggable` ancestor, so a stale selection left by a Shift-range (or a
-    // double-click) turns the gesture into a selection drag, and the ghost
-    // becomes a snapshot of every row the selection covers instead of the one
-    // row being moved. The rows also carry `user-select: none` now; this is the
-    // half that holds when a selection reaches them anyway.
-    //
-    // Offset by where inside the row the pointer actually is, so the ghost sits
-    // under the cursor where it was grabbed. One layout read per gesture.
-    const row = event.currentTarget;
-    const rect = row.getBoundingClientRect();
-    event.dataTransfer.setDragImage(
-      row,
-      event.clientX - rect.left,
-      event.clientY - rect.top,
-    );
+    setDragGhost(event);
     setIsDragging(true);
   };
 
