@@ -219,8 +219,17 @@ build must not see blanked to `""`.
 
 Running MinIO on a laptop is absurd. Write a filesystem implementation behind
 the six-function surface in §2.3: content-addressed files under the user data
-directory, `<blobs>/<hash[0:2]>/<hash>`, selected by the same
-`isStorageConfigured` branch that exists today.
+directory, `<blobs>/<hash[0:2]>/<hash>`.
+
+**This section originally said "selected by the same `isStorageConfigured`
+branch that exists today", and that was wrong** — dangerously so, which is why
+phase 4 did not implement it (§13.2). "S3 is not configured" is a condition a
+*misconfigured VPS* also satisfies, and the failure is silent and expensive: a
+production server quietly writing every uploaded image into a container
+filesystem that the next deploy discards, looking healthy throughout. The
+selection signal is `BLOB_DIR`, naming the directory, because a directory cannot
+be arrived at by omission — only by being named. Setting it alongside `S3_*` is
+refused rather than resolved by precedence.
 
 This is genuinely small because content addressing already did the hard part —
 writes are idempotent, objects are immutable, and nothing in the app holds a
@@ -228,7 +237,15 @@ URL that names the store. `blob-storage.md` §11.1 retired an earlier local blob
 store; note that it did so because the *guest* path did not need one, which is a
 different question from this one.
 
-Attachments need only a new `UPLOADS_DIR` (§2.3).
+Attachments need only a new `UPLOADS_DIR` (§2.3) — true, and phase 4 confirmed
+they work end to end untouched, though the credit belongs to the upload route
+creating `uploads/attachments` itself rather than to anything the shell
+pre-creates.
+
+**What this phase fixes is not a missing feature.** §13.1 has the measurement:
+on desktop, inserting an image silently fell back to a data URI and re-created
+the exact mechanism `blob-storage.md` exists to eliminate, and importing any
+bundle carrying blobs failed outright.
 
 ### 4.4 First run and migrations
 
@@ -323,7 +340,9 @@ about being a copy rather than pretending to be a sync.
    `Session` row and sets the cookie; `src/` is untouched. Verified: a valid
    session is 200, absent/forged/truncated are 401, and a `disabled` user is
    403 through the ordinary `requireUser` path.
-4. **Filesystem blobs and uploads** (§4.3).
+4. ~~**Filesystem blobs and uploads** (§4.3).~~ **Done 20 Sep 2026 — §13.**
+   `BLOB_DIR` selects a filesystem store behind the same six functions; S3 is
+   untouched and still the default. Verified both ways, including traversal.
 5. **Strip the server-only features** (§5).
 6. **Package** — electron-builder, AppImage and `.deb`. Unsigned for a first
    release; there is no distribution channel yet that requires otherwise.
@@ -659,3 +678,120 @@ but it is a hard lock-out whose only exit is clearing the column by hand.
 - A document titled "Phase 3 acceptance" now lives in the local cluster. It is
   the evidence, so it has been left there; delete `~/.config/blog-desktop` for a
   clean first run.
+
+---
+
+## 13. Phase 4 log — filesystem blobs, 20 Sep 2026
+
+**Result: the desktop build stores images properly, S3 is untouched, and the new
+attack surface is closed.** This phase is the first to change `src/`, and the
+change is one dispatch line at the top of each of six functions.
+
+### 13.1 What was actually broken, measured before changing anything
+
+§4.3 read like a missing feature. It was a silent regression.
+
+- `POST /api/blob` returned **500** — `Blob storage is not configured`, thrown
+  from `blobExists` before anything was written.
+- The damage was not the 500. `blobSrcOrFallback`
+  (`packages/editor/src/utils/uploadBlob.ts`) treats *any* upload failure as
+  "keep the data URI", which is correct for guest drafts and catastrophic here:
+  **inserting an image appeared to work and re-created exactly what
+  `blob-storage.md` was written to eliminate** — a base64 copy serialized into
+  every revision and re-stored on every save, the 13.6 MB / 141 copies
+  mechanism. Nothing in the UI said so.
+- Louder: `/api/import` calls `blobExists` directly with no
+  `isStorageConfigured` guard, so **importing any bundle carrying blobs failed
+  outright**.
+- `ingestInlineBlobs` returned 0 early, so a guest draft imported on desktop
+  kept its data URIs — degraded rather than broken.
+
+### 13.2 The selection signal, which is the design decision
+
+`BLOB_DIR` names the directory. Set → filesystem; unset → S3, byte for byte as
+before. The reasoning is in §4.3's correction: a directory cannot be arrived at
+by omission. `DESKTOP=1` would also have been explicit, but it says which
+*build* this is rather than where the bytes go, leaving the location implicit at
+exactly the point where being wrong loses data — so it remains set-but-unread
+(§12.5).
+
+Configuring both is **refused**, not resolved by precedence: either precedence
+means half the configuration is being silently ignored.
+
+`isStorageConfigured()` now answers for either backend, which is what stops
+`blobIngest` and the scripts from skipping the work on desktop.
+
+### 13.3 The new attack surface, and closing it
+
+Under S3 the hash is an *object key*, and a key space has no traversal —
+`a/../b` is just a key. On disk the same **attacker-controlled URL segment**
+from `GET /api/blob/[hash]` becomes a real path. That surface did not previously
+exist.
+
+`src/lib/blobPath.ts` answers it in three layers, none redundant: `isValidHash`
+(64 lowercase hex, so the value provably contains no separator), `resolveWithin`
+from `src/lib/safePath.ts` (the repo's existing primitive for precisely this),
+and a containment check against the **root** rather than the shard — because the
+shard directory is itself derived from the same untrusted string. `isValidHash`
+moved into that module and is re-exported from `storage.ts`, so the key rule and
+the path rule cannot drift apart.
+
+Uppercase hex is refused rather than lowercased: a digest differing only in case
+would be a second name for the same content, which content addressing exists to
+prevent, and on a case-insensitive filesystem a second name for the same *file*.
+
+Writes are temp-file + `rename`, so a reader never sees bytes whose digest is
+not their name. Empty shard directories are deliberately not pruned — it would
+race a concurrent put between `mkdir` and `rename`.
+
+### 13.4 Verified, independently of the implementer
+
+The subagent's results were re-run by the parent session against a fresh boot,
+storing bytes nobody had stored before:
+
+| | |
+| --- | --- |
+| `POST /api/blob` | **200**, file at `blobs/40/40cb3372…`, bytes identical on disk |
+| `GET /api/blob/<hash>` signed in | **200**, byte-identical |
+| 8 traversal attempts through the live route | **404** every time, nothing leaked |
+| anonymous, document unpublished | **404** |
+| anonymous, document **published** | **200**, `cache-control: public` |
+| anonymous, document **private** | **404** |
+
+The traversal set included `../../../../etc/passwd`, single- and
+double-encoded forms, a NUL byte, `..`, a shard-prefixed path, and the correct
+hash in uppercase. The visibility rows matter as much as the refusals: they say
+the check *discriminates* rather than blanket-denying, and that `cache-control`
+still follows `isPublic` — a private draft's image must never reach a shared
+cache.
+
+**No S3 regression**, exercised against the live `blog-minio` with the repo's
+own `.env`: `isStorageConfigured` true, put/exists/get round trip identical,
+idempotent re-put, presign still working, delete, and `getBlob("../../etc/passwd")`
+refused with `Invalid blob hash`.
+
+Attachments needed no change: upload 200, signed-in fetch byte-identical,
+anonymous **401**, traversal 400/403/404.
+
+67 spec files, 1354 tests, lint and `tsc --noEmit` clean.
+
+### 13.5 Findings
+
+- **A pre-existing bug worth fixing, unrelated to desktop:**
+  `GET /api/attachments/[filename]` serves
+  `Cache-Control: public, max-age=31536000, immutable` **unconditionally**,
+  unlike `/api/blob/[hash]`, which follows `isPublic`. On the VPS behind
+  Cloudflare, a private document's attachment can land in a shared cache and
+  **outlive the fix**, which is the same failure `/api/blob`'s docblock is
+  careful to avoid. Not changed here — it is neither desktop-specific nor in
+  this phase's scope — but it should be.
+- `presignBlobGet` still has no callers, and the filesystem backend **refuses**
+  it rather than signing against an endpoint that is not the store. Inventing a
+  URL that names a file on disk would be inventing an access path that bypasses
+  `requireBlobRead`.
+- **Not verified:** the editor's insert-image flow in the actual window, for
+  §11.4's reason — the 200 plus a byte-identical refetch is the evidence.
+  `pnpm blobs:collect` and `blobs:migrate` were not run under `BLOB_DIR`; their
+  module resolution was checked, their behaviour was not.
+- Left in the local cluster as evidence: a "Phase 4 acceptance" document, its
+  blob, and two attachments.

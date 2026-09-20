@@ -7,6 +7,9 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createHash } from "crypto";
+import path from "path";
+import { fsBlobExists, fsDeleteBlob, fsGetBlob, fsPutBlob } from "@/lib/blobFs";
+import { isValidHash } from "@/lib/blobPath";
 
 /**
  * The blob store: bytes addressed by the SHA-256 of their own content.
@@ -34,6 +37,26 @@ import { createHash } from "crypto";
  * request from the *documents* referencing the blob. Public content still gets
  * CDN-cached — by Cloudflare, off the immutable response — without the store
  * having to model an access rule it cannot see.
+ *
+ * ## Two backends, and how one is chosen
+ *
+ * S3 is the store. `BLOB_DIR` selects a filesystem one instead
+ * (`src/lib/blobFs.ts`), for the desktop build, which has no object store —
+ * docs/plans/desktop-app.md §4.3.
+ *
+ * **The signal is a variable that names the directory, and that is the whole
+ * point.** The obvious alternative — "S3 is not configured, so write to disk" —
+ * is a condition a *misconfigured VPS* also satisfies, and the failure mode is
+ * silent and expensive: a production server that quietly writes every uploaded
+ * image into a container filesystem which is discarded on the next deploy,
+ * looking healthy the entire time. A directory cannot be arrived at by omission,
+ * only by being named. (`DESKTOP=1` exists and would also be explicit, but it
+ * says which *build* this is rather than where the bytes go, and it would leave
+ * the location implicit at exactly the point where being wrong loses data.)
+ *
+ * Configuring both is refused rather than resolved by precedence: whichever way
+ * it were resolved, the other half of the configuration would be a deployment
+ * asking for something it is silently not getting.
  */
 
 const endpoint = process.env.S3_ENDPOINT || undefined;
@@ -45,13 +68,46 @@ const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY || "";
 const BLOB_BUCKET = process.env.S3_BUCKET || "blog-blobs";
 
 /**
+ * The filesystem store's root, or `""` for "not selected". See the docblock
+ * above for why this is a directory name and not an inference.
+ */
+const BLOB_DIR = process.env.BLOB_DIR || "";
+
+/**
  * `||` rather than `??` throughout: `.env.example` ships every key as `""`, so a
  * copied-but-unedited env file must fall through to the default rather than
  * configure the client with an empty string. Same reasoning as
  * `src/lib/uploads.ts`.
  */
-export const isStorageConfigured = (): boolean =>
+const isS3Configured = (): boolean =>
   !!endpoint && !!accessKeyId && !!secretAccessKey;
+
+/**
+ * Whether *a* store is configured. Callers use it to decide whether to attempt
+ * a write at all (`blobIngest`, the two blob scripts), so it must answer for
+ * both backends or the desktop build would keep skipping the work.
+ */
+export const isStorageConfigured = (): boolean =>
+  !!BLOB_DIR || isS3Configured();
+
+/**
+ * The filesystem root when that backend is selected, else null.
+ *
+ * Resolved lazily, like {@link s3}, so the ambiguity refusal below is a runtime
+ * error on the operations that would have lost bytes rather than a build
+ * failure — and so a misconfiguration names itself instead of being discovered
+ * later from an empty directory.
+ */
+function fsRoot(): string | null {
+  if (!BLOB_DIR) return null;
+  if (isS3Configured()) {
+    throw new Error(
+      "Both BLOB_DIR and S3_* are configured — refusing to guess which store " +
+        "owns the blobs. Unset one.",
+    );
+  }
+  return path.resolve(BLOB_DIR);
+}
 
 let client: S3Client | null = null;
 
@@ -85,9 +141,6 @@ export function hashBytes(bytes: Buffer | Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-/** 64 lowercase hex characters, and nothing else. */
-const HASH_RE = /^[0-9a-f]{64}$/;
-
 /**
  * Whether `hash` is well-formed.
  *
@@ -97,8 +150,13 @@ const HASH_RE = /^[0-9a-f]{64}$/;
  * is simply a key. So the defence has to move to *constructing* the key, which
  * is why every entry point validates rather than sanitising. See
  * blob-storage.md §4 and the note in `archive/storage-uploads.md` §Security.
+ *
+ * It now lives in `src/lib/blobPath.ts`, because with a filesystem backend the
+ * same string derives a path as well as a key and the two rules must be one
+ * rule. Re-exported here so `src/lib/access.ts` and the import route keep
+ * importing it from the store, which is where it belongs conceptually.
  */
-export const isValidHash = (hash: string): boolean => HASH_RE.test(hash);
+export { isValidHash };
 
 /** The object key for a blob. Flat: the hash is already uniformly distributed. */
 const keyFor = (hash: string): string => {
@@ -118,6 +176,11 @@ export async function putBlob(
   bytes: Buffer,
   mimeType: string,
 ): Promise<void> {
+  const root = fsRoot();
+  // The filesystem store holds bytes only; `Blob.mimeType` is what the route
+  // serves, in both backends. See `src/lib/blobFs.ts`.
+  if (root) return fsPutBlob(root, hash, bytes);
+
   await s3().send(
     new PutObjectCommand({
       Bucket: BLOB_BUCKET,
@@ -130,6 +193,9 @@ export async function putBlob(
 
 /** Fetch a blob's bytes. */
 export async function getBlob(hash: string): Promise<Buffer> {
+  const root = fsRoot();
+  if (root) return fsGetBlob(root, hash);
+
   const result = await s3().send(
     new GetObjectCommand({ Bucket: BLOB_BUCKET, Key: keyFor(hash) }),
   );
@@ -146,6 +212,9 @@ export async function getBlob(hash: string): Promise<Buffer> {
  * truth about bytes must ask here.
  */
 export async function blobExists(hash: string): Promise<boolean> {
+  const root = fsRoot();
+  if (root) return fsBlobExists(root, hash);
+
   try {
     await s3().send(
       new HeadObjectCommand({ Bucket: BLOB_BUCKET, Key: keyFor(hash) }),
@@ -180,6 +249,9 @@ export async function blobExists(hash: string): Promise<boolean> {
  * delete would remove bytes that were never this blob's.
  */
 export async function deleteBlob(hash: string): Promise<void> {
+  const root = fsRoot();
+  if (root) return fsDeleteBlob(root, hash);
+
   await s3().send(
     new DeleteObjectCommand({ Bucket: BLOB_BUCKET, Key: keyFor(hash) }),
   );
@@ -191,11 +263,27 @@ export async function deleteBlob(hash: string): Promise<void> {
  * The authorization decision is made *before* this is called and is not encoded
  * in the URL beyond its expiry — so a signed URL must only ever be handed to a
  * caller `requireBlobRead` has already admitted.
+ *
+ * **It has no callers** (desktop-app.md §2.3): `/api/blob/[hash]` streams bytes
+ * through `getBlob`. That is why the filesystem backend implements six
+ * functions and not seven — there is nothing on disk that a URL could name
+ * without a second server in front of it, and inventing one would be inventing
+ * an access path that bypasses `requireBlobRead`. It refuses rather than
+ * silently signing against an S3 endpoint that is not the store in use.
  */
 export function presignBlobGet(
   hash: string,
   expiresIn = 300,
 ): Promise<string> {
+  if (fsRoot()) {
+    return Promise.reject(
+      new Error(
+        "The filesystem blob store cannot presign URLs — serve the bytes " +
+          "through /api/blob/[hash], which authorizes them.",
+      ),
+    );
+  }
+
   return getSignedUrl(
     s3(),
     new GetObjectCommand({ Bucket: BLOB_BUCKET, Key: keyFor(hash) }),

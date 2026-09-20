@@ -119,6 +119,7 @@ async function boot() {
       databaseUrl: url,
       nextAuthSecret: secrets.nextAuthSecret,
       uploadsDir: paths.uploads,
+      blobDir: paths.blobs,
     }),
     log,
     onExit: (code, signal) => {

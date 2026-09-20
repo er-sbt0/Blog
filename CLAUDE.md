@@ -75,8 +75,17 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 62 specs, 1221 tests, of which the list below walks the ones worth
-knowing about rather than all of them. The newest is
+Coverage is 67 specs, 1354 tests, of which the list below walks the ones worth
+knowing about rather than all of them. The newest two are
+`src/lib/__tests__/blobPath.test.ts` and `blobFs.test.ts`: the filesystem blob
+store the desktop build uses (docs/plans/desktop-app.md §4.3). Almost entirely
+refusals, because the thing that changed is that an attacker-controlled URL
+segment now derives a *path* rather than an object key — traversal, absolute
+paths, Windows separators, encoded and double-encoded traversal, NUL bytes, a
+separator inside a hash-shaped string, empty, uppercase and overlong — plus the
+properties the rest of the system already assumes of the store: an identical
+re-write leaves one file, concurrent writes converge, and deleting what is not
+there succeeds. The newest before those is
 `src/indexeddb/__tests__/migrations.test.ts`: what a version bump does to a
 guest's stored drafts (docs/plans/schema-organization.md §7). It goes through
 `recordTransformsFor`, the same composition the opener uses, and that is the
@@ -290,7 +299,11 @@ Images in the editor are stored once, content-addressed, and referenced by
 `/api/blob/<sha256>` — not embedded as base64 in every revision, which is what
 made six distinct images occupy 13.6 MB across 141 copies. `src/lib/storage.ts`
 is the object store (S3 API, MinIO locally), `src/repositories/blob.ts` the rows.
-See docs/plans/blob-storage.md. Migration is `pnpm blobs:migrate`
+See docs/plans/blob-storage.md. There is a second backend behind the same six
+functions — files under `BLOB_DIR`, for the desktop build (`src/lib/blobFs.ts`,
+`src/lib/blobPath.ts`, desktop-app.md §4.3) — and it is chosen only by that
+variable being set: S3 stays the default, and "S3 is unconfigured" deliberately
+does **not** select it. Migration is `pnpm blobs:migrate`
 (`status | run [--dry-run] | verify`) and **has been run for all three node
 types that hold pictures** — `image`, and `sketch`/`graph` on 31 Aug 2026
 (§13, §13.6). There are no data URIs left in any revision. **The inline-SVG
@@ -594,6 +607,13 @@ Optional:
   Must stay outside `public/` — see `src/lib/uploads.ts`; anything in the static
   tree is served with no session and no authorization check, bypassing
   `/api/attachments`. Point it at a mounted volume in production.
+- `BLOB_DIR`: selects the **filesystem** blob store (`src/lib/blobFs.ts`)
+  instead of S3, for the desktop build — files at `<BLOB_DIR>/<hash[0:2]>/<hash>`
+  (docs/plans/desktop-app.md §4.3). Naming the directory is the whole selection
+  signal: "S3 is unset" is deliberately *not* a trigger, because a misconfigured
+  server satisfies it and would silently write blobs to a filesystem the next
+  deploy discards. Setting it alongside `S3_*` is refused rather than resolved
+  by precedence. On the VPS, leave it unset.
 - `MCP_AUTHOR_ID`: which user the **stdio** MCP server acts as (a `User` id or
   email). Lives in `.env` like everything else — `.mcp.json` is committed, so an
   author named there would be one person's identity imposed on every clone. The

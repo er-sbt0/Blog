@@ -1,10 +1,11 @@
 # @blog/desktop
 
-The Electron shell. **Phases 2–3 of
+The Electron shell. **Phases 2–4 of
 [docs/plans/desktop-app.md](../../docs/plans/desktop-app.md)**: the main process
 brings up an embedded Postgres cluster, applies the repo's migrations to it,
 starts the existing `.next/standalone` server against it, signs the local user
-in, and opens a window.
+in, points its blob store and its attachments at directories under `userData`,
+and opens a window.
 
 Nothing here is a second implementation of anything. The window loads the same
 server the VPS runs (§3), so there is no desktop branch in the 66 route handlers
@@ -52,8 +53,8 @@ names it, and without it a scoped package name would nest the directory):
 | | |
 | --- | --- |
 | `pgdata/` | the Postgres cluster, including the `Session` row you are signed in with |
-| `uploads/` | attachments (`UPLOADS_DIR`) |
-| `blobs/` | created, unused until phase 4 |
+| `uploads/` | attachments (`UPLOADS_DIR`), under `uploads/attachments/` |
+| `blobs/` | editor images (`BLOB_DIR`), at `blobs/<hash[0:2]>/<hash>` |
 | `secrets.json` | the cluster password and `NEXTAUTH_SECRET`, 0600 |
 
 Deleting that directory is how you get a clean first run. It does not touch the
@@ -172,6 +173,64 @@ OAuth `signIn` callback uses — and `requireUser` in `src/lib/api-utils.ts` wou
 refuse them a second time regardless. In practice the app fails to start and the
 error window names the reason; the only way out is to clear the flag on the row.
 
+## Blobs and attachments
+
+A laptop does not run MinIO, so the desktop build stores editor images as files:
+`~/.config/blog-desktop/blobs/<hash[0:2]>/<hash>`, one implementation behind the
+six-function surface in `src/lib/storage.ts` (`src/lib/blobFs.ts`, §4.3).
+Attachments were already filesystem-backed and only needed a root, which phase 2
+gave them.
+
+**The bug this fixes was silent, not loud.** With no store configured,
+`POST /api/blob` threw "Blob storage is not configured" and returned **500** —
+and the editor's `blobSrcOrFallback` treats any failure as "keep the data URI",
+because on the web that fallback exists for guest drafts. So inserting a picture
+appeared to work, and quietly re-created exactly what
+[blob-storage.md](../../docs/plans/blob-storage.md) was written to eliminate: a
+base64 copy of the image serialized into every revision, growing with every
+save. Importing a bundle that carries blobs failed outright, since
+`/api/import` calls `blobExists` rather than guarding on `isStorageConfigured`.
+
+### How the backend is chosen, and why it cannot happen by accident
+
+`BLOB_DIR` names the directory, and naming it is the entire signal. The
+tempting alternative — reuse the `isStorageConfigured()` branch that already
+exists, so "no S3" means "use the disk" — is refused on purpose: **a
+misconfigured VPS also has no S3**, and the result would be a production server
+cheerfully writing every uploaded image into a container filesystem that the
+next deploy throws away, with nothing in any log to say so. A directory has to
+be named to be used.
+
+`DESKTOP=1` (set since phase 2, still read by nothing) would also have been
+explicit, but it says which *build* this is rather than where the bytes go, and
+leaving the location implicit is the part that loses data.
+
+Configuring both is **refused**, not resolved by precedence — whichever way it
+went, the other half of the configuration would be a deployment asking for
+something it is silently not getting. That is why `S3_*` being blanked in the
+child environment matters twice over now: it is not only about MinIO, it is what
+keeps the selection unambiguous.
+
+### The path-traversal surface, which is new
+
+The hash in `GET /api/blob/<hash>` comes from a URL segment. Under S3 it indexed
+into a key space, where `../` is an ordinary character sequence; here it derives
+**a path on disk**, two directories below `secrets.json`. So `src/lib/blobPath.ts`
+is deliberately paranoid and deliberately import-free: `isValidHash` (64
+lowercase hex, uppercase rejected so one blob cannot have two names), then
+`resolveWithin` from `src/lib/safePath.ts`, then a containment check against the
+blob root rather than the shard — which is itself derived from the same
+untrusted string. Every one of the four filesystem operations goes through it,
+so an unvalidated hash cannot reach the disk from any of them.
+`src/lib/__tests__/blobPath.test.ts` and `blobFs.test.ts` are almost entirely
+refusals: traversal, absolute paths, Windows separators, percent- and
+double-encoded traversal, NUL bytes, a separator inside a hash-shaped string,
+empty, uppercase and overlong.
+
+Authorization is **untouched**. `requireBlobRead` still decides who may read a
+blob, from the documents referencing it; this phase changed where the bytes
+live, not who may have them.
+
 ## Not the dev database
 
 `next build` traces the working tree's `.env` into `.next/standalone/.env`, and
@@ -212,7 +271,6 @@ caret or tilde in.
 
 | | Phase |
 | --- | --- |
-| Blobs — `blobs/` exists, nothing writes to it; S3 is blanked, so `isStorageConfigured()` is false | 4 (§4.3) |
 | Service worker, `/api/mcp`, rate limiter, `PUBLIC_URL` audit | 5 (§5) |
 | Packaging — `.next/static` and `public/` are **symlinked** into `.next/standalone`; the Dockerfile's lines 63–64 are what copies them in production | 6 |
 | Menu bar, window state, `printToPDF`, native dialogs | 7 (§6) |

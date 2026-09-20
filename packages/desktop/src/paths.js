@@ -24,9 +24,10 @@ export function resolveAppRoot({ packaged, resourcesPath }) {
 /**
  * Every path the desktop build owns, under Electron's `userData`.
  *
- * `blobs` and `uploads` are created here but only `uploads` is wired up
- * (`UPLOADS_DIR`); the filesystem blob store is phase 4 (§4.3). Creating the
- * directory now means phase 4 is an adapter and not also a path decision.
+ * `uploads` and `blobs` are both wired into the server's environment —
+ * `UPLOADS_DIR` and, since phase 4, `BLOB_DIR`. The second is not merely a
+ * location: naming it is what selects the filesystem blob store over S3 (§4.3),
+ * so this directory is the desktop build's answer to "where do the images go".
  */
 export function desktopPaths(userData) {
   const paths = {

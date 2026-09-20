@@ -14,7 +14,10 @@ import { spawn } from "node:child_process";
  * is not configured": `configuredProviders()` in `src/lib/auth.ts` registers
  * GitHub the moment both halves are present, and they would be. Likewise
  * `isStorageConfigured()` would point the blob store at whatever MinIO the
- * developer runs, instead of at phase 4's filesystem adapter.
+ * developer runs, instead of at the filesystem store `BLOB_DIR` selects — and
+ * since phase 4 the store *refuses* a configuration naming both, an inherited
+ * `S3_ENDPOINT` would now be a loud failure on every image rather than a quiet
+ * misdirection. Blanking them is what keeps the selection unambiguous.
  *
  * The plan's §4.2 says a desktop build "configures no OAuth provider without
  * modification". That is true of a clean environment and false of a bundle built
@@ -120,7 +123,15 @@ export function tracedEnvKeys(standalone) {
  * Order matters: the deliberate values go in last so that neither the passthrough
  * list nor the blanking can overwrite one.
  */
-export function buildServerEnv({ standalone, port, url, databaseUrl, nextAuthSecret, uploadsDir }) {
+export function buildServerEnv({
+  standalone,
+  port,
+  url,
+  databaseUrl,
+  nextAuthSecret,
+  uploadsDir,
+  blobDir,
+}) {
   const env = { ELECTRON_RUN_AS_NODE: "1" };
 
   for (const key of PASSTHROUGH_ENV) {
@@ -147,6 +158,17 @@ export function buildServerEnv({ standalone, port, url, databaseUrl, nextAuthSec
     // PUBLIC_URL to phase 5; giving it a defined value costs nothing now.
     PUBLIC_URL: url,
     UPLOADS_DIR: uploadsDir,
+    // §4.3, phase 4. Naming the directory is what *selects* the filesystem blob
+    // store — `src/lib/storage.ts` will not infer it from S3 being absent,
+    // because absent S3 is also what a misconfigured VPS looks like. The S3_*
+    // keys above are blanked, which the store requires: configuring both is
+    // refused rather than resolved by precedence.
+    //
+    // Passed explicitly for the reason the whole environment is built up rather
+    // than inherited (§11.3) — a variable left to inheritance is one the
+    // developer's `.env` gets to decide, and for this one that would mean the
+    // desktop app writing its images into the repository's working tree.
+    BLOB_DIR: blobDir,
     // §4.2's gate. Nothing reads it until phase 3 registers the local provider;
     // it is set now so that the two phases do not also have to agree on a name.
     DESKTOP: "1",
