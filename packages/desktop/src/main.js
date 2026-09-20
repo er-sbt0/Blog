@@ -1,7 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { app, BrowserWindow, dialog, session, shell } from "electron";
+import { app, BrowserWindow, dialog, screen, session, shell } from "electron";
 import { preflightPostgresBinaries } from "./preflight.js";
-import { assertNotForbidden, desktopPaths, freePort, loadSecrets, resolveAppRoot } from "./paths.js";
+import {
+  assertNotForbidden,
+  desktopPaths,
+  freePort,
+  loadSecrets,
+  loadWindowState,
+  resolveAppRoot,
+  saveWindowState,
+} from "./paths.js";
 import {
   APP_DATABASE,
   assertServerUsesOurCluster,
@@ -14,6 +22,8 @@ import {
   startCluster,
 } from "./cluster.js";
 import { sessionCookieName, sessionCookieSpec } from "./session.js";
+import { installMenu } from "./menu.js";
+import { placeWindow, windowStateToSave } from "./windowState.js";
 import {
   buildServerEnv,
   ensureStandaloneAssets,
@@ -54,6 +64,17 @@ let serverExit = null;
 let localUser = null;
 /** Guard so a re-established session cannot re-trigger its own watcher. */
 let restoringSession = false;
+/**
+ * The session cookie as a request header, for the main process's own calls to
+ * `/api/export` and `/api/import` (phase 7).
+ *
+ * Re-read from `establishSession` rather than captured once: the sign-out
+ * watcher mints a new row, and a backup that failed with 401 because the shell
+ * was holding last session's token would be a confusing way to lose a restore.
+ */
+let sessionCookieHeader = null;
+/** Where the window's geometry is remembered. Set during boot. */
+let windowStatePath = null;
 
 async function boot() {
   const bootStarted = Date.now();
@@ -69,6 +90,7 @@ async function boot() {
   });
   const paths = desktopPaths(app.getPath("userData"));
   const secrets = loadSecrets(paths.secrets);
+  windowStatePath = paths.windowState;
   log(`data directory ${paths.userData}`);
   log(`app root ${appRoot}`);
 
@@ -166,6 +188,7 @@ async function establishSession(origin) {
   });
   const spec = sessionCookieSpec({ url: origin, token, expires });
   await session.defaultSession.cookies.set(spec);
+  sessionCookieHeader = `${spec.name}=${spec.value}`;
   log(
     `signed in as ${localUser.email} — ${minted ? "minted" : "reused"} session, ` +
       `cookie ${spec.name}, expires ${expires.toISOString()}`,
@@ -261,17 +284,40 @@ async function openWindow(origin) {
   // re-registers it, but a leftover worker would still intercept.
   await session.defaultSession.clearStorageData({ storages: ["serviceworkers"] });
 
+  // Phase 7: where the window was last time, if that is still somewhere a
+  // window can be. `placeWindow` is where the two cases that actually break are
+  // handled — a monitor that has been unplugged, and a size larger than what is
+  // left — and it answers with a rectangle that is always on a display, so
+  // there is nothing to re-check here.
+  const displays = screen.getAllDisplays().map((display) => ({
+    id: display.id,
+    workArea: display.workArea,
+  }));
+  const placement = placeWindow(loadWindowState(windowStatePath), displays);
+  log(
+    `window ${placement.width}x${placement.height}` +
+      (placement.x === null ? " (centred: no display reported)" : ` at ${placement.x},${placement.y}`) +
+      (placement.maximized ? ", maximized" : ""),
+  );
+
   // `show: false` until `ready-to-show`: the alternative is a window painted in
   // Electron's default white before the app's own background arrives, which in
   // dark mode is a flash rather than a frame.
   mainWindow = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    width: placement.width,
+    height: placement.height,
+    ...(placement.x === null ? {} : { x: placement.x, y: placement.y }),
     show: false,
     title: "Blog",
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
+  // After the bounds, not instead of them: `maximize()` keeps what was set as
+  // the restore rectangle, so un-maximizing gives back the remembered window
+  // rather than an arbitrary default.
+  if (placement.maximized) mainWindow.maximize();
+
   mainWindow.once("ready-to-show", () => mainWindow.show());
+  rememberGeometry(mainWindow);
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -281,7 +327,77 @@ async function openWindow(origin) {
     if (!url.startsWith(origin)) shell.openExternal(url);
     return { action: "deny" };
   });
+  // Dropping a file anywhere the editor is not listening navigates the window to
+  // it — Chromium's default, and in a chromeless window it is a one-way trip:
+  // there is no address bar to type the app's URL back into, and the ephemeral
+  // port means no bookmark either. Images dropped *into* the editor are
+  // unaffected; that is a real drop target and `DragDropPastePlugin` handles it
+  // (phase 7 checked, and built nothing for it).
+  //
+  // A link to an external site is the same problem arriving politely, so it
+  // gets the same answer the window-open handler already gives: the real
+  // browser. Anything else — `file://`, and whatever a dropped folder produces
+  // — is refused outright.
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (url.startsWith(origin)) return;
+    event.preventDefault();
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      shell.openExternal(url);
+      log(`opened ${url} in the browser`);
+    } else {
+      log(`refused navigation to ${url}`);
+    }
+  });
+
+  installMenu({
+    getWindow: () => mainWindow,
+    origin,
+    dataDir: app.getPath("userData"),
+    bootLog,
+    log,
+    cookie: () => sessionCookieHeader,
+  });
+
   await mainWindow.loadURL(origin);
+}
+
+/**
+ * Write the window's geometry back, on the events that change it.
+ *
+ * Debounced, because a drag or a resize emits one event per frame and this ends
+ * in `writeFileSync`. Written again on `close` without the debounce, since the
+ * last move before a quit is the one most worth keeping and the timer would
+ * never fire.
+ *
+ * `getNormalBounds`, not `getBounds`: a maximized window's bounds are the
+ * screen, and saving those would restore an un-maximized window at the size of
+ * the display with no memory of what it was before.
+ */
+function rememberGeometry(window) {
+  let pending = null;
+  const persist = () => {
+    if (window.isDestroyed()) return;
+    saveWindowState(
+      windowStatePath,
+      windowStateToSave({
+        normalBounds: window.getNormalBounds(),
+        maximized: window.isMaximized(),
+      }),
+    );
+  };
+
+  const schedule = () => {
+    clearTimeout(pending);
+    pending = setTimeout(persist, 500);
+  };
+
+  for (const event of ["resize", "move", "maximize", "unmaximize"]) {
+    window.on(event, schedule);
+  }
+  window.on("close", () => {
+    clearTimeout(pending);
+    persist();
+  });
 }
 
 /**

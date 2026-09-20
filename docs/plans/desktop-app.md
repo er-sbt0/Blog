@@ -1,10 +1,23 @@
 # Desktop app
 
-**Status: proposed, 20 Sep 2026. Nothing built.** The two product questions are
-answered — **local-first with the VPS optional**, and **Linux only** for the
-first release — and §3 is a recommendation, not a decision taken. §2 is the part
-that is not opinion: it is what the tree says, and it is what rules out the
-cheaper shapes.
+**Status: all seven phases shipped, 20 Sep 2026.** There is an installable
+Linux desktop application: `packages/desktop` boots an embedded Postgres, runs
+the existing Next server against it, signs the local author in, stores blobs on
+disk, and ships as a 247 MB AppImage and a 202 MB `.deb`. The two product
+questions were answered before any of it — **local-first with the VPS optional**,
+and **Linux only** — and §2 is what ruled out the cheaper shapes.
+
+**Kept out of `archive/`** for the same reason as `schema-organization.md`: the
+code cites this file by section number throughout `packages/desktop/` and in
+`src/lib/{desktop,blobPath,blobFs}.ts`.
+
+The phase logs are §10–§16, and they are the useful part — each records what the
+plan got wrong. Four things it got wrong outright: §4.2's local-auth mechanism
+(refused by NextAuth), §4.3's blob-store selection signal (dangerous), §5's
+one-answer treatment of `PUBLIC_URL` (there are two questions), and §2.3's
+assumption that the `Dockerfile` was a usable staging template (it is not,
+outside Docker). **Sync remains out of scope (§7)** and is the one thing a second
+plan would be for.
 
 ---
 
@@ -368,8 +381,9 @@ about being a copy rather than pretending to be a sync.
 6. ~~**Package** — electron-builder, AppImage and `.deb`.~~ **Done 20 Sep 2026
    — §15.** 247 MB AppImage, 202 MB `.deb`, unsigned. The credential strip is a
    build gate, not a convention.
-7. **Desktop affordances** — menu bar, window state, `printToPDF`, native file
-   dialogs (§6).
+7. ~~**Desktop affordances** — menu bar, window state, `printToPDF`, native
+   file dialogs (§6).~~ **Done 20 Sep 2026 — §16**, entirely inside
+   `packages/desktop`: zero changes under `src/`.
 
 Phases 1–2 are the risk. 3–5 are small and independent of each other.
 
@@ -1062,3 +1076,137 @@ electron-builder's default rather than a decision anyone here took.
 69 spec files, 1393 tests, lint and `tsc --noEmit` clean. Dev-mode launch from
 the working tree re-verified. No stray processes or clusters; the dev database on
 5432 untouched throughout.
+
+---
+
+## 16. Phase 7 log — desktop affordances, 20 Sep 2026
+
+**Result: the last phase, and the cleanest — zero changes under `src/`.** Six new
+modules in `packages/desktop/`, three new specs, and nothing above the seam
+touched. Phase 3 managed the same thing for auth; phase 7 managed it for the
+whole affordance surface.
+
+### 16.1 The menu, and an accelerator audit that changed the design
+
+`menuTemplate.js` (import-free template plus the audit data) and `menu.js`
+(installs it, implements the actions). Five top-level menus, verified against a
+real `Menu.getApplicationMenu()` dump.
+
+The audit could not be done the obvious way: **the command registry carries no
+shortcut metadata at all** — `CommandSpec` has no such field — so the in-app
+bindings had to be swept out of the handlers themselves, across `src/` and
+`packages/editor/src/` plus Lexical's own. The result is `APP_SHORTCUTS`, 24
+chords each with a `file:line`, and a `collisions()` check that fails the spec
+*and throws at startup* on any template that shadows one.
+
+Two results changed what got built:
+
+- **The Edit menu registers nothing.** Its roles are `registerAccelerator:
+  false` — shown, not bound. `selectAll` would have taken ⌘A from the posts list,
+  the sidebar and the notes canvas; `copy`/`cut`/`paste` would have replaced
+  Lexical's clipboard handlers and silently dropped
+  `application/x-lexical-editor` from every cross-post copy. On Linux Chromium
+  handles them in the renderer anyway. **On macOS `registerAccelerator` is
+  ignored, so a second platform must revisit this.**
+- **`Ctrl+Shift+E` is not free**, though every inventory says it is:
+  `TextFormatToggles.tsx:168` matches `KeyE` with no `shiftKey` guard, so
+  inline-code owns the shifted chord too. Export Backup went to `Ctrl+Shift+O`.
+
+### 16.2 Window state, and what Wayland will not promise
+
+`windowState.js` is pure and specced; the file is `userData/window-state.json`,
+written debounced on move/resize/maximize and synchronously on `close` from
+`getNormalBounds()` so a maximized window still remembers its restored size.
+
+The case that matters is a saved rectangle that no longer fits: `3840×2400 @
+5200,3400` restores as `2560×1080 at 0,0`, clamped to the work area and
+re-centred. **Restoring a window off-screen is worse than ignoring the saved
+state**, and that is the whole reason the module exists.
+
+**Position is advisory on Wayland**, and the parent session reproduced it: a
+window asked for `580,90` was placed by the compositor at `22,19`, which is what
+`getBounds()` returned and what the state file now contains. Size and the
+maximized flag restore exactly; coordinates are a request. A Wayland client
+cannot place itself, so there is nothing to fix — but the saved `x`/`y` may not
+be what was last seen.
+
+### 16.3 `printToPDF`, and the pre-existing bug underneath it
+
+A main-process hidden `BrowserWindow` on `session.defaultSession` — the same jar
+phase 3 minted the cookie into, so it renders **as the author**, not as an
+anonymous reader. Source is `/view/<id>`. No new route and no new authorization
+surface. (`src/app/api/pdf/` does not exist, despite `CLAUDE.md` listing it.)
+
+**§6 understated this badly.** The first working PDF was 947 bytes with the
+correct title and no content, and the cause is in the app, not the shell:
+`globals.css`, inside `@media print`, carries
+`body > *:not(.editor-container) { display: none !important; }`. On `/view` the
+content sits several wrappers below a body child that is not `.editor-container`
+— **verified independently: the class is mounted by `EmbedDocument.tsx` and
+`AppLayoutContent.tsx`, and nothing on the `/view` path.** So printing `/view`
+from an ordinary browser is blank today too. The rule was written for `/embed`,
+the one route that mounts `PrintTrigger` and whose `EmbedDocument` *is* the
+container.
+
+The shell works around it by pinning each `body > *` to its on-screen computed
+`display`, then **measuring the content under emulated print media and refusing
+to write a blank file** — because a PDF with the right filename and the wrong
+contents is the failure that gets noticed months later. Fixing `globals.css` is
+the real answer and is not this plan's.
+
+Reported output (the subagent's evidence; the parent session verified the CSS
+bug and the guard's logic, but could not drive the save dialog headlessly):
+an 11-page, 156,933-byte A4 PDF whose `pdftotext` yields 6,161 characters
+matching the post.
+
+### 16.4 Dialogs, and drag-and-drop deliberately not built
+
+`bundles.js` puts `showSaveDialog` in front of `/api/export` (streamed to
+`<chosen>.part` and renamed) and `showOpenDialog` in front of `/api/import`.
+Both cancel paths are no-ops.
+
+A bug the harness caught on its first run: **`/api/import` answers
+`{ data: summary }`, not the summary.** Read straight, every count is `undefined`
+and a restore that worked reports "Nothing was imported" — indistinguishable
+from the empty case the message exists to detect.
+
+**Drag-and-drop: nothing built, deliberately.** Electron delivers a file-manager
+drop as an ordinary HTML5 drop and `DragDropPastePlugin` already handles it. Two
+edges recorded rather than fixed: a dropped non-image is answered with
+"Unsupported file type" (making it an attachment is an editor-package change),
+and a drop *outside* a drop target would navigate the window to `file://…` —
+so `main.js` now handles `will-navigate`, cancelling off-origin, handing
+`http(s)` to the real browser and refusing the rest.
+
+### 16.5 Findings
+
+- **Two stale shortcut hints in the app**, found by the audit and unrelated to
+  desktop: the command palette advertises `⌘B` for "Toggle sidebar" (really
+  `⌘\`; `⌘B` is bold) and `⌘E` for "Switch to Read/Edit mode" (unbound; `⌘E` is
+  inline code), and `TabContextMenu` shows `⌘D`, `⌘⌫` and `F2` for bindings that
+  do not exist. The root cause is the one §16.1 hit: **the command registry has
+  no shortcut field**, so every hint is a hand-typed string with nothing
+  checking it.
+- Packaging needed no new resource — the six modules ship through the existing
+  `files: src/**/*` glob, `__tests__` stays excluded, and phase 6's gate still
+  passes 12/12 at unchanged artifact sizes.
+
+### 16.6 Verified, and not
+
+Independently by the parent session: zero changes under `src/` or
+`packages/editor` (`git diff --name-only` → 0 files); the `@media print` bug is
+real and `/view` is not `.editor-container`; the app boots in 1580 ms with
+"application menu installed (5 top-level menus)" — which is also a live test of
+§16.1's startup collision check, since it throws rather than warns; and
+`window-state.json` is written, containing the compositor's position rather than
+the requested one. 72 spec files, 1461 tests, lint, `tsc --noEmit` and
+`check:theme` all clean.
+
+**Not verified, and it spans every phase: what any of this looks like.** This
+session's Wayland compositor refuses both X11 `import` and the GNOME screenshot
+portal, so no window in seven phases has been seen. The menu is evidenced by a
+real `Menu.getApplicationMenu()` structure, the window by log lines and its state
+file, the PDFs by `pdfinfo`/`pdftotext`. Also unverified: a physical
+drag-and-drop, menu items driven by an actual click rather than by calling the
+same functions their handlers call, and whether an installed `.deb` launches
+sandboxed (§15.5).

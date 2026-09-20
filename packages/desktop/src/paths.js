@@ -36,6 +36,11 @@ export function desktopPaths(userData) {
     uploads: path.join(userData, "uploads"),
     blobs: path.join(userData, "blobs"),
     secrets: path.join(userData, "secrets.json"),
+    // Phase 7. Separate from `secrets.json` on purpose: this file is disposable
+    // — a corrupt or missing one costs a default-sized window — while losing
+    // the secrets locks the app out of its own database. Nothing should be
+    // tempted to make one write atomic on the other's behalf.
+    windowState: path.join(userData, "window-state.json"),
     // Postgres caps a Unix socket path at 107 bytes and §10.4 of the plan hit
     // that cap by letting the socket live inside a deep data directory. We
     // connect over TCP on loopback regardless, so the socket only has to exist;
@@ -74,6 +79,42 @@ export function loadSecrets(secretsPath) {
   };
   fs.writeFileSync(secretsPath, JSON.stringify(secrets, null, 2), { mode: 0o600 });
   return secrets;
+}
+
+/**
+ * The remembered window geometry, read defensively.
+ *
+ * Everything that decides what to *do* with it is in `windowState.js`, which is
+ * import-free and specced; this is the two lines of I/O that module refuses to
+ * carry. A missing, truncated or hand-edited file reads as `null`, which every
+ * caller treats as a first launch — the safe direction, because the alternative
+ * is `NaN` reaching `BrowserWindow` and a window at an undefined position.
+ */
+export function loadWindowState(statePath) {
+  try {
+    return JSON.parse(fs.readFileSync(statePath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persist it. Written to a sibling and renamed, because the last write happens
+ * during `close` — the one moment the process is most likely to be interrupted,
+ * and a half-written JSON file is indistinguishable from a corrupt one on the
+ * next launch.
+ */
+export function saveWindowState(statePath, state) {
+  if (!state) return;
+  const partial = `${statePath}.tmp`;
+  try {
+    fs.writeFileSync(partial, JSON.stringify(state, null, 2));
+    fs.renameSync(partial, statePath);
+  } catch (error) {
+    // Never fatal: forgetting where the window was is not a reason to fail a
+    // quit, and the only alternative outcome is an app that will not close.
+    console.error("[desktop] could not save the window state", error);
+  }
 }
 
 /** Ports this build must never bind or connect to. */

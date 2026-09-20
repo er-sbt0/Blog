@@ -1,12 +1,14 @@
 # @blog/desktop
 
-The Electron shell. **Phases 2–6 of
+The Electron shell. **Phases 2–7 of
 [docs/plans/desktop-app.md](../../docs/plans/desktop-app.md)**: the main process
 brings up an embedded Postgres cluster, applies the repo's migrations to it,
 starts a Next standalone server against it, signs the local user in, points its
 blob store and its attachments at directories under `userData`, and opens a
 window — and since phase 6 the whole of that ships as an AppImage or a `.deb`.
-See "Packaging" below.
+See "Packaging" below. Phase 7 gave it a menu bar, a window that remembers where
+it was, PDF export and native file dialogs for the backup bundles: see "Desktop
+affordances".
 
 Nothing here is a second implementation of anything. The window loads the same
 server the VPS runs (§3), so there is no desktop branch in the 66 route handlers
@@ -470,8 +472,150 @@ engine (18 MB). Both are shipped rather than trimmed, because the closure is
 computed rather than curated and a hand-maintained exclusion list is the kind of
 thing that is right until Prisma changes.
 
-## Stubbed, deliberately
+## Desktop affordances
 
-| | Phase |
+Phase 7 (§6, §8 item 7). Six modules — `menuTemplate.js` / `menu.js`,
+`windowState.js`, `pdf.js`, `bundles.js` and `fileTargets.js` — of which three
+are import-free and specced, because the whole of their risk is invisible at
+runtime: nobody can see this window, and none of these failures throws.
+
+### The menu, and the audit under it
+
+`menuTemplate.js` holds the template; `menu.js` installs it. They are split
+because of one fact about Electron: **an accelerator the menu registers never
+reaches the page.** Chromium gives the keystroke to the native menu, the menu
+runs its item, and the renderer's listener is never called. A File menu that
+took ⌘K would take the command palette; an Edit menu with a `selectAll` role
+takes ⌘A from the posts list, the sidebar *and* the notes canvas. All of it
+silently, with the menu item itself looking like it works.
+
+So `APP_SHORTCUTS` is an inventory of every modifier chord `src/` and
+`packages/editor/src/` bind (plus what Lexical registers on the editor's
+behalf), each with the file and line it comes from, and `collisions()` refuses
+any template that shadows one. `menu.js` runs it again at startup and throws.
+
+| | |
 | --- | --- |
-| Menu bar, window state, `printToPDF`, native dialogs | 7 (§6) |
+| File | New Post `Ctrl+N` · Export as PDF… `Ctrl+P` · Import Backup… `Ctrl+O` · Export Backup… `Ctrl+Shift+O` · Close Window `Ctrl+W` · Quit `Ctrl+Q` |
+| Edit | the standard roles, **all label-only** |
+| View | Reload `Ctrl+R` · Force Reload `Ctrl+Shift+R` · DevTools `F12` · zoom (label-only) · Full Screen `F11` |
+| Window | Minimize `Ctrl+M` · Maximize / Restore |
+| Help | About · Open Data Folder · Copy Boot Log |
+
+Two decisions worth keeping:
+
+- **The Edit menu registers nothing.** `registerAccelerator: false` shows the
+  chord and leaves the key to the page, which is the only way ⌘A can go on
+  meaning three different things and ⌘C can keep writing
+  `application/x-lexical-editor` alongside the plain text. On Linux — the only
+  platform this build targets — Chromium handles those keys in the renderer
+  anyway, so it costs nothing. On macOS `registerAccelerator` is ignored, so a
+  second platform has to revisit this.
+- **The three zoom roles are label-only too**, because
+  `useCanvasZoomShortcuts` binds `Ctrl+0`/`Ctrl+=`/`Ctrl+-` on a notes canvas
+  and tests `ctrlKey` alone.
+
+`Ctrl+Shift+E` looks like the obvious accelerator for Export and is not free:
+the inline-code handler matches `KeyE` with no `shiftKey` guard, so it owns the
+shifted chord too. `absorbsShift` in `APP_SHORTCUTS` is what encodes that.
+
+### Window state
+
+`windowState.js` is arithmetic, `paths.js` does the I/O, and
+`window-state.json` under `userData` is the file. The two cases it exists for
+are the ones that break: a position on a monitor that has been unplugged, and a
+size larger than the display that is left. Both end with a window that exists
+and cannot be reached, so **the saved geometry is dropped rather than honoured
+off-screen** — re-centred when less than a title bar's worth of it would be
+visible, nudged back inside when it is merely over an edge, and clamped to the
+*work area* rather than the screen. A maximized window saves `getNormalBounds()`,
+so un-maximizing gives back the window it had before.
+
+**On Wayland the position is advisory.** Verified here: a window asked for
+`140,120` was placed by the compositor at `22,19`, and that is what came back
+from `getBounds()` and got saved. Size and the maximized flag restore exactly;
+the coordinates are a request. There is nothing to fix — a Wayland client
+cannot place its own window — but it is why the saved `x`/`y` may not be the
+ones you last saw.
+
+### PDF export
+
+`pdf.js`, and it is a main-process feature rather than a route: **there is no
+`src/app/api/pdf/`** (CLAUDE.md lists one; it is gone, and there is no
+`puppeteer` dependency), so what makes this possible again is Electron's own
+Chromium. The source is `/view/<id>` — the existing read-only render, served by
+the same server to the same session, so authorization is exactly where it
+already was. The hidden window uses `session.defaultSession`, which is the jar
+phase 3 minted the cookie into; a partitioned session would have produced a
+perfectly valid PDF of the signed-out page.
+
+Two checks stand between it and a blank file, and the second one is there
+because the first was not enough:
+
+1. A settle script waits for images to decode and `document.fonts.ready` to
+   resolve, then for the content height to stop changing, and reports the
+   character and image counts it found. `did-finish-load` alone is too early.
+2. **The print layout is measured under print media**, via
+   `Emulation.setEmulatedMedia` over Electron's debugger. This caught a real
+   blank: `globals.css`'s `@media print` block carries
+   `body > *:not(.editor-container) { display: none !important; }`, and on
+   `/view` the content is `.document-container.document-view` several wrappers
+   below a body child that is neither — so the printed page was empty while the
+   screen DOM was full. `printToPDF` reported success and returned a valid
+   947-byte document with the right title and no content.
+
+That rule was evidently written for `/embed`, which is the one route that
+mounts `PrintTrigger` and whose `EmbedDocument` *is* the `.editor-container`.
+On `/view` — and on the workspace, where `AppLayoutContent` puts the same class
+several levels down — it hides the page. **It is a pre-existing app bug rather
+than a desktop one**, and printing `/view` from a browser today has the same
+result; whether `/embed`'s own print button still works was not checked.
+
+The shell works around it by pinning each `body > *` to its on-screen `display`
+with an inline `!important` before printing — read rather than guessed, so a
+flex wrapper stays flex and anything genuinely hidden stays hidden. Fixing
+`globals.css` is the real answer and belongs to whoever owns that stylesheet.
+
+### Native dialogs for the bundles
+
+`bundles.js`. `/api/export` and `/api/import` already round-trip a whole
+account and §7 makes them the v1 answer to "two libraries that both exist";
+what they lacked on desktop was a way to say where the file goes. Both requests
+carry the session cookie and go through `userRoute` exactly as the browser's
+do — the shell is presenting a file picker, not obtaining access.
+
+The export streams to `<chosen>.part` and renames on success, because a
+truncated `.zip` sitting at the name the user chose is a backup they will trust
+until the day they need it. The import is the one affordance that *reports*:
+`/api/import` skips anything already present, so a restore into the account the
+bundle came from imports nothing and returns 200 — `describeImport` says
+"Nothing was imported" rather than "Import complete".
+
+One trap, found by running it: the route answers `{ data: summary }`, not the
+summary. Read straight, every count is `undefined`, every default fires, and a
+restore that worked reports that it did nothing.
+
+### Drag and drop: nothing was built, deliberately
+
+Electron delivers a drop from the file manager as an ordinary HTML5 drop with
+`dataTransfer.files`, and `DragDropPastePlugin` already handles that through
+Lexical's `DRAG_DROP_PASTE` — the same path a drop from a browser's downloads
+takes. There is nothing for the shell to add, and nothing was added.
+
+**Read as a code path, not as a gesture**: a physical drag cannot be performed
+here (§11.4's Wayland limitation, which also rules out synthesising one), so
+this is the mechanism being present rather than a drop having been watched to
+land.
+
+Two notes on the edges of that:
+
+- **Non-image files are not attachments.** `DragDropPastePlugin` accepts image
+  MIME types and answers anything else with "Unsupported file type". Making a
+  dropped `.pdf` become an attachment is a change to the editor package, not to
+  the shell, so it is not phase 7's.
+- Dropping a file anywhere the editor is *not* listening would navigate the
+  window to `file://…` — Chromium's default, and a one-way trip in a window
+  with no address bar and an ephemeral port. `main.js` now handles
+  `will-navigate`: anything off-origin is cancelled, an `http(s)` link is
+  handed to the real browser (the answer `setWindowOpenHandler` already gave),
+  and everything else is simply refused.
