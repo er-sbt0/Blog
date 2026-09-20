@@ -16,6 +16,7 @@ them.
 | [bootstrap.md](./bootstrap.md)                                   | From-zero local setup: Node, Docker Postgres, env            |
 | [guides/claude-code-content.md](./guides/claude-code-content.md) | Editing blog content from Claude Code: MCP setup — local stdio and remote `/api/mcp` — and caveats |
 | [../ops/README.md](../ops/README.md)                             | The production runbook: backups, the scheduler, the restore drill. Runs on the VPS, never in development |
+| [../packages/desktop/README.md](../packages/desktop/README.md)   | The Electron desktop build: running it, what it turns off, how it packages, and where its data lives |
 
 ## Guides
 
@@ -44,7 +45,7 @@ describe intended or observed states, not necessarily the current one.
 
 | File                                                             | Description                                                                        |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [plans/README.md](./plans/README.md)                             | The six live plans; the ordering/schema chain is done and series-as-node was declined |
+| [plans/README.md](./plans/README.md)                             | The six live plans; the desktop app shipped all seven of its phases on 20 Sep 2026, and the ordering/schema chain is done |
 | [plans/archive/README.md](./plans/archive/README.md)             | Closed plans, kept because 332 code comments cite them by section number           |
 | [plans/claude-code-backlog.md](./plans/claude-code-backlog.md)   | Backlog for the Claude Code / Copilot content bridge — what is left, and why       |
 | [reviews/](./reviews/)                                           | Point-in-time code reviews, dated                                                  |

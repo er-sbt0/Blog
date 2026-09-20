@@ -48,6 +48,19 @@ pnpm start           # Start production server
 pnpm lint            # Run ESLint
 ```
 
+### Desktop (Electron)
+
+```bash
+pnpm desktop          # Run the desktop shell against the working tree
+pnpm build:desktop    # DESKTOP=1 BUILD_DIR=.next-desktop next build
+pnpm package:desktop  # AppImage + .deb into packages/desktop/.dist
+```
+
+`pnpm build` is untouched and still writes `.next` for the VPS. The desktop
+bundle is a **separate build** because two of its differences are settled when
+the bundle is written rather than when the server starts — see "The desktop
+build" below.
+
 ### Maintenance
 
 ```bash
@@ -75,8 +88,20 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 67 specs, 1354 tests, of which the list below walks the ones worth
-knowing about rather than all of them. The newest two are
+Coverage is 72 specs, 1461 tests, of which the list below walks the ones worth
+knowing about rather than all of them. The newest six are the desktop shell's
+(`packages/desktop/src/__tests__/`, docs/plans/desktop-app.md): `session.test.ts`
+(the local sign-in's arithmetic — the `__Secure-` prefix rule, seconds versus
+milliseconds in a cookie's `expirationDate`, and the margin that re-mints a row
+about to lapse rather than signing someone out mid-sentence),
+`windowState.test.ts` (a saved rectangle that no longer fits any display —
+restoring a window off-screen is worse than ignoring the saved state),
+`menuTemplate.test.ts` (that no menu accelerator shadows one of the 24 in-app
+chords, which is checked rather than trusted because the command registry has no
+shortcut field to read), `serverEnv.test.ts` (that the Next child's environment
+is *closed* — anything not passed explicitly is inherited from the `.env` that
+`next build` traces into the bundle), plus `bundle.test.ts` and
+`fileTargets.test.ts`. Next are
 `src/lib/__tests__/blobPath.test.ts` and `blobFs.test.ts`: the filesystem blob
 store the desktop build uses (docs/plans/desktop-app.md §4.3). Almost entirely
 refusals, because the thing that changed is that an attacker-controlled URL
@@ -411,7 +436,9 @@ API routes are in `src/app/api/`:
   Azure OpenAI)
 - `/api/import`, `/api/export`: Backup bundles (.zip)
 - `/api/attachments/*`: Uploaded file access
-- `/api/docx/*`, `/api/pdf/*`: Export functionality
+- `/api/docx/*`: docx export. **There is no `/api/pdf`** — that route was
+  removed and there is no `puppeteer` dependency; the desktop build prints
+  through Electron's own Chromium instead (desktop-app.md §16.3)
 - `/api/og`: Open Graph image generation
 - `/api/thumbnails/*`: Document thumbnails
 - `/api/health`: Liveness/readiness probe
@@ -446,7 +473,10 @@ it:
   fetching the row would be a query per request for something no handler reads).
   Every bad credential gets the same 401 with `WWW-Authenticate: Bearer` —
   unknown, revoked and expired must stay indistinguishable, or the endpoint
-  confirms which secrets were once real. Only `/api/mcp` uses it.
+  confirms which secrets were once real. Only `/api/mcp` uses it — and in the
+  desktop build that route answers 404 from `route()`'s `token` mode *before*
+  the header is read, so nothing there accepts a bearer credential at all
+  (desktop-app.md §14.2).
 
 `context.params` is already awaited. Pass the shape as the type argument:
 `userRoute<{ id: string }>(async (request, { params, user }) => …)`. Options go
@@ -618,10 +648,50 @@ Optional:
   email). Lives in `.env` like everything else — `.mcp.json` is committed, so an
   author named there would be one person's identity imposed on every clone. The
   server loads it via `--env-file=.env`, so nothing needs exporting by hand.
+- `DESKTOP=1`: this is the Electron build (desktop-app.md §5). Set by
+  `pnpm build:desktop` **and** by the shell in the Next child's environment.
+  `next.config.ts` derives `NEXT_PUBLIC_DESKTOP` from it, so the server half and
+  the client half cannot disagree. Read through `src/lib/desktop.ts`, never
+  inferred from some other setting being absent — "no OAuth configured" and "no
+  S3 configured" are conditions a *misconfigured VPS* also satisfies.
 - `MCP_ALLOW_INSECURE=1`: accept an agent token at `/api/mcp` over plain HTTP to
   a non-loopback host. Only for a transport that is already private — an ssh
   tunnel, Tailscale, a proxy that forwards under a different header. Setting it
   on a public deployment publishes the credential.
+
+## The desktop build
+
+`packages/desktop` is an Electron shell that runs **the same server code** as
+the VPS: the main process starts an embedded PostgreSQL 17 cluster in
+`userData`, applies the migrations with the bundled Prisma CLI, spawns
+`.next-desktop/standalone/server.js` against it, and opens the window only once
+`/api/health` answers — so the gate is the whole chain rather than a window
+appearing. The plan and its seven phase logs are
+[docs/plans/desktop-app.md](./docs/plans/desktop-app.md), which the code cites by
+section number.
+
+Four things there are invariants rather than conventions:
+
+- **The client cannot stand alone, and Postgres is not swappable.** Six
+  `String[]` columns carry the whole ordering model and Prisma supports scalar
+  lists on no other engine; `pg_notify`/`LISTEN` and the partial unique index
+  behind one-pending-proposal-per-document have no SQLite equivalent. That is
+  why the desktop ships a database rather than a second data layer (§2.2).
+- **Authorization is identical to the VPS.** The shell signs the local author in
+  by minting a real `Session` row and the cookie naming it — `src/lib/auth.ts`
+  is untouched — so `userRoute`, `context.user` and every rule in
+  `src/lib/access.ts` behave exactly as they do in a browser. There is no "skip
+  the check when local" branch anywhere, and there must never be one (§4.2).
+- **`next build` traces the working tree's `.env` into the bundle**, and
+  `@next/env` fills in every variable the child process does not already define.
+  So the shell builds a **closed** environment and blanks what a desktop build
+  must not inherit; and packaging **strips every `.env` and fails the build if
+  one survives**, because the traced file holds real credentials including
+  `AI_CREDENTIAL_KEYS` (§11.3, §15.2).
+- **`BLOB_DIR` selects the filesystem blob store**, and the hash in
+  `GET /api/blob/[hash]` stops being an S3 key and becomes a path — so
+  `src/lib/blobPath.ts` validates, `resolveWithin`s, and re-checks containment
+  against the root (§13.3).
 
 ## Production operations
 
