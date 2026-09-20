@@ -43,11 +43,13 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    "temp/types/**/*.ts"
+    "temp/types/**/*.ts",
+    ".next-desktop/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     ".next",
+    ".next-desktop",
     "tmp",
     "prisma/scripts/**"
   ]

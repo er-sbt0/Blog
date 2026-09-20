@@ -10,6 +10,15 @@
 // Only POST is exported. Next answers an unimplemented method with 405 by
 // itself, which is what a spec-conformant client wants for the GET a stateful
 // server would use for its notification stream.
+//
+// **Absent from the desktop build** (docs/plans/desktop-app.md §5). There the
+// stdio server runs in the same process tree, so this endpoint would be a
+// bearer-token listener on loopback with nothing to reach it — and the three
+// token budgets below exist to bound a public credential that cannot leak here.
+// The refusal is in `route()`'s `token` mode rather than in this handler, so it
+// lands *before* `requireAgentToken` reads the header: nothing in this build
+// accepts an `AgentToken` at all. Everything below is unchanged and still what
+// the VPS runs; disabling a route is not the same as removing its checks.
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { ApiError, tokenRoute } from "@/lib/api-utils";
 import { isAgentScope } from "@/lib/agentTokens";

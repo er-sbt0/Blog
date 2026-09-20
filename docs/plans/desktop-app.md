@@ -106,6 +106,13 @@ No schema port, no second data path, no change to the 66 route handlers or to
 against the same schema; what differs is four adapters (§4) and a set of
 disabled features (§5).
 
+**Same source, two build configurations** — phase 5 settled that (§14.1).
+`pnpm build:desktop` is `DESKTOP=1 BUILD_DIR=.next-desktop next build`, because
+two of §5's items are decided when the bundle is written rather than when the
+server starts: the service worker is injected by a webpack plugin, and
+`NEXT_PUBLIC_*` is inlined as a literal, so no runtime variable can reach a
+client component. `pnpm build` is unchanged and still writes `.next`.
+
 ### 3.1 Process model
 
 ```
@@ -264,6 +271,11 @@ hung splash screen.
 Each of these is a feature whose premise is a public server. Leaving them on is
 not neutral; most fail confusingly rather than harmlessly.
 
+The mechanism is the separate build above plus an explicit `DESKTOP` flag —
+never an inference from some other setting being absent, for the reasons §4.2
+and §13.2 both record. `src/lib/desktop.ts` holds the two readers (server and
+client) and `publicSiteUrl`.
+
 - **The service worker.** `next-pwa` is enabled whenever `NODE_ENV=production`,
   which a packaged build is. Its `runtimeCaching` includes a `NetworkFirst` rule
   over `/api/.*` with a 10-second timeout — against a local server that is a
@@ -275,8 +287,13 @@ not neutral; most fail confusingly rather than harmlessly.
   tokens.
 - **The rate limiter** on the same route, by consequence.
 - **`PUBLIC_URL`, OG images, `/api/revalidate`, `robots`/`sitemap`.** All of them
-  describe a site at a public address. Audit what reads `PUBLIC_URL` and give it
-  a defined answer for the local case rather than an empty string.
+  describe a site at a public address. **`PUBLIC_URL` turned out to be two
+  variables wearing one name** (§14.3), so "give it a defined answer" has two
+  answers: `api/utils.ts`'s self-fetch and `layout.tsx`'s `metadataBase` want
+  *where this server answers* and get the loopback origin, while `robots.ts` and
+  `sitemap.ts` want *where this site is published* and get `null` from
+  `publicSiteUrl()`. Blanking the variable would have broken the first pair to
+  serve the second. `/api/revalidate` is refused; `/api/og` is kept.
 - **The public routes** — `/view/[id]`, `/user/[id]`, `/embed/[id]` — are
   harmless but meaningless locally. Decide deliberately whether they stay (they
   are how you preview what a published post looks like, which is an argument for
@@ -343,7 +360,8 @@ about being a copy rather than pretending to be a sync.
 4. ~~**Filesystem blobs and uploads** (§4.3).~~ **Done 20 Sep 2026 — §13.**
    `BLOB_DIR` selects a filesystem store behind the same six functions; S3 is
    untouched and still the default. Verified both ways, including traversal.
-5. **Strip the server-only features** (§5).
+5. ~~**Strip the server-only features** (§5).~~ **Done 20 Sep 2026 — §14.**
+   All six items. Verified against both bundles side by side.
 6. **Package** — electron-builder, AppImage and `.deb`. Unsigned for a first
    release; there is no distribution channel yet that requires otherwise.
 7. **Desktop affordances** — menu bar, window state, `printToPDF`, native file
@@ -795,3 +813,127 @@ anonymous **401**, traversal 400/403/404.
   module resolution was checked, their behaviour was not.
 - Left in the local cluster as evidence: a "Phase 4 acceptance" document, its
   blob, and two attachments.
+
+---
+
+## 14. Phase 5 log — turning off the public-server features, 20 Sep 2026
+
+**Result: all six of §5's items, and the VPS build is untouched.** That second
+half was the risk, so it is the half that got demonstrated rather than asserted.
+
+### 14.1 One flag, two builds
+
+`pnpm build:desktop` = `DESKTOP=1 BUILD_DIR=.next-desktop next build`.
+`pnpm build` is unchanged and still writes `.next`.
+
+A runtime flag could not have worked, for a reason stronger than convenience:
+**two of §5's items are settled when the bundle is written.** `next-pwa` injects
+its registration into the client webpack entry, so with one shared artifact the
+only lever is *unregistering afterwards* — which is precisely the phase-2
+half-measure §5 exists to replace. And `NEXT_PUBLIC_*` is inlined by
+`DefinePlugin`; `process.env` does not exist in the browser, so a client
+component can never read a runtime `DESKTOP`.
+
+`next.config.ts` reads `DESKTOP` **once** and derives both the PWA switch and
+`env.NEXT_PUBLIC_DESKTOP` from it, so a bundle whose server thinks it is desktop
+and whose client does not cannot be produced.
+
+The cost is that the shipped bundle is no longer the VPS one, and it is paid for
+by `assertDesktopBundle` (`packages/desktop/src/server.js`), which reads
+`NEXT_PUBLIC_DESKTOP` back out of the bundle's own `required-server-files.json`
+before spawning. **A VPS bundle under Electron does not fail — it succeeds
+wrongly**, which is exactly the kind of thing that needs a guard rather than a
+convention.
+
+### 14.2 The six items
+
+| | |
+| --- | --- |
+| **Service worker + `/offline`** | `disable: !IS_PRODUCTION \|\| IS_DESKTOP`. `/offline` `notFound()`s under the flag. The shell also stopped bridging the web build's leftover `public/sw.js` — see §14.4. |
+| **`/api/mcp` + `AgentToken`** | 404 from `route()`'s `token` mode in `api-utils.ts`, **before** `requireAgentToken` reads the header, so nothing in the build accepts a bearer credential at all. `tokenRoute` is the route's only caller, so one line is the complete gate. |
+| **Rate limiter** | Off by consequence — the route 404s before `requestLimiter.take`. The unrelated limiter in `api/ai/credentials/` is untouched. |
+| **`PUBLIC_URL` audit** | §14.3. |
+| **Public routes** | **Kept**, deliberately: `/view`, `/embed` and `/user` are how you preview what a published post looks like. Verified reachable on desktop. Keeping them is also *why* `PUBLIC_URL` must stay set rather than blanked. |
+| **Sign-out affordance** | `UserSessionActions` renders `null` under `IS_DESKTOP_CLIENT` — the Logout button *and* the sign-in buttons behind it, since neither can work. Nothing rather than a disabled control: disabled implies a state in which it would work. Phase 3's shell watcher stays as a safety net, demoted from mechanism. |
+
+### 14.3 `PUBLIC_URL` is two variables wearing one name
+
+§5 said "give it a defined answer", implying one. There isn't one. Five readers
+split into two questions:
+
+- *Where does this server answer?* — `src/app/api/utils.ts` self-fetches
+  `${PUBLIC_URL}/api/embed` to render `/view` and `/embed`, and `layout.tsx` uses
+  `metadataBase`. These need the **live loopback origin**, which the shell already
+  sets. Blank it and the self-fetch falls back to `http://localhost:3000`, which
+  on a developer machine is usually a stale `next start` of a different build —
+  so `/view` would render *someone else's* HTML.
+- *Where is this site published?* — `robots.ts` and `sitemap.ts`. These get
+  `null` from `publicSiteUrl()`: robots becomes `Disallow: /` with no `Sitemap:`
+  line, sitemap an empty `<urlset/>`.
+
+Blanking the variable would have broken the first pair in order to serve the
+second. That is why the audit produced a function rather than a default.
+
+`/api/revalidate` is refused (404): it is the CDN/ISR half of a public site, and
+locally it could only ever answer 403, since the seeded user is `USER` with no
+path to `ADMIN`. `/api/og` is **kept** — it reads nothing, is a pure function of
+its query string, and the argument that keeps `/view` keeps its card.
+
+### 14.4 Verified against both bundles, side by side
+
+The parent session re-ran the acceptance independently, booting the desktop
+build and then running the **default** `.next` bundle beside it on port 3099 —
+against the embedded cluster, so the dev database on 5432 was never contacted.
+
+| | desktop | web (default build) |
+| --- | --- | --- |
+| `POST /api/mcp` | **404**, no `WWW-Authenticate` | **401**, `WWW-Authenticate: Bearer` |
+| `/sw.js` | 404 | 200 |
+| `/workbox-*.js` | 404 | 200 |
+| `/offline` | 404 | 200 |
+| `robots.txt` | `Disallow: /` | `Allow: /` + `Sitemap:` |
+| `sitemap.xml` | empty `<urlset/>` | populated |
+| chunks containing `Logout` | 0 | 1 |
+| chunks containing `navigator.serviceWorker` | 0 | 2 |
+| `required-server-files.json` → `NEXT_PUBLIC_DESKTOP` | `"1"` | `""` |
+
+The `/api/mcp` row is the one that matters: 404 with the header *absent* is what
+says the refusal lands before the credential is examined. And `Logout` being
+present in exactly one web chunk and zero desktop ones is the build-time branch
+folding away as intended.
+
+69 spec files, 1393 tests, lint, `tsc --noEmit` and `check:theme` all clean.
+
+### 14.5 Findings
+
+- **A second build directory mutates a committed file.** `next build` writes
+  `<distDir>/types` and **adds it to `tsconfig.json`'s `include` itself**. Two
+  dist directories in scope declare the same globals twice, and the first
+  desktop build failed on `PageProps` from a `.next/types` written by an older
+  Next. Resolved with `.next-desktop` in `exclude` (so `tsc --noEmit` sees
+  neither), `typescript.ignoreBuildErrors: IS_DESKTOP` (the same source is
+  already checked by `pnpm build` and by `tsc`), and committing the `include`
+  line Next insists on so the build is idempotent. Mutating a committed
+  `tsconfig.json` as a build side effect is the actual defect; this works around
+  it.
+- **"The service worker" is three things**, not one: the registration in the
+  client entry, `sw.js` written into the **source** `public/` directory, and
+  `/offline` as a route. `public/` being shared state between two builds is not
+  in the plan and is a phase-6 packaging concern — `PWA_ARTIFACTS` in
+  `server.js` is the list.
+- **Pre-existing bug, independently reproduced:** `/robots.txt` is statically
+  prerendered, so `PUBLIC_URL` is **baked at build time**. Serving the default
+  build with `PUBLIC_URL=https://blog.example` set at runtime still emitted
+  `Sitemap: http://localhost:3000/sitemap.xml` — the build machine's value.
+  `sitemap.ts` is `force-dynamic` and correct; `robots.ts` is not, and its own
+  docblock says to "read `PUBLIC_URL` like `sitemap.ts` does", which it does not.
+  This affects the VPS, not just desktop.
+- **Also pre-existing:** `sitemap.ts` with an unset `PUBLIC_URL` emitted valid
+  XML full of `undefined/view/…`. The new `if (!site) return []` fixes that as a
+  side effect.
+- **`/api/og` returns 500** for a simple query — and does so **identically in
+  both builds**, so it is not a phase-5 regression. Worth a look on its own.
+- **Not verified:** what the window looks like (§11.4's Wayland limitation
+  stands; everything visual above is DOM and bundle inspection).
+  `.next-desktop/standalone/.env` still carries the traced `.env` including a
+  real `GITHUB_CLIENT_SECRET` — that is §5's last bullet and phase 6's job.

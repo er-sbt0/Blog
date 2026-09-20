@@ -1,11 +1,11 @@
 # @blog/desktop
 
-The Electron shell. **Phases 2–4 of
+The Electron shell. **Phases 2–5 of
 [docs/plans/desktop-app.md](../../docs/plans/desktop-app.md)**: the main process
 brings up an embedded Postgres cluster, applies the repo's migrations to it,
-starts the existing `.next/standalone` server against it, signs the local user
-in, points its blob store and its attachments at directories under `userData`,
-and opens a window.
+starts a Next standalone server against it, signs the local user in, points its
+blob store and its attachments at directories under `userData`, and opens a
+window.
 
 Nothing here is a second implementation of anything. The window loads the same
 server the VPS runs (§3), so there is no desktop branch in the 66 route handlers
@@ -17,9 +17,14 @@ and, since phase 3, a session row the shell writes rather than an OAuth callback
 
 ```bash
 pnpm install          # once — see "The two install traps" below
-pnpm build            # the shell serves .next/standalone; it does not build it
+pnpm build:desktop    # the shell serves the output; it does not build it
 pnpm desktop          # == pnpm --filter @blog/desktop start
 ```
+
+`pnpm build:desktop` is `DESKTOP=1 BUILD_DIR=.next-desktop next build`, and the
+second build directory is the point — see "Two builds, and why" below. Plain
+`pnpm build` still writes `.next` and is still exactly the VPS bundle; the shell
+refuses to serve it.
 
 ### Chromium's sandbox on Ubuntu 23.10+
 
@@ -80,8 +85,11 @@ In order, each step logged with its timing:
 5. **Seed a local user** (§4.2). One row, `author@localhost`, created only if
    `User` is empty. Idempotent, and it never touches an existing row — including
    a `disabled` one.
-6. **Next server** — `.next/standalone/server.js` as a child process under
-   Electron's own Node, on its own ephemeral loopback port.
+6. **Next server** — `.next-desktop/standalone/server.js` as a child process
+   under Electron's own Node, on its own ephemeral loopback port. Before it is
+   spawned, `assertDesktopBundle` reads `NEXT_PUBLIC_DESKTOP` back out of the
+   bundle's `required-server-files.json`: a VPS bundle does not fail here, it
+   succeeds *wrongly*, so the wrong artifact is refused rather than served.
 7. **Health** — poll `GET /api/health` until it returns ok. That route does
    `SELECT 1` through Prisma, so a 200 is the whole chain proving itself:
    Electron → Next → Prisma → the embedded cluster. This is phase 2's acceptance
@@ -121,9 +129,9 @@ adapter is configured and credentials are the only provider, which is exactly
 the desktop case. Taking it would mean forcing `session.strategy = "jwt"` for
 this build alone: two builds keeping sessions in two different places, and a
 `session` callback handed a `token` here and a `user` there. `DESKTOP=1` is
-still set in the child's environment, and is still the only thing any future
-gate should hang off (never "no OAuth is configured", which a misconfigured VPS
-also satisfies) — but nothing reads it today.
+still set in the child's environment, and is still the only thing any gate hangs
+off (never "no OAuth is configured", which a misconfigured VPS also satisfies).
+Phase 5 is what started reading it.
 
 **The cookie name is derived, not written down.** NextAuth prefixes it with
 `__Secure-` when `NEXTAUTH_URL` is https, and `parse-url.js` treats a value with
@@ -161,9 +169,11 @@ short settle rather than trusting Chromium's `cause`, because NextAuth rewrites
 this cookie on every authenticated request and each rewrite looks like a removal
 first.
 
-Taking the affordance out of the UI is the better answer and belongs with §5's
-other "this build has no public server" strippings (phase 5). It is a change
-above the seam, and phase 3's rule is not to make one.
+**Phase 5 took the affordance out of the UI**, which is the better answer:
+`UserSessionActions` renders nothing when `IS_DESKTOP_CLIENT`, so neither the
+Logout button nor the sign-in buttons behind it appear. The watcher above stays,
+demoted from the answer to a safety net — `/api/auth/signout` is still a route
+and the session is still worth repairing whenever the cookie goes.
 
 ### The `disabled` rule is intact, and is enforced earlier
 
@@ -201,8 +211,8 @@ cheerfully writing every uploaded image into a container filesystem that the
 next deploy throws away, with nothing in any log to say so. A directory has to
 be named to be used.
 
-`DESKTOP=1` (set since phase 2, still read by nothing) would also have been
-explicit, but it says which *build* this is rather than where the bytes go, and
+`DESKTOP=1` (which phase 5 does read, for a different class of decision) would
+also have been explicit, but it says which *build* this is rather than where the bytes go, and
 leaving the location implicit is the part that loses data.
 
 Configuring both is **refused**, not resolved by precedence — whichever way it
@@ -233,7 +243,7 @@ live, not who may have them.
 
 ## Not the dev database
 
-`next build` traces the working tree's `.env` into `.next/standalone/.env`, and
+`next build` traces the working tree's `.env` into the bundle's `.env`, and
 `@next/env` applies it at server start to every variable the process does not
 already define. So the bundle carries the developer's real `DATABASE_URL`,
 `GITHUB_CLIENT_*` and `S3_*`, and a child process that merely *omits* them
@@ -267,12 +277,71 @@ And `embedded-postgres` publishes **only** prerelease versions — `^17` resolve
 to nothing — so it is pinned exactly to `17.10.0-beta.17` (§10.5). Do not let a
 caret or tilde in.
 
+## Two builds, and why
+
+Phase 5 (§5) turns off the features whose premise is a public server. Three of
+them cannot be decided at runtime:
+
+- **The service worker.** `next-pwa` is enabled by `NODE_ENV=production`, which
+  a packaged build is, and it injects its registration script into the client
+  entry from a **webpack plugin**. Whether a service worker exists is therefore
+  settled when the bundle is written, not when the server starts.
+- **The client flag.** `NEXT_PUBLIC_*` is inlined as a string literal at build
+  time. A runtime variable can never reach a client component, so
+  `DESKTOP=1` in the child's environment — which has existed since phase 2 —
+  cannot hide a button rendered in the browser.
+- **`/offline`,** which exists only as the service worker's document fallback,
+  and whose existence is a route in the build.
+
+So the desktop build is a *separate build*: `pnpm build:desktop`, into
+`.next-desktop`. `next.config.ts` reads `DESKTOP` once and derives both the PWA
+switch and `env.NEXT_PUBLIC_DESKTOP` from it, so the two halves cannot be set
+differently — they are set by one command.
+
+The alternative was one shared artifact with the flag delivered from the server
+at request time (a header, a context provider fed by a server component). It
+keeps a single bundle, and it cannot answer the first bullet at all; the service
+worker would have to be *unregistered* after the fact, which is the phase 2
+half-measure rather than a fix. Phase 6 needs a build step regardless, so the
+second build is close to free.
+
+What it costs is that the shipped bundle is no longer the VPS one. That is why
+`assertDesktopBundle` exists: the wrong bundle runs fine and is wrong silently.
+
+`pnpm build` is untouched — same output, same directory, same behaviour. The
+desktop build skips `typescript.ignoreBuildErrors` because `next build` writes
+its generated route types into `<distDir>/types` *and adds that directory to
+`tsconfig.json`*; two dist directories in scope declare the same globals twice,
+which is a type error in whichever is staler. `.next-desktop` is in tsconfig's
+`exclude`, so `pnpm exec tsc --noEmit` — which does check this source — never
+sees either.
+
+## What phase 5 turned off
+
+| | |
+| --- | --- |
+| Service worker + `/offline` | Off at build (`next.config.ts`); `/offline` 404s |
+| `/api/mcp`, and every `AgentToken` with it | 404 from `route()`'s `token` mode, **before** the bearer header is read |
+| The three MCP rate-limit budgets | Unreachable by consequence — the route never runs |
+| `/api/revalidate` | 404; it is the CDN/ISR half of a public site, and locally could only ever answer 403 |
+| `robots.txt` | `Disallow: /`, no `Sitemap:` line |
+| `sitemap.xml` | Empty |
+| The Logout button | Not rendered (`IS_DESKTOP_CLIENT`); the shell's restore watcher stays as a safety net |
+| `/view/[id]`, `/user/[id]`, `/embed/[id]` | **Kept** — they are how you see what a published post looks like, and they are the only preview there is |
+
+`PUBLIC_URL` is set, to the loopback origin: `src/app/api/utils.ts` self-fetches
+`/api/embed` through it to render `/view` and `/embed`, and would otherwise fall
+back to `http://localhost:3000` — usually a stale `next start` on this machine.
+The two readers that want "where is this site published" rather than "where does
+this server answer" go through `publicSiteUrl()` in `src/lib/desktop.ts`, which
+returns `null` here. Blanking the variable would have broken the first three to
+serve the last two.
+
 ## Stubbed, deliberately
 
 | | Phase |
 | --- | --- |
-| Service worker, `/api/mcp`, rate limiter, `PUBLIC_URL` audit | 5 (§5) |
-| Packaging — `.next/static` and `public/` are **symlinked** into `.next/standalone`; the Dockerfile's lines 63–64 are what copies them in production | 6 |
+| Packaging — `.next-desktop/static` and `public/` are **symlinked** into the standalone output; the Dockerfile's lines 63–64 are what copies them in production | 6 |
 | Menu bar, window state, `printToPDF`, native dialogs | 7 (§6) |
 
 One packaging note that belongs in phase 6 and is worth having written down

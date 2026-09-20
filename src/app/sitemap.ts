@@ -1,5 +1,6 @@
 import { findPublishedDocuments } from "@/repositories/document";
 import { MetadataRoute } from "next";
+import { publicSiteUrl } from "@/lib/desktop";
 
 /**
  * Rendered per request, not at build time.
@@ -22,9 +23,15 @@ import { MetadataRoute } from "next";
  */
 export const dynamic = "force-dynamic";
 
-const PUBLIC_URL = process.env.PUBLIC_URL;
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Every entry below is an absolute URL built by concatenation, so there has
+  // to be something to concatenate onto. The desktop build has no public
+  // address at all (desktop-app.md §5) and a web deployment that forgot
+  // `PUBLIC_URL` used to emit a sitemap of `undefined/view/…` — served, valid
+  // XML, and pointing nowhere. An empty sitemap is the honest answer to both.
+  const site = publicSiteUrl();
+  if (!site) return [];
+
   // Published only. This used to call `findAllDocuments`, which filters on
   // neither `published` nor `private`, so every unpublished draft was being
   // advertised to crawlers.
@@ -32,23 +39,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date().toISOString();
   return [
     {
-      url: `${PUBLIC_URL}/`,
+      url: `${site}/`,
       lastModified: now,
     },
     {
-      url: `${PUBLIC_URL}/new`,
+      url: `${site}/new`,
       lastModified: now,
     },
     {
-      url: `${PUBLIC_URL}/browse`,
+      url: `${site}/browse`,
       lastModified: now,
     },
     {
-      url: `${PUBLIC_URL}/privacy`,
+      url: `${site}/privacy`,
       lastModified: now,
     },
     ...allPosts.map((post) => ({
-      url: `${PUBLIC_URL}/view/${post.handle || post.id}`,
+      url: `${site}/view/${post.handle || post.id}`,
       lastModified: post.updatedAt,
     })),
   ];

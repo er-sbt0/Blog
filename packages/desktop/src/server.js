@@ -51,7 +51,82 @@ const DENIED_ENV = [
 const PASSTHROUGH_ENV = ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "TZ"];
 
 /**
- * Make `.next/standalone` self-sufficient enough to serve.
+ * Where `pnpm build:desktop` puts its output.
+ *
+ * A *second* build directory rather than a second server flag, and that is
+ * phase 5's architecture decision (§5). Two things about a desktop build can
+ * only be settled while the bundle is being written: `next-pwa` injects the
+ * service-worker registration into the client entry from a webpack plugin, and
+ * `NEXT_PUBLIC_*` is inlined as a string literal, so no runtime variable can
+ * ever reach a client component. One build, `DESKTOP=1 BUILD_DIR=.next-desktop
+ * next build`, decides both — and the plain `pnpm build` that produces the VPS
+ * bundle is left exactly as it was, in `.next`, rather than being made
+ * conditional on something.
+ *
+ * Overridable so a developer can point the shell at another output without
+ * editing this file. `.gitignore` already covers any `.next-` prefixed
+ * directory, so a second output does not have to be added to it.
+ */
+export const DESKTOP_BUILD_DIR = process.env.BUILD_DIR || ".next-desktop";
+
+/**
+ * Build artifacts of `next-pwa` that live in the *source* `public/` directory.
+ *
+ * `dest: "public"` in `next.config.ts` means the web build writes its service
+ * worker into the working tree rather than into its own output, so `public/` is
+ * shared state between the two builds and a desktop bundle assembled from it
+ * would serve a `/sw.js` the web build left behind. Nothing in a desktop build
+ * registers one — that is settled at build time, and is the acceptance check —
+ * but serving the file at all is a loose end, so the bridge below leaves these
+ * out. Phase 6's copy step wants the same list.
+ *
+ * They are all `.gitignore`d, which is the other way to see that they are
+ * output and not content.
+ */
+export const PWA_ARTIFACTS =
+  /^(sw\.js(\.map)?|workbox-[^/]+\.js(\.map)?|worker-[^/]+\.js(\.map)?|fallback-[^/]+\.js(\.map)?)$/;
+
+/**
+ * Prove the bundle about to be served is a desktop build.
+ *
+ * Asking is not proving (§11.3's rule, applied to the build rather than to the
+ * database). A bundle from `pnpm build` starts and serves perfectly well; what
+ * it does is register a service worker over an ephemeral loopback port, keep
+ * `/api/mcp` listening for bearer tokens, and render a Logout button that
+ * cannot be undone. All three are *absences*, so none of them would show up as
+ * an error — the app would simply be wrong, quietly, in the way §5 exists to
+ * prevent.
+ *
+ * `required-server-files.json` carries the resolved `nextConfig`, including the
+ * `env` block `next.config.ts` derives from `DESKTOP`. So this reads the flag
+ * out of the artifact itself rather than trusting the directory it was found in.
+ *
+ * It sits under the bundle's own `distDir` — `standalone/.next-desktop/…`, not
+ * `standalone/.next/…` — because `output: "standalone"` reproduces the dist
+ * directory by name inside the copy.
+ */
+export function assertDesktopBundle(standalone, buildDir = DESKTOP_BUILD_DIR) {
+  const manifest = path.join(standalone, buildDir, "required-server-files.json");
+  let config;
+  try {
+    config = JSON.parse(fs.readFileSync(manifest, "utf8"))?.config;
+  } catch (error) {
+    throw new Error(
+      `Could not read ${manifest} to confirm this is a desktop build: ${error.message}`,
+    );
+  }
+  if (config?.env?.NEXT_PUBLIC_DESKTOP !== "1") {
+    throw new Error(
+      `The build at ${standalone} is not a desktop build.\n` +
+        "It was produced by `pnpm build`, which leaves the service worker on, " +
+        "`/api/mcp` serving and the sign-out button in the UI (plan §5).\n" +
+        "Run `pnpm build:desktop` at the repository root.",
+    );
+  }
+}
+
+/**
+ * Make the standalone output self-sufficient enough to serve.
  *
  * The standalone server resolves static assets relative to its own directory, so
  * `.next/static` and `public/` have to sit beside it — and `next build` does not
@@ -59,38 +134,81 @@ const PASSTHROUGH_ENV = ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "TZ"];
  * production; this is the development-from-the-working-tree equivalent, and it
  * symlinks rather than copies so a rebuild is picked up without re-running this.
  *
+ * `public/` is bridged entry by entry rather than as one link, because it is the
+ * one directory the two builds share — see PWA_ARTIFACTS. The link farm is
+ * rebuilt every launch so a file added to `public/` is not invisible until
+ * someone deletes a stale directory.
+ *
  * Packaging (phase 6) must copy, not link, and must also *not* ship
  * `.next/standalone/.env` — see DENIED_ENV above. A locally built bundle contains
  * the developer's real credentials; `.dockerignore` keeps them out of the image
  * and nothing yet keeps them out of an installer.
  */
-export function ensureStandaloneAssets(appRoot, log) {
-  const standalone = path.join(appRoot, ".next", "standalone");
+export function ensureStandaloneAssets(appRoot, log, buildDir = DESKTOP_BUILD_DIR) {
+  const standalone = path.join(appRoot, buildDir, "standalone");
   const entry = path.join(standalone, "server.js");
   if (!fs.existsSync(entry)) {
     throw new Error(
-      `No Next build found at ${entry}.\n` +
-        "Run `pnpm build` at the repository root first — the desktop shell serves the " +
-        "standalone output, it does not build it.",
+      `No desktop build found at ${entry}.\n` +
+        "Run `pnpm build:desktop` at the repository root first — the shell serves the " +
+        "standalone output, it does not build it.\n" +
+        "(`pnpm build` writes .next, which is the VPS bundle and deliberately not this one.)",
     );
   }
 
-  const bridged = [
-    [path.join(appRoot, ".next", "static"), path.join(standalone, ".next", "static")],
-    [path.join(appRoot, "public"), path.join(standalone, "public")],
-  ];
+  assertDesktopBundle(standalone, buildDir);
 
-  for (const [source, target] of bridged) {
-    if (fs.existsSync(target)) continue;
-    if (!fs.existsSync(source)) {
-      throw new Error(`Expected ${source} to exist after \`pnpm build\`.`);
+  const staticSource = path.join(appRoot, buildDir, "static");
+  const staticTarget = path.join(standalone, buildDir, "static");
+  if (!fs.existsSync(staticTarget)) {
+    if (!fs.existsSync(staticSource)) {
+      throw new Error(`Expected ${staticSource} to exist after \`pnpm build:desktop\`.`);
     }
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.symlinkSync(source, target, "dir");
-    log(`linked ${path.relative(appRoot, target)} -> ${path.relative(appRoot, source)}`);
+    fs.mkdirSync(path.dirname(staticTarget), { recursive: true });
+    fs.symlinkSync(staticSource, staticTarget, "dir");
+    log(`linked ${path.relative(appRoot, staticTarget)} -> ${path.relative(appRoot, staticSource)}`);
   }
 
-  return { standalone, entry };
+  const publicSource = path.join(appRoot, "public");
+  const publicTarget = path.join(standalone, "public");
+  if (!fs.existsSync(publicSource)) {
+    throw new Error(`Expected ${publicSource} to exist.`);
+  }
+  const skipped = bridgePublic(publicSource, publicTarget);
+  log(
+    `bridged public/ (${skipped.linked} entries` +
+      (skipped.excluded.length ? `, excluding ${skipped.excluded.join(", ")}` : "") +
+      ")",
+  );
+
+  return { standalone, entry, buildDir };
+}
+
+/**
+ * One symlink per entry of `public/`, minus the web build's PWA output.
+ *
+ * Recreated rather than reconciled: the directory holds nothing but symlinks we
+ * made, so throwing it away is cheaper than working out what changed, and it
+ * cannot drift. An earlier single `public -> ../../public` link is replaced the
+ * same way.
+ */
+function bridgePublic(source, target) {
+  const existing = fs.lstatSync(target, { throwIfNoEntry: false });
+  if (existing?.isSymbolicLink()) fs.unlinkSync(target);
+  else if (existing) fs.rmSync(target, { recursive: true, force: true });
+  fs.mkdirSync(target, { recursive: true });
+
+  const excluded = [];
+  let linked = 0;
+  for (const name of fs.readdirSync(source)) {
+    if (PWA_ARTIFACTS.test(name)) {
+      excluded.push(name);
+      continue;
+    }
+    fs.symlinkSync(path.join(source, name), path.join(target, name));
+    linked += 1;
+  }
+  return { linked, excluded };
 }
 
 /**
@@ -153,9 +271,17 @@ export function buildServerEnv({
     DATABASE_URL: databaseUrl,
     NEXTAUTH_URL: url,
     NEXTAUTH_SECRET: nextAuthSecret,
-    // Everything that describes "where this site is" answers with the loopback
-    // origin rather than an empty string. §5 leaves the audit of what reads
-    // PUBLIC_URL to phase 5; giving it a defined value costs nothing now.
+    // The origin this server answers on — which is *not* the same question as
+    // "where is this site published", and phase 5's audit (§5) turned on the
+    // difference. Three readers want the first: `src/app/api/utils.ts`
+    // self-fetches `${PUBLIC_URL}/api/embed` to render `/view` and `/embed`, and
+    // would otherwise fall back to `http://localhost:3000` — which on this
+    // machine is usually a stale `next start` of somebody else's build. The root
+    // layout's `metadataBase` wants it too. Two readers want the second and get
+    // `null` instead: `robots.ts` and `sitemap.ts` go through `publicSiteUrl()`
+    // in `src/lib/desktop.ts`, which refuses to advertise a loopback port to a
+    // crawler. Setting this to `""` would have broken the first three to serve
+    // the last two.
     PUBLIC_URL: url,
     UPLOADS_DIR: uploadsDir,
     // §4.3, phase 4. Naming the directory is what *selects* the filesystem blob
@@ -169,8 +295,16 @@ export function buildServerEnv({
     // developer's `.env` gets to decide, and for this one that would mean the
     // desktop app writing its images into the repository's working tree.
     BLOB_DIR: blobDir,
-    // §4.2's gate. Nothing reads it until phase 3 registers the local provider;
-    // it is set now so that the two phases do not also have to agree on a name.
+    // §4.2's gate, and since phase 5 it is read. Server-side it turns off the
+    // remote MCP endpoint and `/api/revalidate` (`refuseOnDesktop` in
+    // `src/lib/api-utils.ts`), empties the sitemap and closes robots.
+    //
+    // It is set here *and* at build time, and that is not redundancy: the build
+    // (`pnpm build:desktop`) is what disables the service worker and inlines
+    // `NEXT_PUBLIC_DESKTOP` for client components, neither of which a runtime
+    // variable can reach. `assertDesktopBundle` above is what stops the two from
+    // disagreeing — a bundle from `pnpm build` is refused before it is served,
+    // rather than running with this flag set and half the strippings missing.
     DESKTOP: "1",
   });
 

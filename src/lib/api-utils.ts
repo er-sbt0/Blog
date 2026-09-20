@@ -7,6 +7,7 @@ import {
   touchAgentToken,
   verifyAgentToken,
 } from "@/lib/agentTokens";
+import { isDesktopBuild } from "@/lib/desktop";
 import type { z } from "zod";
 
 /**
@@ -302,6 +303,27 @@ function logAndWrap(error: unknown, errorLabel?: string): NextResponse {
 type AuthMode = "public" | "user" | "optional" | "token";
 
 /**
+ * Refuse a feature whose premise is a public server (desktop-app.md §5).
+ *
+ * **404, not 403.** The route is not forbidden to this caller; it is not part of
+ * this build at all, and a status that says "you may not" invites someone to go
+ * looking for a credential that would let them. `dynamic = "force-dynamic"` on
+ * the routes that use this keeps the answer from being cached either way.
+ *
+ * Nothing here weakens a check. Every authorization rule the disabled route had
+ * is still in the source and still runs on the VPS; this is the route declining
+ * to exist, ahead of them.
+ */
+export function refuseOnDesktop(feature: string): void {
+  if (!isDesktopBuild()) return;
+  throw new ApiError(
+    404,
+    "Not Found",
+    `${feature} is not part of the desktop build.`,
+  );
+}
+
+/**
  * Shared body of the three wrappers below.
  *
  * Deliberately **not exported**: a route cannot be written without naming one
@@ -319,6 +341,13 @@ function route<P, Ctx>(
 ): NextRouteHandler<P> {
   return async (request, props) => {
     try {
+      // Before the credential is read, not after. A desktop build has no remote
+      // agent surface (§5), and the difference between refusing first and
+      // verifying first is whether a process listening on loopback accepts a
+      // bearer token at all. `tokenRoute` is the only way into
+      // `requireAgentToken`, so this one line is the complete gate.
+      if (mode === "token") refuseOnDesktop("The remote MCP endpoint");
+
       const params = ((await props?.params) ?? {}) as P;
       const context = (
         mode === "public"
@@ -394,6 +423,11 @@ export const optionalUserRoute = <P = Params>(
  * during verification, and fetching the whole `User` row to satisfy a type
  * would be a query per request for something no handler reads. A handler that
  * needs more can fetch it from `token.userId`.
+ *
+ * **Not present in the desktop build.** `/api/mcp` is this wrapper's only
+ * caller, and a desktop build has the stdio MCP server in the same process tree
+ * — so the remote endpoint is a bearer-token listener on loopback with nothing
+ * to gain (§5). `route()` answers 404 for this mode before the header is read.
  *
  * @example
  * export const POST = tokenRoute(async (request, { token }) => …);

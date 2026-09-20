@@ -184,10 +184,15 @@ async function establishSession(origin) {
  *
  * So the shell restores the session and reloads, after telling the user plainly
  * that it did. That is deliberately not silent: a button that appears to do
- * nothing is its own bug. Removing the affordance from the UI is the right
- * answer and belongs with §5's other "this build has no public server"
- * strippings (phase 5) — it is a change above the seam, and phase 3's rule is
- * not to make one.
+ * nothing is its own bug.
+ *
+ * **Phase 5 removed the button** (`src/components/User/UserSessionActions.tsx`,
+ * gated on the build-time `NEXT_PUBLIC_DESKTOP`), which is the real answer and
+ * is why the dialog should now be unreachable through the UI. This watcher
+ * stays anyway, demoted from the answer to a safety net: `/api/auth/signout` is
+ * still a route, a `next-auth` client call still exists in the bundle, and the
+ * session row is still worth repairing whenever the cookie goes. Removing an
+ * affordance is not the same as removing the mechanism behind it.
  *
  * The listener fires on overwrites as well as removals — NextAuth rewrites this
  * cookie on every rolling refresh — so the jar is re-read after a short settle
@@ -243,11 +248,17 @@ async function restore(origin, name) {
 }
 
 async function openWindow(origin) {
-  // next-pwa registers a service worker in any production build, and its
-  // NetworkFirst rule over /api/* caches responses from a server that changes
-  // port every launch. Turning it off properly is §5 / phase 5; clearing it each
-  // boot is the cheap half, and stops a stale cache from being mistaken for a
-  // bug in something else.
+  // Phase 5 turned the service worker off where it is decided — in the build
+  // (§5). `pnpm build:desktop` sets `disable` on next-pwa, so the registration
+  // script is never injected into the client entry, no `sw.js` is generated, and
+  // `ensureStandaloneAssets` does not bridge the web build's leftover one out of
+  // `public/`. `assertDesktopBundle` refuses to serve a bundle where that is not
+  // true, so this is settled before the window exists.
+  //
+  // The clear stays as cleanup rather than as the mechanism: a registration
+  // written by a phase 2–4 launch is scoped to `http://127.0.0.1:<port>`, and
+  // the ephemeral range is small enough to hand out a port twice. Nothing
+  // re-registers it, but a leftover worker would still intercept.
   await session.defaultSession.clearStorageData({ storages: ["serviceworkers"] });
 
   // `show: false` until `ready-to-show`: the alternative is a window painted in

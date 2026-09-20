@@ -1,4 +1,4 @@
-import { ApiError, parseBody, userRoute } from "@/lib/api-utils";
+import { ApiError, parseBody, refuseOnDesktop, userRoute } from "@/lib/api-utils";
 import { UserRole } from "@prisma/client";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
@@ -8,7 +8,18 @@ const revalidateSchema = z.object({
   tag: z.string().optional(),
 }).strict();
 
+/**
+ * Invalidate a cached path or tag.
+ *
+ * **Not in the desktop build** (docs/plans/desktop-app.md §5). It is the CDN /
+ * ISR half of running a public site, and locally it could only ever answer 403:
+ * the one seeded desktop user is a `USER`, and there is no sign-in flow by
+ * which anyone could become an `ADMIN`. A route that can only refuse is better
+ * off saying it is not here.
+ */
 export const POST = userRoute(async (request, { user }) => {
+  refuseOnDesktop("Cache revalidation");
+
   if (user.role !== UserRole.ADMIN) {
     throw new ApiError(
       403,

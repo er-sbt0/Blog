@@ -12,7 +12,7 @@
  * nothing**. Unknown, revoked and expired must be one indistinguishable
  * answer; anything else reports on credentials to whoever asks about them.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const verifyAgentToken = vi.fn();
 const touchAgentToken = vi.fn();
@@ -125,5 +125,68 @@ describe("tokenRoute", () => {
     await route(request());
     await route(request("Bearer blog_pat_x"));
     expect(handler).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The desktop build has no remote agent surface (docs/plans/desktop-app.md §5).
+ *
+ * The endpoint exists so an agent *elsewhere* can reach the content; on desktop
+ * the stdio MCP server is in the same process tree, so what is left is a bearer
+ * credential accepted by a loopback listener — and the three token budgets on
+ * `/api/mcp` exist to bound a public credential that cannot leak in that build.
+ *
+ * Two claims, and the second is the one that matters. It is not enough that the
+ * route answers 404: the refusal has to land **before** `requireAgentToken`
+ * reads the header, or a desktop build is still a process that authenticates
+ * bearer tokens and merely declines to serve them.
+ */
+describe("tokenRoute in the desktop build", () => {
+  const original = process.env.DESKTOP;
+  beforeEach(() => {
+    process.env.DESKTOP = "1";
+  });
+  afterEach(() => {
+    if (original === undefined) delete process.env.DESKTOP;
+    else process.env.DESKTOP = original;
+  });
+
+  it("answers 404 with a valid token", async () => {
+    verifyAgentToken.mockResolvedValue({ ok: true, token: TOKEN });
+
+    const response = await route(request("Bearer blog_pat_x"));
+
+    expect(response.status).toBe(404);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("never reads the credential at all", async () => {
+    verifyAgentToken.mockResolvedValue({ ok: true, token: TOKEN });
+
+    await route(request("Bearer blog_pat_x"));
+
+    expect(verifyAgentToken).not.toHaveBeenCalled();
+    expect(touchAgentToken).not.toHaveBeenCalled();
+  });
+
+  /**
+   * 404 rather than 403 or 401: the route is not refusing *this caller*, it is
+   * not in this build. A 401 with `WWW-Authenticate: Bearer` would invite
+   * someone to go and find a token that cannot work.
+   */
+  it("does not advertise a credential that would work", async () => {
+    const response = await route(request());
+    expect(response.status).toBe(404);
+    expect(response.headers.get("www-authenticate")).toBeNull();
+  });
+
+  it("leaves the route intact once the flag is off again", async () => {
+    delete process.env.DESKTOP;
+    verifyAgentToken.mockResolvedValue({ ok: true, token: TOKEN });
+
+    const response = await route(request("Bearer blog_pat_x"));
+
+    expect(response.status).toBe(200);
+    expect(verifyAgentToken).toHaveBeenCalledOnce();
   });
 });

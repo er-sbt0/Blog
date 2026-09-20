@@ -12,13 +12,34 @@ const ONE_YEAR = 365 * ONE_DAY;
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
+/**
+ * The Electron build (docs/plans/desktop-app.md §5), set by `pnpm build:desktop`.
+ *
+ * It is a *separate build* rather than a runtime flag, and two things force
+ * that. The service worker below is injected into the client entry by a webpack
+ * plugin, so whether it exists is settled when the bundle is written; and
+ * `NEXT_PUBLIC_*` is inlined as a string literal at build time, so no runtime
+ * variable can ever reach a client component. One flag decides both, and
+ * `BUILD_DIR` keeps the output beside `.next` rather than on top of it — the
+ * VPS bundle is produced by an unchanged `pnpm build` and is byte-for-byte what
+ * it was.
+ */
+const IS_DESKTOP = process.env.DESKTOP === "1";
+
 const withBundleAnalyzerConfig = {
   enabled: process.env.ANALYZE === "true",
 };
 
 const withPWAConfig = {
   dest: "public",
-  disable: !IS_PRODUCTION,
+  // Off in development as before, and off in the desktop build whatever
+  // NODE_ENV says. A packaged Electron app *is* NODE_ENV=production, so without
+  // this it would register a service worker whose `runtimeCaching` puts a
+  // NetworkFirst rule over `/api/.*` — against a server on an ephemeral
+  // loopback port that changes every launch. That is a stale-data hazard with
+  // nothing to gain: there is no network between the window and the server, and
+  // `/offline` (the `fallbacks.document` below) can never be the honest answer.
+  disable: !IS_PRODUCTION || IS_DESKTOP,
   register: true,
   buildExcludes: ["app-build-manifest.json"],
   skipWaiting: true,
@@ -154,6 +175,13 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   reactStrictMode: true,
   distDir: process.env.BUILD_DIR || ".next",
+  // The one build-time flag the client half of the app can see. Derived from
+  // `DESKTOP` rather than set alongside it, so `pnpm build:desktop` cannot
+  // produce a bundle whose server thinks it is desktop and whose client does
+  // not. Read through `IS_DESKTOP_CLIENT` in `src/lib/desktop.ts`.
+  env: {
+    NEXT_PUBLIC_DESKTOP: IS_DESKTOP ? "1" : "",
+  },
   // Skip ESLint during build - run separately with `npm run lint`
   //
   // `dirs` is what `npm run lint` (`next lint`) actually walks. Its default is
@@ -168,10 +196,25 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
     dirs: ["src", "packages"],
   },
-  // Skip TypeScript errors during build for faster builds (optional)
-  // typescript: {
-  //   ignoreBuildErrors: true,
-  // },
+  // Type checking is the default build's job, and the desktop build must not
+  // repeat it — not to go faster, but because it *cannot*.
+  //
+  // `next build` generates per-route type validators into `<distDir>/types` and
+  // adds that directory to `tsconfig.json`'s `include` itself. Run a second
+  // build under a second `distDir` and the project has two generated `types`
+  // trees in scope at once, declaring the same globals; the first attempt failed
+  // on `PageProps` from a `.next/types` written by an older Next. Mutating a
+  // committed `tsconfig.json` as a side effect of a build is the actual defect
+  // here, and `.next-desktop` is in `exclude` so `pnpm exec tsc --noEmit` never
+  // sees either.
+  //
+  // Nothing is lost. The desktop build compiles the *same source* as the default
+  // one — what differs is an inlined `NEXT_PUBLIC_DESKTOP` and a webpack plugin
+  // that does not run, neither of which has a type. `pnpm build` and
+  // `pnpm exec tsc --noEmit` both still check it, and both are repo gates.
+  typescript: {
+    ignoreBuildErrors: IS_DESKTOP,
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",
