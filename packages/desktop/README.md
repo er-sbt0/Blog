@@ -1,13 +1,16 @@
 # @blog/desktop
 
-The Electron shell. **Phase 2 of [docs/plans/desktop-app.md](../../docs/plans/desktop-app.md)**:
-the main process brings up an embedded Postgres cluster, applies the repo's
-migrations to it, starts the existing `.next/standalone` server against it, and
-opens a window once `/api/health` answers.
+The Electron shell. **Phases 2–3 of
+[docs/plans/desktop-app.md](../../docs/plans/desktop-app.md)**: the main process
+brings up an embedded Postgres cluster, applies the repo's migrations to it,
+starts the existing `.next/standalone` server against it, signs the local user
+in, and opens a window.
 
 Nothing here is a second implementation of anything. The window loads the same
 server the VPS runs (§3), so there is no desktop branch in the 66 route handlers
-or in `src/lib/access.ts` — what differs is the environment the server is handed.
+or in `src/lib/access.ts` — what differs is the environment the server is handed,
+and, since phase 3, a session row the shell writes rather than an OAuth callback.
+**`src/lib/auth.ts` is untouched by this package.**
 
 ## Running it
 
@@ -48,7 +51,7 @@ names it, and without it a scoped package name would nest the directory):
 
 | | |
 | --- | --- |
-| `pgdata/` | the Postgres cluster |
+| `pgdata/` | the Postgres cluster, including the `Session` row you are signed in with |
 | `uploads/` | attachments (`UPLOADS_DIR`) |
 | `blobs/` | created, unused until phase 4 |
 | `secrets.json` | the cluster password and `NEXTAUTH_SECRET`, 0600 |
@@ -73,8 +76,9 @@ In order, each step logged with its timing:
    because Postgres caps that path at 107 bytes (§10.4).
 4. **Migrations** — `prisma migrate deploy` as a child process, then a check that
    `_prisma_migrations` in *this* cluster is non-empty. 48 migrations today.
-5. **Seed a local user** — the phase-2 stand-in for phase 3's real local session
-   (§4.2). One row, `author@localhost`, created only if `User` is empty.
+5. **Seed a local user** (§4.2). One row, `author@localhost`, created only if
+   `User` is empty. Idempotent, and it never touches an existing row — including
+   a `disabled` one.
 6. **Next server** — `.next/standalone/server.js` as a child process under
    Electron's own Node, on its own ephemeral loopback port.
 7. **Health** — poll `GET /api/health` until it returns ok. That route does
@@ -82,14 +86,91 @@ In order, each step logged with its timing:
    Electron → Next → Prisma → the embedded cluster. This is phase 2's acceptance
    check. Then a second, independent check that the server's connection actually
    landed in our cluster (`pg_stat_activity`) rather than somewhere it inherited.
-8. **Window**, and only then.
+8. **Sign in** — mint or reuse a NextAuth `Session` row for that user and put
+   its token in the window's cookie jar. See "Local auth" below.
+9. **Window**, and only then.
 
 Shutdown is the reverse: the Next child first (SIGTERM, then SIGKILL after 5 s),
 then the cluster. A cluster left running after the app exits is a bug.
 
-Any failure in 1–7 opens a **real error window** carrying the message and the
+Any failure in 1–8 opens a **real error window** carrying the message and the
 boot log, per §4.4 — a console line at this stage is indistinguishable from a
 hung splash screen.
+
+## Local auth
+
+The desktop user is genuinely signed in: `context.user` is populated, and the
+whole authorized surface — series, projects, notes, blobs, proposals — works
+exactly as it does on the VPS.
+
+It is done by **writing the pair an OAuth sign-in would have left behind** — a
+row in `Session`, and the cookie that names it — not by teaching NextAuth a new
+way to authenticate. `authOptions` keeps its `PrismaAdapter`, so NextAuth stays
+on the **database** session strategy and `getServerSession` validates the cookie
+by reading `Session` and running the existing `session` callback over the joined
+`User`. That callback is what puts `id`, `role` and `disabled` on
+`session.user`, and it runs here unchanged. §4.2's rule — *change nothing above
+the seam* — is therefore satisfied by construction rather than by care: there is
+nothing above the seam to change.
+
+**The Credentials provider (§4.2's suggested shape) does not work here**, and
+NextAuth says so itself. `core/lib/assert.js` returns `UnsupportedStrategy` —
+"Signin in with credentials only supported if JWT strategy is enabled" — when an
+adapter is configured and credentials are the only provider, which is exactly
+the desktop case. Taking it would mean forcing `session.strategy = "jwt"` for
+this build alone: two builds keeping sessions in two different places, and a
+`session` callback handed a `token` here and a `user` there. `DESKTOP=1` is
+still set in the child's environment, and is still the only thing any future
+gate should hang off (never "no OAuth is configured", which a misconfigured VPS
+also satisfies) — but nothing reads it today.
+
+**The cookie name is derived, not written down.** NextAuth prefixes it with
+`__Secure-` when `NEXTAUTH_URL` is https, and `parse-url.js` treats a value with
+no scheme *as* https. So `127.0.0.1:41234` and `http://127.0.0.1:41234` ask for
+different cookies, and the wrong one is never sent — a window quietly showing
+the signed-out experience, with a clean boot log above it. `session.js` derives
+the name from the same URL the server is handed, and
+`src/__tests__/session.test.ts` pins that rule along with the other three
+silent ones: `expirationDate` is in **seconds**, `secure` must follow the
+scheme, and a row hours from lapsing must not be reused.
+
+### Expiry
+
+Sessions are 30 days, matching NextAuth's own `maxAge` so that the server's
+rolling refresh (`updateAge`, 24 h) computes as it does on the VPS. Every launch
+either reuses the existing row or replaces it: anything expired, missing, or
+within a day of lapsing is re-minted, and `lastLogin` is stamped when it is —
+the same moment the OAuth `signIn` callback stamps it.
+
+So a lapse across a restart cannot happen. The only way to reach the bound is to
+leave the app running for 30 days while making no authenticated request at all,
+since any request that does refreshes the row.
+
+### Sign-out is a trap, and is answered rather than removed
+
+The workspace still renders the web app's Logout button. Pressing it does what
+it does on the VPS — deletes the `Session` row, clears the cookie — but here
+there is no OAuth provider to sign back in *with*, so the window would sit in
+the guest/IndexedDB experience until you quit, with nothing on screen saying so.
+
+The shell therefore watches the cookie jar, restores the session, reloads the
+window and **says that it did**, in a dialog. Not silently: a button that
+appears to do nothing is its own bug. The listener re-reads the jar after a
+short settle rather than trusting Chromium's `cause`, because NextAuth rewrites
+this cookie on every authenticated request and each rewrite looks like a removal
+first.
+
+Taking the affordance out of the UI is the better answer and belongs with §5's
+other "this build has no public server" strippings (phase 5). It is a change
+above the seam, and phase 3's rule is not to make one.
+
+### The `disabled` rule is intact, and is enforced earlier
+
+A disabled account is the app's one refusal. `establishLocalSession` will not
+mint for one, so a disabled desktop user is never signed in — the same order the
+OAuth `signIn` callback uses — and `requireUser` in `src/lib/api-utils.ts` would
+refuse them a second time regardless. In practice the app fails to start and the
+error window names the reason; the only way out is to clear the flag on the row.
 
 ## Not the dev database
 
@@ -131,7 +212,6 @@ caret or tilde in.
 
 | | Phase |
 | --- | --- |
-| Auth — a seeded `User` row, no session provider | 3 (§4.2) |
 | Blobs — `blobs/` exists, nothing writes to it; S3 is blanked, so `isStorageConfigured()` is false | 4 (§4.3) |
 | Service worker, `/api/mcp`, rate limiter, `PUBLIC_URL` audit | 5 (§5) |
 | Packaging — `.next/static` and `public/` are **symlinked** into `.next/standalone`; the Dockerfile's lines 63–64 are what copies them in production | 6 |

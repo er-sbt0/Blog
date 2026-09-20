@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import EmbeddedPostgres from "embedded-postgres";
+import { isSessionUsable, sessionExpiry } from "./session.js";
 
 /** The one database the desktop build uses inside its own cluster. */
 export const APP_DATABASE = "blog";
@@ -159,27 +160,98 @@ export async function countMigrations(cluster, database = APP_DATABASE) {
 }
 
 /**
- * The phase-2 stand-in for a real local session (§4.2).
+ * The one local user (§4.2).
  *
- * Phase 3 replaces this with a NextAuth provider gated on `DESKTOP=1`; until
- * then the row exists so that the workspace has an author to belong to and the
- * server-rendering pages have something to render. One row is the whole point —
- * a desktop install has exactly one user, and `User.email` is unique.
+ * One row is the whole point — a desktop install has exactly one user, and
+ * `User.email` is unique. Idempotent: an existing row is returned untouched,
+ * including a `disabled` that an operator (or a restored backup) has set.
+ *
+ * `disabled` comes back because the desktop build honours the app's single
+ * refusal rather than routing around it. The OAuth path enforces it in the
+ * `signIn` callback; here `establishLocalSession` refuses to mint for a
+ * disabled row, and `requireUser` in `src/lib/api-utils.ts` would refuse it a
+ * second time even if this one were forgotten.
  */
 export async function seedLocalUser(cluster, { name, email, database = APP_DATABASE }) {
   const client = await connect(cluster, database);
   try {
-    const existing = await client.query('SELECT id, email FROM "User" LIMIT 1');
+    const existing = await client.query('SELECT id, email, disabled FROM "User" LIMIT 1');
     if (existing.rows.length > 0) return { ...existing.rows[0], seeded: false };
 
     // `name`, `email` and `updatedAt` are the NOT NULL columns without a database
     // default — `@updatedAt` and `@default(uuid())` are Prisma-side, so a plain
     // INSERT has to supply both. Everything else the schema defaults.
     const { rows } = await client.query(
-      'INSERT INTO "User" (id, name, email, "updatedAt") VALUES (gen_random_uuid(), $1, $2, now()) RETURNING id, email',
+      'INSERT INTO "User" (id, name, email, "updatedAt") VALUES (gen_random_uuid(), $1, $2, now()) RETURNING id, email, disabled',
       [name, email],
     );
     return { ...rows[0], seeded: true };
+  } finally {
+    await client.end();
+  }
+}
+
+/**
+ * Sign the local user in, by writing the row NextAuth's database strategy reads.
+ *
+ * This is the whole of phase 3's server side. `authOptions` keeps its
+ * `PrismaAdapter`, so `getServerSession` resolves a request by looking the
+ * cookie's value up in `Session` and running the `session` callback over the
+ * joined `User` — which is what puts `id`, `role` and `disabled` on
+ * `context.user`. A row here is therefore indistinguishable, to every one of
+ * the 66 route handlers, from a row an OAuth sign-in wrote.
+ *
+ * Idempotent, and that is what makes expiry a non-event: an existing row still
+ * comfortably in date is reused, anything nearer than a day to lapsing is
+ * replaced, and either way the caller ends up with a token to put in the
+ * cookie. A session cannot therefore lapse across a restart; the only way to
+ * reach the bound is to leave the app running for 30 days while making no
+ * authenticated request at all, because the server's own rolling refresh
+ * (`updateAge`) moves `expires` forward on any request that does.
+ *
+ * The `disabled` refusal is enforced *before* minting rather than at the seam,
+ * so a disabled desktop user is signed out rather than signed in and then
+ * rejected route by route — the same order the OAuth `signIn` callback uses.
+ */
+export async function establishLocalSession(
+  cluster,
+  { user, newToken, now = Date.now(), database = APP_DATABASE },
+) {
+  if (user.disabled) {
+    throw new Error(
+      `The local user ${user.email} is disabled. ` +
+        "A disabled account cannot sign in on the desktop either — that is the " +
+        "app's one refusal, and the desktop build does not get an exemption from it.",
+    );
+  }
+
+  const client = await connect(cluster, database);
+  try {
+    const { rows } = await client.query(
+      'SELECT "sessionToken", expires FROM "Session" WHERE "userId" = $1 ORDER BY expires DESC LIMIT 1',
+      [user.id],
+    );
+    if (isSessionUsable(rows[0], now)) {
+      return { token: rows[0].sessionToken, expires: rows[0].expires, minted: false };
+    }
+
+    // Everything, not just the lapsed one: exactly one session per install is
+    // the invariant worth holding, and a launch is the only moment at which
+    // discarding the others cannot interrupt anyone.
+    await client.query('DELETE FROM "Session" WHERE "userId" = $1', [user.id]);
+    const expires = sessionExpiry(now);
+    await client.query(
+      'INSERT INTO "Session" (id, "sessionToken", "userId", expires) VALUES (gen_random_uuid(), $1, $2, $3)',
+      [newToken, user.id, expires],
+    );
+    // What the OAuth `signIn` callback stamps at the same moment, for the same
+    // reason: sign-in is the event worth recording, and `lastLogin` is read by
+    // the profile surfaces.
+    await client.query(
+      'UPDATE "User" SET "lastLogin" = $2, "updatedAt" = $2 WHERE id = $1',
+      [user.id, new Date(now)],
+    );
+    return { token: newToken, expires, minted: true };
   } finally {
     await client.end();
   }

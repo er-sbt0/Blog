@@ -1,4 +1,5 @@
-import { app, BrowserWindow, session, shell } from "electron";
+import { randomUUID } from "node:crypto";
+import { app, BrowserWindow, dialog, session, shell } from "electron";
 import { preflightPostgresBinaries } from "./preflight.js";
 import { assertNotForbidden, desktopPaths, freePort, loadSecrets, resolveAppRoot } from "./paths.js";
 import {
@@ -7,10 +8,12 @@ import {
   countMigrations,
   databaseUrl,
   ensureDatabase,
+  establishLocalSession,
   runMigrations,
   seedLocalUser,
   startCluster,
 } from "./cluster.js";
+import { sessionCookieName, sessionCookieSpec } from "./session.js";
 import {
   buildServerEnv,
   ensureStandaloneAssets,
@@ -20,12 +23,14 @@ import {
 } from "./server.js";
 
 /**
- * Phase 2 of docs/plans/desktop-app.md: the whole stack under Electron.
+ * Phases 2–3 of docs/plans/desktop-app.md: the whole stack under Electron, with
+ * its one user signed in.
  *
- * The main process owns three things that have to come up in order — a Postgres
- * cluster, the migrations against it, and the existing `.next/standalone` server
- * — and the window opens only once `/api/health` has proved all three. Auth is
- * still a seeded row rather than a session (§4.2, phase 3).
+ * The main process owns four things that have to come up in order — a Postgres
+ * cluster, the migrations against it, the existing `.next/standalone` server and
+ * a NextAuth session for the local user — and the window opens only once
+ * `/api/health` has proved the first three and the cookie for the fourth is in
+ * the jar.
  *
  * Every step logs its timing, because the phase-1 spike's numbers (§10.1) are
  * what the startup budget is argued from and the second half of the boot has
@@ -45,6 +50,10 @@ let mainWindow = null;
 let shuttingDown = false;
 /** Set if the Next child dies; read by the health wait so a crash is not a hang. */
 let serverExit = null;
+/** The one local user, resolved at step 5 and signed in at step 8. */
+let localUser = null;
+/** Guard so a re-established session cannot re-trigger its own watcher. */
+let restoringSession = false;
 
 async function boot() {
   const bootStarted = Date.now();
@@ -88,9 +97,13 @@ async function boot() {
   }
   log(`${applied} migrations recorded in this cluster`);
 
-  // 5. The phase-2 auth stub.
-  const user = await seedLocalUser(cluster, { name: "Local author", email: "author@localhost" });
-  log(`local user ${user.email} (${user.seeded ? "seeded" : "already present"})`);
+  // 5. The local user. Signing them in needs the origin, so the session itself
+  //    is established at step 8 — this is only the row it will belong to.
+  localUser = await seedLocalUser(cluster, {
+    name: "Local author",
+    email: "author@localhost",
+  });
+  log(`local user ${localUser.email} (${localUser.seeded ? "seeded" : "already present"})`);
 
   // 6. The Next server.
   const { standalone, entry } = ensureStandaloneAssets(appRoot, log);
@@ -122,10 +135,110 @@ async function boot() {
   await waitForHealth({ url: origin, log, abortWhen: () => serverExit });
   const connections = await assertServerUsesOurCluster(cluster);
   log(`server holds ${connections} connection(s) to the embedded cluster`);
+
+  // 8. Sign the local user in (§4.2, phase 3). A `Session` row plus the cookie
+  //    that names it — the pair an OAuth sign-in would have left behind — so
+  //    `getServerSession` resolves a real `context.user` and the authorized
+  //    surface (series, projects, notes, blobs, proposals) is reachable.
+  //    Nothing above the seam knows this happened, which is the point.
+  await establishSession(origin);
   log(`booted in ${Date.now() - bootStarted} ms`);
 
-  // 8. The window, and only now.
+  // 9. The window, and only now.
   await openWindow(origin);
+  watchForSignOut(origin);
+}
+
+/**
+ * Mint or reuse the session row, and put its token in the window's cookie jar.
+ *
+ * The cookie's *name* is derived from the same `NEXTAUTH_URL` the server was
+ * handed rather than hardcoded, because NextAuth derives it too — and derives
+ * it from the scheme (`__Secure-` on https). Hardcoding either spelling makes
+ * this work on exactly one of the two, and the failure is a window that quietly
+ * shows the signed-out experience with nothing logged. See `session.js`.
+ */
+async function establishSession(origin) {
+  const { token, expires, minted } = await establishLocalSession(cluster, {
+    user: localUser,
+    newToken: randomUUID(),
+  });
+  const spec = sessionCookieSpec({ url: origin, token, expires });
+  await session.defaultSession.cookies.set(spec);
+  log(
+    `signed in as ${localUser.email} — ${minted ? "minted" : "reused"} session, ` +
+      `cookie ${spec.name}, expires ${expires.toISOString()}`,
+  );
+}
+
+/**
+ * Sign-out, which on a desktop build is a trap unless it is answered.
+ *
+ * The workspace still renders the web app's Logout button, and pressing it does
+ * what it does on the VPS: `DELETE`s the `Session` row and clears the cookie.
+ * On the VPS you then sign in again. Here there is no OAuth provider to sign in
+ * *with* (§4.2), so the app would sit in the guest/IndexedDB experience with no
+ * way back except quitting and relaunching — and nothing on screen would say
+ * so.
+ *
+ * So the shell restores the session and reloads, after telling the user plainly
+ * that it did. That is deliberately not silent: a button that appears to do
+ * nothing is its own bug. Removing the affordance from the UI is the right
+ * answer and belongs with §5's other "this build has no public server"
+ * strippings (phase 5) — it is a change above the seam, and phase 3's rule is
+ * not to make one.
+ *
+ * The listener fires on overwrites as well as removals — NextAuth rewrites this
+ * cookie on every rolling refresh — so the jar is re-read after a short settle
+ * rather than trusting `cause`, and a cookie that is still there means nothing
+ * happened.
+ */
+function watchForSignOut(origin) {
+  const name = sessionCookieName(origin);
+  const jar = session.defaultSession.cookies;
+  let settle = null;
+
+  jar.on("changed", (_event, cookie, _cause, removed) => {
+    if (cookie.name !== name || !removed || restoringSession) return;
+    clearTimeout(settle);
+    settle = setTimeout(() => {
+      restore(origin, name).catch((error) => {
+        console.error("[desktop] could not restore the local session", error);
+      });
+    }, 500);
+  });
+}
+
+async function restore(origin, name) {
+  const jar = session.defaultSession.cookies;
+  const present = await jar.get({ url: origin, name });
+  if (present.length > 0) return; // A refresh, not a sign-out.
+  if (restoringSession || !mainWindow) return;
+
+  restoringSession = true;
+  const window = mainWindow;
+  try {
+    log("session cookie gone — treating it as a sign-out");
+    await establishSession(origin);
+    window.webContents.reload();
+  } finally {
+    restoringSession = false;
+  }
+
+  // After the repair, not before it: the window is usable while this is up, and
+  // the message describes something that has already happened rather than
+  // something waiting on a click.
+  await dialog.showMessageBox(window, {
+    type: "info",
+    title: "Signed out",
+    message: "There is no way to sign back in on the desktop.",
+    detail:
+      "This build has no OAuth provider, so the sign-in buttons cannot complete " +
+      "and the window would have stayed in the signed-out experience until you quit.\n\n" +
+      "Your local session has been restored and the window reloaded. Nothing was lost.",
+    buttons: ["OK"],
+    noLink: true,
+  });
 }
 
 async function openWindow(origin) {

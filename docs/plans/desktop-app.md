@@ -172,8 +172,17 @@ and friends are deployment credentials, and there is no public callback URL.
 `src/lib/auth.ts` already registers providers from whichever credentials are
 present, and already logs an error and serves an empty list when none are — so a
 desktop build configures **no** OAuth provider without modification. What it adds
-is a local session: one `User` row seeded on first launch, and a provider that
-authenticates it without a network hop.
+is a local session: one `User` row seeded on first launch, and **a real
+`Session` row plus the cookie that names it**, minted by the Electron shell.
+
+The provider this section originally proposed is **not available** — phase 3
+established that against the library rather than by argument (§12.1). NextAuth
+v4's `core/lib/assert.js` returns `UnsupportedStrategy` whenever an adapter is
+configured and credentials are the only provider, which is exactly the desktop
+case, so a Credentials provider would force `session.strategy = "jwt"` for this
+build alone. The session-row shape avoids that, and satisfies the second rule
+below *by construction* rather than by discipline: there is nothing above the
+seam to change, and `src/lib/auth.ts` is untouched.
 
 Two rules, because this is the one seam that can weaken the whole authorization
 model:
@@ -184,6 +193,12 @@ model:
 - **Change nothing above it.** `userRoute`, `optionalUserRoute`, `context.user`
   and every rule in `src/lib/access.ts` keep working unmodified, because what
   they receive is the same `SessionUser` shape from the same `session` callback.
+  Phase 3 met this exactly: zero lines changed under `src/`.
+- **Mind the cookie name.** `next-auth/utils/parse-url.js` prepends `https://`
+  to any `NEXTAUTH_URL` without a scheme, and the `__Secure-` prefix follows
+  from that. A scheme-less value therefore makes the server look for a cookie
+  Chromium will never send over loopback http — and the symptom is a window
+  showing the signed-out experience with a completely clean boot log (§12.3).
   The desktop build must not acquire a "skip the check when local" branch
   anywhere; a single-user machine is not a reason to stop authorizing, and the
   moment it is one the two builds stop being the same product.
@@ -249,6 +264,11 @@ not neutral; most fail confusingly rather than harmlessly.
   harmless but meaningless locally. Decide deliberately whether they stay (they
   are how you preview what a published post looks like, which is an argument for
   keeping them).
+- **The sign-out affordance.** With no OAuth provider there is no way back in,
+  so signing out strands the window in the guest experience until the app is
+  quit. Phase 3 made the shell detect it and restore the session with a dialog
+  rather than silently, but removing the button is the real answer and it is a
+  change above the seam, which puts it here (§12.4).
 - **`.next/standalone/.env` must never ship.** `next build` traces the working
   tree's `.env` into the bundle, so an installer built from a developer's machine
   would distribute that developer's real `GITHUB_CLIENT_SECRET`. `.dockerignore`
@@ -299,7 +319,10 @@ about being a copy rather than pretending to be a sync.
 2. ~~**Boot the stack under Electron** (§3.1, §4.4).~~ **Done 20 Sep 2026 —
    §11.** `packages/desktop` boots cluster → migrations → server → window, with
    `/api/health` as the gate. Warm launch is 1.9 s. Auth is a seeded row.
-3. **Local auth** (§4.2).
+3. ~~**Local auth** (§4.2).~~ **Done 20 Sep 2026 — §12.** The shell mints a
+   `Session` row and sets the cookie; `src/` is untouched. Verified: a valid
+   session is 200, absent/forged/truncated are 401, and a `disabled` user is
+   403 through the ordinary `requireUser` path.
 4. **Filesystem blobs and uploads** (§4.3).
 5. **Strip the server-only features** (§5).
 6. **Package** — electron-builder, AppImage and `.deb`. Unsigned for a first
@@ -524,3 +547,115 @@ existence is established from the live renderer process and a resolved
   leaving the cluster running — observed, and cleaned up by hand. A packaged app
   has no such wrapper, so this is a development-mode hazard rather than a
   shipping one, but it is the way to leave a stray postmaster behind.
+
+---
+
+## 12. Phase 3 log — local auth, 20 Sep 2026
+
+**Result: the desktop build is genuinely signed in, and `src/` did not change by
+a single line.** That last part is not a stylistic win — it is the whole of
+§4.2's first rule, met by construction instead of by discipline.
+
+### 12.1 The mechanism, and why the planned one was unavailable
+
+§4.2 proposed a provider in `configuredProviders()` gated on `DESKTOP=1`. That
+combination is refused by NextAuth itself, verified in
+`node_modules/next-auth@4.24.15` rather than assumed:
+
+- `core/init.js:66` — `strategy: authOptions.adapter ? "database" : "jwt"`. This
+  repo has `PrismaAdapter`, so it is on the **database** strategy.
+- `core/lib/assert.js:54-60` — with an adapter configured and credentials the
+  only provider, NextAuth returns `UnsupportedStrategy`.
+
+So the choice was never "provider or session row"; it was "switch this build to
+JWT sessions, or don't". Switching would have meant the two builds keeping
+sessions in two different places, and the `session` callback being handed a
+`token` here and a `user` there — a divergence bought for nothing.
+
+What the shell does instead is mint the pair an OAuth sign-in would have
+produced: a `Session` row, and the cookie naming it.
+`@next-auth/prisma-adapter`'s `getSessionAndUser` is a single
+`session.findUnique({ include: { user: true } })`, so no `Account` row is needed
+and the result is indistinguishable from a real sign-in. `getServerSession`
+validates it, the `session` callback hydrates `id`/`role`/`disabled` from the
+database exactly as on the VPS, and every route sees what it always sees.
+
+### 12.2 Verified, and verified twice
+
+The subagent's acceptance run and an independent check by the parent session,
+the second reading the session token straight out of the cluster and presenting
+it over `curl` rather than reusing the renderer's jar:
+
+| request | status |
+| --- | --- |
+| `GET /api/documents` with the real session | **200** |
+| `GET /api/auth/session` | 200, full row — `id`, `role: USER`, `disabled: false` |
+| `POST /api/documents` (signed in) | 200, document created and listed |
+| `GET`/`POST /api/documents`, **no cookie** | **401** |
+| **forged** cookie (random uuid) | **401** |
+| real token **truncated by one character** | **401** |
+| valid session, user set `disabled` **while running** | **403** |
+
+The last four are the point. It would be easy to build something where the
+session works because the check stopped happening; these say the check is intact
+and the session satisfies it. The `disabled` case is the strongest of them — it
+runs through `requireUser` at request time, not through anything the shell did
+at boot, and it flips back to 200 when the column is cleared.
+
+Warm launch is 2036 ms, the session reused rather than re-minted.
+
+### 12.3 Expiry, and the trap next to it
+
+30 days, deliberately equal to NextAuth's own `maxAge`, so the server's rolling
+refresh (`expires - maxAge + updateAge <= now`) computes as it does on the VPS
+rather than as a special case. Every launch reuses the row or replaces it, and
+anything **within 24 h of lapsing** is re-minted at launch — a row that is
+technically valid but about to expire is worse than none, because the app would
+come up signed in and sign itself out while someone was typing.
+
+The cookie-name trap is now in §4.2, and it belongs to the same family as
+§11.3's `.env` tracing: silent, and failing in the safe-looking direction. A
+`NEXTAUTH_URL` without a scheme makes the server look for a `__Secure-` cookie
+that Chromium will never send over loopback http, and the only symptom is a
+signed-out window with a clean log.
+
+`session.js` is import-free and `__tests__/session.test.ts` covers it in 14
+tests, all aimed at the silent failures: the prefix rule, seconds-versus-
+milliseconds in `expirationDate`, the re-mint margin, and every refusal path.
+
+### 12.4 Sign-out, which is now a known trap rather than an unknown one
+
+The Logout button still works, and with no provider configured it strands the
+window until quit. The shell watches the cookie jar, restores the session,
+reloads, and **says so in a dialog** — after the repair, so the window stays
+usable. A silent restore would be a button that appears to do nothing, which is
+its own bug.
+
+This is a holding position, not the answer. Removing the affordance is right and
+it is a change above the seam, so it is now listed in §5 with the service worker
+and `/api/mcp`.
+
+One consequence to decide: a `disabled` local user means the app **fails to
+start**, with the error window naming why, rather than booting into guest. That
+is the honest direction and it mirrors the OAuth `signIn` callback's ordering,
+but it is a hard lock-out whose only exit is clearing the column by hand.
+
+### 12.5 Findings and leftovers
+
+- **`DESKTOP=1` is set but unread.** Phase 2 exports it; phase 3 needed no gate
+  because it added no branch to `src/`. The rule stays in §4.2 for whatever
+  phase 5 needs, but the plan should stop implying phase 3 consumes it.
+- **§11.2's "638 ms to discover nothing to do"** reproduced exactly. Still the
+  largest avoidable cost in a ~2 s warm launch.
+- **Incidental and pre-existing, not from this work:** `POST /api/documents`
+  with no `data` returns **500**, not 400. `documentCreateSchema` marks `data`
+  optional, but `createDocument` hands it to Prisma, which throws
+  `PrismaClientValidationError: Argument 'data' is missing`. Found because an
+  acceptance request omitted it. Unrelated to desktop; worth a schema fix.
+- **Not verified:** the genuine 24 h rolling-refresh overwrite against the
+  sign-out watcher (the overwrite-looks-like-a-removal case *was* observed and
+  guarded, the real refresh was not), and — still — what the window looks like,
+  for §11.4's reason.
+- A document titled "Phase 3 acceptance" now lives in the local cluster. It is
+  the evidence, so it has been left there; delete `~/.config/blog-desktop` for a
+  clean first run.
