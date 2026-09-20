@@ -40,6 +40,11 @@ export default [
       "node_modules/**",
       "public/**",
       "next-pwa/**",
+      // Desktop packaging output: a staged copy of the Next bundle and
+      // electron-builder's unpacked app. Both are `packages/**`, which
+      // `next lint`'s `dirs` walks (docs/plans/desktop-app.md phase 6).
+      "packages/desktop/.stage/**",
+      "packages/desktop/.dist/**",
     ],
   },
   {

@@ -106,7 +106,7 @@ async function boot() {
   log(`local user ${localUser.email} (${localUser.seeded ? "seeded" : "already present"})`);
 
   // 6. The Next server.
-  const { standalone, entry } = ensureStandaloneAssets(appRoot, log);
+  const { standalone, entry } = ensureStandaloneAssets(appRoot, log, { packaged: app.isPackaged });
   const httpPort = await freePort();
   const origin = `http://127.0.0.1:${httpPort}`;
   nextServer = startNextServer({

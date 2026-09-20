@@ -51,6 +51,8 @@
     ".next",
     ".next-desktop",
     "tmp",
-    "prisma/scripts/**"
+    "prisma/scripts/**",
+    "packages/desktop/.stage",
+    "packages/desktop/.dist"
   ]
 }

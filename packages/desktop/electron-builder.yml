@@ -1,0 +1,98 @@
+# Phase 6 of docs/plans/desktop-app.md: Linux, unsigned, AppImage + .deb.
+#
+# The app directory is this package; everything the server needs comes in as
+# extraResources from `.stage/`, which `scripts/stage-resources.mjs` assembles.
+# That split is deliberate: `files` below is the Electron shell (six modules and
+# `embedded-postgres`), and `.stage` is the Dockerfile's lines 62–71. Nothing is
+# globbed out of the repository root here, so there is exactly one place that
+# decides what ships.
+appId: org.blogsimple.desktop
+productName: blog-desktop
+copyright: blog-simple
+
+# `${name}` is `@blog/desktop`, and the deb target's default artifact name put
+# the scope in the filename — `.dist/@blog/desktop_0.0.0_amd64.deb`, a directory
+# rather than a file where one was expected. The Debian *package* name is fine
+# either way (electron-builder falls back to the product name for a scoped one);
+# this is only what the file is called.
+artifactName: ${productName}-${version}-${arch}.${ext}
+
+directories:
+  output: .dist
+  buildResources: build
+
+# Unsigned, and no update feed: there is no distribution channel yet (§8).
+# Saying so explicitly keeps electron-builder from writing a latest-linux.yml
+# that would describe one.
+publish: null
+
+# No asar, and this is a decision rather than a default.
+#
+# The archive would have to be opened again immediately: `@embedded-postgres`'s
+# three binaries and fourteen shared-library symlinks cannot be executed or
+# resolved from inside one, so they would need `asarUnpack`, and then the path
+# `embedded-postgres` hands us (`dist/binary.js`) names the archive copy while
+# the runnable copy is in `app.asar.unpacked`. Trading that for a marginally
+# smaller install is not worth it on a build whose whole risk is packaging —
+# and the tree stays inspectable, which is what makes the gate's claims
+# checkable by hand.
+asar: false
+
+files:
+  - package.json
+  - src/**/*
+  # The specs are `.ts` run by the repo's vitest; nothing loads them at runtime.
+  - '!src/__tests__/**'
+  - '!README.md'
+
+extraResources:
+  - from: .stage
+    to: .
+  # The Prisma CLI, and it needs its own entry because of one hard-coded line.
+  #
+  # `createFilter` in app-builder-lib refuses a matcher's *root* `node_modules`
+  # outright — `if (relative === "node_modules") return false` — with no pattern
+  # able to override it, so the entry above silently ships everything except the
+  # thing `migrate deploy` runs. Naming the directory as a matcher's `from`
+  # sidesteps the rule rather than fighting it: the check is on paths *inside*
+  # `from`, and the root itself short-circuits. Nested `node_modules` (pnpm's
+  # store is made of them) are unaffected either way.
+  #
+  # Silent is the operative word: the failure was a packaged app that starts,
+  # reaches step 4 of its boot and dies with "Missing …/node_modules/prisma".
+  # `verify-package.mjs` is what turned it into a build failure.
+  - from: .stage/node_modules
+    to: node_modules
+
+# `embedded-postgres` ships prebuilt binaries and has no native addon to compile
+# against Electron's headers, and neither does anything else here. Rebuilding
+# would be a slow no-op.
+npmRebuild: false
+
+afterPack: ./scripts/afterPack.mjs
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Office
+  icon: build/icon.png
+  executableName: blog-desktop
+  # Without it the window manager cannot tie a running window to the .desktop
+  # entry, so the app gets a generic icon in the dock. `homepage` in
+  # package.json is next to this in spirit: `https://blog.example` is the
+  # reserved-for-documentation domain the plan's own examples use, because there
+  # is no distribution channel yet (§8) and the deb control file requires the
+  # field to exist.
+  synopsis: Local-first blog editor
+  syncDesktopName: true
+  description: >-
+    The blog platform as a desktop application: an embedded PostgreSQL cluster
+    and the application server, in one window, with no network required.
+  maintainer: blog-simple <desktop@localhost>
+
+deb:
+  # electron-builder's default depends list plus nothing: the Postgres binaries
+  # are relocatable and carry RUNPATH=$ORIGIN/../lib (§10.3), so the package
+  # brings its own libraries rather than asking the distribution for them.
+  priority: optional

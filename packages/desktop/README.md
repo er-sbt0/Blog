@@ -1,11 +1,12 @@
 # @blog/desktop
 
-The Electron shell. **Phases 2–5 of
+The Electron shell. **Phases 2–6 of
 [docs/plans/desktop-app.md](../../docs/plans/desktop-app.md)**: the main process
 brings up an embedded Postgres cluster, applies the repo's migrations to it,
 starts a Next standalone server against it, signs the local user in, points its
 blob store and its attachments at directories under `userData`, and opens a
-window.
+window — and since phase 6 the whole of that ships as an AppImage or a `.deb`.
+See "Packaging" below.
 
 Nothing here is a second implementation of anything. The window loads the same
 server the VPS runs (§3), so there is no desktop branch in the 66 route handlers
@@ -19,6 +20,7 @@ and, since phase 3, a session row the shell writes rather than an OAuth callback
 pnpm install          # once — see "The two install traps" below
 pnpm build:desktop    # the shell serves the output; it does not build it
 pnpm desktop          # == pnpm --filter @blog/desktop start
+pnpm package:desktop  # an AppImage and a .deb, into packages/desktop/.dist/
 ```
 
 `pnpm build:desktop` is `DESKTOP=1 BUILD_DIR=.next-desktop next build`, and the
@@ -47,9 +49,11 @@ sudo chown root:root "$E/chrome-sandbox" && sudo chmod 4755 "$E/chrome-sandbox"
 pnpm --filter @blog/desktop start:no-sandbox
 ```
 
-This is a development-from-the-working-tree problem only. A packaged AppImage or
-`.deb` (phase 6) installs `chrome-sandbox` with the right ownership, so neither
-workaround ships.
+This is a development-from-the-working-tree problem only, and phase 6 checked it
+rather than assuming it: **the packaged AppImage launches on this machine with
+no `--no-sandbox` and no other flag.** See "The sandbox" under Packaging for the
+two caveats — an *extracted* AppImage still fails, and the `.deb`'s install-time
+decision is unverified because it needs root.
 
 Everything the app owns lives under Electron's `userData`
 (`~/.config/blog-desktop/` on Linux — `productName` in `package.json` is what
@@ -337,14 +341,137 @@ this server answer" go through `publicSiteUrl()` in `src/lib/desktop.ts`, which
 returns `null` here. Blanking the variable would have broken the first three to
 serve the last two.
 
+## Packaging
+
+Phase 6. Linux only, unsigned — AppImage and `.deb`, both from electron-builder.
+
+```bash
+pnpm build:desktop        # the bundle, first — packaging does not build it
+pnpm package:desktop      # == pnpm --filter @blog/desktop package
+```
+
+That is `node scripts/stage-resources.mjs && electron-builder --linux`, and the
+output lands in `packages/desktop/.dist/`:
+
+| | |
+| --- | --- |
+| `blog-desktop-<version>-x86_64.AppImage` | ~237 MiB |
+| `blog-desktop-<version>-amd64.deb` | ~193 MiB |
+| `linux-unpacked/` | ~724 MiB installed |
+
+Configuration is `electron-builder.yml`. Three decisions in it are not defaults:
+
+- **`asar: false`.** The archive would have to be opened again immediately —
+  `@embedded-postgres`'s binaries and its fourteen library symlinks can be
+  neither executed nor resolved from inside one, and `asarUnpack` then leaves
+  the package handing out the *archive's* path for a binary that only runs from
+  `app.asar.unpacked`. The tree also stays inspectable, which is what makes the
+  gate below checkable by hand.
+- **Two `extraResources` entries, not one.** app-builder-lib refuses a matcher's
+  root `node_modules` outright (`if (relative === "node_modules") return false`,
+  `util/filter.ts`) with no pattern able to override it, so the Prisma CLI needs
+  an entry aimed straight at the directory.
+- **`publish: null`** — there is no update feed, and the default would write a
+  `latest-linux.yml` describing one.
+
+### What ships, and how it is assembled
+
+`scripts/stage-resources.mjs` builds `packages/desktop/.stage/`, which becomes
+`process.resourcesPath`. `resolveAppRoot` in `src/paths.js` already looked there,
+so nothing in the boot sequence changes shape between development and a package:
+
+```
+<resources>/.next-desktop/standalone/          server.js, its node_modules, .env stripped
+<resources>/.next-desktop/standalone/.next-desktop/static
+<resources>/.next-desktop/standalone/public    minus the web build's sw.js
+<resources>/prisma/{schema.prisma,migrations}  48 migrations
+<resources>/node_modules/prisma                the CLI, plus its pnpm store closure
+<resources>/app/                               this package and embedded-postgres
+```
+
+Three things it does that a plain copy does not:
+
+- **Strips every `.env`.** See below — this is the whole reason the step exists.
+- **Keeps symlinks as symlinks, and refuses any that leave the tree.** The
+  standalone bundle's `node_modules` is a pnpm store: 329 relative links.
+  Dereferencing them multiplies the bundle; Node's default `cp` rewrites them to
+  absolute paths, which produces an app that runs on the build machine and
+  nowhere else.
+- **Reproduces pnpm's layout for the Prisma CLI rather than flattening it.**
+  Copying `node_modules/prisma` and `node_modules/@prisma` out of the store
+  gives a CLI that dies on its first `require` with `Cannot find module
+  '@prisma/config'` — under pnpm a package's dependencies are its *siblings*,
+  and lifting it out of that directory loses them. The store's shape is kept and
+  the reachable part of it copied (35 packages).
+
+### The gate
+
+`scripts/verify-package.mjs` runs as electron-builder's `afterPack` hook and
+**throws**, failing the build. It is also a CLI, so the same twelve checks run
+against an extracted artifact:
+
+```bash
+./blog-desktop-0.0.0-x86_64.AppImage --appimage-extract
+node scripts/verify-package.mjs ./squashfs-root
+
+dpkg-deb -x blog-desktop-0.0.0-amd64.deb ./debroot
+node scripts/verify-package.mjs ./debroot/opt/blog-desktop
+```
+
+A hook rather than a line after `electron-builder` in the `package` script,
+because every one of these is false *silently*: an artifact that ships a
+credential runs perfectly, and so does one with dereferenced symlinks, a
+`public/sw.js` nobody registers, or a Prisma CLI that will only be discovered
+missing on a user's first launch.
+
+| check | why it is a build failure |
+| --- | --- |
+| No `.env`, `.env.*` anywhere | `next build` traces the working tree's `.env` into `<distDir>/standalone/.env` (plan §11.3). On this machine that file holds a real `GITHUB_CLIENT_SECRET`, a real `ANTHROPIC_API_KEY` and `AI_CREDENTIAL_KEYS` — the key that decrypts every user's stored provider key |
+| No credential *value* from the working tree's `.env` in any packaged file | Belt and braces to the above: catches a credential that arrived under a name nobody thought to filter. By key name (`SECRET`, `TOKEN`, `_KEY`…), because the first version flagged nine files for `http://localhost:3000` |
+| `NEXT_PUBLIC_DESKTOP === "1"` in the bundle's own manifest | `assertDesktopBundle`, at package time as well as launch time (§14.1) |
+| `.next` absent | The VPS bundle packages just as well, and is wrong silently |
+| `static/` and `public/` are real directories | `ensureStandaloneAssets` symlinks them when running from the working tree; a package must copy them, and a symlink into a vanished build tree is not an error anyone would read as one |
+| No `sw.js` / `workbox-*.js` / `fallback-*.js` | `next-pwa` writes into the *source* `public/`, so it is shared state between the two builds (§14.5) |
+| `prisma/migrations` matches the repository's count, CLI present | `migrate deploy` runs on boot (§4.4) |
+| The schema engine is present and executable | |
+| **The packaged Prisma CLI actually runs**, resolving its engine from inside the package | The strongest of them, and the one that came from being wrong: every file the other checks look for can be present while the CLI dies on its first `require` |
+| The 14 `native/lib` symlinks are symlinks, and resolve | §10.3, the one packaging risk the plan named in advance. Missing → `error while loading shared libraries: libicui18n.so.60` at launch; dereferenced → the tree doubles, 60 MB to 122 MB |
+| `initdb`, `pg_ctl`, `postgres` present and executable | |
+| `chrome-sandbox` packaged | §11.5's development workaround must not ship |
+
+There is a runtime backstop too, in `ensureStandaloneAssets`: when `app.isPackaged`
+it *checks* the layout instead of building it — a packaged `resources/` is
+read-only, so the development link farm would fail with `EROFS` on the first
+launch after install — and it refuses to start at all if a `.env` is found in the
+bundle. By then the credential is already distributed; a build that ships one
+must not also look fine.
+
+### The sandbox
+
+`chrome-sandbox` is packaged correctly and **the AppImage launches without
+`--no-sandbox`** — §11.5's workaround is development-only, as predicted.
+
+Two things do need saying. An *extracted* AppImage
+(`--appimage-extract`) fails with "The SUID sandbox helper binary was found, but
+is not configured correctly", because extraction gives the helper to the
+extracting user; that is the extraction, not the package. And the `.deb`'s
+postinst decides between `chmod 4755` and `chmod 0755` by testing
+`unshare --user true` — which on Ubuntu 24.04 succeeds because `unshare` has an
+AppArmor profile granting it, while the app does not. The test can therefore
+conclude "user namespaces work" on a host where they do not work *for this
+binary*. Unverified: whether an installed `.deb` launches sandboxed here, since
+that needs root.
+
+### Not covered
+
+Two things the packaged Prisma CLI carries that `migrate deploy` does not need:
+`typescript` (23 MB, an optional peer) and the CLI's own copy of the query
+engine (18 MB). Both are shipped rather than trimmed, because the closure is
+computed rather than curated and a hand-maintained exclusion list is the kind of
+thing that is right until Prisma changes.
+
 ## Stubbed, deliberately
 
 | | Phase |
 | --- | --- |
-| Packaging — `.next-desktop/static` and `public/` are **symlinked** into the standalone output; the Dockerfile's lines 63–64 are what copies them in production | 6 |
 | Menu bar, window state, `printToPDF`, native dialogs | 7 (§6) |
-
-One packaging note that belongs in phase 6 and is worth having written down
-early: **shipping `.next/standalone` as built locally would ship the developer's
-`.env`**, including a real GitHub client secret. `.dockerignore` protects the
-Docker path; nothing protects an Electron packaging path.

@@ -307,8 +307,11 @@ client) and `publicSiteUrl`.
   tree's `.env` into the bundle, so an installer built from a developer's machine
   would distribute that developer's real `GITHUB_CLIENT_SECRET`. `.dockerignore`
   is what protects the Docker path; **nothing protects an Electron one**, and
-  this is a credential disclosure rather than a misconfiguration. Phase 6 strips
-  it, and should fail the build if it is present (§11.3).
+  this is a credential disclosure rather than a misconfiguration. **Done in
+  phase 6 (§15.2)**, and the bundle held more than this bullet knew: an
+  `ANTHROPIC_API_KEY`, a `GOOGLE_GENERATIVE_AI_API_KEY`, `NEXTAUTH_SECRET` and
+  `AI_CREDENTIAL_KEYS` — the KEK that decrypts every user's stored provider key.
+  Stripped at staging, and the build **fails** if one survives.
 
 ## 6. What gets better
 
@@ -362,8 +365,9 @@ about being a copy rather than pretending to be a sync.
    untouched and still the default. Verified both ways, including traversal.
 5. ~~**Strip the server-only features** (§5).~~ **Done 20 Sep 2026 — §14.**
    All six items. Verified against both bundles side by side.
-6. **Package** — electron-builder, AppImage and `.deb`. Unsigned for a first
-   release; there is no distribution channel yet that requires otherwise.
+6. ~~**Package** — electron-builder, AppImage and `.deb`.~~ **Done 20 Sep 2026
+   — §15.** 247 MB AppImage, 202 MB `.deb`, unsigned. The credential strip is a
+   build gate, not a convention.
 7. **Desktop affordances** — menu bar, window state, `printToPDF`, native file
    dialogs (§6).
 
@@ -937,3 +941,124 @@ folding away as intended.
   stands; everything visual above is DOM and bundle inspection).
   `.next-desktop/standalone/.env` still carries the traced `.env` including a
   real `GITHUB_CLIENT_SECRET` — that is §5's last bullet and phase 6's job.
+
+---
+
+## 15. Phase 6 log — packaging, 20 Sep 2026
+
+**Result: two installable artifacts, and the credential leak this plan has been
+carrying since §11.3 is closed and gated.**
+
+### 15.1 The artifacts
+
+| | |
+| --- | --- |
+| `blog-desktop-0.0.0-x86_64.AppImage` | 247 MB |
+| `blog-desktop-0.0.0-amd64.deb` | 202 MB |
+| `linux-unpacked/` | 723 MB installed |
+
+`packages/desktop/electron-builder.yml`, Linux only, unsigned, `publish: null`.
+Three non-default decisions: **`asar: false`** (the Postgres binaries and their
+14 symlinks cannot be executed or resolved from inside an archive, and
+`asarUnpack` then leaves `embedded-postgres` handing out the archive's path);
+**two `extraResources` entries** (app-builder-lib hard-refuses a matcher's root
+`node_modules`, with no pattern able to override it — the first build silently
+shipped everything *except* the Prisma CLI); and **`npmRebuild: false`**.
+
+### 15.2 The credential, and why it is a gate rather than a step
+
+Three layers: staging filters every `.env*` and asserts none survived;
+`verify-package.mjs` runs as an `afterPack` **hook** and throws, so it cannot be
+skipped by invoking electron-builder directly; and `ensureStandaloneAssets`
+refuses to start a packaged app that has one.
+
+The scan looks for the *values* of credential-named keys from the working tree's
+`.env` across every packaged file ≤1 MiB — not for files called `.env`, because
+the failure being defended against is bytes in the wrong place, not a filename.
+
+**Verified independently by the parent session** against the extracted AppImage:
+`find` for `.env`/`.env.*` → **0**, and a grep for each of the 7 credential
+values in the repo's `.env` across the whole 714 MB tree → **none present**.
+
+### 15.3 The other four proofs, checked by hand
+
+| | |
+| --- | --- |
+| symlinks in `native/lib` | **14**, 0 broken, directory 43 MB — real links, not the 122 MB dereferenced form |
+| Postgres binaries | `initdb` `pg_ctl` `postgres`, all `755` |
+| bundle identity | `.next-desktop` present, `.next` absent, `NEXT_PUBLIC_DESKTOP: "1"` |
+| PWA artifacts | `sw.js` / `workbox-*.js` / `fallback-*.js` → **0** |
+| Prisma | 48 migrations, CLI present — and the gate *runs* it rather than looking for the file |
+
+§10.3's symlink risk **did not materialise**: electron-builder preserved all 14
+through both packers. It is gated anyway, because the failure it prevents is an
+app that dies at launch in the user's hands.
+
+### 15.4 The packaged run
+
+Run from `/tmp`, from the AppImage, with `XDG_CONFIG_HOME` pointed at an empty
+directory so first-launch `initdb` happened in packaged form.
+
+| | packaged cold | dev first launch (§11.2) |
+| --- | --- | --- |
+| cluster (initdb + start) | 558 + 14 ms | 428 + 24 ms |
+| `migrate deploy` | 858 ms | 1301 ms |
+| Next → `/api/health` | 1218 ms | 3602 ms |
+| **to a usable window** | **2814 ms** | 5444 ms |
+
+Cold is *faster* packaged than in development. `/api/health` 200,
+`/api/documents` **401 anonymous**, `/` 200, `/sw.js` 404, session minted into
+the fresh profile, **zero EROFS lines**.
+
+### 15.5 The sandbox — the report was wrong, and the truth is worth recording
+
+Phase 6 reported that the packaged app needs no `--no-sandbox`. **It runs with
+it.** The parent session's process listing showed
+`/tmp/.mount_…/blog-desktop --no-sandbox` for a launch that passed no flags, and
+the source is electron-builder's own AppImage template, not this repo:
+
+- `blog-desktop.desktop` ships `Exec=AppRun --no-sandbox %U` — **unconditional**,
+  so a menu launch disables the Chromium sandbox on every host, including ones
+  where it would have worked.
+- `AppRun` *also* adds it when `unshare -Ur true` fails, with a comment saying it
+  prefers starting unsandboxed to crashing. That is the branch that fired here.
+
+The **`.deb` is different and better**: its `Exec=` carries no flag, and its
+`postinst` installs `chrome-sandbox` `4755` when user namespaces are
+unavailable. Whether an installed `.deb` actually launches sandboxed on this host
+is **unverified** — it needs root, and there is no passwordless sudo.
+
+This matters because the renderer displays stored SVG, which executes script when
+rendered inline; `/api/blob/[hash]`'s `Content-Security-Policy: sandbox` and
+`nosniff` are what make that safe, and the Chromium sandbox is the layer beneath
+them. Losing it is a defence-in-depth regression shipped to users, and it is
+electron-builder's default rather than a decision anyone here took.
+
+### 15.6 Findings
+
+- **The real packaging trap was one the plan never mentions: pnpm's store
+  layout.** Staging the Prisma CLI the obvious way — copy `node_modules/prisma`
+  and `@prisma`, dereferencing — produces a CLI where every file a check looks
+  for is present and which dies on its first `require` with
+  `Cannot find module '@prisma/config'`. **`Dockerfile` lines 62–71 are not a
+  usable template outside a Docker build that has its own `node_modules`**, which
+  is what §2.3 assumed. Staging reproduces the store closure, and the gate runs
+  the CLI rather than inspecting it.
+- **`process.resourcesPath` is read-only, and Next writes its cache inside
+  `distDir`.** Every render logged `Failed to update prerender cache … EROFS` —
+  caught and warned, so pages still served 200, but an error per request for a
+  cache that can never work. Fixed with `experimental.isrFlushToDisk: !IS_DESKTOP`;
+  the in-memory cache is untouched and the VPS build is unchanged. This is the
+  only thing phase 6 had to change in phases 1–5's work.
+- `ensureStandaloneAssets` grew a packaged branch: its symlink farm would have
+  hit EROFS on first launch after install, so it now *checks* the layout instead
+  of building it.
+- A second leak, excluded at staging: `.next-desktop/standalone/.next-desktop/cache`
+  is Next's fetch cache, written while the server ran against real data.
+- **`public/pwa-512x512.png` is actually 24×24.** Mislabelled and pre-existing —
+  electron-builder rejected it, so the icon is rendered from `public/logo.svg`
+  instead. Probably wrong for the PWA manifest too.
+
+69 spec files, 1393 tests, lint and `tsc --noEmit` clean. Dev-mode launch from
+the working tree re-verified. No stray processes or clusters; the dev database on
+5432 untouched throughout.

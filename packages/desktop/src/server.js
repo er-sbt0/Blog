@@ -51,6 +51,16 @@ const DENIED_ENV = [
 const PASSTHROUGH_ENV = ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "TZ"];
 
 /**
+ * The files `next build` traces into the standalone output and `@next/env`
+ * loads at server start, in its own precedence order.
+ *
+ * Read twice, for opposite reasons: from the working tree they are what the
+ * child's environment must blank (`tracedEnvKeys`), and in a packaged build
+ * their mere presence is a shipped credential (`assertPackagedAssets`).
+ */
+const ENV_FILES = [".env", ".env.production", ".env.local", ".env.production.local"];
+
+/**
  * Where `pnpm build:desktop` puts its output.
  *
  * A *second* build directory rather than a second server flag, and that is
@@ -139,12 +149,17 @@ export function assertDesktopBundle(standalone, buildDir = DESKTOP_BUILD_DIR) {
  * rebuilt every launch so a file added to `public/` is not invisible until
  * someone deletes a stale directory.
  *
- * Packaging (phase 6) must copy, not link, and must also *not* ship
- * `.next/standalone/.env` — see DENIED_ENV above. A locally built bundle contains
- * the developer's real credentials; `.dockerignore` keeps them out of the image
- * and nothing yet keeps them out of an installer.
+ * **A packaged build does none of this.** `scripts/stage-resources.mjs` has
+ * already copied both, because `process.resourcesPath` is inside a squashfs
+ * mount (AppImage) or under `/opt` (deb) and is read-only for the user running
+ * it — the link farm above would fail with EROFS on the first launch after
+ * install. So when `packaged` is set this function *checks* the layout instead
+ * of building it, which is also the right shape: at that point the two
+ * directories are claims the packaging step made, and an unverified claim about
+ * a read-only tree is the kind that is discovered by a user.
  */
-export function ensureStandaloneAssets(appRoot, log, buildDir = DESKTOP_BUILD_DIR) {
+export function ensureStandaloneAssets(appRoot, log, options = {}) {
+  const { buildDir = DESKTOP_BUILD_DIR, packaged = false } = options;
   const standalone = path.join(appRoot, buildDir, "standalone");
   const entry = path.join(standalone, "server.js");
   if (!fs.existsSync(entry)) {
@@ -157,6 +172,8 @@ export function ensureStandaloneAssets(appRoot, log, buildDir = DESKTOP_BUILD_DI
   }
 
   assertDesktopBundle(standalone, buildDir);
+
+  if (packaged) return assertPackagedAssets(standalone, buildDir, log);
 
   const staticSource = path.join(appRoot, buildDir, "static");
   const staticTarget = path.join(standalone, buildDir, "static");
@@ -182,6 +199,57 @@ export function ensureStandaloneAssets(appRoot, log, buildDir = DESKTOP_BUILD_DI
   );
 
   return { standalone, entry, buildDir };
+}
+
+/**
+ * The packaged equivalent: the same three properties, asserted rather than made.
+ *
+ * `scripts/verify-package.mjs` checks all of this at build time and is the gate;
+ * this is the backstop, in the same relationship `preflight.js` has to the
+ * symlink check there. It costs three `lstat`s and one `readdir`, and it turns
+ * a mis-assembled package into a sentence in the error window instead of a
+ * 404 for every stylesheet in a window nobody can debug.
+ *
+ * The `.env` check is the one that is not merely about correctness. `next build`
+ * traces the working tree's `.env` into the bundle (§11.3), so a package built
+ * without the staging filter carries a real `GITHUB_CLIENT_SECRET`. Refusing to
+ * start is the right response to finding one: the credential is already
+ * distributed by then, and a build that ships it must not also look fine.
+ */
+function assertPackagedAssets(standalone, buildDir, log) {
+  const bundled = ENV_FILES.filter((name) => fs.existsSync(path.join(standalone, name)));
+  if (bundled.length > 0) {
+    throw new Error(
+      `This package ships ${bundled.join(", ")} inside the server bundle.\n` +
+        "`next build` traces the working tree's .env into the standalone output, so that file " +
+        "holds the credentials of the machine this was built on (docs/plans/desktop-app.md §5).\n" +
+        "Rebuild with `pnpm package:desktop`, which strips it and refuses to package one.",
+    );
+  }
+
+  for (const [label, dir] of [
+    ["static assets", path.join(standalone, buildDir, "static")],
+    ["public/", path.join(standalone, "public")],
+  ]) {
+    const stats = fs.lstatSync(dir, { throwIfNoEntry: false });
+    if (!stats?.isDirectory()) {
+      throw new Error(
+        `This package has no ${label} at ${dir}` +
+          (stats ? " — it is a symlink, which a read-only resources tree cannot follow." : "."),
+      );
+    }
+  }
+
+  const leftover = fs.readdirSync(path.join(standalone, "public")).filter((name) => PWA_ARTIFACTS.test(name));
+  if (leftover.length > 0) {
+    throw new Error(
+      `This package ships the web build's service worker (${leftover.join(", ")}). ` +
+        "next-pwa writes into the source public/ directory, which the two builds share (§14.5).",
+    );
+  }
+
+  log(`packaged assets verified under ${standalone}`);
+  return { standalone, entry: path.join(standalone, "server.js"), buildDir };
 }
 
 /**
@@ -220,7 +288,7 @@ function bridgePublic(source, target) {
  */
 export function tracedEnvKeys(standalone) {
   const keys = new Set();
-  for (const file of [".env", ".env.production", ".env.local", ".env.production.local"]) {
+  for (const file of ENV_FILES) {
     let contents;
     try {
       contents = fs.readFileSync(path.join(standalone, file), "utf8");

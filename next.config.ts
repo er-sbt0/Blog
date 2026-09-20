@@ -219,6 +219,23 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "2mb",
     },
+    // A packaged desktop app's `distDir` is read-only, and Next writes its
+    // prerender and fetch caches inside it.
+    //
+    // Found by running the phase-6 artifact: an AppImage is a squashfs mount
+    // and a `.deb` installs under `/opt`, so every render logged
+    // `Failed to update prerender cache … EROFS: read-only file system`. It is
+    // caught and warned rather than thrown, so pages still served 200 — the
+    // cost was an error line per request describing a cache that was never
+    // going to work, and a warning that means nothing is the kind that trains
+    // people to ignore the log.
+    //
+    // Nothing is given up. The flag governs writing the cache to *disk*; the
+    // in-memory cache is untouched, and a single-user server on loopback has
+    // nothing to gain from persisting a rendered page across a restart that
+    // also restarts the database. The VPS build keeps it on, where the premise
+    // — a writable `.next` and more than one reader — actually holds.
+    isrFlushToDisk: !IS_DESKTOP,
     // Use webpack for consistency
     webpackBuildWorker: true,
   },

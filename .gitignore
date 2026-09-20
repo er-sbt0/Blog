@@ -18,6 +18,13 @@ node_modules/
 /dist
 /temp
 
+# desktop packaging (docs/plans/desktop-app.md phase 6). `.stage/` is the
+# extraResources tree the packaging step assembles from the Next bundle and the
+# Prisma CLI; `.dist/` is electron-builder's output. `packages/desktop/build/`
+# is *not* ignored — it holds the committed app icon.
+/packages/desktop/.stage/
+/packages/desktop/.dist/
+
 # misc
 .DS_Store
 *.pem

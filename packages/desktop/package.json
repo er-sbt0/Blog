@@ -5,15 +5,21 @@
   "productName": "blog-desktop",
   "type": "module",
   "description": "Electron shell: an embedded Postgres cluster plus the Next standalone server, in one window.",
+  "homepage": "https://blog.example",
+  "desktopName": "blog-desktop.desktop",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "start:no-sandbox": "electron . --no-sandbox"
+    "start:no-sandbox": "electron . --no-sandbox",
+    "stage:resources": "node scripts/stage-resources.mjs",
+    "package": "node scripts/stage-resources.mjs && electron-builder --linux",
+    "verify:package": "node scripts/verify-package.mjs"
   },
   "dependencies": {
     "embedded-postgres": "17.10.0-beta.17"
   },
   "devDependencies": {
-    "electron": "44.4.3"
+    "electron": "44.4.3",
+    "electron-builder": "^26.15.3"
   }
 }
