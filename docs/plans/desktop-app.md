@@ -188,6 +188,16 @@ model:
   anywhere; a single-user machine is not a reason to stop authorizing, and the
   moment it is one the two builds stop being the same product.
 
+**§4.2 was wrong as written, and phase 2 found it (§11.3).** The claim above —
+that a desktop build "configures no OAuth provider without modification" because
+no credentials are present — holds only for a clean environment. `next build`
+traces the working tree's `.env` into `.next/standalone/.env`, and `@next/env`
+fills in every variable the child process has not already defined. So
+`GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` arrive anyway and
+`configuredProviders()` registers GitHub. The child's environment must therefore
+be *closed* — built explicitly, not inherited — with every traced key the desktop
+build must not see blanked to `""`.
+
 `tokenRoute` and `AgentToken` are unaffected — see §5.
 
 ### 4.3 Blobs
@@ -239,6 +249,12 @@ not neutral; most fail confusingly rather than harmlessly.
   harmless but meaningless locally. Decide deliberately whether they stay (they
   are how you preview what a published post looks like, which is an argument for
   keeping them).
+- **`.next/standalone/.env` must never ship.** `next build` traces the working
+  tree's `.env` into the bundle, so an installer built from a developer's machine
+  would distribute that developer's real `GITHUB_CLIENT_SECRET`. `.dockerignore`
+  is what protects the Docker path; **nothing protects an Electron one**, and
+  this is a credential disclosure rather than a misconfiguration. Phase 6 strips
+  it, and should fail the build if it is present (§11.3).
 
 ## 6. What gets better
 
@@ -280,9 +296,9 @@ about being a copy rather than pretending to be a sync.
 1. ~~**Spike the database** (§4.1).~~ **Done 20 Sep 2026 — passed, §10.**
    The cluster initdb's, starts, takes all 48 migrations, and the three
    load-bearing Postgres features all hold. Phase 2 is unblocked.
-2. **Boot the stack under Electron** (§3.1, §4.4). Main process starts cluster
-   and server, window opens on the workspace. Auth still stubbed — run it with a
-   manually seeded user and session.
+2. ~~**Boot the stack under Electron** (§3.1, §4.4).~~ **Done 20 Sep 2026 —
+   §11.** `packages/desktop` boots cluster → migrations → server → window, with
+   `/api/health` as the gate. Warm launch is 1.9 s. Auth is a seeded row.
 3. **Local auth** (§4.2).
 4. **Filesystem blobs and uploads** (§4.3).
 5. **Strip the server-only features** (§5).
@@ -410,3 +426,101 @@ Also untested: `@prisma/client`'s **query** engine under packaging. The spike
 proved the **schema** engine (`migrate deploy`) and used raw `pg` for its
 assertions, so the engine the app actually queries through has not been
 exercised here.
+
+---
+
+## 11. Phase 2 log — the stack under Electron, 20 Sep 2026
+
+**Result: it boots.** `packages/desktop` brings up the cluster, applies the
+migrations, starts the existing `.next/standalone` server against it and opens a
+window once `/api/health` answers. The acceptance check is deliberately that
+route rather than "a window appeared": it does `SELECT 1` through Prisma, so a
+200 is Electron → Next → Prisma → the embedded cluster, proven end to end.
+
+### 11.1 The shape that got built
+
+`packages/desktop/` is a workspace member (the glob is already `packages/*`), at
+about 1,000 lines across five modules: `preflight.js` (the binaries, §10.3),
+`paths.js` (userData layout, persisted secrets, free ports), `cluster.js`
+(lifecycle, migrations, seeding, the safety assertions), `server.js` (asset
+bridging, the closed environment, spawn, health) and `main.js` (the ordered boot
+and the error window).
+
+`pnpm-workspace.yaml` gained two `allowBuilds` entries. This is §10.3 arriving
+immediately rather than at packaging time: the repo blocks postinstall scripts by
+default, and `@embedded-postgres/linux-x64` recreates its 14 symlinks in one.
+Without the entry the install is silently broken in exactly the predicted way.
+
+### 11.2 Measured, on this machine
+
+| | first launch | warm launch |
+| --- | --- | --- |
+| cluster (initdb where needed) + start | 428 ms + 24 ms | **69 ms** |
+| `prisma migrate deploy` | 1301 ms (48 applied) | 638 ms (none to apply) |
+| Next server to `/api/health` ok | 3602 ms | 1177 ms |
+| **total to a usable window** | **5444 ms** | **1928 ms** |
+
+**This corrects §10.1's framing.** Phase 1's "13 ms warm start" is the database
+alone, and reading it as the startup budget would have been wrong by two orders
+of magnitude: the real number is **~1.9 s**, and the server is most of it.
+
+One cost visible here is avoidable later: `migrate deploy` spends 638 ms on every
+launch to discover there is nothing to do. Comparing a count against the bundled
+migration directory before spawning the CLI would buy most of that back.
+
+### 11.3 What phase 2 found that the plan had wrong
+
+- **§4.2's premise was false**, and the way it failed is the dangerous kind —
+  silent, and in the safe-looking direction. `next build` traces the working
+  tree's `.env` into `.next/standalone/.env`. `@next/env`'s `processEnv` assigns
+  a parsed value only when the key is undefined in the original `process.env`, so
+  anything the launcher passes explicitly wins and **anything it forgets is
+  inherited from the developer's `.env`**. Left alone, a desktop build would have
+  registered GitHub OAuth and pointed the blob store at MinIO. Fixed by building
+  a closed child environment and blanking the traced keys, read from the file so
+  the list cannot fall behind it. Confirmed: `/api/auth/providers` returns `{}`
+  and the server logs "No OAuth provider is configured".
+- **The same trace is a credential leak at packaging time**, now recorded in §5.
+  An installer built from a working tree would ship a real `GITHUB_CLIENT_SECRET`.
+- **§4.4 understated the migration risk.** It says to run `migrate deploy`
+  against the cluster; it does not say that getting it wrong points the CLI at
+  the developer's database and that success looks identical either way. Three
+  defences went in: an explicit `DATABASE_URL`, the CLI run in an empty scratch
+  cwd so no `.env` is in reach, and — because asking is not proving — a
+  post-hoc count of `_prisma_migrations` in *our* cluster plus a
+  `pg_stat_activity` check that the server landed here too.
+
+### 11.4 Verified by running it
+
+Two launches, cold and warm. `GET /` → 200 serving the real app
+(`<title>Modern Blog …</title>`), `/api/health` → `{"status":"ok","db":"up"}`,
+a live `--type=renderer` process, and `postgres-blog` on 5432 never contacted.
+Shutdown was exercised by `SIGTERM` to the main process, which is the real path
+(`SIGTERM → app.quit → before-quit → shutdown → exit 0`): fast shutdown,
+checkpoint, "database system is shut down", no `postmaster.pid`, no listening
+ports. `pnpm lint` and `pnpm exec tsc --noEmit` are both clean.
+
+**Not verified: what the window looks like.** This session's Wayland compositor
+refuses both X11 `import` and the GNOME screenshot portal, so the window's
+existence is established from the live renderer process and a resolved
+`loadURL`, not from a picture. Someone should look at it.
+
+### 11.5 Three operational findings
+
+- **Electron will not start unsandboxed on this machine.** `chrome-sandbox` is
+  not setuid root (pnpm cannot extract it that way) *and*
+  `kernel.apparmor_restrict_unprivileged_userns=1` closes the fallback. The fix
+  is `sudo chown root:root … && chmod 4755`; `start:no-sandbox` exists as the
+  workaround and is what phase 2 was run under. A packaged build installs the
+  helper correctly, so neither ships.
+- **`embedded-postgres`'s own exit hook throws.** On the signal path it raises
+  `TypeError: done is not a function` from its `AsyncExitHook(gracefulShutdown)`
+  registration. Harmless here — our explicit `shutdown()` has already stopped
+  everything by then — but it is an argument for keeping shutdown explicit rather
+  than delegating it to the library, and it is a reminder that this dependency
+  is a prerelease (§10.5).
+- **Killing the launcher does not kill the app.** `pnpm --filter … start` dies on
+  `SIGTERM` without propagating it, orphaning the Electron main process and
+  leaving the cluster running — observed, and cleaned up by hand. A packaged app
+  has no such wrapper, so this is a development-mode hazard rather than a
+  shipping one, but it is the way to leave a stray postmaster behind.

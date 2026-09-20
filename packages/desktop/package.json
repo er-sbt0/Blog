@@ -1,0 +1,19 @@
+{
+  "name": "@blog/desktop",
+  "private": true,
+  "version": "0.0.0",
+  "productName": "blog-desktop",
+  "type": "module",
+  "description": "Electron shell: an embedded Postgres cluster plus the Next standalone server, in one window.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:no-sandbox": "electron . --no-sandbox"
+  },
+  "dependencies": {
+    "embedded-postgres": "17.10.0-beta.17"
+  },
+  "devDependencies": {
+    "electron": "44.4.3"
+  }
+}

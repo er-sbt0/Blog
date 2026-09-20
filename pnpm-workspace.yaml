@@ -2,6 +2,14 @@ packages:
   - 'packages/*'
 
 allowBuilds:
+  # The Electron shell (packages/desktop). Both of these do real work in a
+  # postinstall and are silently broken without it: electron downloads its
+  # binary, and @embedded-postgres/linux-x64 recreates the 14 symlinks in
+  # native/lib/ that npm tarballs cannot carry. Without those the cluster dies
+  # at launch with `error while loading shared libraries: libicui18n.so.60`
+  # (docs/plans/desktop-app.md §10.3).
+  '@embedded-postgres/linux-x64': true
+  electron: true
   '@prisma/client': true
   '@prisma/engines': true
   '@swc/core': true

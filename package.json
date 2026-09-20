@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "rebuild": "pnpm clean && pnpm build",
+    "desktop": "pnpm --filter @blog/desktop start",
     "check:tdz": "node scripts/check-tdz.mjs",
     "check:nodes": "node scripts/check-node-serialization.mjs",
     "check:codecs": "node scripts/check-codecs.mjs",
