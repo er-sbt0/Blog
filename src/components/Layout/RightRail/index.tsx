@@ -1,9 +1,18 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Box } from "@mui/material";
-import { Command, Settings } from "lucide-react";
+import {
+  Command,
+  PanelBottomClose,
+  PanelBottomOpen,
+  Settings,
+} from "lucide-react";
 import SettingsPanel from "./SettingsPanel";
 import { openCommandPalette } from "@/components/CommandPalette/CommandPalette";
+import { hasInlineCopilotBar } from "@/components/CopilotPanel/InlineCopilotBar";
+import { uiCommands } from "@/commands";
+import { useCommandRun } from "@/commands/CommandProvider";
+import { usePathname } from "next/navigation";
 import { selectAnySaveTrouble, useSelector } from "@/store";
 import {
   selectFocusedDocId,
@@ -40,7 +49,10 @@ const TRANSITION_MS = 225;
  * panel, and the strip stays either way.
  */
 const RightRail: React.FC = () => {
-  const { isRailResizing, startRailResize } = useLayoutMode();
+  const { isRailResizing, startRailResize, copilotBarMinimized } =
+    useLayoutMode();
+  const run = useCommandRun();
+  const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -275,11 +287,36 @@ const RightRail: React.FC = () => {
         )}
 
         {
-          /* Pushes the two window-level controls to the foot of the strip. An
+          /* Pushes the window-level controls to the foot of the strip. An
             explicit spacer rather than `mt: "auto"` on one of them: that put the
             margin on the *middle* item of the bottom group. */
         }
         <Box sx={{ flex: 1 }} />
+
+        {
+          /* The inline Copilot bar's minimize, and the only affordance that
+            restores it by pointer. Gated on the same predicate the bar and its
+            clearance use, so a route with no bar cannot offer to hide one.
+
+            The glyph says what the click does and the tint says what is true
+            now: arrow-down over a showing bar, arrow-up over a minimized one,
+            accented while the bar is up. No accent bar — that mark means "the
+            panel beside this strip is open" everywhere else in the rail, and
+            this control's surface is at the foot of the page. */
+        }
+        {hasInlineCopilotBar(pathname) && (
+          <RailIconButton
+            label={copilotBarMinimized
+              ? "Show Copilot bar"
+              : "Minimize Copilot bar"}
+            placement="left"
+            icon={copilotBarMinimized
+              ? <PanelBottomOpen size={ICON_SIZE.dense} />
+              : <PanelBottomClose size={ICON_SIZE.dense} />}
+            active={!copilotBarMinimized}
+            onClick={() => run(uiCommands.toggleCopilotBar)}
+          />
+        )}
 
         <RailIconButton
           label="Command palette"

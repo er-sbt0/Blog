@@ -9,7 +9,6 @@ import { useAIModel } from "@/contexts/AIModelContext";
 import { ICON_SIZE } from "@/theme/icons";
 import { MOTION } from "@/theme/tokens";
 import CopilotChat from "./CopilotChat";
-import CopilotFab from "./CopilotFab";
 import { composerSurfaceSx, composerWrapperSx, GROW } from "./Composer";
 
 /**
@@ -145,13 +144,16 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
   }, [pathname]);
 
   /**
-   * Bring the bar back and put the caret in it — what both ⌘/ and the corner
-   * button do, so the two cannot diverge.
+   * Bring the bar back and put the caret in it.
    *
    * The focus call waits a frame because the card may still be `display: none`
    * when this runs, and nothing inside a hidden subtree can take focus.
    * `collapsed` is cleared as well, so restoring gives back the conversation
    * rather than an empty strip above one.
+   *
+   * The rail's own toggle does not come through here: it flips the state and
+   * leaves focus where it is, because reaching for a rail icon with the mouse
+   * is not a request to start typing.
    */
   const restore = useCallback(() => {
     setCopilotBarMinimized(false);
@@ -337,13 +339,6 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
           />
         </Box>
       </Box>
-
-      <CopilotFab
-        in={minimized}
-        onClick={restore}
-        hasThread={messageCount > 0}
-        disabledReason={user ? undefined : "Sign in to use AI"}
-      />
     </Box>
   );
 };
