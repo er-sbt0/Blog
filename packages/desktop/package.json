@@ -13,15 +13,20 @@
     "start:no-sandbox": "electron . --no-sandbox",
     "dev": "DESKTOP_DEV=1 electron .",
     "dev:no-sandbox": "DESKTOP_DEV=1 electron . --no-sandbox",
+    "rebuild:native": "electron-rebuild -f -w node-pty -m ../..",
+    "build:mcp": "node scripts/build-mcp.mjs",
     "stage:resources": "node scripts/stage-resources.mjs",
     "package": "node scripts/stage-resources.mjs && electron-builder --linux",
     "verify:package": "node scripts/verify-package.mjs"
   },
   "dependencies": {
-    "embedded-postgres": "17.10.0-beta.17"
+    "embedded-postgres": "17.10.0-beta.17",
+    "node-pty": "^1.1.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
     "electron": "44.4.3",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2"
   }
 }

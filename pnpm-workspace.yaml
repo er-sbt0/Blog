@@ -20,6 +20,11 @@ allowBuilds:
   # Linux only (docs/plans/desktop-app.md §1, §8 phase 6), so its postinstall —
   # which fetches a Squirrel.Windows toolchain — is refused rather than run.
   electron-winstaller: false
+  # The PTY behind the in-app terminal (docs/plans/in-app-terminal.md §4.2).
+  # node-gyp in a postinstall, and then rebuilt against Electron's ABI by
+  # `pnpm --filter @blog/desktop rebuild:native` — the Node-ABI copy this
+  # build produces is not the one the main process can load.
+  node-pty: true
 
 minimumReleaseAgeExclude:
   - '@aws-sdk/client-s3@3.1110.0'

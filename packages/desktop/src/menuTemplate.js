@@ -51,6 +51,28 @@ export const APP_SHORTCUTS = [
   { chord: "Mod+2", what: "right rail: outline", where: "src/components/Layout/RightRail/index.tsx:91" },
   { chord: "Mod+3", what: "right rail: properties", where: "src/components/Layout/RightRail/index.tsx:91" },
   { chord: "Mod+4", what: "right rail: revisions", where: "src/components/Layout/RightRail/index.tsx:91" },
+  // docs/plans/in-app-terminal.md §4.8, and the entry below is only half of what
+  // that section decides.
+  //
+  // The other half cannot be written as a row here, so it is written as a
+  // sentence: **a focused terminal consumes the keyboard wholesale.** `Ctrl+C`
+  // has to reach the PTY — it is the interrupt, and a terminal that cannot
+  // interrupt is not one — and `Ctrl+C` is also `Mod+C` two rows below, the
+  // notes canvas and Lexical's rich clipboard. There is no way to have both, so
+  // xterm takes everything while it has focus and the app's own handlers are
+  // the ones that yield.
+  //
+  // What that means for this file is that the inventory *understates* what is
+  // taken whenever the terminal has focus, in the direction that is safe: every
+  // chord listed here is still listed, so the menu still may not register it.
+  // Copy and paste inside the terminal are xterm's own `Ctrl+Shift+C` / `V`,
+  // which nothing in the app binds and the Edit menu only displays.
+  // The one exception to "every chord": `Mod+5` is reserved out of xterm and
+  // let through, because a focused terminal that owns `Escape`, `Tab` and the
+  // other view chords otherwise leaves a keyboard-only user with no way out of
+  // the view at all — a keyboard trap (WCAG 2.1.2). The chord that opens the
+  // terminal closes it; see `TERMINAL_VIEW_CHORD` in `TerminalView.tsx`.
+  { chord: "Mod+5", what: "right rail: terminal (and while it has focus, every chord except this one — see above)", where: "src/components/Layout/RightRail/index.tsx:91" },
   { chord: "Mod+A", what: "select all rows / notes / editor content", where: "src/components/posts/components/PostsListView/PostsListView.tsx:449" },
   { chord: "Mod+C", what: "copy (notes canvas, and Lexical's rich clipboard)", where: "src/components/NotesCanvas/hooks/useNotesSelection.ts:315" },
   { chord: "Mod+X", what: "cut (notes canvas, and Lexical's rich clipboard)", where: "src/components/NotesCanvas/hooks/useNotesSelection.ts:318" },

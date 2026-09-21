@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { app, BrowserWindow, dialog, nativeTheme, screen, session, shell } from "electron";
 import { preflightPostgresBinaries } from "./preflight.js";
 import {
@@ -27,6 +29,7 @@ import { sessionCookieName, sessionCookieSpec } from "./session.js";
 import { installMenu } from "./menu.js";
 import { placeWindow, windowStateToSave } from "./windowState.js";
 import {
+  DESKTOP_BUILD_DIR,
   buildServerEnv,
   ensureStandaloneAssets,
   resolveDevServer,
@@ -34,6 +37,7 @@ import {
   stopNextServer,
   waitForHealth,
 } from "./server.js";
+import { installTerminal } from "./pty.js";
 
 /**
  * Phases 2–3 of docs/plans/desktop-app.md: the whole stack under Electron, with
@@ -91,6 +95,8 @@ function log(message) {
 
 let cluster = null;
 let nextServer = null;
+/** The terminal's PTY and its IPC handlers (docs/plans/in-app-terminal.md). */
+let terminal = null;
 let mainWindow = null;
 let shuttingDown = false;
 /** Set if the Next child dies; read by the health wait so a crash is not a hang. */
@@ -226,7 +232,34 @@ async function boot() {
   await establishSession(origin);
   log(`booted in ${Date.now() - bootStarted} ms`);
 
-  // 9. The window, and only now.
+  // 9. The terminal's IPC surface (docs/plans/in-app-terminal.md §2.1), before
+  //    the window exists — the renderer may ask for status on its first paint,
+  //    and a handler registered after `loadURL` is a race nothing on screen
+  //    would explain.
+  //
+  //    The MCP server bundle lives *inside the standalone tree* rather than
+  //    beside it, and that is not a layout preference: the bundle leaves
+  //    `@prisma/client` external (§2.2), so it resolves only from a directory
+  //    that has the server's own copy of it. Run from anywhere else it dies
+  //    with ERR_MODULE_NOT_FOUND. `target.standalone` is that directory when a
+  //    bundle is being served; in watch mode there is no standalone tree in
+  //    play at all, so the built one is named directly and is simply absent
+  //    until `pnpm build:desktop` has run. Absent is a supported state — the
+  //    terminal starts, without a view of the library, and says so in the log.
+  const standaloneRoot =
+    target.standalone ?? path.join(appRoot, DESKTOP_BUILD_DIR, "standalone");
+  terminal = installTerminal({
+    workspace: paths.workspace,
+    databaseUrl: url,
+    authorId: localUser.id,
+    serverEntry: path.join(standaloneRoot, "mcp", "content-server.mjs"),
+    // Electron's own Node runs the MCP child, so a packaged build carries no
+    // second runtime — the same trick `startNextServer` uses.
+    execPath: process.execPath,
+    log,
+  });
+
+  // 10. The window, and only now.
   await openWindow(origin);
   watchForSignOut(origin);
 }
@@ -346,6 +379,9 @@ async function restore(origin, name) {
  */
 const WINDOW_BACKGROUND = { light: "#ffffff", dark: "#252b3a" };
 
+/** The only preload script in this app. See `preload.cjs`, and §2.1 of its plan. */
+const PRELOAD = fileURLToPath(new URL("preload.cjs", import.meta.url));
+
 function windowBackground() {
   return nativeTheme.shouldUseDarkColors
     ? WINDOW_BACKGROUND.dark
@@ -394,7 +430,18 @@ async function openWindow(origin) {
     // packaged one look identical, and they are not the same database.
     title: DEV ? "Blog (dev)" : "Blog",
     backgroundColor: windowBackground(),
-    webPreferences: { contextIsolation: true, nodeIntegration: false },
+    // `contextIsolation` and `nodeIntegration` are unchanged — the preload is
+    // not a relaxation of either. It is the one bridge described in
+    // docs/plans/in-app-terminal.md §2.1, and `preload.cjs` carries the
+    // argument for why what it exposes is as narrow as it is. The path is
+    // resolved from this file's own URL rather than from `appRoot`, because the
+    // shell's `src/` is what electron-builder packages and is beside `main.js`
+    // in both the working tree and the package.
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: PRELOAD,
+    },
   });
   // After the bounds, not instead of them: `maximize()` keeps what was set as
   // the restore rectangle, so un-maximizing gives back the remembered window
@@ -552,6 +599,17 @@ function escapeHtml(value) {
  * different port and would leave two.
  */
 async function shutdown() {
+  // The terminal first, and not because of ordering — nothing depends on it.
+  // It is a SIGHUP to a `claude` that may be mid-turn, which §9's third open
+  // question is about; the mitigating fact is that `apply_ops` proposes rather
+  // than commits, so the worst outcome is a pending proposal the author can
+  // decline rather than a damaged document.
+  try {
+    terminal?.dispose();
+  } catch (error) {
+    console.error("[desktop] failed to stop the terminal", error);
+  }
+  terminal = null;
   try {
     await stopNextServer(nextServer, { group: DEV });
   } catch (error) {

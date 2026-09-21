@@ -124,6 +124,14 @@ export function desktopPaths(userData) {
     pgdata: path.join(userData, "pgdata"),
     uploads: path.join(userData, "uploads"),
     blobs: path.join(userData, "blobs"),
+    // The terminal's working directory (docs/plans/in-app-terminal.md §4.6).
+    // It holds the generated `.mcp.json` — which is what lets Claude Code see
+    // the library at all, since posts are rows in Postgres and there is no file
+    // representation to `cd` into — and nothing else the shell puts there. The
+    // user's own scratch files are welcome in it, which is why `mcpConfig.js`
+    // merges rather than overwrites and why `terminal.js` refuses an empty
+    // `PATH` entry: this is a directory the app writes to and does not own.
+    workspace: path.join(userData, "workspace"),
     secrets: path.join(userData, "secrets.json"),
     // Phase 7. Separate from `secrets.json` on purpose: this file is disposable
     // — a corrupt or missing one costs a default-sized window — while losing
@@ -138,7 +146,13 @@ export function desktopPaths(userData) {
     socketDir: path.join(os.tmpdir(), `blog-desktop-pg-${os.userInfo().uid}`),
   };
 
-  for (const dir of [paths.userData, paths.uploads, paths.blobs, paths.socketDir]) {
+  for (const dir of [
+    paths.userData,
+    paths.uploads,
+    paths.blobs,
+    paths.workspace,
+    paths.socketDir,
+  ]) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
