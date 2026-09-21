@@ -11,6 +11,8 @@
   "scripts": {
     "start": "electron .",
     "start:no-sandbox": "electron . --no-sandbox",
+    "dev": "DESKTOP_DEV=1 electron .",
+    "dev:no-sandbox": "DESKTOP_DEV=1 electron . --no-sandbox",
     "stage:resources": "node scripts/stage-resources.mjs",
     "package": "node scripts/stage-resources.mjs && electron-builder --linux",
     "verify:package": "node scripts/verify-package.mjs"

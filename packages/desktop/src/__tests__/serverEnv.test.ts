@@ -27,15 +27,19 @@ import { buildServerEnv } from "../server.js";
  */
 const build = (
   envFile: string | null,
-  overrides = {},
+  overrides: Record<string, unknown> = {},
+  files: Record<string, string> = {},
 ): Record<string, string | undefined> => {
-  const standalone = mkdtempSync(path.join(tmpdir(), "desktop-env-"));
+  const envRoot = mkdtempSync(path.join(tmpdir(), "desktop-env-"));
   if (envFile !== null) {
-    writeFileSync(path.join(standalone, ".env"), envFile);
+    writeFileSync(path.join(envRoot, ".env"), envFile);
+  }
+  for (const [name, contents] of Object.entries(files)) {
+    writeFileSync(path.join(envRoot, name), contents);
   }
   try {
     return buildServerEnv({
-      standalone,
+      envRoot,
       port: 41234,
       url: "http://127.0.0.1:41234",
       databaseUrl: "postgresql://postgres:pw@127.0.0.1:42673/blog",
@@ -45,7 +49,7 @@ const build = (
       ...overrides,
     });
   } finally {
-    rmSync(standalone, { recursive: true, force: true });
+    rmSync(envRoot, { recursive: true, force: true });
   }
 };
 
@@ -99,5 +103,60 @@ describe("buildServerEnv", () => {
     const env = build(null);
     expect(env.S3_ENDPOINT ?? "").toBe("");
     expect(Object.keys(env)).not.toContain("SSH_AUTH_SOCK");
+  });
+});
+
+/**
+ * Watch mode (`pnpm desktop:dev`), where the child is `next dev` over the
+ * working tree rather than the traced bundle.
+ *
+ * The env files are read from the repository itself here, which is the closest
+ * this environment ever gets to the developer's own — so the interesting
+ * question is not what the dev server needs but whether the blanking still
+ * covers it. `next dev` loads the *development* half of the `.env` set, and a
+ * list that names only the production half would walk straight past
+ * `.env.development`.
+ */
+describe("buildServerEnv in development", () => {
+  const dev = (
+    envFile: string | null,
+    files: Record<string, string> = {},
+  ) => build(envFile, { dev: true, buildDir: ".next-desktop-dev" }, files);
+
+  it("names the dev output directory, so no build artifact is written over", () => {
+    expect(dev(null).BUILD_DIR).toBe(".next-desktop-dev");
+    // `.next` is the VPS bundle and `.next-desktop` is what the packaged app
+    // serves; `assertDesktopBundle` reads the second to decide whether it may
+    // be served at all.
+    expect(dev(null).BUILD_DIR).not.toBe(".next-desktop");
+  });
+
+  it("is still a desktop build as far as the config is concerned", () => {
+    // `next dev` reads `next.config.ts` from this environment, so the client's
+    // NEXT_PUBLIC_DESKTOP is derived from the same variable the server reads.
+    expect(dev(null).DESKTOP).toBe("1");
+  });
+
+  it("does not claim to be production", () => {
+    expect(dev(null).NODE_ENV).toBe("development");
+    expect(build(null).NODE_ENV).toBe("production");
+  });
+
+  it("blanks S3 named in .env.development, which the production list never reads", () => {
+    const env = dev(null, {
+      ".env.development": 'S3_ENDPOINT="http://localhost:9000"\nS3_BUCKET="blog-blobs"',
+    });
+    expect(env.S3_ENDPOINT).toBe("");
+    expect(env.S3_BUCKET).toBe("");
+    expect(env.BLOB_DIR).toBe("/home/someone/.config/blog-desktop/blobs");
+  });
+
+  it("blanks .env.development.local too, which beats every other file", () => {
+    const env = dev(null, { ".env.development.local": 'GITHUB_CLIENT_ID="real"' });
+    expect(env.GITHUB_CLIENT_ID).toBe("");
+  });
+
+  it("keeps blanking the plain .env both modes read", () => {
+    expect(dev('GOOGLE_CLIENT_SECRET="real"').GOOGLE_CLIENT_SECRET).toBe("");
   });
 });

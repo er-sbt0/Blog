@@ -52,6 +52,7 @@ pnpm lint            # Run ESLint
 
 ```bash
 pnpm desktop          # Run the desktop shell against the working tree
+pnpm desktop:dev      # Same shell, serving `next dev` — Fast Refresh, no build
 pnpm build:desktop    # DESKTOP=1 BUILD_DIR=.next-desktop next build
 pnpm package:desktop  # AppImage + .deb into packages/desktop/.dist
 ```
@@ -60,6 +61,14 @@ pnpm package:desktop  # AppImage + .deb into packages/desktop/.dist
 bundle is a **separate build** because two of its differences are settled when
 the bundle is written rather than when the server starts — see "The desktop
 build" below.
+
+`pnpm desktop:dev` swaps only the child process: same cluster, same migrations,
+same seeded session, same closed environment, and no "skip it in development"
+branch anywhere. It compiles into a **third** `distDir` (`.next-desktop-dev`)
+and keeps its data in a sibling directory (`~/.config/blog-desktop-dev/`),
+because the migrations a development run applies are the ones being written.
+`packages/desktop/README.md`, "Watch mode", has the rest — including why
+`.next-desktop-dev` had to join `.next-desktop` in tsconfig's `exclude`.
 
 ### Maintenance
 
@@ -88,7 +97,7 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 72 specs, 1461 tests, of which the list below walks the ones worth
+Coverage is 72 specs, 1472 tests, of which the list below walks the ones worth
 knowing about rather than all of them. The newest six are the desktop shell's
 (`packages/desktop/src/__tests__/`, docs/plans/desktop-app.md): `session.test.ts`
 (the local sign-in's arithmetic — the `__Secure-` prefix rule, seconds versus

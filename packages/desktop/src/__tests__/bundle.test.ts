@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { assertDesktopBundle, PWA_ARTIFACTS } from "../server.js";
+import { assertDesktopBundle, DESKTOP_DEV_BUILD_DIR, PWA_ARTIFACTS, resolveDevServer } from "../server.js";
 
 /**
  * Which build the shell is about to serve (docs/plans/desktop-app.md §5).
@@ -125,5 +125,53 @@ describe("PWA_ARTIFACTS", () => {
     "workbox.md",
   ])("keeps %s", (name) => {
     expect(PWA_ARTIFACTS.test(name)).toBe(false);
+  });
+});
+
+/**
+ * Watch mode's child, which is the one case where nothing is asserted about a
+ * bundle because there is no bundle.
+ *
+ * What replaces the assertion is that the dev server compiles from the
+ * environment it is handed — so the only thing left to get wrong is *where it
+ * writes*. `.next` and `.next-desktop` are both read by something that expects
+ * a finished build, and a dev server's half-compiled output sitting in either
+ * is a stale-bundle failure wearing a different hat.
+ */
+describe("resolveDevServer", () => {
+  const appRoot = path.resolve(__dirname, "..", "..", "..", "..");
+
+  it("writes to neither build's output directory", () => {
+    expect(DESKTOP_DEV_BUILD_DIR).not.toBe(".next");
+    expect(DESKTOP_DEV_BUILD_DIR).not.toBe(".next-desktop");
+    // `.gitignore` covers `/.next-*/`, so a third output needs no entry of its
+    // own — but only while it keeps the prefix.
+    expect(DESKTOP_DEV_BUILD_DIR.startsWith(".next-")).toBe(true);
+  });
+
+  it("runs the repository's own Next CLI against the given port", () => {
+    const target = resolveDevServer(appRoot, { port: 41234 });
+    expect(target.entry).toBe(path.join(appRoot, "node_modules", "next", "dist", "bin", "next"));
+    expect(target.cwd).toBe(appRoot);
+    expect(target.args).toEqual(["dev", "--hostname", "127.0.0.1", "--port", "41234"]);
+  });
+
+  it("reads the working tree's env files, not a bundle's", () => {
+    expect(resolveDevServer(appRoot, { port: 41234 }).envRoot).toBe(appRoot);
+  });
+
+  /**
+   * Turbopack would drop every vanilla-extract style silently — the plugin
+   * configures no Turbopack rule on Next 15 — which in a window nobody has a
+   * screenshot of is the worst shape of failure available. `next.config.ts`
+   * says so at length; this is the check that the flag stays out.
+   */
+  it("does not ask for turbopack", () => {
+    expect(resolveDevServer(appRoot, { port: 41234 }).args).not.toContain("--turbopack");
+  });
+
+  it("names `pnpm install` rather than starting a server that cannot exist", () => {
+    expect(() => resolveDevServer(mkdtempSync(path.join(tmpdir(), "no-next-")), { port: 1 }))
+      .toThrow(/pnpm install/);
   });
 });

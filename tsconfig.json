@@ -41,15 +41,17 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".next-desktop/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
     "temp/types/**/*.ts",
-    ".next-desktop/types/**/*.ts"
+    ".next-desktop-dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     ".next",
     ".next-desktop",
+    ".next-desktop-dev",
     "tmp",
     "prisma/scripts/**",
     "packages/desktop/.stage",

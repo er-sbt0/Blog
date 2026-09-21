@@ -61,6 +61,16 @@ const PASSTHROUGH_ENV = ["PATH", "HOME", "TMPDIR", "LANG", "LC_ALL", "TZ"];
 const ENV_FILES = [".env", ".env.production", ".env.local", ".env.production.local"];
 
 /**
+ * The same set for `next dev`, which loads the *development* half of it.
+ *
+ * Not cosmetic. A `.env.development` naming `S3_ENDPOINT` is exactly the file a
+ * developer has, and reading the production list against it would leave that key
+ * un-blanked — the one failure the closed environment exists to prevent,
+ * reintroduced in the mode where the developer's own `.env` is nearest.
+ */
+const DEV_ENV_FILES = [".env", ".env.development", ".env.local", ".env.development.local"];
+
+/**
  * Where `pnpm build:desktop` puts its output.
  *
  * A *second* build directory rather than a second server flag, and that is
@@ -198,7 +208,7 @@ export function ensureStandaloneAssets(appRoot, log, options = {}) {
       ")",
   );
 
-  return { standalone, entry, buildDir };
+  return { standalone, cwd: standalone, envRoot: standalone, entry, buildDir, args: [] };
 }
 
 /**
@@ -249,7 +259,8 @@ function assertPackagedAssets(standalone, buildDir, log) {
   }
 
   log(`packaged assets verified under ${standalone}`);
-  return { standalone, entry: path.join(standalone, "server.js"), buildDir };
+  const entry = path.join(standalone, "server.js");
+  return { standalone, cwd: standalone, envRoot: standalone, entry, buildDir, args: [] };
 }
 
 /**
@@ -280,18 +291,79 @@ function bridgePublic(source, target) {
 }
 
 /**
+ * Watch mode: `next dev` in place of the built bundle.
+ *
+ * The shell serves a *build*, so every change to `src/` is a
+ * `pnpm build:desktop` away from being visible. `run.sh` learned to rebuild a
+ * stale bundle rather than serve it, which fixed the wrong half of that — the
+ * problem was never noticing the staleness, it is the two minutes. So in
+ * development the child is the dev server, reading the working tree, and the
+ * window gets Fast Refresh.
+ *
+ * Everything else about the boot is unchanged: the same cluster, the same
+ * migrations, the same local session, the same closed environment. This is a
+ * different *child process*, not a second app, and nothing below it knows which
+ * one it is talking to.
+ *
+ * Three things `assertDesktopBundle` proves about a bundle are true here by
+ * construction rather than unchecked, which is why this is not simply the same
+ * path with the guard taken off:
+ *
+ * - **The client flag.** `next dev` reads `next.config.ts` *after* being handed
+ *   the environment `buildServerEnv` builds, so `NEXT_PUBLIC_DESKTOP` is
+ *   inlined from the same `DESKTOP=1` that the server half reads. The hazard
+ *   that assertion exists for is a build that happened at some other time with
+ *   some other flag; in development there is no such artifact to disagree with.
+ * - **The service worker.** `next-pwa` is `disable`d whenever `NODE_ENV` is not
+ *   production (`next.config.ts`), so nothing is injected and nothing is
+ *   written into `public/`.
+ * - **The asset layout.** `output: "standalone"` is ignored by `next dev`: it
+ *   serves `public/` and its own compiled output itself, so there is no link
+ *   farm to build and none to get wrong.
+ *
+ * Its `distDir` is a *third* directory. `.next` is the VPS bundle and
+ * `.next-desktop` is what the packaged app serves; a dev server writing into
+ * either would leave a half-built tree where a finished one is expected — and
+ * `.next-desktop` in particular is what `assertDesktopBundle` reads to decide
+ * whether the shell may serve it at all.
+ */
+export const DESKTOP_DEV_BUILD_DIR = process.env.DEV_BUILD_DIR || ".next-desktop-dev";
+
+export function resolveDevServer(appRoot, { port, buildDir = DESKTOP_DEV_BUILD_DIR }) {
+  const entry = path.join(appRoot, "node_modules", "next", "dist", "bin", "next");
+  if (!fs.existsSync(entry)) {
+    throw new Error(
+      `No Next CLI at ${entry}.\n` +
+        "Development mode runs the working tree rather than a bundle, so it needs the " +
+        "repository's own dependencies — run `pnpm install` at the repository root.",
+    );
+  }
+  // No `--turbopack`, for the reason `next.config.ts` gives at length: the
+  // vanilla-extract plugin configures no Turbopack rule on Next 15, so every
+  // `.css.ts` file in the editor package would compile to nothing — silently,
+  // which in a shell nobody has screenshots of is the worst available failure.
+  return {
+    cwd: appRoot,
+    envRoot: appRoot,
+    entry,
+    buildDir,
+    args: ["dev", "--hostname", "127.0.0.1", "--port", String(port)],
+  };
+}
+
+/**
  * The variable names `next build` traced into the bundle.
  *
  * Read rather than hardcoded so the deny list cannot silently fall behind a `.env`
  * that grows. Anything found here that we have not set deliberately is blanked;
  * the alternative is inheriting a value chosen for a different deployment.
  */
-export function tracedEnvKeys(standalone) {
+export function tracedEnvKeys(root, files = ENV_FILES) {
   const keys = new Set();
-  for (const file of ENV_FILES) {
+  for (const file of files) {
     let contents;
     try {
-      contents = fs.readFileSync(path.join(standalone, file), "utf8");
+      contents = fs.readFileSync(path.join(root, file), "utf8");
     } catch {
       continue;
     }
@@ -310,7 +382,12 @@ export function tracedEnvKeys(standalone) {
  * list nor the blanking can overwrite one.
  */
 export function buildServerEnv({
-  standalone,
+  envRoot,
+  dev = false,
+  // Only read when `dev` is set, and defaulted rather than required so a caller
+  // that forgets it gets the right directory instead of the string "undefined"
+  // as a `distDir`.
+  buildDir = DESKTOP_DEV_BUILD_DIR,
   port,
   url,
   databaseUrl,
@@ -328,12 +405,12 @@ export function buildServerEnv({
 
   // Blank anything the bundle could otherwise supply — but never the handful of
   // variables the child needs from the shell, which a `.env` is free to mention.
-  for (const key of [...DENIED_ENV, ...tracedEnvKeys(standalone)]) {
+  for (const key of [...DENIED_ENV, ...tracedEnvKeys(envRoot, dev ? DEV_ENV_FILES : ENV_FILES)]) {
     if (!PASSTHROUGH_ENV.includes(key)) env[key] = "";
   }
 
   Object.assign(env, {
-    NODE_ENV: "production",
+    NODE_ENV: dev ? "development" : "production",
     PORT: String(port),
     HOSTNAME: "127.0.0.1",
     DATABASE_URL: databaseUrl,
@@ -376,6 +453,13 @@ export function buildServerEnv({
     DESKTOP: "1",
   });
 
+  if (dev) {
+    // `next dev` resolves `distDir` from the config, which reads this — the
+    // third output directory `resolveDevServer` explains.
+    env.BUILD_DIR = buildDir;
+    env.NEXT_TELEMETRY_DISABLED = "1";
+  }
+
   return env;
 }
 
@@ -386,13 +470,21 @@ export function buildServerEnv({
  * `PORT`/`HOSTNAME` and to be the process that exits, and a crashed server can
  * then be restarted without taking the window with it. It runs under Electron's
  * own Node via `ELECTRON_RUN_AS_NODE`, so a packaged build needs no separate
- * runtime.
+ * runtime — and so do the compiler workers `next dev` forks, which inherit the
+ * variable along with the rest of this environment.
+ *
+ * `detached` is development only. `next dev` is a process *tree*, and a SIGTERM
+ * delivered to its root alone leaves the workers holding the port — which the
+ * next launch meets as a dev server that never becomes healthy, with nothing on
+ * screen to say why. Its own process group is what lets `stopNextServer` signal
+ * all of them at once.
  */
-export function startNextServer({ standalone, entry, env, log, onExit }) {
-  const child = spawn(process.execPath, [entry], {
-    cwd: standalone,
+export function startNextServer({ cwd, entry, args = [], env, log, onExit, detached = false }) {
+  const child = spawn(process.execPath, [entry, ...args], {
+    cwd,
     env,
     stdio: ["ignore", "pipe", "pipe"],
+    detached,
   });
   child.stdout.on("data", (chunk) => log(`[next] ${chunk.toString().trimEnd()}`));
   child.stderr.on("data", (chunk) => log(`[next] ${chunk.toString().trimEnd()}`));
@@ -438,15 +530,32 @@ export async function waitForHealth({ url, timeoutMs = 60_000, intervalMs = 250,
   );
 }
 
-/** SIGTERM, then SIGKILL if it is still there. A survivor holds the port. */
-export function stopNextServer(child, { graceMs = 5_000 } = {}) {
+/**
+ * SIGTERM, then SIGKILL if it is still there. A survivor holds the port.
+ *
+ * `group` signals the whole process group rather than the child — see
+ * `detached` above. It falls back to the child on ESRCH, which is what a group
+ * that has already gone looks like, so a tidy exit is never turned into a
+ * throw on the way out.
+ */
+export function stopNextServer(child, { graceMs = 5_000, group = false } = {}) {
   if (!child || child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+
+  const signal = (name) => {
+    try {
+      if (group) process.kill(-child.pid, name);
+      else child.kill(name);
+    } catch {
+      child.kill(name);
+    }
+  };
+
   return new Promise((resolve) => {
-    const kill = setTimeout(() => child.kill("SIGKILL"), graceMs);
+    const kill = setTimeout(() => signal("SIGKILL"), graceMs);
     child.once("exit", () => {
       clearTimeout(kill);
       resolve();
     });
-    child.kill("SIGTERM");
+    signal("SIGTERM");
   });
 }

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import path from "node:path";
 import { app, BrowserWindow, dialog, screen, session, shell } from "electron";
 import { preflightPostgresBinaries } from "./preflight.js";
 import {
@@ -27,6 +28,7 @@ import { placeWindow, windowStateToSave } from "./windowState.js";
 import {
   buildServerEnv,
   ensureStandaloneAssets,
+  resolveDevServer,
   startNextServer,
   stopNextServer,
   waitForHealth,
@@ -46,6 +48,37 @@ import {
  * what the startup budget is argued from and the second half of the boot has
  * never been measured.
  */
+
+/**
+ * Watch mode: serve the working tree through `next dev` instead of the built
+ * bundle, so a change to `src/` shows up in the window without a build.
+ *
+ * Opt-in by environment (`pnpm desktop:dev`) and never in a packaged app, where
+ * there is no working tree to watch and the flag could only come from the
+ * user's own shell. Everything the mode changes is in `server.js`; here it
+ * decides which child to start, how long to wait for it, and — below — which
+ * data directory it gets.
+ */
+const DEV = !app.isPackaged && process.env.DESKTOP_DEV === "1";
+
+/**
+ * Where the app's data lives, decided before anything can ask for it.
+ *
+ * A development run gets a *sibling* directory rather than the real one. The
+ * shell applies `prisma migrate deploy` on every boot, and in development the
+ * migrations being applied are the ones being written — half-finished, about to
+ * be edited, occasionally rolled back by hand. Pointing that at the directory
+ * holding someone's actual posts is a data-loss shape, and the cost of the
+ * separation is one seeded user and an empty library.
+ *
+ * `DESKTOP_USER_DATA` overrides both, which is how you deliberately open the
+ * real data in watch mode — or a throwaway copy of it in the packaged one.
+ */
+if (process.env.DESKTOP_USER_DATA) {
+  app.setPath("userData", path.resolve(process.env.DESKTOP_USER_DATA));
+} else if (DEV) {
+  app.setPath("userData", `${app.getPath("userData")}-dev`);
+}
 
 const bootLog = [];
 function log(message) {
@@ -127,15 +160,24 @@ async function boot() {
   });
   log(`local user ${localUser.email} (${localUser.seeded ? "seeded" : "already present"})`);
 
-  // 6. The Next server.
-  const { standalone, entry } = ensureStandaloneAssets(appRoot, log, { packaged: app.isPackaged });
+  // 6. The Next server — the built bundle, or the working tree in watch mode.
+  //    `resolveDevServer` is where the three claims `assertDesktopBundle` makes
+  //    about a bundle are answered for a dev server instead.
   const httpPort = await freePort();
   const origin = `http://127.0.0.1:${httpPort}`;
+  const target = DEV
+    ? resolveDevServer(appRoot, { port: httpPort })
+    : ensureStandaloneAssets(appRoot, log, { packaged: app.isPackaged });
+  if (DEV) log(`development mode: next dev in ${target.cwd}, output ${target.buildDir}`);
   nextServer = startNextServer({
-    standalone,
-    entry,
+    cwd: target.cwd,
+    entry: target.entry,
+    args: target.args,
+    detached: DEV,
     env: buildServerEnv({
-      standalone,
+      envRoot: target.envRoot,
+      dev: DEV,
+      buildDir: target.buildDir,
       port: httpPort,
       url: origin,
       databaseUrl: url,
@@ -155,7 +197,18 @@ async function boot() {
 
   // 7. Health: the acceptance check. A 200 here is Electron -> Next -> Prisma ->
   //    the embedded cluster, end to end.
-  await waitForHealth({ url: origin, log, abortWhen: () => serverExit });
+  //
+  //    Longer in watch mode, and not as slack: the first request to a dev server
+  //    compiles the route graph it touches, which on a cold `.next-desktop-dev`
+  //    is minutes rather than the milliseconds a built bundle needs. Timing out
+  //    on a compile that was going to succeed would put the error window up over
+  //    a server that then becomes healthy behind it.
+  await waitForHealth({
+    url: origin,
+    log,
+    abortWhen: () => serverExit,
+    ...(DEV ? { timeoutMs: 300_000 } : {}),
+  });
   const connections = await assertServerUsesOurCluster(cluster);
   log(`server holds ${connections} connection(s) to the embedded cluster`);
 
@@ -308,7 +361,9 @@ async function openWindow(origin) {
     height: placement.height,
     ...(placement.x === null ? {} : { x: placement.x, y: placement.y }),
     show: false,
-    title: "Blog",
+    // Named so two instances are told apart on sight: a watch-mode window and a
+    // packaged one look identical, and they are not the same database.
+    title: DEV ? "Blog (dev)" : "Blog",
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
   // After the bounds, not instead of them: `maximize()` keeps what was set as
@@ -467,7 +522,7 @@ function escapeHtml(value) {
  */
 async function shutdown() {
   try {
-    await stopNextServer(nextServer);
+    await stopNextServer(nextServer, { group: DEV });
   } catch (error) {
     console.error("[desktop] failed to stop the next server", error);
   }

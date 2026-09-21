@@ -22,6 +22,7 @@ and, since phase 3, a session row the shell writes rather than an OAuth callback
 pnpm install          # once — see "The two install traps" below
 pnpm build:desktop    # the shell serves the output; it does not build it
 pnpm desktop          # == pnpm --filter @blog/desktop start
+pnpm desktop:dev      # watch mode: next dev instead of the bundle — see below
 pnpm package:desktop  # an AppImage and a .deb, into packages/desktop/.dist/
 ```
 
@@ -321,6 +322,94 @@ its generated route types into `<distDir>/types` *and adds that directory to
 which is a type error in whichever is staler. `.next-desktop` is in tsconfig's
 `exclude`, so `pnpm exec tsc --noEmit` — which does check this source — never
 sees either.
+
+## Watch mode
+
+`pnpm desktop:dev` (or `./run.sh desktop:dev`) starts the same shell with
+`next dev` as its child instead of the standalone bundle. Edit `src/` or
+`packages/editor/src/` and the window updates — no build, and nothing to go
+stale.
+
+It changes the child process and nothing else. Same cluster, same
+`prisma migrate deploy`, same seeded author, same minted `Session` row, same
+closed environment: `DESKTOP=1`, `BLOB_DIR`, `UPLOADS_DIR` and a blanked `.env`
+are all handed to the dev server exactly as they are to the built one. **There
+is no "skip it in development" branch** — §4.2's rule applies here too, and the
+sign-in you get is the same real one.
+
+| | built (`pnpm desktop`) | watch (`pnpm desktop:dev`) |
+| --- | --- | --- |
+| Child | `.next-desktop/standalone/server.js` | `next dev` in the working tree |
+| `distDir` | `.next-desktop` | `.next-desktop-dev` |
+| `NODE_ENV` | `production` | `development` |
+| Data | `~/.config/blog-desktop/` | `~/.config/blog-desktop-dev/` |
+| Boot | ~2 s | ~4 s, plus a compile per route on first visit |
+| Window title | Blog | Blog (dev) |
+
+### What the guard is replaced by
+
+`assertDesktopBundle` refuses to serve a bundle built by `pnpm build`, and it
+exists because that bundle runs *fine* while being wrong (see "Two builds, and
+why"). There is no bundle to interrogate in watch mode, so the three properties
+it asserts are established instead:
+
+- **The client flag.** `next dev` reads `next.config.ts` *after* the shell hands
+  it `DESKTOP=1`, so `NEXT_PUBLIC_DESKTOP` is inlined into the client from the
+  same variable the server half reads. The hazard the assertion exists for is a
+  build that happened at some other time with some other flag; there is no such
+  artifact here.
+- **The service worker.** `next-pwa` is disabled whenever `NODE_ENV` is not
+  production, so nothing is injected and nothing lands in `public/`.
+- **The asset layout.** `output: "standalone"` is ignored by `next dev`, which
+  serves `public/` and its own output itself — so there is no link farm to build
+  and none to get wrong.
+
+### Three things it is deliberate about
+
+**A third `distDir`.** `.next` is the VPS bundle and `.next-desktop` is what the
+packaged app serves; a dev server compiling into either leaves a half-built tree
+where a finished one is expected — and `.next-desktop` is the very directory
+`assertDesktopBundle` reads. `.gitignore` already covers `/.next-*/`.
+
+It does cost one thing, and it is the defect `next.config.ts` describes under
+`typescript.ignoreBuildErrors`: **`next dev` rewrites the committed
+`tsconfig.json`**, adding `.next-desktop-dev/types/**/*.ts` to `include` on
+first launch. Two generated route-type trees in scope declare the same globals
+twice, and `pnpm exec tsc --noEmit` then fails in whichever is staler. So
+`.next-desktop-dev` is in tsconfig's `exclude`, beside `.next` and
+`.next-desktop`, and the include line is committed so no later launch rewrites
+the file again.
+
+**A separate data directory.** The shell applies `prisma migrate deploy` on
+every boot, and in development the migrations being applied are the ones being
+written — half-finished, about to be edited, occasionally undone by hand.
+Pointing that at the directory holding real posts is a data-loss shape. The two
+instances also run happily side by side, which is how you compare them.
+`DESKTOP_USER_DATA=<dir>` overrides the choice in either mode — that is how you
+deliberately open the real library in watch mode, or a throwaway copy of it in
+the packaged one.
+
+**Its own process group.** `next dev` is a process *tree*, and a SIGTERM
+delivered only to its root leaves the compiler workers holding the port; the
+next launch meets that as a dev server that never becomes healthy, with nothing
+on screen to say why. So the child is spawned `detached` and signalled as a
+group. The health wait is 5 minutes rather than 60 seconds for the same class of
+reason: the first request compiles the route graph it touches, and timing out on
+a compile that was going to succeed would raise the error window over a server
+that then comes up behind it.
+
+### What still needs a restart
+
+`packages/desktop/src/` itself. Electron loads `main.js` once, so a change to
+the shell — the menu, the boot sequence, the session logic — needs the app
+restarted. Nothing watches it, deliberately: a relaunch restarts the Postgres
+cluster too, and an automatic one triggered by a save is a worse trade than
+pressing Ctrl+C.
+
+Two other things behave as they do in any `next dev`: a change to
+`next.config.ts` or to `prisma/schema.prisma` needs a restart (the second also
+needs `pnpm exec prisma generate`, which `run.sh desktop:dev` runs for you), and
+the first visit to each route pays for its compile.
 
 ## What phase 5 turned off
 
