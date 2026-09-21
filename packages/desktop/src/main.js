@@ -1,14 +1,15 @@
 import { randomUUID } from "node:crypto";
-import path from "node:path";
 import { app, BrowserWindow, dialog, screen, session, shell } from "electron";
 import { preflightPostgresBinaries } from "./preflight.js";
 import {
+  assertDataDirFree,
   assertNotForbidden,
   desktopPaths,
   freePort,
   loadSecrets,
   loadWindowState,
   resolveAppRoot,
+  resolveUserData,
   saveWindowState,
 } from "./paths.js";
 import {
@@ -56,29 +57,30 @@ import {
  * Opt-in by environment (`pnpm desktop:dev`) and never in a packaged app, where
  * there is no working tree to watch and the flag could only come from the
  * user's own shell. Everything the mode changes is in `server.js`; here it
- * decides which child to start, how long to wait for it, and — below — which
- * data directory it gets.
+ * decides which child to start and how long to wait for it.
+ *
+ * It deliberately decides *nothing* about the data directory. Both modes open
+ * the same library, and which one that is is `--data-dir`'s business alone.
  */
 const DEV = !app.isPackaged && process.env.DESKTOP_DEV === "1";
 
 /**
  * Where the app's data lives, decided before anything can ask for it.
  *
- * A development run gets a *sibling* directory rather than the real one. The
- * shell applies `prisma migrate deploy` on every boot, and in development the
- * migrations being applied are the ones being written — half-finished, about to
- * be edited, occasionally rolled back by hand. Pointing that at the directory
- * holding someone's actual posts is a data-loss shape, and the cost of the
- * separation is one seeded user and an empty library.
- *
- * `DESKTOP_USER_DATA` overrides both, which is how you deliberately open the
- * real data in watch mode — or a throwaway copy of it in the packaged one.
+ * One library by default, whichever way the app was started — watch mode is for
+ * working on the app, and an app with no posts in it is not the app. The
+ * reasoning, and the `--data-dir` escape hatch for when a half-written migration
+ * should not touch it, are in `resolveUserData`.
  */
-if (process.env.DESKTOP_USER_DATA) {
-  app.setPath("userData", path.resolve(process.env.DESKTOP_USER_DATA));
-} else if (DEV) {
-  app.setPath("userData", `${app.getPath("userData")}-dev`);
-}
+const userData = resolveUserData({
+  // `process.argv` carries Electron's own switches too. The parse is for
+  // `--data-dir` alone and ignores everything else, so `--no-sandbox` and the
+  // rest pass through untouched.
+  argv: process.argv,
+  env: process.env,
+  defaultDir: app.getPath("userData"),
+});
+if (userData.source !== "default") app.setPath("userData", userData.dir);
 
 const bootLog = [];
 function log(message) {
@@ -122,9 +124,13 @@ async function boot() {
     resourcesPath: process.resourcesPath,
   });
   const paths = desktopPaths(app.getPath("userData"));
+  // Before the cluster, not inside the wait for it: the other window is open on
+  // screen now, and Postgres's own refusal arrives half a minute later talking
+  // about a lock file.
+  assertDataDirFree(paths.pgdata);
   const secrets = loadSecrets(paths.secrets);
   windowStatePath = paths.windowState;
-  log(`data directory ${paths.userData}`);
+  log(`data directory ${paths.userData} (${userData.source})`);
   log(`app root ${appRoot}`);
 
   // 3. The cluster. Never 5432 — that is the developer's container, holding real

@@ -342,7 +342,7 @@ sign-in you get is the same real one.
 | Child | `.next-desktop/standalone/server.js` | `next dev` in the working tree |
 | `distDir` | `.next-desktop` | `.next-desktop-dev` |
 | `NODE_ENV` | `production` | `development` |
-| Data | `~/.config/blog-desktop/` | `~/.config/blog-desktop-dev/` |
+| Data | `~/.config/blog-desktop/` | the same — see below |
 | Boot | ~2 s | ~4 s, plus a compile per route on first visit |
 | Window title | Blog | Blog (dev) |
 
@@ -380,15 +380,6 @@ twice, and `pnpm exec tsc --noEmit` then fails in whichever is staler. So
 `.next-desktop`, and the include line is committed so no later launch rewrites
 the file again.
 
-**A separate data directory.** The shell applies `prisma migrate deploy` on
-every boot, and in development the migrations being applied are the ones being
-written — half-finished, about to be edited, occasionally undone by hand.
-Pointing that at the directory holding real posts is a data-loss shape. The two
-instances also run happily side by side, which is how you compare them.
-`DESKTOP_USER_DATA=<dir>` overrides the choice in either mode — that is how you
-deliberately open the real library in watch mode, or a throwaway copy of it in
-the packaged one.
-
 **Its own process group.** `next dev` is a process *tree*, and a SIGTERM
 delivered only to its root leaves the compiler workers holding the port; the
 next launch meets that as a dev server that never becomes healthy, with nothing
@@ -397,6 +388,45 @@ group. The health wait is 5 minutes rather than 60 seconds for the same class of
 reason: the first request compiles the route graph it touches, and timing out on
 a compile that was going to succeed would raise the error window over a server
 that then comes up behind it.
+
+### Which library it opens
+
+**The same one, either way.** You start the app in watch mode to work on the
+app, and an app with no posts in it is not the app — so `pnpm desktop:dev` and
+`pnpm desktop` both open `~/.config/blog-desktop/` by default.
+
+Two consequences follow, and neither is hidden:
+
+- **They cannot run at once.** One data directory holds one cluster. Starting
+  the second launch is refused in about four seconds, by name, rather than by
+  Postgres timing out thirty seconds later with a message about a lock file
+  (`assertDataDirFree`). The pid in `postmaster.pid` is what is checked, not the
+  file, so a crash does not leave the app unopenable.
+- **A watch-mode boot applies the working tree's migrations to your real
+  library**, because `prisma migrate deploy` runs on every boot in both modes.
+  That is the one thing worth stopping to think about, and it is what the
+  override below is for.
+
+```bash
+./run.sh desktop:dev ~/blog-scratch      # a bare path is the common case
+pnpm desktop:dev --data-dir=~/blog-scratch
+DESKTOP_USER_DATA=~/blog-scratch pnpm desktop:dev
+```
+
+A directory that does not exist yet is created and seeded: a cluster, the
+migrations, one local author, an empty library. To start from a copy of the real
+one instead, close both apps and `cp -a ~/.config/blog-desktop/. ~/blog-scratch/`
+— `secrets.json` travels with it, which is what keeps the copied cluster
+openable.
+
+Precedence is `--data-dir`, then `DESKTOP_USER_DATA`, then the default, and the
+boot log names which one answered. `~` is expanded here rather than by the
+shell, which does not expand it after an `=`. The flag is deliberately *not*
+`--user-data-dir`: that is one of Chromium's own switches, and using it would
+move the browser profile as a side effect of asking for a database.
+
+It applies to the built app too (`./run.sh desktop ~/blog-scratch`), which is
+how you open a restored backup without disturbing the real one.
 
 ### What still needs a restart
 

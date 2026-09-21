@@ -64,11 +64,18 @@ build" below.
 
 `pnpm desktop:dev` swaps only the child process: same cluster, same migrations,
 same seeded session, same closed environment, and no "skip it in development"
-branch anywhere. It compiles into a **third** `distDir` (`.next-desktop-dev`)
-and keeps its data in a sibling directory (`~/.config/blog-desktop-dev/`),
-because the migrations a development run applies are the ones being written.
-`packages/desktop/README.md`, "Watch mode", has the rest — including why
-`.next-desktop-dev` had to join `.next-desktop` in tsconfig's `exclude`.
+branch anywhere. It compiles into a **third** `distDir` (`.next-desktop-dev`),
+which is why `.next-desktop-dev` joins `.next-desktop` in tsconfig's `exclude`
+— `next dev` adds its generated route types to `include`, and two of those
+trees in scope break `pnpm exec tsc --noEmit`.
+
+Both modes open **the same library** (`~/.config/blog-desktop/`), so watch mode
+shows the real posts. One data directory holds one cluster, so the two cannot
+run at once — the second launch is refused by name in about four seconds
+(`assertDataDirFree`). A watch-mode boot therefore applies the working tree's
+migrations to real content; `./run.sh desktop:dev <dir>`, `--data-dir=<dir>` or
+`DESKTOP_USER_DATA` is how a half-written migration gets a scratch library
+instead. `packages/desktop/README.md`, "Watch mode", has the rest.
 
 ### Maintenance
 
@@ -97,7 +104,7 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 72 specs, 1472 tests, of which the list below walks the ones worth
+Coverage is 73 specs, 1485 tests, of which the list below walks the ones worth
 knowing about rather than all of them. The newest six are the desktop shell's
 (`packages/desktop/src/__tests__/`, docs/plans/desktop-app.md): `session.test.ts`
 (the local sign-in's arithmetic — the `__Secure-` prefix rule, seconds versus

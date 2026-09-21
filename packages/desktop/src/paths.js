@@ -22,6 +22,95 @@ export function resolveAppRoot({ packaged, resourcesPath }) {
 }
 
 /**
+ * Which data directory this launch uses, in precedence order.
+ *
+ * One library, whichever way the app was started: watch mode and the built app
+ * read the same cluster by default, because the alternative — a development run
+ * on its own empty database — answers a question nobody was asking. You start
+ * the app in watch mode *to work on the app*, and an app with no posts in it is
+ * not the app.
+ *
+ * What that costs is real and is worth stating: the shell applies
+ * `prisma migrate deploy` on every boot, so a watch-mode launch applies whatever
+ * migrations are in the working tree to the library you actually keep. That is
+ * the reason `--data-dir` exists — a migration you are still writing belongs
+ * against a copy — and it is also why `assertDataDirFree` below is worth the
+ * three lines it takes.
+ *
+ * `--data-dir`, not `--user-data-dir`: the second is one of Chromium's own
+ * switches, and passing it would move the browser profile as a side effect of
+ * asking for a database.
+ *
+ * `~` is expanded here rather than left to the shell, which does not expand it
+ * after an `=` — so `--data-dir=~/blog` would otherwise create a directory
+ * literally named `~` in the working directory, and the app would look empty
+ * for a reason nothing on screen could explain.
+ */
+export function resolveUserData({ argv, env, defaultDir }) {
+  const flag = readDataDirFlag(argv ?? []);
+  if (flag) return { dir: expandHome(flag), source: "--data-dir" };
+  if (env?.DESKTOP_USER_DATA) {
+    return { dir: expandHome(env.DESKTOP_USER_DATA), source: "DESKTOP_USER_DATA" };
+  }
+  return { dir: defaultDir, source: "default" };
+}
+
+function readDataDirFlag(argv) {
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--data-dir") return argv[i + 1] || null;
+    if (arg.startsWith("--data-dir=")) return arg.slice("--data-dir=".length) || null;
+  }
+  return null;
+}
+
+function expandHome(value) {
+  const expanded = value === "~" || value.startsWith("~/")
+    ? path.join(os.homedir(), value.slice(1))
+    : value;
+  return path.resolve(expanded);
+}
+
+/**
+ * Refuse a data directory another instance is already serving.
+ *
+ * Sharing one library between the built app and a watch-mode run is the default,
+ * and two postmasters on one `pgdata` is what that makes easy to try. Postgres
+ * does refuse it — but it refuses 30 seconds later, inside a start we are
+ * waiting on, with a message about a lock file rather than about the other
+ * window that is open on screen right now.
+ *
+ * The pid is checked rather than the file, because the file outlives a crash:
+ * signal 0 tests for existence without delivering anything, and EPERM means a
+ * live process owned by somebody else, which is still a live process.
+ */
+export function assertDataDirFree(pgdata, { label = "--data-dir" } = {}) {
+  const pid = Number.parseInt(readFirstLine(path.join(pgdata, "postmaster.pid")) ?? "", 10);
+  if (!Number.isInteger(pid) || pid <= 0) return;
+
+  try {
+    process.kill(pid, 0);
+  } catch (error) {
+    if (error.code !== "EPERM") return; // ESRCH: stale file from a crash.
+  }
+
+  throw new Error(
+    `Another instance of the app is already using ${path.dirname(pgdata)} ` +
+      `(postgres pid ${pid}).\n` +
+      "One data directory holds one cluster, so the two cannot run at once. Quit the " +
+      `other window, or start this one against a different library with ${label}=<dir>.`,
+  );
+}
+
+function readFirstLine(file) {
+  try {
+    return fs.readFileSync(file, "utf8").split("\n")[0].trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Every path the desktop build owns, under Electron's `userData`.
  *
  * `uploads` and `blobs` are both wired into the server's environment —

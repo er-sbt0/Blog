@@ -1,6 +1,11 @@
 #!/bin/bash
 # Build and run blog-simple.
 # Usage: ./run.sh [dev|build|start|migrate|install|desktop|desktop:dev|desktop:build|desktop:package]
+#
+# The two desktop run modes take an optional data directory:
+#   ./run.sh desktop:dev ~/.config/blog-desktop-scratch
+# Both default to the same one the packaged app uses, so watch mode shows the
+# real library. See packages/desktop/README.md, "Which library it opens".
 set -e
 
 cd "$(dirname "$0")"
@@ -47,15 +52,26 @@ desktop_stale() {
 # how to fix it properly (packages/desktop/README.md, "Chromium's sandbox").
 desktop_start() {
   local script=${1:-start}
+  shift || true
+  # A bare path is the common case; anything starting with `-` is passed to
+  # Electron as-is, so `--data-dir=…` and `--inspect` both work.
+  local args=()
+  if [ -n "${1:-}" ]; then
+    case "$1" in
+      -*) args=("$@") ;;
+      *)  args=("--data-dir=$1") ;;
+    esac
+  fi
+
   local dist helper
   dist=$(cd packages/desktop && node -p "require('electron')")
   helper="${dist%/electron}/chrome-sandbox"
   if [ -u "$helper" ] && [ "$(stat -c %U "$helper")" = root ]; then
-    pnpm --filter @blog/desktop "$script"
+    pnpm --filter @blog/desktop "$script" "${args[@]}"
   else
     echo "warning: $helper is not setuid root; running without the Chromium sandbox." >&2
     echo "  fix once: sudo chown root:root '$helper' && sudo chmod 4755 '$helper'" >&2
-    pnpm --filter @blog/desktop "$script:no-sandbox"
+    pnpm --filter @blog/desktop "$script:no-sandbox" "${args[@]}"
   fi
 }
 
@@ -95,7 +111,7 @@ case "${1:-dev}" in
     # been generated is a type that exists in the migrations and not in the
     # client.
     pnpm exec prisma generate
-    desktop_start dev
+    desktop_start dev "${@:2}"
     ;;
   desktop)
     # Rebuilds when the bundle is missing or out of date; desktop:build forces
@@ -104,7 +120,7 @@ case "${1:-dev}" in
       echo "desktop bundle is out of date; rebuilding." >&2
       desktop_build
     fi
-    desktop_start
+    desktop_start start "${@:2}"
     ;;
   desktop:package)
     # An AppImage and a .deb into packages/desktop/.dist/, from a fresh bundle.
