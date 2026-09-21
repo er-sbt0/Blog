@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Box } from "@mui/material";
-import { Command, Settings, Sparkles } from "lucide-react";
+import { Command, Settings } from "lucide-react";
 import SettingsPanel from "./SettingsPanel";
 import { openCommandPalette } from "@/components/CommandPalette/CommandPalette";
 import { selectAnySaveTrouble, useSelector } from "@/store";
@@ -19,8 +19,6 @@ import ProposalsSection from "./ProposalsSection";
 import PanelHeader from "./PanelHeader";
 import ViewRail from "./ViewRail";
 import { ICON_SIZE } from "@/theme/icons";
-import { uiCommands } from "@/commands";
-import { useCommandRun } from "@/commands/CommandProvider";
 import { type ViewId, VIEW_IDS } from "./panelState";
 import { useRailPanel } from "./useRailPanel";
 import { useOutlineHeadings, useViewSignals } from "./useViewData";
@@ -42,8 +40,7 @@ const TRANSITION_MS = 225;
  * panel, and the strip stays either way.
  */
 const RightRail: React.FC = () => {
-  const { isRailResizing, startRailResize, copilotOpen } = useLayoutMode();
-  const run = useCommandRun();
+  const { isRailResizing, startRailResize } = useLayoutMode();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -277,33 +274,10 @@ const RightRail: React.FC = () => {
           />
         )}
 
-        <Box
-          sx={{
-            width: 24,
-            height: "1px",
-            bgcolor: "divider",
-            alignSelf: "center",
-            my: 0.5,
-            flexShrink: 0,
-          }}
-        />
-
-        <RailIconButton
-          label="Copilot"
-          ariaLabel="Toggle Copilot"
-          placement="left"
-          icon={<Sparkles size={ICON_SIZE.dense} />}
-          active={copilotOpen}
-          showBar
-          side="right"
-          onClick={() => run(uiCommands.toggleCopilot)}
-        />
-
         {
           /* Pushes the two window-level controls to the foot of the strip. An
             explicit spacer rather than `mt: "auto"` on one of them: that put the
-            margin on the *middle* item of the bottom group, so the divider above
-            read as grouping with Copilot while Copilot floated alone. */
+            margin on the *middle* item of the bottom group. */
         }
         <Box sx={{ flex: 1 }} />
 
