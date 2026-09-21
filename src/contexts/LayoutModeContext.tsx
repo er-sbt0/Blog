@@ -43,6 +43,35 @@ const RAIL_PANEL: ResizablePanelConfig = {
   maxWidth: 520,
 };
 
+/**
+ * The terminal view's own triple (docs/plans/in-app-terminal.md §2.3).
+ *
+ * A second configuration rather than a wider `RAIL_PANEL`, because the rail's
+ * numbers are right for what the rail holds: an outline and a properties list
+ * are lists of short lines, and 280px is a good default for them. A TUI is not.
+ * §2.3 does the arithmetic — at a 13px monospace with a 0.6em advance the
+ * rail's *maximum* of 520px is about 62 columns, which is the bottom edge of
+ * what Claude Code is usable in, and its default is about 36. Widening the one
+ * triple would have moved Outline and Properties to fix Terminal.
+ *
+ * The numbers here are a starting point and §2.3 says so: they are arithmetic
+ * against an assumed advance, not measurement against the font xterm actually
+ * resolves. §6.3 is the open question and it is answered with the app in front
+ * of you, not here.
+ *
+ * The storage key is load-bearing in the same way the two above are, and in one
+ * extra way worth stating because it is the mistake available *today*: a new
+ * key is a new default, not a reset of the old one. `ui.railWidth` keeps
+ * whatever the user dragged the rail to, and this panel starts at 560 rather
+ * than inheriting it — which is the intent, but only because both keys exist.
+ */
+const TERMINAL_RAIL_PANEL: ResizablePanelConfig = {
+  storageKey: "ui.railTerminalWidth",
+  defaultWidth: 560,
+  minWidth: 420,
+  maxWidth: 900,
+};
+
 const COPILOT_PANEL: ResizablePanelConfig = {
   storageKey: "ui.copilotWidth",
   defaultWidth: 380,
@@ -61,10 +90,27 @@ const COPILOT_BAR_MIN_KEY = "ui.copilotBarMinimized";
 interface LayoutModeContextType {
   /** User's preferred rail width, applied whenever the panel has a slot. */
   railWidth: number;
-  /** Whether the user is currently dragging the rail resize handle */
+  /**
+   * The same, for the terminal view, which has a triple of its own
+   * (docs/plans/in-app-terminal.md §2.3).
+   *
+   * Two widths rather than two panels: it is one column and one gripper, and
+   * which width it is wearing depends on the view showing in it. The caller
+   * picks — `AppLayoutContent` for the grid track, `RightRail` for the drag —
+   * because the view is the rail's state and not this context's.
+   */
+  terminalRailWidth: number;
+  /**
+   * Whether the user is currently dragging the rail resize handle — either
+   * width's. One flag because there is one edge: it exists so the grid can opt
+   * out of its width transition for the frames a drag is live, and a drag of
+   * the terminal's width moves the same track as a drag of the rail's.
+   */
   isRailResizing: boolean;
   /** Start a rail resize drag */
   startRailResize: (e: React.MouseEvent) => void;
+  /** Start a rail resize drag against the terminal view's width. */
+  startTerminalRailResize: (e: React.MouseEvent) => void;
   /** Whether the Copilot panel is showing */
   copilotOpen: boolean;
   /**
@@ -133,14 +179,21 @@ export const LayoutModeProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const rail = useResizablePanel(RAIL_PANEL);
+  const terminalRail = useResizablePanel(TERMINAL_RAIL_PANEL);
   const copilot = useResizablePanel(COPILOT_PANEL);
 
   return (
     <LayoutModeContext.Provider
       value={{
         railWidth: rail.width,
-        isRailResizing: rail.isResizing,
+        terminalRailWidth: terminalRail.width,
+        // The OR is what keeps `AppLayoutContent`'s transition opt-out honest:
+        // it asks "is the rail column being dragged right now", and there are
+        // two widths that answer yes. Only one can be live at a time — they
+        // share a gripper — so this cannot mask a drag in progress.
+        isRailResizing: rail.isResizing || terminalRail.isResizing,
         startRailResize: rail.startResize,
+        startTerminalRailResize: terminalRail.startResize,
         copilotOpen,
         setCopilotOpen,
         copilotBarMinimized,

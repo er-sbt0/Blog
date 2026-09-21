@@ -3,6 +3,7 @@ import {
   History,
   Info,
   type LucideIcon,
+  SquareTerminal,
   Table,
 } from "lucide-react";
 import type { ViewId } from "./panelState";
@@ -70,6 +71,33 @@ export const VIEWS: Record<ViewId, ViewDescriptor> = {
     icon: History,
     scope: "document",
     countNoun: ["revision", "revisions"],
+  },
+  /**
+   * Claude Code, in a PTY (docs/plans/in-app-terminal.md §4.3).
+   *
+   * Described here in both builds although `VIEW_IDS` only carries it in the
+   * desktop one: this table is total over `ViewId` so that anything holding a
+   * stored id — the panel header, the rail label — can name it without first
+   * asking which build it is in. Membership is `VIEW_IDS`' decision and only
+   * `VIEW_IDS`'.
+   *
+   * `global`, for the same reason `agent-changes` is: the session is not about
+   * the document that happens to be focused. It has a cwd of its own (§4.6), it
+   * outlives the pane you started it from (§4.7), and an agent writes to
+   * whatever it was asked about. Dimming its icon because the workspace is
+   * empty would be describing the wrong thing.
+   *
+   * The noun is "session" and it is never rendered today — the view has no
+   * count (`useViewData`) — but it has to be the honest one for when it does:
+   * one session per window is §4.7's decision, so the plural is what a tab
+   * strip would need rather than a number this view could show now.
+   */
+  terminal: {
+    id: "terminal",
+    title: "Terminal",
+    icon: SquareTerminal,
+    scope: "global",
+    countNoun: ["session", "sessions"],
   },
 };
 

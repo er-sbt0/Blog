@@ -18,6 +18,7 @@
  * impossible to explain.
  */
 
+import { IS_DESKTOP_CLIENT } from "@/lib/desktop";
 import type { RailViewId } from "@/types";
 
 /**
@@ -32,18 +33,38 @@ export type ViewId = RailViewId;
 export type PanelView = ViewId | null;
 
 /**
- * Rail order, which is also the `Cmd/Ctrl+1..4` order.
+ * Rail order, which is also the `Cmd/Ctrl+1..n` order.
  *
  * Agent changes leads because it is the only view that speaks about documents
  * other than the open one, so it is the one whose badge is worth reaching
  * first.
+ *
+ * **The terminal is desktop-only, decided at build time**
+ * (docs/plans/in-app-terminal.md §3): the VPS build cannot spawn a local
+ * process and must not offer a view that would ask it to. `IS_DESKTOP_CLIENT`
+ * is a literal webpack inlines, so on the web build the spread is over an empty
+ * array and nothing downstream — the rail, the digit chords, the header — can
+ * reach a view that is not here. Gated on the flag and never on "no bridge is
+ * present", which is a condition a *broken desktop build* also satisfies
+ * (docs/plans/desktop-app.md §5).
+ *
+ * That import is the only one this file has, and it is affordable for the same
+ * reason the file is import-free otherwise: `lib/desktop.ts` is itself
+ * import-free, so the rules here stay exercisable without a Next runtime.
+ *
+ * Nothing extra is needed to make the gating *safe*. A record written by the
+ * desktop build and read by the web one holds a `"terminal"` this build no
+ * longer has, and {@link sanitizePanelView} already documents that exact case:
+ * it falls back to {@link DEFAULT_VIEW} rather than leaving the panel open
+ * rendering nothing.
  */
 export const VIEW_IDS: readonly ViewId[] = [
   "agent-changes",
   "outline",
   "properties",
   "revisions",
-] as const;
+  ...(IS_DESKTOP_CLIENT ? (["terminal"] as const) : []),
+];
 
 /** The view a document with no stored panel state opens on. */
 export const DEFAULT_VIEW: ViewId = "outline";

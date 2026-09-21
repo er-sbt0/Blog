@@ -8,6 +8,7 @@ import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { useAIModel } from "@/contexts/AIModelContext";
 import { ICON_SIZE } from "@/theme/icons";
 import { MOTION } from "@/theme/tokens";
+import { isTerminalFocused } from "@/lib/terminalFocus";
 import CopilotChat from "./CopilotChat";
 import { composerSurfaceSx, composerWrapperSx, GROW } from "./Composer";
 
@@ -167,6 +168,12 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "/") {
+        // Not while the terminal has focus: it owns the keyboard there
+        // (docs/plans/in-app-terminal.md §4.8) and Ctrl+/ is undo in readline.
+        // Asked rather than stopped, because this is a capture-phase listener
+        // on `window` and has already run by the time the event reaches the
+        // terminal's own element.
+        if (isTerminalFocused()) return;
         e.preventDefault();
         restore();
       }

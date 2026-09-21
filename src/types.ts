@@ -159,12 +159,20 @@ export type SidebarView = "explorer" | "search" | "notes";
  * `null` is a panel the user closed. That is distinct from *absent*, which is a
  * document whose panel has never been touched and opens on the default — see
  * `AppState["ui"].railPanel`.
+ *
+ * Every id a *build* can have, which is not the same as the ids a build does
+ * have: `terminal` exists only in the desktop bundle
+ * (docs/plans/in-app-terminal.md §3), and `VIEW_IDS` is where that is decided.
+ * The type is the union of both builds on purpose — a stored record is written
+ * by one build and read by another, so the persistence layer has to be able to
+ * name a view this build cannot show.
  */
 export type RailViewId =
   | "agent-changes"
   | "outline"
   | "properties"
-  | "revisions";
+  | "revisions"
+  | "terminal";
 
 /**
  * How an open post's latest edit is faring on its way to storage.

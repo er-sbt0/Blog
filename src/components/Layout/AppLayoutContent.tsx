@@ -43,6 +43,7 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   const { noWidthMotion, sidebarWidth } = useSidebarWidth();
   const {
     railWidth,
+    terminalRailWidth,
     isRailResizing,
     copilotOpen,
     copilotBarMinimized,
@@ -94,8 +95,15 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   // Derived, never stored: the panel is open iff a view is in a slot. The rail
   // itself reads the same hook, so the column and its contents cannot disagree
   // about whether there is anything to show.
-  const { open: railOpen } = useRailPanel();
-  const railW = railOpen ? railWidth + RAIL_COMPACT_W : RAIL_COMPACT_W;
+  const { view: railView, open: railOpen } = useRailPanel();
+  // The terminal carries its own width triple (docs/plans/in-app-terminal.md
+  // §2.3): the rail's 280/180/520 is about 36 columns of TUI at its default and
+  // 62 at its maximum, so the view that holds Claude Code is sized on its own
+  // terms rather than dragging Outline and Properties wider with it. One
+  // column, two remembered widths, chosen by what is in it — `RightRail` picks
+  // the matching drag from the same view for the same reason.
+  const railPanelW = railView === "terminal" ? terminalRailWidth : railWidth;
+  const railW = railOpen ? railPanelW + RAIL_COMPACT_W : RAIL_COMPACT_W;
 
   // Always keep the column present (0px when closed) so its width can animate
   // open/closed instead of the track appearing/disappearing.

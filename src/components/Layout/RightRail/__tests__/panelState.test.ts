@@ -9,6 +9,7 @@
  * the happy paths — chiefly an open panel with nothing in it, which is the
  * thing the derived-open design exists to make impossible.
  */
+import { IS_DESKTOP_CLIENT } from "@/lib/desktop";
 import {
   capPanelViews,
   DEFAULT_VIEW,
@@ -82,6 +83,42 @@ describe("sanitizePanelView", () => {
     for (const junk of ["gone", "", 42, undefined, {}, []]) {
       expect(sanitizePanelView(junk)).toBe(DEFAULT_VIEW);
     }
+  });
+});
+
+describe("the desktop-only view", () => {
+  /**
+   * `terminal` is in `VIEW_IDS` only in the Electron bundle
+   * (docs/plans/in-app-terminal.md §3) — the VPS build cannot spawn a local
+   * process and must not offer a view that asks it to. Under vitest
+   * `NEXT_PUBLIC_DESKTOP` is unset, so these run as the web build; they are
+   * written against the flag rather than against `false` so that they keep
+   * saying something true if the suite is ever run with it set.
+   */
+  it("is on the rail only in the desktop build", () => {
+    expect(VIEW_IDS.includes("terminal")).toBe(IS_DESKTOP_CLIENT);
+  });
+
+  it("keeps the digit chords contiguous", () => {
+    // `Mod+1..n` is bounded by `VIEW_IDS.length` rather than by a literal, so
+    // the fifth chord exists exactly where the fifth view does and nowhere
+    // else. A gap here would be a chord that selects nothing.
+    expect(VIEW_IDS).toHaveLength(IS_DESKTOP_CLIENT ? 5 : 4);
+  });
+
+  it("sanitizes a stored terminal to a view this build has", () => {
+    // The two builds share a workspace record shape, so the web build does read
+    // records the desktop build wrote. This is the case `sanitizePanelView`
+    // already documents — a `ViewId` this build no longer has — which is why
+    // the gating needs nothing beyond leaving it out of `VIEW_IDS`.
+    expect(sanitizePanelView("terminal")).toBe(
+      IS_DESKTOP_CLIENT ? "terminal" : DEFAULT_VIEW,
+    );
+  });
+
+  it("never leaves the web build's panel open on a view it cannot render", () => {
+    const installed = sanitizePanelViews({ doc: "terminal" }).doc;
+    expect(installed === null || VIEW_IDS.includes(installed)).toBe(true);
   });
 });
 

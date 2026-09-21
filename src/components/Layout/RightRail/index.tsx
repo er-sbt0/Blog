@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Box } from "@mui/material";
+import dynamic from "next/dynamic";
 import {
   Command,
   PanelBottomClose,
@@ -32,6 +33,23 @@ import { type ViewId, VIEW_IDS } from "./panelState";
 import { useRailPanel } from "./useRailPanel";
 import { useOutlineHeadings, useViewSignals } from "./useViewData";
 
+/**
+ * The terminal, loaded only when it is asked for
+ * (docs/plans/in-app-terminal.md §4.3).
+ *
+ * `dynamic` rather than a plain import for two separate reasons, either of
+ * which would be enough. xterm and its fit addon are a renderer, not a
+ * component — a few hundred kilobytes that the VPS build has no use for at all,
+ * and a static import would put them in the shell's own chunk for every reader
+ * of every post. And `ssr: false` is what lets `TerminalView` read the preload
+ * bridge during render: with no server pass there is no server render for the
+ * first client one to disagree with.
+ *
+ * On the web build the chunk exists and is never requested, because `VIEW_IDS`
+ * cannot contain `terminal` there and this case is unreachable.
+ */
+const TerminalView = dynamic(() => import("./TerminalView"), { ssr: false });
+
 // Must match the grid-template-columns transition duration in AppLayoutContent.
 const TRANSITION_MS = 225;
 
@@ -49,8 +67,12 @@ const TRANSITION_MS = 225;
  * panel, and the strip stays either way.
  */
 const RightRail: React.FC = () => {
-  const { isRailResizing, startRailResize, copilotBarMinimized } =
-    useLayoutMode();
+  const {
+    isRailResizing,
+    startRailResize,
+    startTerminalRailResize,
+    copilotBarMinimized,
+  } = useLayoutMode();
   const run = useCommandRun();
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -85,7 +107,7 @@ const RightRail: React.FC = () => {
   }, [open]);
 
   /**
-   * `Cmd/Ctrl+1..4`, and `Escape` inside the panel.
+   * `Cmd/Ctrl+1..n`, and `Escape` inside the panel.
    *
    * Escape is shared with the pane un-maximize in `WorkspacePanes`, which is
    * why this one only fires when focus is actually inside the panel, and marks
@@ -120,9 +142,9 @@ const RightRail: React.FC = () => {
   /**
    * A view's content.
    *
-   * Built here rather than in a lookup table because the five take five
-   * different sets of props, two of which are the lifted data above. A table of
-   * components would have to pass every prop to every view.
+   * Built here rather than in a lookup table because they take different sets
+   * of props, two of which are the lifted data above. A table of components
+   * would have to pass every prop to every view.
    */
   const renderView = useCallback((view: ViewId) => {
     switch (view) {
@@ -158,6 +180,13 @@ const RightRail: React.FC = () => {
             />
           )
           : <NothingOpen />;
+      // No `NothingOpen`, for the same reason Agent changes has none: the
+      // session is `scope: "global"` (`views.ts`). It has a cwd of its own and
+      // outlives the pane it was opened from, so an empty workspace is not a
+      // reason for it to have nothing to say — and a turn in flight must not be
+      // unmounted because the last tab was closed (§4.7).
+      case "terminal":
+        return <TerminalView />;
     }
   }, [activeDocId, rootId, paneId, isEditMode, headings]);
 
@@ -170,10 +199,22 @@ const RightRail: React.FC = () => {
     >
       {showPanel && (
         <>
-          {/* Drag handle on the left edge of the panel */}
+          {
+            /* Drag handle on the left edge of the panel.
+
+              One edge, two remembered widths: the terminal view has its own
+              triple (docs/plans/in-app-terminal.md §2.3, and the configs in
+              `LayoutModeContext`), so the gripper has to start the drag that
+              belongs to what is in the panel — otherwise the pointer moves the
+              column while the width being written down is the other view's.
+              `AppLayoutContent` picks the track's width from the same view, and
+              the two must not be read from different places. */
+          }
           <ResizeGripper
             isResizing={isRailResizing}
-            onMouseDown={startRailResize}
+            onMouseDown={view === "terminal"
+              ? startTerminalRailResize
+              : startRailResize}
             label="Resize document information rail"
           />
           <Box

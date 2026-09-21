@@ -20,6 +20,7 @@ import { ICON_SIZE } from "@/theme/icons";
 import { useCommandContext, useCommandRun } from "@/commands/CommandProvider";
 import { documentCommands, uiCommands } from "@/commands";
 import { MAIN_SCROLLER_ID } from "@/components/EditDocument/paneChrome";
+import { isTerminalFocused } from "@/lib/terminalFocus";
 
 /**
  * Custom window event other entry points (title-bar search, activity rail,
@@ -110,6 +111,12 @@ const CommandPalette = () => {
         // remains an always-available, mouse-driven entry point.
         const el = document.activeElement as HTMLElement | null;
         if (el?.isContentEditable) return;
+        // And to the terminal, which owns the keyboard while it has focus
+        // (docs/plans/in-app-terminal.md §4.8) — Ctrl+K kills to end of line
+        // there. Asked rather than stopped: this listener is bound in the
+        // capture phase, so it has already run by the time the event reaches
+        // anything the terminal could stop it at.
+        if (isTerminalFocused()) return;
         e.preventDefault();
         measureOffset();
         setOpen((prev) => !prev);
