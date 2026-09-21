@@ -102,9 +102,9 @@ case "${1:-dev}" in
     ;;
   desktop:dev)
     # Watch mode: the shell serves `next dev` from the working tree instead of
-    # the bundle, so there is nothing to rebuild and nothing to go stale. Its
-    # data lives in a sibling of the real userData directory — see
-    # packages/desktop/README.md, "Watch mode".
+    # the bundle, so there is nothing to rebuild and nothing to go stale. It
+    # opens the same library as the packaged app; pass a directory to get a
+    # scratch one — see packages/desktop/README.md, "Watch mode".
     #
     # The Prisma client is the one thing the dev server cannot generate for
     # itself: it is imported from node_modules, so a schema change that has not
