@@ -7,6 +7,7 @@ import {
   FilePlus,
   FileText,
   Moon,
+  PanelBottom,
   PanelLeft,
   Pencil,
   Search,
@@ -59,6 +60,7 @@ const CommandPalette = () => {
 
   const currentDocId = context.focusedDocumentId;
   const copilotOpen = context.copilot.open;
+  const copilotBarMinimized = context.copilot.barMinimized;
 
   const close = useCallback(() => {
     setOpen(false);
@@ -179,6 +181,14 @@ const CommandPalette = () => {
         run: () => run(uiCommands.toggleCopilot),
       },
       {
+        id: "cmd:aibar",
+        label: copilotBarMinimized ? "Show Copilot bar" : "Minimize Copilot bar",
+        // Both rungs of the keyboard ladder, whichever one is next from here.
+        hint: copilotBarMinimized ? "⌘/" : "Esc",
+        icon: <PanelBottom size={ICON_SIZE.dense} />,
+        run: () => run(uiCommands.toggleCopilotBar),
+      },
+      {
         id: "cmd:new",
         label: "New post",
         hint: "Create",
@@ -202,7 +212,14 @@ const CommandPalette = () => {
     }
 
     return items;
-  }, [effectiveMode, copilotOpen, currentDocId, focusedMode, run]);
+  }, [
+    effectiveMode,
+    copilotOpen,
+    copilotBarMinimized,
+    currentDocId,
+    focusedMode,
+    run,
+  ]);
 
   const postItems: PaletteItem[] = useMemo(
     () =>

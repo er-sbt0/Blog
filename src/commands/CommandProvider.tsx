@@ -52,7 +52,12 @@ export const CommandProvider: React.FC<{ children: React.ReactNode }> = (
   const router = useRouter();
   const user = useSelector((state: RootState) => state.user);
   const { mode, systemMode, setMode } = useColorScheme();
-  const { copilotOpen, setCopilotOpen } = useLayoutMode();
+  const {
+    copilotOpen,
+    setCopilotOpen,
+    copilotBarMinimized,
+    setCopilotBarMinimized,
+  } = useLayoutMode();
 
   // Phase 1 parsed both of these out of the pathname and said the swap would be
   // a one-file change. It was — the values move, the context does not.
@@ -78,7 +83,12 @@ export const CommandProvider: React.FC<{ children: React.ReactNode }> = (
     focusedDocumentId,
     focusedDocumentMode,
     theme: { resolved: resolvedScheme, set: setMode },
-    copilot: { open: copilotOpen, setOpen: setCopilotOpen },
+    copilot: {
+      open: copilotOpen,
+      setOpen: setCopilotOpen,
+      barMinimized: copilotBarMinimized,
+      setBarMinimized: setCopilotBarMinimized,
+    },
     workspace: { panes },
   }), [
     dispatch,
@@ -90,6 +100,8 @@ export const CommandProvider: React.FC<{ children: React.ReactNode }> = (
     setMode,
     copilotOpen,
     setCopilotOpen,
+    copilotBarMinimized,
+    setCopilotBarMinimized,
     panes,
   ]);
 

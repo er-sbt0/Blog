@@ -45,6 +45,7 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
     railWidth,
     isRailResizing,
     copilotOpen,
+    copilotBarMinimized,
     copilotWidth,
     isCopilotResizing,
   } = useLayoutMode();
@@ -207,8 +208,11 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
                       md: CONTENT_PAD_X.md.right,
                     },
                     // Room to scroll the end of a document out from under the
-                    // resting Copilot bar.
-                    pb: hasInlineCopilotBar(pathname)
+                    // resting Copilot bar. Minimized, there is no bar to clear
+                    // — giving the page back is what the corner button is for,
+                    // so the reservation has to follow the state rather than
+                    // the route alone.
+                    pb: hasInlineCopilotBar(pathname) && !copilotBarMinimized
                       ? `${INLINE_BAR_CLEARANCE}px`
                       : 0,
                   }}

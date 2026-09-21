@@ -42,6 +42,21 @@ const toggleCopilot = defineCommand<void>({
   },
 });
 
+const toggleCopilotBar = defineCommand<void>({
+  id: "ui.toggleCopilotBar",
+  title: "Toggle AI bar",
+  description:
+    "Minimize the Copilot bar at the foot of the page to its corner button, " +
+    "or bring it back. A minimized bar keeps its conversation.",
+  params: z.void(),
+  effect: "read",
+  scopes: ["workspace"],
+  run: async (ctx) => {
+    ctx.copilot.setBarMinimized(!ctx.copilot.barMinimized);
+    return commandOk();
+  },
+});
+
 const themeParams = z.object({
   mode: z.enum(["light", "dark", "system"]),
 });
@@ -99,6 +114,7 @@ const setMode = defineCommand<UiModeParams>({
 export const uiCommands = {
   toggleSidebar,
   toggleCopilot,
+  toggleCopilotBar,
   setTheme,
   setMode,
 } as const;

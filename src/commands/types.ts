@@ -46,10 +46,19 @@ export interface ThemeBridge {
   set(mode: "light" | "dark" | "system"): void;
 }
 
-/** The Copilot panel's visibility. Lives in React context, not the store. */
+/**
+ * The Copilot's visibility — both surfaces. Lives in React context, not the
+ * store.
+ *
+ * One bridge rather than two because they are one question asked of two
+ * shapes: the side panel is open or closed, and the inline bar is at rest or
+ * minimized to its corner button.
+ */
 export interface CopilotBridge {
   open: boolean;
   setOpen(open: boolean): void;
+  barMinimized: boolean;
+  setBarMinimized(minimized: boolean): void;
 }
 
 /**

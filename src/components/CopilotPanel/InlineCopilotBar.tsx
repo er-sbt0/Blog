@@ -4,10 +4,12 @@ import { Box, Button, IconButton, Tooltip } from "@mui/material";
 import { ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSelector } from "@/store";
+import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { useAIModel } from "@/contexts/AIModelContext";
 import { ICON_SIZE } from "@/theme/icons";
 import { MOTION } from "@/theme/tokens";
 import CopilotChat from "./CopilotChat";
+import CopilotFab from "./CopilotFab";
 import { composerSurfaceSx, composerWrapperSx, GROW } from "./Composer";
 
 /**
@@ -93,6 +95,11 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
   const pathname = usePathname();
   const user = useSelector((state) => state.user);
   const { llm: llmConfig, setLlm: setLlmConfig } = useAIModel();
+  // The fourth and smallest state. It lives in the layout context rather than
+  // here because the content's bottom padding is decided a component away —
+  // see the note on `copilotBarMinimized`.
+  const { copilotBarMinimized: minimized, setCopilotBarMinimized } =
+    useLayoutMode();
 
   const [collapsed, setCollapsed] = useState(false);
   // Drives the composer's size. At rest the bar is a single row; taking focus
@@ -105,11 +112,20 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
   const acceptAllRef = useRef<(() => void) | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const expanded = messageCount > 0 && !collapsed;
+  // The bar as a bar: no focus, no transcript, nothing to make room for. Both
+  // the narrower card and the tighter surface hang off this rather than off
+  // focus alone, because a conversation you are only reading still wants the
+  // full column.
+  const resting = !focused && !expanded;
+
   // The scratch thread is scoped to one visit to one document. Remounting on
   // that key is what "cleared on navigation" means — there is no thread to
   // clear, because a new one is built.
   const scopeKey = `${pathname}:${documentId ?? "workspace"}`;
 
+  // `minimized` is absent on purpose: it is persisted and app-wide, so a
+  // navigation is not a reason to hand the bar back.
   useEffect(() => {
     setCollapsed(false);
     setFocused(false);
@@ -128,6 +144,21 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
     inputRef.current?.focus();
   }, [pathname]);
 
+  /**
+   * Bring the bar back and put the caret in it — what both ⌘/ and the corner
+   * button do, so the two cannot diverge.
+   *
+   * The focus call waits a frame because the card may still be `display: none`
+   * when this runs, and nothing inside a hidden subtree can take focus.
+   * `collapsed` is cleared as well, so restoring gives back the conversation
+   * rather than an empty strip above one.
+   */
+  const restore = useCallback(() => {
+    setCopilotBarMinimized(false);
+    setCollapsed(false);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, [setCopilotBarMinimized]);
+
   // ⌘/ focuses the bar. ⌘K is the command palette, ⌘I is italic in the editor
   // and ⌘A is select-all in the posts list; `/` is also what opens the bar's
   // own slash commands, so the chord reads as "go to the place slashes work".
@@ -135,26 +166,26 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "/") {
         e.preventDefault();
-        setCollapsed(false);
-        inputRef.current?.focus();
+        restore();
       }
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, []);
+  }, [restore]);
 
   const handleRegisterAcceptAll = useCallback((fn: () => void) => {
     acceptAllRef.current = fn;
   }, []);
 
-  // Escape gets the bar out of the way: back to the resting strip, and back to
-  // the composer alone if a transcript is open. Blurring is what shrinks it —
-  // `focused` follows the DOM rather than being set here. The chat's own
-  // composer takes Escape first while its slash menu is open, so this only
-  // fires when nothing nearer has a use for it.
+  // Escape gets the bar out of the way, one rung per press: a transcript folds
+  // to the resting strip, and the strip itself steps off the page. Blurring is
+  // what shrinks it — `focused` follows the DOM rather than being set here. The
+  // chat's own composer takes Escape first while its slash menu is open, so
+  // this only fires when nothing nearer has a use for it.
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== "Escape") return;
-    if (messageCount > 0) setCollapsed(true);
+    if (expanded) setCollapsed(true);
+    else setCopilotBarMinimized(true);
     (e.target as HTMLElement).blur();
   };
 
@@ -168,13 +199,6 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
   };
 
   if (!hasInlineCopilotBar(pathname)) return null;
-
-  const expanded = messageCount > 0 && !collapsed;
-  // The bar as a bar: no focus, no transcript, nothing to make room for. Both
-  // the narrower card and the tighter surface hang off this rather than off
-  // focus alone, because a conversation you are only reading still wants the
-  // full column.
-  const resting = !focused && !expanded;
 
   return (
     <Box
@@ -211,6 +235,13 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
         sx={(theme) => ({
           ...composerWrapperSx(theme, resting),
           pointerEvents: "auto",
+          // Hidden, not unmounted. `CopilotChat` is keyed on `scopeKey`, so
+          // taking it out of the tree would throw the scratch thread away —
+          // and minimizing has to keep the promise `collapsed` already makes,
+          // that getting the bar out of the way is not discarding it.
+          // `display: none` also takes the composer out of the tab order and
+          // out of the accessibility tree, which `visibility` would not.
+          display: minimized ? "none" : "flex",
           width: resting ? RESTING_W : COLUMN_W,
           // Restated rather than appended to, so the whole set is legible in
           // one place. The first two are `composerWrapperSx`'s own, on the
@@ -227,7 +258,6 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
           // old conditional could never have eased anything; the card grows
           // with its content and stops here.
           maxHeight: MAX_H,
-          display: "flex",
           flexDirection: "column",
           overflow: "hidden",
         })}
@@ -307,6 +337,13 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
           />
         </Box>
       </Box>
+
+      <CopilotFab
+        in={minimized}
+        onClick={restore}
+        hasThread={messageCount > 0}
+        disabledReason={user ? undefined : "Sign in to use AI"}
+      />
     </Box>
   );
 };
