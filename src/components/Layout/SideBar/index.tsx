@@ -165,6 +165,18 @@ const SideBar: React.FC = () => {
             // `prefers-reduced-motion`, which drops the push on principle.
             transition: noWidthMotion ? "none" : SIDEBAR_LAYER_TRANSITION,
             willChange: "transform",
+            // Opaque, and the same surface as the paper it covers — not for the
+            // look (it is exactly the colour already behind it) but for text
+            // rasterization. `willChange` promotes this track to its own
+            // compositing layer for the sidebar's whole lifetime, and Blink
+            // only uses subpixel (LCD) antialiasing where glyphs land on
+            // known-opaque content *within the same layer*. With the paper's
+            // `background.sidebar` one layer up, every label in the rail and
+            // the tree fell back to greyscale AA — which on a 1x, ~80dpi panel
+            // reads as the whole sidebar being slightly out of focus. A
+            // reference rather than a repeat of the hex, so it cannot drift
+            // from the paper and reintroduce a seam.
+            bgcolor: "background.sidebar",
           }}
         >
           {

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { app, BrowserWindow, dialog, screen, session, shell } from "electron";
+import { app, BrowserWindow, dialog, nativeTheme, screen, session, shell } from "electron";
 import { preflightPostgresBinaries } from "./preflight.js";
 import {
   assertDataDirFree,
@@ -329,6 +329,29 @@ async function restore(origin, name) {
   });
 }
 
+/**
+ * The window's base colour, tracking the OS scheme.
+ *
+ * Declaring it at all is the point. Left unset, Electron gives the window an
+ * alpha-capable visual on Linux so that transparency is available, and Chromium
+ * will not use subpixel (LCD) text antialiasing over a root surface it cannot
+ * prove is opaque — so every glyph in the app is rasterized greyscale, which on
+ * a low-dpi panel reads as the whole window being slightly soft. Naming a
+ * colour makes the surface opaque and hands LCD text back.
+ *
+ * The values are `background.default` from the two schemes in
+ * `src/components/Layout/ThemeProvider.tsx`, so what shows before first paint is
+ * the page's own backdrop rather than a white flash. The app is `defaultMode:
+ * "system"`, which is why the OS scheme is the right thing to ask.
+ */
+const WINDOW_BACKGROUND = { light: "#ffffff", dark: "#252b3a" };
+
+function windowBackground() {
+  return nativeTheme.shouldUseDarkColors
+    ? WINDOW_BACKGROUND.dark
+    : WINDOW_BACKGROUND.light;
+}
+
 async function openWindow(origin) {
   // Phase 5 turned the service worker off where it is decided — in the build
   // (§5). `pnpm build:desktop` sets `disable` on next-pwa, so the registration
@@ -370,6 +393,7 @@ async function openWindow(origin) {
     // Named so two instances are told apart on sight: a watch-mode window and a
     // packaged one look identical, and they are not the same database.
     title: DEV ? "Blog (dev)" : "Blog",
+    backgroundColor: windowBackground(),
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
   // After the bounds, not instead of them: `maximize()` keeps what was set as
@@ -509,6 +533,7 @@ function showErrorWindow(error) {
     width: 900,
     height: 640,
     title: "Blog could not start",
+    backgroundColor: windowBackground(),
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
   failureWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
@@ -548,6 +573,15 @@ app.whenReady().then(() => {
     // Tear down whatever did come up. The error window stays.
     shutdown();
   });
+});
+
+// The page follows the OS scheme on its own (`defaultMode: "system"`); this
+// keeps the window's base colour in step with it, so a reload after a switch
+// does not flash the other scheme's backdrop behind the page.
+nativeTheme.on("updated", () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setBackgroundColor(windowBackground());
+  }
 });
 
 app.on("window-all-closed", () => app.quit());
