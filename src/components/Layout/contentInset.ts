@@ -34,21 +34,3 @@ export const cancelContentGutters = {
     md: -CONTENT_PAD_X.md.right,
   },
 };
-
-/**
- * How far right of the column's center the content box sits, per breakpoint —
- * half the gutter asymmetry, in the same spacing units.
- *
- * Chrome that lives *outside* the padded container but must line up with what
- * is inside it — the top bar's search pill — shifts by this. Derived rather
- * than written down, because a second copy of the numbers is exactly how the
- * pill and the thing below it drift apart.
- *
- * The ⌘K palette needs nothing from here: it measures the live container, which
- * is the more robust answer where a runtime measurement is available at all.
- */
-export const CONTENT_AXIS_SHIFT = {
-  xs: (CONTENT_PAD_X.xs.left - CONTENT_PAD_X.xs.right) / 2,
-  sm: (CONTENT_PAD_X.sm.left - CONTENT_PAD_X.sm.right) / 2,
-  md: (CONTENT_PAD_X.md.left - CONTENT_PAD_X.md.right) / 2,
-} as const;

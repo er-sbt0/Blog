@@ -16,7 +16,6 @@ import {
   LayoutDashboard,
   Library,
   PenLine,
-  Search,
   SquareSplitHorizontal,
 } from "lucide-react";
 import RouterLink from "next/link";
@@ -29,8 +28,6 @@ import { useCommandRun } from "@/commands/CommandProvider";
 import { useTopBarActions } from "@/contexts/TopBarActionsContext";
 import { ICON_SIZE } from "@/theme/icons";
 import { CHROME_BAR_H } from "@/theme/tokens";
-import { openCommandPalette } from "@/components/CommandPalette/CommandPalette";
-import { CONTENT_AXIS_SHIFT } from "./contentInset";
 
 interface BreadcrumbItem {
   label: string;
@@ -41,13 +38,6 @@ interface BreadcrumbItem {
 const EditorTopBar: React.FC = () => {
   const pathname = usePathname();
   const { actions } = useTopBarActions();
-
-  // Platform-aware shortcut label. Starts false (matches SSR) and resolves on
-  // the client to avoid a hydration mismatch.
-  const [isMac, setIsMac] = React.useState(false);
-  React.useEffect(() => {
-    setIsMac(/mac|iphone|ipad|ipod/i.test(navigator.userAgent));
-  }, []);
 
   const segments = React.useMemo(
     () => pathname.split("/").filter(Boolean),
@@ -281,16 +271,10 @@ const EditorTopBar: React.FC = () => {
       }}
     >
       {
-        /* Left region: everything that precedes the search pill.
-
-          It and the empty right region below both take `flex: 1 1 0`, so the
-          two always resolve to the same width and the pill between them lands
-          on the bar's center. A pair of bare spacers cannot do this — with the
-          left content sitting *outside* them they split only the space it
-          leaves over, which puts the pill half the left content's width
-          off-center. That was 205px on the home route, and it grew with the
-          breadcrumb, because the breadcrumb's own `flex: 1` had it expanding in
-          lockstep with the spacers. */
+        /* Left region: the breadcrumb and the page's own actions. It takes all
+          the slack, so the right region below hugs its controls against the
+          bar's trailing edge. The two used to split the bar evenly to centre a
+          search pill between them; the palette is ⌘K only now. */
       }
       <Box
         sx={{
@@ -404,87 +388,10 @@ const EditorTopBar: React.FC = () => {
         {actions}
       </Box>
 
-      {/* Command palette entry — opens the ⌘K palette (mouse path) */}
-      <Box
-        role="button"
-        tabIndex={0}
-        aria-label="Search posts or run a command"
-        onClick={openCommandPalette}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            openCommandPalette();
-          }
-        }}
-        sx={(theme) => ({
-          display: { xs: "none", sm: "flex" },
-          alignItems: "center",
-          gap: 1,
-          flexShrink: 1,
-          minWidth: 0,
-          width: "100%",
-          maxWidth: 440,
-          // The flex regions either side center the pill on the *bar*, which is
-          // not where the page's content sits — the container below carries a
-          // wider left gutter than right. Shifting by half that difference puts
-          // the pill on the content axis, so it, the composer beneath it and
-          // the ⌘K dialog that opens out of it all share one vertical line.
-          // A transform rather than a margin: this is a visual correction, and
-          // the two regions should keep splitting the bar evenly.
-          transform: {
-            sm: `translateX(${theme.spacing(CONTENT_AXIS_SHIFT.sm)})`,
-            md: `translateX(${theme.spacing(CONTENT_AXIS_SHIFT.md)})`,
-          },
-          px: 1,
-          py: 0.375,
-          cursor: "pointer",
-          color: "text.secondary",
-          bgcolor: "background.input",
-          border: "1px solid",
-          borderColor: "divider",
-          borderRadius: 1,
-          transition: "border-color 0.15s, background-color 0.15s",
-          "&:hover": { borderColor: "primary.main" },
-          "&:focus-visible": {
-            outline: "none",
-            boxShadow:
-              "0 0 0 3px rgba(var(--mui-palette-primary-mainChannel) / 0.25)",
-          },
-        })}
-      >
-        <Search size={ICON_SIZE.inline} style={{ flexShrink: 0 }} />
-        <Typography
-          noWrap
-          variant="dense"
-          sx={{ flex: 1, minWidth: 0, color: "text.secondary" }}
-        >
-          Search posts or run a command…
-        </Typography>
-        <Box
-          component="kbd"
-          sx={{
-            typography: "micro",
-            flexShrink: 0,
-            px: 0.5,
-            py: 0.125,
-            borderRadius: 1.5,
-            border: "1px solid",
-            borderColor: "divider",
-            bgcolor: "background.paper",
-            color: "text.secondary",
-          }}
-        >
-          {isMac ? "⌘K" : "Ctrl K"}
-        </Box>
-      </Box>
-
-      {
-        /* Right region — the focused pane's own controls, and the same share as
-          the left one so the search pill stays centred. */
-      }
+      {/* Right region — the focused pane's own controls. */}
       <Box
         sx={{
-          flex: "1 1 0",
+          flexShrink: 0,
           minWidth: 0,
           display: "flex",
           alignItems: "center",
