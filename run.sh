@@ -17,6 +17,30 @@ desktop_build() {
   pnpm build:desktop
 }
 
+# True when the bundle is missing or older than something that went into it.
+#
+# The shell serves .next-desktop/standalone rather than the working tree, and it
+# does not hot-reload, so a bundle left behind by an earlier build looks exactly
+# like an edit that never landed — the change is committed, tsc is clean, and
+# the window still shows the old UI. Checking only that server.js *exists* (what
+# this did before) never catches that.
+#
+# packages/desktop/src is deliberately not an input: Electron loads main.js from
+# the working tree, so changing the shell needs a restart, not a build.
+desktop_stale() {
+  local bundle=.next-desktop/standalone/server.js
+  [ -f "$bundle" ] || return 0
+
+  local inputs=(src packages/editor/src public prisma/schema.prisma
+                next.config.ts tsconfig.json package.json pnpm-lock.yaml)
+  # next build traces .env into the bundle, so a changed one is a stale bundle.
+  if [ -f .env ]; then inputs+=(.env); fi
+
+  local newer
+  newer=$(find "${inputs[@]}" -newer "$bundle" -print -quit 2>/dev/null) || true
+  [ -n "$newer" ]
+}
+
 # Electron's SUID sandbox helper cannot be extracted setuid by pnpm, and on
 # Ubuntu 23.10+ the namespace sandbox that would stand in for it is closed, so
 # `electron .` aborts. Fall back to --no-sandbox for a working-tree run and say
@@ -60,9 +84,12 @@ case "${1:-dev}" in
     desktop_build
     ;;
   desktop)
-    # Builds only when there is no desktop bundle yet; rerun desktop:build after
-    # changing src/. The shell runs its own embedded Postgres, never :5432.
-    [ -f .next-desktop/standalone/server.js ] || desktop_build
+    # Rebuilds when the bundle is missing or out of date; desktop:build forces
+    # one. The shell runs its own embedded Postgres, never :5432.
+    if desktop_stale; then
+      echo "desktop bundle is out of date; rebuilding." >&2
+      desktop_build
+    fi
     desktop_start
     ;;
   desktop:package)
