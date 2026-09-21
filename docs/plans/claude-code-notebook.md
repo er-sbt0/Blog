@@ -15,6 +15,14 @@ looked when it was chosen.
 This is a **desktop-only** feature by construction (§3.1). The VPS build cannot
 spawn a local process and must not try.
 
+**A sibling plan proposes the opposite answer**, written the same day:
+[in-app-terminal.md](./in-app-terminal.md) puts Claude Code in a PTY in the right
+rail. It has no equivalent of §7's phase 0 — a PTY *is* the terminal, so the parity
+this plan spends sixteen decisions reconstructing costs it nothing — and it pays
+§2.2's bridge cost in a narrower shape. Its §5 argues the two are not phases of one
+thing and that the terminal is worth building first as evidence about this one.
+Neither plan should be read without that section.
+
 ---
 
 ## 1. What is being asked
@@ -78,7 +86,7 @@ multiplied by however many sessions a week.
 
 ### 2.2 There is no preload bridge, and the shell is designed around its absence
 
-`packages/desktop/src/main.js:312` creates the window with
+`packages/desktop/src/main.js:397` creates the window with
 `webPreferences: { contextIsolation: true, nodeIntegration: false }` and **no
 preload script**. The renderer has no privileged API at all — not a reduced one,
 none.
