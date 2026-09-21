@@ -42,6 +42,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { DESKTOP_BUILD_DIR, PWA_ARTIFACTS, assertDesktopBundle } from "../src/server.js";
+import { buildMcpServer } from "./build-mcp.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(here, "..");
@@ -289,7 +290,16 @@ export async function stage({ buildDir = DESKTOP_BUILD_DIR } = {}) {
   const staged = stagePrismaCli(stageDir);
   log(`prisma CLI staged: ${staged.root} plus ${staged.closure - 1} package(s) it reaches`);
 
-  // 6. The two claims this script exists to make.
+  // 6. The stdio MCP server, bundled, so the in-app terminal's Claude Code has
+  //    a view of the library (docs/plans/in-app-terminal.md §2.2, §4.4).
+  //
+  //    Into the *staged* standalone rather than the source one: this is the tree
+  //    that ships, and the bundle has to sit where the standalone's own
+  //    `node_modules/@prisma/client` is above it or it dies with
+  //    ERR_MODULE_NOT_FOUND at spawn time.
+  await buildMcpServer({ standaloneRoot: stagedStandalone, log });
+
+  // 7. The two claims this script exists to make.
   assertNoDotenv(stageDir);
   const links = assertLinksStayInside(stageDir);
 

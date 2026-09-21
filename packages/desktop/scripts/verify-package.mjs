@@ -274,6 +274,77 @@ export function verifyPackage(appOutDir, { buildDir = DESKTOP_BUILD_DIR } = {}) 
     }
   });
 
+  // 4b. The in-app terminal's MCP server (docs/plans/in-app-terminal.md §2.2).
+  //
+  //     Two checks rather than one, and the second is the point. That the file
+  //     is present proves the staging step ran; that it *loads* proves the
+  //     thing the plan was actually unsure about — `@prisma/client` is left
+  //     external, so it has to resolve by walking up from the bundle's own
+  //     directory, and a bundle written one directory too high resolves nothing
+  //     and dies at spawn time with ERR_MODULE_NOT_FOUND. That failure would
+  //     otherwise surface as "Claude Code cannot see any posts", in the app,
+  //     for the user, with nothing in the package to explain it.
+  check("the in-app terminal's MCP server is packaged inside the standalone tree", () => {
+    const bundle = path.join(resources, buildDir, "standalone", "mcp", "content-server.mjs");
+    if (!fs.existsSync(bundle)) {
+      throw new Error(`No MCP server bundle at ${path.relative(resources, bundle)}. Did \`stage:resources\` run?`);
+    }
+    const client = path.join(resources, buildDir, "standalone", "node_modules", "@prisma", "client");
+    if (!fs.existsSync(client)) {
+      throw new Error("The standalone tree has no @prisma/client for the bundle to resolve.");
+    }
+    return `${(fs.statSync(bundle).size / 1024 / 1024).toFixed(1)} MB`;
+  });
+
+  check("the packaged MCP server loads and resolves its Prisma client", () => {
+    const bundle = path.join(resources, buildDir, "standalone", "mcp", "content-server.mjs");
+    // No MCP_AUTHOR_ID: the server refuses *by design* before it opens a
+    // transport (`mcp/content-server.ts` exits 1 on a missing author), and that
+    // refusal is the cheapest proof the whole module graph loaded. Asking it to
+    // connect would need a database; asking it to refuse needs nothing.
+    //
+    // `MCP_AUTHOR_ID: ""` is set explicitly rather than left unset, and the cwd
+    // is a scratch directory, because otherwise this check is not deterministic.
+    // `@prisma/client` loads a `.env` at import — from the process cwd, and from
+    // beside whatever `schema.prisma` it finds walking *up* from its own
+    // location — so an author can arrive from a file nobody here named. Measured
+    // while writing this: the same bundle run from a scratch cwd inside the
+    // repository picked the developer's `MCP_AUTHOR_ID` up and got all the way
+    // to opening a database connection. An empty string is already *present* in
+    // the environment, so a dotenv loader will not overwrite it, and the refusal
+    // we are looking for is the one that happens.
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "verify-mcp-"));
+    try {
+      const result = spawnSync(process.execPath, [bundle], {
+        cwd,
+        timeout: 60_000,
+        encoding: "utf8",
+        input: "",
+        env: {
+          PATH: process.env.PATH ?? "",
+          HOME: process.env.HOME ?? os.homedir(),
+          TMPDIR: os.tmpdir(),
+          ELECTRON_RUN_AS_NODE: "1",
+          MCP_AUTHOR_ID: "",
+        },
+      });
+      const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+      if (/ERR_MODULE_NOT_FOUND|Cannot find (module|package)/.test(output)) {
+        throw new Error(
+          `The bundle could not resolve a dependency from its own directory:\n${output.trim().split("\n").slice(0, 6).join("\n")}`,
+        );
+      }
+      if (!/MCP_AUTHOR_ID is required/.test(output)) {
+        throw new Error(
+          `Expected the author refusal, got:\n${output.trim().split("\n").slice(0, 6).join("\n") || "(no output)"}`,
+        );
+      }
+      return "loads, refuses without an author";
+    } finally {
+      fs.rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   // 5. The 14 symlinks. §10.3 — the one packaging risk the plan named in advance.
   const native = findNativeDir(resources);
   check("the embedded Postgres shared-library symlinks survived as symlinks", () => {
