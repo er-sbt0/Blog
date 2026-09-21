@@ -1,12 +1,17 @@
 # A terminal in the right rail
 
-**Status: proposal, 21 Sep 2026. Nothing is built.** The design below is
-settled — eight decisions, each recorded in §4 with the alternative declined —
-and unlike `claude-code-notebook.md` it has no gating unknown: a PTY is the
-terminal, so there is no protocol claim to verify before building on it. What it
-has instead is a packaging unknown (§2.2) and a geometry unknown (§2.3), and
-§7's phase 1 front-loads the first because it is the only thing here that can
-fail in a way that changes the design.
+**Status: all four phases shipped, 21 Sep 2026.** Claude Code runs in a PTY in
+the right rail on `Mod+5`, against the desktop library through a generated
+`.mcp.json`. The design below is as it was proposed — eight decisions, each
+recorded in §4 with the alternative declined — and §10 is the phase log, which
+is the useful part: it records the five things this plan got wrong. Both
+unknowns it named resolved in its favour (`node-pty` packages, the MCP server
+bundles), and the three that cost real work were ones it had not thought of.
+
+**What is not verified is what it looks like** (§6.6), for the same reason
+`desktop-app.md` records across all seven of its phases: this session's
+compositor refuses screenshots. §2.3's column arithmetic is therefore still
+arithmetic.
 
 Read §2 first, and then §5. §2's second finding — that the MCP server named in
 `.mcp.json` cannot run inside a packaged build — is the one that turns "point
@@ -513,3 +518,132 @@ in a way that changes the design.
    the empty state, on the grounds that a view that vanishes is unexplainable.
    The counter-argument is that a rail icon leading to an install instruction is
    an advertisement.
+
+## 10. Phase log — 21 Sep 2026
+
+All four phases in one sitting, shell and renderer halves built in parallel.
+Five things this plan had wrong, in the order they were found.
+
+### 10.1 Both named unknowns resolved in the plan's favour
+
+§7 front-loaded `node-pty` because it was the only thing that could change the
+design. It did not: rebuilt with `@electron/rebuild` against Electron 44 it
+loads, spawns, streams and exits clean (ABI 149), and `asar: false` meant there
+was no unpacking problem to have. §6.1 is closed.
+
+§6.2 asked whether the esbuild'd MCP server would resolve `@prisma/client` left
+external. It does — 2.1 MB, runs under `ELECTRON_RUN_AS_NODE`, connects — but
+only from the right directory, which is §10.2.
+
+The cost of the first is a standing obligation rather than a one-off: **a plain
+`pnpm install` rebuilds `node-pty` against Node's ABI**, and the main process
+then cannot open it. `pnpm --filter @blog/desktop rebuild:native` is the repair,
+and it is the kind of thing that is obvious the day it is written and baffling
+four months later.
+
+### 10.2 §4.4 put the MCP bundle one directory too high
+
+The plan's `.mcp.json` names `<resourcesPath>/mcp/content-server.mjs`. That path
+cannot work. `@prisma/client` is external, so Node resolves it by walking up
+from the bundle's own directory, and `<resources>/mcp/` has no `node_modules`
+above it — measured, before the staging step was written:
+`ERR_MODULE_NOT_FOUND`.
+
+The bundle belongs **inside** the standalone tree,
+`<resources>/<buildDir>/standalone/mcp/`, where the Next server's own Prisma
+copy is directly above it. That is also the better arrangement on its own terms:
+the two servers then hold one client, generated once, against one schema.
+
+What makes this worth recording is the shape of the failure rather than the fix.
+A bundle one directory too high packages perfectly, passes every file check, and
+fails at *spawn* time — surfacing to the user as "Claude Code cannot see any
+posts", in the app, with nothing in the package to explain it. So
+`verify-package.mjs` asserts that the bundle **loads**, not that it exists.
+
+### 10.3 Prisma reads a `.env` nobody named, and it defeated the first check
+
+`@prisma/client` loads a `.env` at import — from the process cwd, *and* from
+beside whatever `schema.prisma` it finds walking up from its own location. This
+was found by writing the load assertion in §10.2 and having it pass for the
+wrong reason: run from a scratch directory inside the repository, the bundle
+picked up the developer's `MCP_AUTHOR_ID` and got all the way to opening a
+database connection, when the whole point of the check was to observe it refuse.
+
+Two consequences, and the second is the one that outlives the check:
+
+- The assertion now passes `MCP_AUTHOR_ID: ""` explicitly. An empty string is
+  already *present* in the environment, so a dotenv loader will not overwrite
+  it, and the refusal is deterministic.
+- **The `env` block in the generated `.mcp.json` is load-bearing, not
+  convenience.** The MCP child inherits the terminal's cwd, which is the
+  workspace directory (§4.6) — a directory the user can put files in. Naming
+  `DATABASE_URL` and `MCP_AUTHOR_ID` explicitly is what makes a stray `.env`
+  there harmless.
+
+### 10.4 The palette cannot come from the theme, and §6.5 was the wrong question
+
+§6.5 asked what xterm looks like against DESIGN.md §19's contract. The real
+finding is upstream of that: **this app sets `cssVariables`, so
+`theme.palette.*` is frozen to the light scheme** and `theme.vars.*` is a
+`var(...)` string xterm silently fails to parse. Deriving the terminal's
+colours from `useTheme()` — the obvious implementation, and the one this
+plan would have led to — ships a light-only terminal. That is precisely the
+`editor-dark-mode` failure DESIGN.md §19 exists to prevent, arriving through a
+door the linter cannot watch.
+
+So `terminalTheme.ts` holds both schemes explicitly and takes the mode from
+`useColorScheme()`. `pnpm check:theme` reads `.css`, `.css.ts` and the `--ed-*`
+contract, and cannot see a JavaScript object, so the spec does that job instead:
+every slot filled in both schemes, and **no slot identical across them**.
+
+### 10.5 §4.8 taken literally is a keyboard trap
+
+"The terminal owns the keyboard while focused" is right for every chord a TUI
+and the app both want — `Ctrl+C` has to be the interrupt. Taken literally it
+also means `Escape`, `Tab`, `Shift+Tab` and `Mod+1..4` all belong to xterm, and
+then a keyboard-only user who focuses the terminal **cannot leave the view at
+all**: §4.3's rail icon and the panel's close button are both pointer-driven.
+That is a WCAG 2.1.2 keyboard trap, and it is a defect independent of what this
+plan says.
+
+Exactly one chord is reserved: the view's own toggle, `Mod+5`, held off xterm
+with `attachCustomKeyEventHandler` so the event bubbles to the rail's digit
+handler — where selecting the view already showing is what closes the panel. The
+chord that opens the terminal closes it, which is the only behaviour that needs
+no separate explanation.
+
+Two smaller things in the same section. `Mod+K` and `Mod+/` bind on `window` in
+the **capture** phase, so they have already fired before the event reaches
+anything the view could stop it at — no `stopPropagation` and no mount ordering
+fixes that, and both now ask `isTerminalFocused()` and stand down, mirroring how
+the palette already defers to a focused Lexical editor. And `preload.cjs` is
+`.cjs` rather than `.js` on purpose: an unsandboxed preload — which is what the
+AppImage's `--no-sandbox` produces — goes through Node's loader, reads the
+package's `"type": "module"` and refuses `require`. A `.js` there works in
+`pnpm desktop` and fails only in the packaged build.
+
+### 10.6 Two decisions the plan did not make, made in passing
+
+- **The xterm instance is a module singleton**, not component state. §4.7 says a
+  long turn survives the view being switched away from; unsubscribing on unmount
+  keeps the *session* alive but drops every byte produced while the view was
+  closed, so the user returns to a live session that skipped a screen. The
+  bridge has no scrollback replay to recover it with, which is what a
+  `terminal:replay` would be for if this ever needs one.
+- **Reopening a view whose session exited starts a new one** silently, so the
+  "exited" card does not survive a view switch. Better than resurrecting a stale
+  notice, but it is a choice, and this plan did not make it.
+
+### 10.7 What shipped, and what is still open
+
+Four commits: the shell half (PTY, bridge, argv, session), the rail view, the
+MCP bundle with its packaging assertions, and this log. 1537 tests pass across
+76 files, `tsc`, `lint` and `check:theme` are clean.
+
+Still open, unchanged by any of the above: §6.3 (the column arithmetic, against
+the real font), §6.6 (what it looks like), §9.2 (whether the rail is the right
+home at the width this actually needs) and §9.3 (a turn in flight when the
+window closes). §9.4 is **answered** — the generated `.mcp.json` merges, keeping
+every other server the user configured and replacing only `blog-content`. §9.5
+is **answered** as the plan proposed: a missing binary is an empty state naming
+the install command and what was searched, not an absent view.

@@ -104,15 +104,26 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 73 specs, 1485 tests, of which the list below walks the ones worth
-knowing about rather than all of them. The newest six are the desktop shell's
+Coverage is 76 specs, 1537 tests, of which the list below walks the ones worth
+knowing about rather than all of them. The newest three are the in-app
+terminal's (docs/plans/in-app-terminal.md): `packages/desktop/src/__tests__/`
+`terminal.test.ts` (binary resolution, and the child's environment — which is
+deliberately *open* where the Next child's is closed, so the spec pins that an
+inherited `SSH_AUTH_SOCK` survives and that `ELECTRON_RUN_AS_NODE` does not) and
+`mcpConfig.test.ts` (that generating the config *merges* — replacing only
+`blog-content` and keeping every other server the user configured), plus
+`src/components/Layout/RightRail/__tests__/terminalTheme.test.ts`, which asserts
+no palette slot is identical across the two schemes. That last one is doing
+`check:theme`'s job by hand: the checker reads `.css`, `.css.ts` and `--ed-*`
+and cannot see a JavaScript object, and deriving the palette from `useTheme()`
+silently yields a light-only terminal (§10.4). Next are the desktop shell's
 (`packages/desktop/src/__tests__/`, docs/plans/desktop-app.md): `session.test.ts`
 (the local sign-in's arithmetic — the `__Secure-` prefix rule, seconds versus
 milliseconds in a cookie's `expirationDate`, and the margin that re-mints a row
 about to lapse rather than signing someone out mid-sentence),
 `windowState.test.ts` (a saved rectangle that no longer fits any display —
 restoring a window off-screen is worse than ignoring the saved state),
-`menuTemplate.test.ts` (that no menu accelerator shadows one of the 24 in-app
+`menuTemplate.test.ts` (that no menu accelerator shadows one of the 25 in-app
 chords, which is checked rather than trusted because the command registry has no
 shortcut field to read), `serverEnv.test.ts` (that the Next child's environment
 is *closed* — anything not passed explicitly is inherited from the `.env` that
@@ -708,6 +719,31 @@ Four things there are invariants rather than conventions:
   `GET /api/blob/[hash]` stops being an S3 key and becomes a path — so
   `src/lib/blobPath.ts` validates, `resolveWithin`s, and re-checks containment
   against the root (§13.3).
+
+**The in-app terminal** (docs/plans/in-app-terminal.md) is the desktop build's
+other half of the AI surface: Claude Code in a PTY, as the right rail's fifth
+view on `Mod+5`, pointed at the library by a `.mcp.json` the shell generates.
+Three things there are invariants rather than conventions:
+
+- **`preload.cjs` is the only privileged renderer API this app has**, and it is
+  narrow by construction rather than by discipline: the child's argv is fixed in
+  the main process (so there is no `spawn` to reach) and there is one session
+  per window (so there is no session id to guess). Anything added to
+  `window.desktop` has to make that argument again. The `.cjs` extension is
+  load-bearing — an
+  unsandboxed preload, which is what the AppImage's `--no-sandbox` produces,
+  goes through Node's loader and would refuse `require` under this package's
+  `"type": "module"`.
+- **A plain `pnpm install` breaks the terminal.** `node-pty` rebuilds against
+  Node's ABI and the main process cannot open it; repair with
+  `pnpm --filter @blog/desktop rebuild:native`.
+- **The bundled MCP server must stay inside the standalone tree.**
+  `pnpm build:desktop` and `stage:resources` both put it at
+  `<standalone>/mcp/content-server.mjs`, because `@prisma/client` is left
+  external and resolves by walking up from the bundle's own directory — one
+  directory too high is `ERR_MODULE_NOT_FOUND` at spawn time, which reaches the
+  user as "Claude Code cannot see any posts" (§10.2). `verify-package.mjs`
+  asserts it loads, not merely that it exists.
 
 ## Production operations
 
