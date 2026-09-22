@@ -292,6 +292,34 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        /**
+         * The two response headers that cost nothing to be wrong about.
+         *
+         * `nosniff` stops content-type sniffing, which matters most on the
+         * routes that hand back author-supplied bytes — `/api/blob/[hash]` and
+         * `/api/attachments/*` — where a file stored as one type being
+         * re-interpreted as `text/html` is a same-origin script.
+         * `strict-origin-when-cross-origin` keeps document ids and handles out
+         * of the `Referer` sent to third parties, and is already Chrome's
+         * default; saying it explicitly covers the browsers where it is not.
+         *
+         * Deliberately **not** here: `X-Frame-Options` / `frame-ancestors`,
+         * because `/embed/[id]` exists to be iframed and a blanket deny breaks
+         * it; and `Content-Security-Policy`, which cannot be written honestly
+         * against MUI/emotion's inline styles, the next-pwa service worker and
+         * the GeoGebra and Excalidraw bundles without verifying it in a real
+         * browser first.
+         */
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+        ],
+      },
+      {
         source: "/(.*)\.woff2",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "*" },

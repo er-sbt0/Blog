@@ -104,8 +104,22 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 76 specs, 1537 tests, of which the list below walks the ones worth
-knowing about rather than all of them. The newest three are the in-app
+Coverage is 80 specs, 1563 tests, of which the list below walks the ones worth
+knowing about rather than all of them. The newest three are the SVG/embed
+sanitizing ones: `packages/editor/src/nodes/__tests__/svgExport.test.ts`,
+`packages/editor/src/utils/__tests__/sanitizeSvg.test.ts` and
+`packages/editor/src/nodes/__tests__/embedExport.test.ts`. A sketch's and a
+graph's `exportDOM` decode an author-controlled `data:image/svg+xml,…` into
+`innerHTML`, and that output is cached as a revision's HTML and injected on the
+public `/view` and `/embed` pages — so `<image onerror>`, `<svg onload>` and
+`<a xlink:href="javascript:…">` all ran on this origin in every reader's
+session. The export half is driven through `generateServerHtml` deliberately:
+that is the path which installs a JSDOM as `global.window` *after* the modules
+loaded, and DOMPurify's default export binds to whatever window existed at
+import time — on the server, none, in which case `sanitize` returns its input
+**unchanged**. A spec that only used a browser `window` would pass while
+`/view` stayed wide open, so the node specs pin the server path and the jsdom
+one pins the browser path. Next are the in-app
 terminal's (docs/plans/in-app-terminal.md): `packages/desktop/src/__tests__/`
 `terminal.test.ts` (binary resolution, and the child's environment — which is
 deliberately *open* where the Next child's is closed, so the spec pins that an

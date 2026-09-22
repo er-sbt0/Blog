@@ -48,6 +48,7 @@ export default function ImageComponent({
   showCaption,
   caption,
   element = "img",
+  sandbox,
   children,
 }: {
   altText: string;
@@ -58,6 +59,8 @@ export default function ImageComponent({
   showCaption: boolean;
   caption: LexicalEditor;
   element?: "img" | "iframe" | "svg";
+  /** Only meaningful for `element="iframe"`. See `IFrameNode`'s EMBED_SANDBOX. */
+  sandbox?: string;
   children?: React.ReactNode;
 }) {
   const imageRef = useRef<
@@ -395,6 +398,7 @@ export default function ImageComponent({
             width={width}
             height={height}
             src={src}
+            sandbox={sandbox}
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen={true}

@@ -16,7 +16,7 @@ import {
 import { dismissRequest } from "./parts";
 import * as css from "./styles.css";
 import { INSERT_IFRAME_COMMAND } from "@/editor/plugins/IFramePlugin";
-import { IFrameNode } from "@/editor/nodes/IFrameNode";
+import { IFrameNode, resolveEmbedSrc } from "@/editor/nodes/IFrameNode";
 
 function IFrameDialog(
   { editor, node }: { editor: LexicalEditor; node: IFrameNode | null },
@@ -56,6 +56,10 @@ function IFrameDialog(
     }
   }, [node]);
 
+  // The same rule `IFrameNode` enforces on render, said here so the author
+  // finds out at the dialog rather than by getting no embed on the page.
+  const embedSrc = resolveEmbedSrc(formData.src);
+
   const updateFormData = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setFormData({ ...formData, [name]: value });
@@ -67,6 +71,7 @@ function IFrameDialog(
       | React.MouseEvent<HTMLButtonElement>,
   ) => {
     event.preventDefault();
+    if (!embedSrc) return;
     if (!node) editor.dispatchCommand(INSERT_IFRAME_COMMAND, formData);
     else editor.update(() => node.update(formData));
     closeDialog();
@@ -95,6 +100,9 @@ function IFrameDialog(
           <form className={css.form} noValidate onSubmit={handleSubmit}>
             <TextField
               autoComplete="off"
+              description={formData.src && !embedSrc
+                ? "Enter a full http:// or https:// URL."
+                : undefined}
               label="Embed URL"
               name="src"
               onChange={updateFormData}
@@ -136,7 +144,7 @@ function IFrameDialog(
             Cancel
           </ActionButton>
           <ActionButton
-            disabled={!formData.src}
+            disabled={!embedSrc}
             onClick={handleSubmit}
             size="lg"
             variant="accent"

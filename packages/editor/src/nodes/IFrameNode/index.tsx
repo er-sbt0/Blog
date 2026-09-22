@@ -21,6 +21,54 @@ import type { ImageResizeUnit } from "../imageLayout";
 import { $generateHtmlFromNodes } from "@lexical/html";
 import ImageComponent from "../ImageNode/ImageComponent";
 
+const YOUTUBE_SRC =
+  /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+
+/**
+ * The schemes an embed may use. `javascript:` in a same-document iframe `src`
+ * still executes in Chrome and Firefox, and `data:` frames inherit nothing but
+ * are an opaque-origin script host — neither is an embeddable *document*, which
+ * is the only thing this node is for.
+ */
+const EMBED_SCHEMES = new Set(["http:", "https:"]);
+
+/**
+ * The sandbox every embed is rendered under.
+ *
+ * `allow-scripts allow-same-origin` together is the pair usually called out as
+ * weak, and the reason is that a *same-origin* framed document can then reach
+ * out and remove its own sandbox. That is not this case: an embed is by
+ * construction a foreign document — the YouTube branch below rewrites to
+ * `youtube-nocookie.com`, and everything else is an absolute `http(s)` URL — so
+ * `allow-same-origin` grants the frame its own origin, not this app's. It is
+ * also not optional: a player denied its own origin cannot read its own
+ * storage and renders an error instead of a video. `allow-popups` is the
+ * "Watch on YouTube" link; `allow-presentation` is casting. Nothing here grants
+ * top-level navigation, form submission, or downloads.
+ */
+const EMBED_SANDBOX =
+  "allow-scripts allow-same-origin allow-popups allow-presentation";
+
+/**
+ * The URL an embed actually loads, or `null` when there isn't one.
+ *
+ * A non-conforming src renders **no iframe at all** rather than an iframe with
+ * a neutered src: an empty frame is indistinguishable from a broken embed to a
+ * reader, and leaving the element in place invites the next change to start
+ * trusting its `src` attribute again.
+ */
+export function resolveEmbedSrc(src: string): string | null {
+  const matchYoutube = YOUTUBE_SRC.exec(src);
+  const videoId = matchYoutube?.[2].length === 11 ? matchYoutube[2] : null;
+  if (videoId) return `https://www.youtube-nocookie.com/embed/${videoId}`;
+  try {
+    const url = new URL(src);
+    return EMBED_SCHEMES.has(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function convertIFrameElement(
   domNode: HTMLElement,
 ): null | DOMConversionOutput {
@@ -149,24 +197,16 @@ export class IFrameNode extends ImageNode {
   exportDOM(editor: LexicalEditor): DOMExportOutput {
     const element = super.createDOM(editor._config, editor);
     if (!element) return { element };
+    const src = resolveEmbedSrc(this.__src);
+    if (!src) return { element };
     const iframe = document.createElement("iframe");
     iframe.setAttribute("data-lexical-iFrame", this.__src);
     if (this.__width) iframe.setAttribute("width", this.__width.toString());
     if (this.__height) {
       iframe.setAttribute("height", this.__height.toString());
     }
-    const matchYoutube =
-      /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-        .exec(this.__src);
-    const videoId = matchYoutube
-      ? (matchYoutube?.[2].length === 11 ? matchYoutube[2] : null)
-      : null;
-    iframe.setAttribute(
-      "src",
-      videoId
-        ? `https://www.youtube-nocookie.com/embed/${videoId}`
-        : this.__src,
-    );
+    iframe.setAttribute("src", src);
+    iframe.setAttribute("sandbox", EMBED_SANDBOX);
     iframe.setAttribute("frameborder", "0");
     iframe.setAttribute(
       "allow",
@@ -207,19 +247,15 @@ export class IFrameNode extends ImageNode {
 
   decorate(): JSX.Element {
     const self = this.getLatest();
-    const matchYoutube =
-      /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-        .exec(self.__src);
-    const videoId = matchYoutube
-      ? (matchYoutube?.[2].length === 11 ? matchYoutube[2] : null)
-      : null;
-    const src = videoId
-      ? `https://www.youtube-nocookie.com/embed/${videoId}`
-      : self.__src;
+    // `about:blank` rather than the rejected src: the editor shows an empty
+    // frame where the embed would be, which is what the published page shows
+    // too, and nothing hands an unvalidated URL to a live iframe.
+    const src = resolveEmbedSrc(self.__src) ?? "about:blank";
 
     return (
       <ImageComponent
         src={src}
+        sandbox={EMBED_SANDBOX}
         altText={self.__altText}
         width={self.__width}
         height={self.__height}

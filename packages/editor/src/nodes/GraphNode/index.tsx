@@ -20,6 +20,7 @@ import type { ImageResizeUnit } from "../imageLayout";
 import { $generateHtmlFromNodes } from "@lexical/html";
 
 import ImageComponent from "../ImageNode/ImageComponent";
+import { renderSvgDataUri } from "../../utils/sanitizeSvg";
 import htmr from "htmr";
 import { JSX } from "react";
 
@@ -129,16 +130,12 @@ export class GraphNode extends ImageNode {
     if (!isSVG) return super.exportDOM(editor);
     const element = this.createDOM(editor._config, editor);
     if (element && isHTMLElement(element)) {
-      const html = decodeURIComponent(this.__src.split(",")[1]);
-      element.innerHTML = html.replace(
-        /<!-- payload-start -->\s*(.+?)\s*<!-- payload-end -->/,
-        "",
-      );
-      const svg = element.firstElementChild!;
-      const styles = svg.querySelectorAll("style");
-      styles.forEach((style) => {
-        style.remove();
-      });
+      // The src is author-controlled and this markup is cached as a revision's
+      // HTML, then injected on the public `/view` and `/embed` pages. It goes
+      // through the allowlist in `renderSvgDataUri` before it is anyone's
+      // output — see `utils/sanitizeSvg.ts`.
+      const svg = renderSvgDataUri(element, this.__src);
+      if (!svg) return { element };
       const viewBox = svg.getAttribute("viewBox");
       const svgWidth = svg.getAttribute("width") ||
         this.__width.toString();
