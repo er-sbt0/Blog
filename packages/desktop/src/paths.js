@@ -138,6 +138,10 @@ export function desktopPaths(userData) {
     // the secrets locks the app out of its own database. Nothing should be
     // tempted to make one write atomic on the other's behalf.
     windowState: path.join(userData, "window-state.json"),
+    // The port the window's origin is built from. Disposable like the window
+    // state and for the same reason it is worth keeping at all — see
+    // {@link stableHttpPort}.
+    httpPort: path.join(userData, "http-port.json"),
     // Postgres caps a Unix socket path at 107 bytes and §10.4 of the plan hit
     // that cap by letting the socket live inside a deep data directory. We
     // connect over TCP on loopback regardless, so the socket only has to exist;
@@ -259,5 +263,129 @@ export function assertNotForbidden(port) {
       `Refusing to use port ${port}: it belongs to a database this app must not touch.`,
     );
   }
+  return port;
+}
+
+// ── The window's origin ──────────────────────────────────────────────────────
+
+/**
+ * Why the HTTP port — unlike the cluster's — has to survive a restart.
+ *
+ * The window loads `http://127.0.0.1:<port>`, and every storage API the browser
+ * offers is scoped to an *origin*, port included. With a fresh ephemeral port
+ * each launch the renderer opens onto empty storage every time: `localStorage`
+ * (the sidebar width and mode, the posts view type and density, the inline
+ * Copilot bar's minimized state, every collapsed series and project) and
+ * IndexedDB alike — which is the whole workspace record, so the restored tabs,
+ * the panes, each document's rail view and its scroll position all go with it.
+ * Nothing is corrupted; it is simply addressed to an origin that never comes
+ * back, and 37 such directories had accumulated under `userData` by the time
+ * this was noticed.
+ *
+ * So the port is remembered and re-bound. The cluster's port stays ephemeral
+ * (see step 3 of `boot`) because nothing is keyed to it — a connection string
+ * is built fresh each launch — and the only thing a stable one would buy is a
+ * way to collide with someone else's Postgres.
+ */
+const STABLE_PORT_RANGE = { min: 61_000, max: 65_535 };
+
+/** How many candidates to try before falling back to the kernel's choice. */
+const STABLE_PORT_TRIES = 32;
+
+/**
+ * Whether a port read back off disk is one we are willing to bind.
+ *
+ * The file is ours, but it is a plain JSON file in the user's config directory
+ * and a hand-edited or truncated one must read as "no port remembered" rather
+ * than reaching `listen` — the same argument `loadWindowState` makes about
+ * `NaN` reaching `BrowserWindow`. `FORBIDDEN_PORTS` is re-checked here because
+ * a remembered port skips `freePort`, which is where that check normally sits.
+ */
+export function isStablePort(port) {
+  return (
+    Number.isInteger(port) &&
+    port >= 1024 &&
+    port <= 65_535 &&
+    !FORBIDDEN_PORTS.has(port)
+  );
+}
+
+/** The remembered port, or `null` for anything we will not bind. */
+export function readPortFile(file) {
+  try {
+    const { port } = JSON.parse(fs.readFileSync(file, "utf8"));
+    return isStablePort(port) ? port : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePortFile(file, port) {
+  const partial = `${file}.tmp`;
+  try {
+    fs.writeFileSync(partial, JSON.stringify({ port }, null, 2));
+    fs.renameSync(partial, file);
+  } catch (error) {
+    // Not fatal, and deliberately not retried: the cost is that the *next*
+    // launch picks a different port and starts from defaults again, which is
+    // exactly where we were before this file existed.
+    console.error("[desktop] could not remember the HTTP port", error);
+  }
+}
+
+/** Whether we can bind `port` on loopback right now. */
+function bindable(port) {
+  return new Promise((resolve) => {
+    const probe = createServer();
+    probe.once("error", () => resolve(false));
+    probe.listen(port, "127.0.0.1", () => probe.close(() => resolve(true)));
+  });
+}
+
+/**
+ * A port worth remembering.
+ *
+ * Above {@link STABLE_PORT_RANGE}.min rather than from the kernel's ephemeral
+ * range, because the two uses pull opposite ways: an ephemeral port is one the
+ * kernel is free to hand to an outgoing connection the moment we release it
+ * (Linux's `ip_local_port_range` is 32768–60999 by default), and we want one
+ * that is still ours in a week. Falls back to {@link freePort} rather than
+ * failing — a launch that has to start from defaults beats a launch that does
+ * not happen.
+ */
+async function pickStablePort() {
+  const span = STABLE_PORT_RANGE.max - STABLE_PORT_RANGE.min + 1;
+  for (let attempt = 0; attempt < STABLE_PORT_TRIES; attempt += 1) {
+    const port = STABLE_PORT_RANGE.min + (randomBytes(2).readUInt16BE(0) % span);
+    if (!isStablePort(port)) continue;
+    if (await bindable(port)) return port;
+  }
+  return assertNotForbidden(await freePort());
+}
+
+/**
+ * The port this launch should serve on: the one the last launch used, if it is
+ * still free, and otherwise a fresh one that is then remembered.
+ *
+ * Re-binding carries the same race `freePort` does — the probe closes before
+ * the server opens — and for the same reason: there is no way to hand a bound
+ * socket to a child process that expects to bind `PORT` itself. Two of our own
+ * windows cannot race here, because `assertDataDirFree` has already refused the
+ * second one by the time this runs.
+ *
+ * @param {string} file
+ * @param {(line: string) => void} [log]
+ */
+export async function stableHttpPort(file, log = () => {}) {
+  const remembered = readPortFile(file);
+  if (remembered !== null) {
+    if (await bindable(remembered)) return remembered;
+    log(
+      `port ${remembered} is in use by something else; picking another — ` +
+        "this window's saved layout and preferences will start from defaults",
+    );
+  }
+  const port = await pickStablePort();
+  writePortFile(file, port);
   return port;
 }

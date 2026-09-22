@@ -13,6 +13,7 @@ import {
   resolveAppRoot,
   resolveUserData,
   saveWindowState,
+  stableHttpPort,
 } from "./paths.js";
 import {
   APP_DATABASE,
@@ -175,7 +176,13 @@ async function boot() {
   // 6. The Next server — the built bundle, or the working tree in watch mode.
   //    `resolveDevServer` is where the three claims `assertDesktopBundle` makes
   //    about a bundle are answered for a dev server instead.
-  const httpPort = await freePort();
+  //
+  //    The port is the one the last launch used, where that is still free: the
+  //    window's origin is built from it and the browser scopes `localStorage`
+  //    and IndexedDB per origin, so an ephemeral port here silently discards
+  //    every preference and the whole restored layout on each launch. See
+  //    `stableHttpPort`.
+  const httpPort = assertNotForbidden(await stableHttpPort(paths.httpPort, log));
   const origin = `http://127.0.0.1:${httpPort}`;
   const target = DEV
     ? resolveDevServer(appRoot, { port: httpPort })

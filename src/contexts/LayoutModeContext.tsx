@@ -87,6 +87,17 @@ const COPILOT_PANEL: ResizablePanelConfig = {
  */
 const COPILOT_BAR_MIN_KEY = "ui.copilotBarMinimized";
 
+/**
+ * Where the Copilot panel remembers being open.
+ *
+ * Load-bearing in the same way, and in one direction worth naming: renaming it
+ * gives every existing user a closed panel, which is the harmless half. The
+ * panel used to open closed every time, which made closing it the one layout
+ * decision the app threw away — the rail's views, its width, the sidebar's
+ * width and mode and every collapsed row were all already remembered.
+ */
+const COPILOT_OPEN_KEY = "ui.copilotOpen";
+
 interface LayoutModeContextType {
   /** User's preferred rail width, applied whenever the panel has a slot. */
   railWidth: number;
@@ -116,7 +127,8 @@ interface LayoutModeContextType {
   /**
    * Show/hide the Copilot panel. A setter rather than a toggle because the
    * panel's own close button must mean *close*: it stays mounted through the
-   * 225ms clip-out, so a second click on a toggle would reopen it.
+   * 225ms clip-out, so a second click on a toggle would reopen it. Persisted
+   * across reloads.
    */
   setCopilotOpen: (open: boolean) => void;
   /**
@@ -159,19 +171,24 @@ export const LayoutModeProvider: React.FC<{ children: React.ReactNode }> = ({
   // across two stores meant every consumer subscribed to both. Nothing outside
   // the layout reads it and no thunk touches it, so the store is not the right
   // home; the widths in particular update per mousemove frame, which is a
-  // dispatch-per-frame if they move the other way. Not persisted — same as
-  // before, the panel opens closed.
-  const [copilotOpen, setCopilotOpen] = useState(false);
-
-  // Unlike the panel above, this one *is* persisted — a bar you pushed out of
-  // the way should stay out of it. It starts `false` to match the server, and
-  // the stored value lands in an effect: a lazy initializer reading
-  // localStorage would render something the SSR pass did not, which is the
-  // hydration mismatch docs/guides/hydration.md is about. The cost is one frame
-  // of bar-and-clearance on a minimized user's reload.
+  // dispatch-per-frame if they move the other way.
+  //
+  // Both booleans below are persisted, and both start at the value the server
+  // rendered rather than reading storage in a lazy initializer: that read would
+  // render something the SSR pass did not, which is the hydration mismatch
+  // docs/guides/hydration.md is about. The stored value lands in an effect
+  // instead, so the cost is one frame of the default — a closed panel for
+  // someone who left it open, a bar-and-clearance for someone who minimized it.
+  const [copilotOpen, setOpen] = useState(false);
   const [copilotBarMinimized, setBarMinimized] = useState(false);
   useEffect(() => {
+    setOpen(localStorage.getItem(COPILOT_OPEN_KEY) === "1");
     setBarMinimized(localStorage.getItem(COPILOT_BAR_MIN_KEY) === "1");
+  }, []);
+
+  const setCopilotOpen = useCallback((open: boolean) => {
+    setOpen(open);
+    localStorage.setItem(COPILOT_OPEN_KEY, open ? "1" : "0");
   }, []);
   const setCopilotBarMinimized = useCallback((minimized: boolean) => {
     setBarMinimized(minimized);

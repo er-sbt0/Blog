@@ -1210,3 +1210,65 @@ file, the PDFs by `pdfinfo`/`pdftotext`. Also unverified: a physical
 drag-and-drop, menu items driven by an actual click rather than by calling the
 same functions their handlers call, and whether an installed `.deb` launches
 sandboxed (§15.5).
+
+## 17. The origin bug — device-local settings did not survive a launch, 22 Sep 2026
+
+Reported as "closing the Copilot chatbox and collapsing a card are not
+remembered". Neither was a bug in either feature: the inline bar's minimized
+state has been written to `localStorage` since it was built, and every collapsed
+series and project has been written there since long before the desktop existed.
+
+**The window's origin changed on every launch.** `boot` took the HTTP port from
+`freePort()` — the kernel's ephemeral range — so the renderer loaded
+`http://127.0.0.1:41565` one launch and `…:40053` the next, and every storage
+API the browser offers is scoped to an origin, port included. Nothing was
+corrupted and nothing errored; each launch simply opened onto empty storage.
+`~/.config/blog-desktop/` held **37 distinct origins' worth** of `Local Storage`
+and `IndexedDB` by the time it was noticed.
+
+What that was silently discarding, on every launch:
+
+- `localStorage` — the sidebar's width and mode, the rail's width and the
+  terminal view's, the posts view type and list density, the inline Copilot
+  bar's minimized state, the notes canvas zoom and clipboard, and every expanded
+  or collapsed series, project and post-tab row (four `useExpandedState` keys).
+- IndexedDB — the **whole workspace record**: the open tabs, the pane layout,
+  each document's rail view (`railPanel`) and each document's scroll position.
+  §7's restore was working correctly against a store that was always empty.
+
+The fix is `stableHttpPort` in `paths.js`: the port is remembered in
+`http-port.json` beside `window-state.json`, re-bound if it is still free, and
+replaced-and-re-remembered if it is not. Three things about it worth keeping:
+
+- **The cluster's port stays ephemeral.** Nothing is keyed to it — the
+  connection string is built fresh each launch — so a stable one would buy only
+  a way to collide with the developer's `postgres-blog` container. The asymmetry
+  is deliberate and the comment on `STABLE_PORT_RANGE` says which is which.
+- **Not from the ephemeral range.** A remembered port must still be ours in a
+  week, and Linux's default `ip_local_port_range` (32768–60999) is precisely the
+  set the kernel may hand to an outgoing connection the moment we release it. So
+  candidates come from 61000–65535, falling back to `freePort()` rather than
+  failing a launch.
+- **`FORBIDDEN_PORTS` is re-checked on read.** A remembered port skips
+  `freePort`, which is where `assertNotForbidden` normally sits; a hand-edited
+  file holding `5432` would otherwise point the shell at the container this
+  build must never touch. `readPortFile` treats that, a truncated file and a
+  non-integer alike as "nothing remembered".
+
+`packages/desktop/src/__tests__/httpPort.test.ts` pins the claim the change
+rests on — two launches, one origin — plus the refusals above and the
+self-healing case: a remembered port that something else now holds yields a
+different one, *persists that one*, and says so in the log, because "my layout
+is gone" is otherwise unexplainable.
+
+One thing that was genuinely not persisted, and is now: the Copilot **panel**'s
+open state (`ui.copilotOpen` in `LayoutModeContext`). It opened closed every
+launch by design, which made closing it the one layout decision the app threw
+away deliberately — the rail's views, both widths, the sidebar and every
+collapsed row were already remembered. It reads in an effect rather than a lazy
+initializer, like `copilotBarMinimized` next to it, because the SSR pass cannot
+see `localStorage`.
+
+**Left alone:** the 37 orphaned origin directories. They are dead weight
+(a few MB) and deleting them is an operator's decision, not a tidy-up — the
+newest of them holds whatever layout the last launch before this fix wrote.
