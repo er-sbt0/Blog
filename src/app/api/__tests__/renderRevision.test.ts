@@ -8,8 +8,10 @@
  *    ~11 MB of JSON per cache miss (docs/plans/blob-storage.md §3.1) — to reach
  *    a function two imports away. A regression here would not throw anywhere;
  *    it would just be slow, and would quietly re-acquire a dependency on an
- *    origin (`docs/plans/desktop-app.md` §14.3) and on `/api/embed` staying
- *    unauthenticated. So the spec asserts `fetch` is never called.
+ *    origin (`docs/plans/desktop-app.md` §14.3) and on an unauthenticated
+ *    route to fetch — `/api/embed` has since been deleted, so a regression
+ *    would have to reintroduce one. So the spec asserts `fetch` is never
+ *    called.
  * 2. **`empty` is not `error`.** Both used to be `null`, which is why a render
  *    failure and a post with nothing in it were indistinguishable to `/view`
  *    and `/embed`. A reader must never be shown a blank post because rendering

@@ -33,9 +33,12 @@ export type RenderedRevision =
  * function two imports away. docs/reviews/code-review-2026-07.md §3 called for
  * exactly this call ("same process, no HTTP hop").
  *
- * `/api/embed` stays: it is a real route with its own client-side caller, and
- * the review's ruling that it must not require a session is unaffected — this
- * change removes the app's only reason to have needed that ruling.
+ * `/api/embed` is gone with it. Removing the self-fetch left it with no caller
+ * at all — `apiClient.embed.render` was defined and never invoked — so what
+ * remained was an unauthenticated route that ran a headless editor over a
+ * JSDOM per request on a body of the caller's choosing, for nobody. The
+ * review's "do not require a session on it" ruling is not reopened by that;
+ * there is simply no longer a route to rule on.
  *
  * Returns `null` when there is no such revision, and **throws** when rendering
  * fails. The throw is the point: `unstable_cache` stores a resolved value only,

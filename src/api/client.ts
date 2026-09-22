@@ -126,21 +126,6 @@ async function requestRaw<T>(
   return res.json() as Promise<T>;
 }
 
-/** Fetches and returns the response body as plain text. Throws on non-2xx. */
-async function requestText(
-  url: string,
-  options?: RequestInit,
-): Promise<string> {
-  const res = await fetch(url, options);
-  if (!res.ok) {
-    throw new ApiClientError(
-      `Request failed with status ${res.status}`,
-      res.status,
-    );
-  }
-  return res.text();
-}
-
 /** Build JSON POST/PATCH bodies. */
 function json(body: unknown): RequestInit {
   return {
@@ -637,22 +622,6 @@ export const apiClient = {
       request<string>(`/api/thumbnails/${documentId}`, {
         headers: { "Cache-Control": "max-age=300" },
       }),
-  },
-
-  // -------------------------------------------------------------------------
-  // Embed (HTML rendering)
-  // -------------------------------------------------------------------------
-  embed: {
-    /**
-     * POST /api/embed — returns raw HTML text.
-     *
-     * The only caller of that route left. Server-side rendering of `/view` and
-     * `/embed` used to go through it too, by fetching this app's own origin;
-     * `src/app/api/utils.ts` calls `generateServerHtml` directly now, so the
-     * route exists for the browser alone.
-     */
-    render: (state: SerializedEditorState): Promise<string> =>
-      requestText("/api/embed", { method: "POST", ...json(state) }),
   },
 
   // -------------------------------------------------------------------------

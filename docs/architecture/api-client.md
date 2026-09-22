@@ -120,8 +120,8 @@ import { ApiClientError } from "@/api";
 
 3. Use `request<T>` for `{ data?, error? }` envelope responses (all standard API
    routes). Use `requestRaw<T>` only when the response is **not** wrapped in
-   that envelope (currently only `/api/auth/session`). Use `requestText` for
-   routes that return raw text (currently only `/api/embed`).
+   that envelope (currently only `/api/auth/session`). There is no raw-text
+   helper: `requestText` went with `/api/embed`, its only route.
 
 4. **Do not** add `Content-Type: application/json` manually — use the private
    `json(body)` helper already used by all POST/PATCH methods:

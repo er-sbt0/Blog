@@ -109,7 +109,8 @@ knowing about rather than all of them. The newest is
 `src/app/api/__tests__/renderRevision.test.ts`: that rendering a stored revision
 happens **in this process** — `/view` and `/embed` used to reach
 `generateServerHtml` by POSTing the whole editor state to this app's own
-`/api/embed` — and that its three answers stay three. A regression on the first
+`/api/embed`, a route that has since been deleted for want of any caller — and
+that its three answers stay three. A regression on the first
 throws nowhere and is merely slow, so the spec asserts `fetch` is never called;
 the second is why `ok`/`empty`/`error` replaced `string | null`, since a render
 failure and an empty post were the same `null` and a reader got a blank page
