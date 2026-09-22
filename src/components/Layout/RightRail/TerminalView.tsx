@@ -394,17 +394,29 @@ const TerminalView: React.FC = () => {
           // strip around the character grid is, so the two have to agree.
           bgcolor: "background.panel",
           "& .xterm": { height: "100%", p: 0.5 },
-          "& .xterm-viewport": {
-            // A black frame around the character grid, and nothing in this app
-            // drew it. `xterm.css` still carries the pre-6.0 rule
-            // `.xterm-viewport { background-color: #000 }`, and that element is
-            // `position: absolute; inset: 0` over the whole padding box — but
-            // 6.0 paints `theme.background` onto `.xterm-scrollable-element`
-            // instead, which is a different node and only as large as the
-            // grid. So the black is no longer covered anywhere the grid is not:
-            // the 4px padding above, and the sub-cell remainder `fit()` leaves
-            // at the right and foot. Transparent rather than the palette's
-            // background, so it keeps tracking the host through the toggle.
+          /**
+           * `&&` rather than `&`, and it is the whole fix rather than a tidy-up.
+           *
+           * The black frame this removes is `xterm.css`'s pre-6.0
+           * `.xterm-viewport { background-color: #000 }`. That element is
+           * `position: absolute; inset: 0` over the whole padding box, but 6.0
+           * paints `theme.background` onto `.xterm-scrollable-element` instead
+           * — a different node, only as large as the character grid. So the
+           * black is no longer covered anywhere the grid is not: the 4px
+           * padding above, and the sub-cell remainder `fit()` leaves at the
+           * right and foot.
+           *
+           * One `&` ties it. `.css-x .xterm-viewport` and `.xterm
+           * .xterm-viewport` are both (0,2,0), and this app sets emotion's
+           * `prepend: true` (`ThemeProvider.tsx`), so the app's sheet is
+           * inserted *before* the imported stylesheet and loses the tie on
+           * source order. Doubling the class is what outranks it outright
+           * instead of depending on insertion order.
+           *
+           * Transparent rather than the palette's background, so it keeps
+           * tracking the host through the light/dark toggle.
+           */
+          "&& .xterm-viewport": {
             backgroundColor: "transparent",
             // §12's thin auto-hiding bars. xterm styles this element itself, so
             // the app's global rule does not reach it.
