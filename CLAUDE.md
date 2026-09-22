@@ -104,9 +104,16 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 80 specs, 1563 tests, of which the list below walks the ones worth
-knowing about rather than all of them. The newest three are the SVG/embed
-sanitizing ones: `packages/editor/src/nodes/__tests__/svgExport.test.ts`,
+Coverage is 81 specs, 1572 tests, of which the list below walks the ones worth
+knowing about rather than all of them. The newest is
+`src/app/api/__tests__/renderRevision.test.ts`: that rendering a stored revision
+happens **in this process** — `/view` and `/embed` used to reach
+`generateServerHtml` by POSTing the whole editor state to this app's own
+`/api/embed` — and that its three answers stay three. A regression on the first
+throws nowhere and is merely slow, so the spec asserts `fetch` is never called;
+the second is why `ok`/`empty`/`error` replaced `string | null`, since a render
+failure and an empty post were the same `null` and a reader got a blank page
+either way. The three before it are the SVG/embed sanitizing ones: `packages/editor/src/nodes/__tests__/svgExport.test.ts`,
 `packages/editor/src/utils/__tests__/sanitizeSvg.test.ts` and
 `packages/editor/src/nodes/__tests__/embedExport.test.ts`. A sketch's and a
 graph's `exportDOM` decode an author-controlled `data:image/svg+xml,…` into

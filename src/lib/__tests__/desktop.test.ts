@@ -66,11 +66,12 @@ describe("publicSiteUrl", () => {
    * The finding that made this a function rather than a `||`.
    *
    * The desktop shell *does* set `PUBLIC_URL`, to the loopback origin it picked
-   * this launch, because `src/app/api/utils.ts` self-fetches `/api/embed`
-   * through it and would otherwise fall back to `http://localhost:3000`. So "is
-   * PUBLIC_URL set" and "does this site have a public address" are two
-   * questions with two different answers in exactly one build, and every §5
-   * caller wants the second.
+   * this launch, because the root layout's `metadataBase` would otherwise fall
+   * back to `http://localhost:3000`. (`src/app/api/utils.ts` used to be the
+   * louder reason — it self-fetched `/api/embed` through it — and no longer
+   * reads an origin at all.) So "is PUBLIC_URL set" and "does this site have a
+   * public address" are two questions with two different answers in exactly one
+   * build, and every §5 caller wants the second.
    */
   it("is null in the desktop build even though PUBLIC_URL is set", () => {
     expect(publicSiteUrl({ DESKTOP: "1", PUBLIC_URL: "http://127.0.0.1:41234" }))

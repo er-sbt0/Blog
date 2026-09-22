@@ -175,12 +175,16 @@ export default async function Page(
         }
       }
     }
-    const html = await findRevisionHtml(revisionId);
-    if (html === null) {
+    const rendered = await findRevisionHtml(revisionId);
+    // `empty` is a post with nothing in it — or a revision that is still a
+    // pending agent proposal, which renders as nothing by design. That is a
+    // blank document, not a failure, and it must not be reported as one; an
+    // actual render failure must not be reported as a blank document either.
+    if (rendered.status === "error") {
       return (
         <SplashScreen
           title="Something went wrong"
-          subtitle="Please try again later"
+          subtitle="This post could not be rendered"
         />
       );
     }
@@ -188,7 +192,7 @@ export default async function Page(
     return (
       <ViewDocument
         cloudDocument={document}
-        cloudHtml={html}
+        cloudHtml={rendered.status === "ok" ? rendered.html : ""}
         tabs={tabs}
         isAuthor={!!user && user.id === document.author.id}
         isSignedIn={!!user}

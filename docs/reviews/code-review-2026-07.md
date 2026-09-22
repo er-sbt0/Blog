@@ -332,6 +332,15 @@ The better move is for those two callers to invoke `generateServerHtml` directly
 — same process, no HTTP hop — after which the route's exposure can be narrowed
 on its own terms.
 
+> **STATUS 2026-09-22: the self-fetch is gone.** Both call sites in
+> `src/app/api/utils.ts` now invoke `generateServerHtml` in process. The route
+> stays public and stays present — the ruling above is unchanged, and the
+> browser-side `apiClient.embed.render` is what it now serves — but the app no
+> longer has a server-side caller it cannot present a credential to, so
+> narrowing the route *is* now on the table and is a question about that one
+> client caller. The `global.window` / `global.document` mutation flagged
+> immediately below is untouched and still open.
+
 **Also worth its own ticket:** `generateServerHtml:36-51` assigns
 `global.window` / `global.document` / `global.Element` for the duration of a
 call and restores them in `finally`. Node serves requests concurrently, so two

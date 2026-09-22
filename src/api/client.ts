@@ -643,7 +643,14 @@ export const apiClient = {
   // Embed (HTML rendering)
   // -------------------------------------------------------------------------
   embed: {
-    /** POST /api/embed — returns raw HTML text */
+    /**
+     * POST /api/embed — returns raw HTML text.
+     *
+     * The only caller of that route left. Server-side rendering of `/view` and
+     * `/embed` used to go through it too, by fetching this app's own origin;
+     * `src/app/api/utils.ts` calls `generateServerHtml` directly now, so the
+     * route exists for the browser alone.
+     */
     render: (state: SerializedEditorState): Promise<string> =>
       requestText("/api/embed", { method: "POST", ...json(state) }),
   },

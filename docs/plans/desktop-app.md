@@ -302,8 +302,9 @@ client) and `publicSiteUrl`.
 - **`PUBLIC_URL`, OG images, `/api/revalidate`, `robots`/`sitemap`.** All of them
   describe a site at a public address. **`PUBLIC_URL` turned out to be two
   variables wearing one name** (§14.3), so "give it a defined answer" has two
-  answers: `api/utils.ts`'s self-fetch and `layout.tsx`'s `metadataBase` want
-  *where this server answers* and get the loopback origin, while `robots.ts` and
+  answers: `layout.tsx`'s `metadataBase` wants *where this server answers* and
+  gets the loopback origin (as did `api/utils.ts`'s self-fetch, until it was
+  replaced by an in-process call — see §14.3's status note), while `robots.ts` and
   `sitemap.ts` want *where this site is published* and get `null` from
   `publicSiteUrl()`. Blanking the variable would have broken the first pair to
   serve the second. `/api/revalidate` is refused; `/api/og` is kept.
@@ -875,6 +876,16 @@ convention.
 | **Sign-out affordance** | `UserSessionActions` renders `null` under `IS_DESKTOP_CLIENT` — the Logout button *and* the sign-in buttons behind it, since neither can work. Nothing rather than a disabled control: disabled implies a state in which it would work. Phase 3's shell watcher stays as a safety net, demoted from mechanism. |
 
 ### 14.3 `PUBLIC_URL` is two variables wearing one name
+
+> **STATUS 2026-09-22: the first group lost two of its three readers, and the
+> split stands.** `src/app/api/utils.ts` no longer self-fetches anything — it
+> calls `generateServerHtml` in the same process, which is what
+> `docs/reviews/code-review-2026-07.md` §3 asked for — so the "would render
+> *someone else's* HTML" failure below is gone with it. `layout.tsx`'s
+> `metadataBase` is the whole of the first question now, and it is still enough
+> to keep the shell setting the variable: unset, Next resolves the relative
+> `/api/og` card URL against its own `http://localhost:3000` default. The
+> function, not the default, is still the right shape.
 
 §5 said "give it a defined answer", implying one. There isn't one. Five readers
 split into two questions:

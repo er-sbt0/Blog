@@ -87,19 +87,24 @@ export default async function Page(
     if (!validate(revisionId)) {
       return <SplashScreen title="Revision not found" />;
     }
-    const html = await findRevisionHtml(revisionId);
-    if (html === null) {
+    const rendered = await findRevisionHtml(revisionId);
+    // Same split as `/view/[id]`: `empty` is an empty document (or a pending
+    // proposal, which renders as nothing on purpose), `error` is a failure, and
+    // neither may be shown as the other.
+    if (rendered.status === "error") {
       return (
         <SplashScreen
           title="Something went wrong"
-          subtitle="Please try again later"
+          subtitle="This post could not be rendered"
         />
       );
     }
     return (
       <>
         <PrintButton />
-        <EmbedDocument>{htmr(html)}</EmbedDocument>
+        <EmbedDocument>
+          {rendered.status === "ok" ? htmr(rendered.html) : null}
+        </EmbedDocument>
       </>
     );
   } catch (error) {

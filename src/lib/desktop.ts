@@ -74,8 +74,10 @@ export const IS_DESKTOP_CLIENT: boolean =
  * This is **not** "the origin this server answers on". The two are the same on
  * the VPS and different on desktop, where the server answers on a loopback port
  * that changes every launch and nothing is published anywhere. Callers that want
- * the first — a server-to-server self-fetch, say — want `PUBLIC_URL` directly
- * (see `src/app/api/utils.ts`, which the shell gives a real loopback origin).
+ * the first want `PUBLIC_URL` directly — `src/app/layout.tsx`'s `metadataBase`
+ * is the one left, and the shell gives it a real loopback origin. (The louder
+ * one used to be `src/app/api/utils.ts`, which fetched `${PUBLIC_URL}/api/embed`
+ * to render `/view` and `/embed`; it calls `generateServerHtml` in-process now.)
  *
  * `null` rather than `""` or `undefined` so a caller has to answer for it: §5's
  * instruction is a defined answer for the local case, and the string-concat that
@@ -84,7 +86,7 @@ export const IS_DESKTOP_CLIENT: boolean =
  */
 export function publicSiteUrl(env: DesktopEnv = process.env): string | null {
   // A desktop build has no public address, whatever PUBLIC_URL says — the shell
-  // sets it to the loopback origin so self-fetches resolve, and advertising
+  // sets it to the loopback origin so `metadataBase` resolves, and advertising
   // `http://127.0.0.1:41234/` to a crawler would be worse than saying nothing.
   if (isDesktopBuild(env)) return null;
   return env.PUBLIC_URL || null;

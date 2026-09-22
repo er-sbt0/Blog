@@ -9,9 +9,9 @@ import { isDesktopBuild, publicSiteUrl } from "@/lib/desktop";
 //
 // The desktop build's answer is the opposite one (desktop-app.md §5): nothing
 // here is published, so nothing here should be crawled. `PUBLIC_URL` is set in
-// that build — to the loopback origin the shell picked this launch, so that
-// self-fetches resolve — which is exactly why "is it set" is the wrong question
-// and `publicSiteUrl()` is asked instead.
+// that build — to the loopback origin the shell picked this launch, so the root
+// layout's `metadataBase` resolves — which is exactly why "is it set" is the
+// wrong question and `publicSiteUrl()` is asked instead.
 
 export default function robots(): MetadataRoute.Robots {
   const site = publicSiteUrl();

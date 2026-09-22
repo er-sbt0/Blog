@@ -454,13 +454,15 @@ the first visit to each route pays for its compile.
 | The Logout button | Not rendered (`IS_DESKTOP_CLIENT`); the shell's restore watcher stays as a safety net |
 | `/view/[id]`, `/user/[id]`, `/embed/[id]` | **Kept** — they are how you see what a published post looks like, and they are the only preview there is |
 
-`PUBLIC_URL` is set, to the loopback origin: `src/app/api/utils.ts` self-fetches
-`/api/embed` through it to render `/view` and `/embed`, and would otherwise fall
-back to `http://localhost:3000` — usually a stale `next start` on this machine.
-The two readers that want "where is this site published" rather than "where does
+`PUBLIC_URL` is set, to the loopback origin, for one remaining reader: the root
+layout's `metadataBase`, which would otherwise fall back to
+`http://localhost:3000` — usually a stale `next start` on this machine. It used
+to be three; `src/app/api/utils.ts` self-fetched `/api/embed` through it to
+render `/view` and `/embed`, and now calls `generateServerHtml` in-process. The
+two readers that want "where is this site published" rather than "where does
 this server answer" go through `publicSiteUrl()` in `src/lib/desktop.ts`, which
-returns `null` here. Blanking the variable would have broken the first three to
-serve the last two.
+returns `null` here. Blanking the variable would still break the first to serve
+the last two.
 
 ## Packaging
 

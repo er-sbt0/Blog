@@ -418,15 +418,17 @@ export function buildServerEnv({
     NEXTAUTH_SECRET: nextAuthSecret,
     // The origin this server answers on — which is *not* the same question as
     // "where is this site published", and phase 5's audit (§5) turned on the
-    // difference. Three readers want the first: `src/app/api/utils.ts`
-    // self-fetches `${PUBLIC_URL}/api/embed` to render `/view` and `/embed`, and
-    // would otherwise fall back to `http://localhost:3000` — which on this
-    // machine is usually a stale `next start` of somebody else's build. The root
-    // layout's `metadataBase` wants it too. Two readers want the second and get
-    // `null` instead: `robots.ts` and `sitemap.ts` go through `publicSiteUrl()`
-    // in `src/lib/desktop.ts`, which refuses to advertise a loopback port to a
-    // crawler. Setting this to `""` would have broken the first three to serve
-    // the last two.
+    // difference. One reader still wants the first: the root layout's
+    // `metadataBase`, which resolves the relative `/api/og` card URL and,
+    // unset, makes Next fall back to `http://localhost:3000` — on this machine
+    // usually a stale `next start` of somebody else's build. (It used to be
+    // three: `src/app/api/utils.ts` self-fetched `${PUBLIC_URL}/api/embed`
+    // twice to render `/view` and `/embed`, and now calls `generateServerHtml`
+    // in-process, so it reads no origin at all.) Two readers want the second
+    // and get `null` instead: `robots.ts` and `sitemap.ts` go through
+    // `publicSiteUrl()` in `src/lib/desktop.ts`, which refuses to advertise a
+    // loopback port to a crawler. Setting this to `""` would still break the
+    // first to serve the last two.
     PUBLIC_URL: url,
     UPLOADS_DIR: uploadsDir,
     // §4.3, phase 4. Naming the directory is what *selects* the filesystem blob
