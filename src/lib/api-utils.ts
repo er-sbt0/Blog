@@ -300,6 +300,20 @@ function logAndWrap(error: unknown, errorLabel?: string): NextResponse {
   );
 }
 
+/**
+ * The converse of `refuseOnDesktop`: a feature that exists only in the desktop
+ * build (docs/plans/remote-claude.md §3). Same 404-not-403 reasoning — on the
+ * VPS the route is not forbidden, it is not there.
+ */
+export function refuseOffDesktop(feature: string): void {
+  if (isDesktopBuild()) return;
+  throw new ApiError(
+    404,
+    "Not Found",
+    `${feature} is only part of the desktop build.`,
+  );
+}
+
 type AuthMode = "public" | "user" | "optional" | "token";
 
 /**

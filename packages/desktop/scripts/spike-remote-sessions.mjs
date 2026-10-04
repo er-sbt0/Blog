@@ -6,6 +6,7 @@
  *
  *   node packages/desktop/scripts/spike-remote-sessions.mjs <ssh-host>
  */
+import { createHash } from "node:crypto";
 import {
   LIST_SCRIPT,
   READ_SCRIPT,
@@ -70,7 +71,9 @@ if (files.length) {
   const mid = Math.floor(f.size / 2);
   const [part] = parseFrames(await runRemote(host, READ_SCRIPT, `${mid}\t${f.size}\t${f.path}\n`));
   check(part.status === "ok" && part.data.equals(frames[0].data.subarray(mid)), "a range read equals that slice of the full read");
-  check(part.headHash === frames[0].headHash, "head hash is stable across reads");
+  const prefix = frames[0].data.subarray(0, Math.min(mid, 4096));
+  check(part.headHash === createHash("sha256").update(prefix).digest("hex"),
+    "head hash covers the first min(from, 4096) bytes");
 
   // Refusals: a tampered path, and a range past end of file.
   const refused = parseFrames(await runRemote(host, READ_SCRIPT,

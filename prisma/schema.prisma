@@ -198,7 +198,7 @@ model Revision {
   // is deliberately no index behind it: the only traversal in this direction is
   // the `SET NULL` Postgres performs when a head revision is deleted, over a
   // table with one row per post.
-  headOf     Document[] @relation("HeadRevision")
+  headOf Document[] @relation("HeadRevision")
 
   // Which blobs this revision's content references (docs/plans/blob-storage.md
   // §3). Derived from `data` and written with it — a cache, not a second source
@@ -239,17 +239,17 @@ model Revision {
 }
 
 model User {
-  id             String              @id @default(uuid()) @db.Uuid
-  handle         String?             @unique
-  name           String
-  email          String              @unique
-  createdAt      DateTime            @default(now()) @db.Timestamptz
-  updatedAt      DateTime            @updatedAt @db.Timestamptz
-  disabled       Boolean             @default(false)
-  emailVerified  DateTime?           @db.Timestamptz
-  lastLogin      DateTime?           @db.Timestamptz
-  image          String?
-  role           UserRole            @default(USER)
+  id            String    @id @default(uuid()) @db.Uuid
+  handle        String?   @unique
+  name          String
+  email         String    @unique
+  createdAt     DateTime  @default(now()) @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @db.Timestamptz
+  disabled      Boolean   @default(false)
+  emailVerified DateTime? @db.Timestamptz
+  lastLogin     DateTime? @db.Timestamptz
+  image         String?
+  role          UserRole  @default(USER)
 
   // The author's root list, in order
   // (docs/plans/archive/ordering-simplification.md §2). The one array that is
@@ -271,6 +271,7 @@ model User {
   agentTokens    AgentToken[] // Bearer credentials for the remote MCP endpoint
 
   providerCredentials ProviderCredential[] // This user's own AI provider API keys
+  remoteHosts         RemoteHost[] // ssh hosts whose Claude Code transcripts are mirrored here (desktop only)
 
   @@index([email])
   @@index([handle])
@@ -551,4 +552,121 @@ model BlobRef {
   // Answering "which blobs does this document reference?" — the diff performed
   // on every content save, and the reverse direction the primary key cannot serve.
   @@index([documentId])
+}
+
+// ─── Remote Claude Code sessions (desktop only) ──────────────────────────────
+//
+// docs/plans/remote-claude.md §4.4. A read-only mirror of `~/.claude/projects`
+// on hosts the author can ssh to. The remote JSONL is the source of truth;
+// `RemoteChunk` holds the bytes received from it, and `RemoteEntry` plus the
+// stats columns on `RemoteFile` are derived from those chunks and rebuilt
+// whenever a file is touched or `PARSER_VERSION` moves. Stored in plaintext
+// (§4.5): transcripts routinely contain credentials, and Forget is the control.
+//
+// The tables exist on the VPS too, because migrations are shared, and stay
+// empty there — every route that reaches them is `refuseOffDesktop`.
+
+model RemoteHost {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// An ssh destination — an alias from `~/.ssh/config` or `user@host`.
+  /// Validated where it is stored and again by the main process before it
+  /// becomes an argv element (§4.2).
+  alias      String
+  label      String
+  lastSyncAt DateTime? @db.Timestamptz
+  /// ssh's stderr from the last failed sync, truncated. Cleared on success.
+  lastError  String?
+  createdAt  DateTime  @default(now()) @db.Timestamptz
+
+  files RemoteFile[]
+
+  @@unique([userId, alias])
+}
+
+/// One `.jsonl` — a session, or one subagent run under a session.
+model RemoteFile {
+  id     String     @id @default(uuid()) @db.Uuid
+  hostId String     @db.Uuid
+  host   RemoteHost @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  /// Relative to `~/.claude/projects` on the host.
+  path     String
+  /// Size and mtime as last listed, for the manifest diff (§4.3). mtime is
+  /// whole milliseconds: a float of seconds does not survive the round trip
+  /// through Prisma exactly, and an mtime that never compares equal re-reads
+  /// every file on every sync.
+  size     BigInt
+  mtime    BigInt
+  /// Bytes stored as chunks: always up to a newline, so a half-written final
+  /// line is read again rather than parsed broken.
+  consumed BigInt
+  /// The first ≤4 KiB of the stored bytes. A later read sends the remote's hash
+  /// of the same prefix, and a mismatch means the file was rewritten in place.
+  head     Bytes
+  goneAt   DateTime? @db.Timestamptz
+
+  isSubagent   Boolean
+  parentFileId String?      @db.Uuid
+  parent       RemoteFile?  @relation("RemoteSubagents", fields: [parentFileId], references: [id], onDelete: SetNull)
+  subagents    RemoteFile[] @relation("RemoteSubagents")
+
+  /// `PARSER_VERSION` the derived columns and entries were built with. Behind
+  /// the current one means re-derive from chunks, without fetching again.
+  parserVersion Int @default(0)
+
+  // Derived at ingest (src/lib/claudeSessions/parse.ts).
+  title         String?
+  cwd           String?
+  cwdGuessed    Boolean    @default(false)
+  gitBranch     String?
+  firstPrompt   String?
+  startedAt     DateTime?  @db.Timestamptz
+  endedAt       DateTime?  @db.Timestamptz
+  activeMs      Int        @default(0)
+  userMsgs      Int        @default(0)
+  assistantMsgs Int        @default(0)
+  toolCalls     Int        @default(0)
+  tools         Json       @default("{}")
+  promptTimes   DateTime[] @db.Timestamptz
+
+  chunks  RemoteChunk[]
+  entries RemoteEntry[]
+
+  @@unique([hostId, path])
+  @@index([parentFileId])
+}
+
+model RemoteChunk {
+  id     String     @id @default(uuid()) @db.Uuid
+  fileId String     @db.Uuid
+  file   RemoteFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  seq    Int
+  offset BigInt
+  /// The raw JSONL bytes, gzipped. Read only to re-derive.
+  data   Bytes
+
+  @@unique([fileId, seq])
+}
+
+/// One rendered row of a transcript. Derived; rebuilt wholesale per file.
+model RemoteEntry {
+  id         String     @id @default(uuid()) @db.Uuid
+  fileId     String     @db.Uuid
+  file       RemoteFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  idx        Int
+  /// prompt | assistant | thinking | tool_use | tool_result | meta | command
+  kind       String
+  uuid       String?
+  parentUuid String?
+  at         DateTime?  @db.Timestamptz
+  tool       String?
+  body       Json
+  /// Lower-cased searchable text. Has a `gin_trgm_ops` index the schema
+  /// cannot express — see the migration (§4.9).
+  text       String
+
+  @@unique([fileId, idx])
 }

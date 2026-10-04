@@ -1,6 +1,6 @@
 # Remote Claude Code sessions
 
-**Status: phase 1 done, 4 Oct 2026 (§7.1); phases 2–5 not started.** A read-only browser for the
+**Status: phases 1–2 done, 4 Oct 2026 (§7.1, §7.2); phases 3–5 not started.** A read-only browser for the
 Claude Code transcripts on remote machines — view, browse, toggle, search, and
 stats — in the desktop app. It ports `~/code/claude_remote` (a Python/Textual
 TUI over `coder ssh`) into the shell, with an incremental sync into the embedded
@@ -577,3 +577,61 @@ What it changed:
 3. **Fix `MarkdownText`'s `href` for Copilot too?** It is the same one-line
    scheme check. It is out of this plan's scope, and the risk there is lower
    because the author of the text is the model.
+
+### 7.2 Phase 2 log (4 Oct 2026)
+
+Built: the four models and migration `20261004120000_remote_sessions`
+(`pg_trgm`, the trigram index), `src/lib/claudeSessions/parse.ts` and
+`sync.ts`, `src/repositories/remoteSessions.ts`, `requireRemoteHost`,
+`refuseOffDesktop`, and the routes under `/api/remote-sessions/hosts` — list
+and create, get and forget, then `manifest`, `ingest` and `finish`, the three
+steps of a sync. `syncHost` in `packages/desktop/src/remoteSessions.js` drives
+those steps, with the HTTP poster injected. **Not wired yet**: the main
+process does not call it and `preload.cjs` has no `sessions` bridge. That
+wiring is phase 3, along with the UI that would call it.
+
+Verified against a throwaway cluster from the bundled embedded Postgres 17,
+with every migration applied. A real sync of `dev@192.168.1.33`, and the same
+scripts run locally over this machine's own history:
+
+| | dev host | local history |
+| --- | --- | --- |
+| files | 1 | 414 (151 subagent runs, all linked) |
+| raw JSONL | 286 KB | 428 MB |
+| stored chunks (gzip) | — | 94 MB |
+| `RemoteEntry` + trigram index | 15 rows | 36,010 rows, 112 MB + 36 MB |
+| first sync | 1.3 s | 31 s (ingest 9 s, derive 18 s) |
+| second sync, nothing changed | 0.45 s, list only | list only |
+| substring search | index scan | 11 ms |
+
+So §6.1's question has an answer for one heavy user: **hundreds of MB, and
+the derived side is about the size of the compressed source.**
+
+What it changed from §4:
+
+- **`mtime` is whole milliseconds in a `BigInt`, not a `Float`.** Prisma
+  reads `double precision` back at 15 significant digits, so
+  `1790088276.2334518` came back as `…233452`. It never compared equal, and
+  every sync re-read every file. The first real sync caught it; no spec could
+  have.
+- **The rewrite check hashes `min(from, 4096)` bytes, not a fixed 4 KiB**, and
+  `RemoteFile.head` stores those bytes rather than a hash. A fixed 4 KiB hash
+  changes whenever a file under 4 KiB grows, which would have read every young
+  session twice. The prefix covers bytes the server already holds, so a match
+  means exactly "what I stored is still there". A same-size file with a new
+  mtime is sent as a zero-length range: it reads nothing, but returns the hash.
+- **Large ranges are read in 4 MiB pieces, and each piece's unfinished line
+  carries into the next.** The server stores only through a newline, so
+  without the carry every second piece would start past what was stored and
+  be refused as stale.
+- **Derivation runs once per sync, in `finish`, not once per ingest.** Ingest
+  marks a file `parserVersion: 0`, and `finish` re-derives everything behind
+  `PARSER_VERSION`. A parser bump and a changed file are therefore one
+  mechanism. The cost is that `finish` for a first sync of a large history is
+  one long request (18 s above). If phase 3's progress UI makes that visible,
+  derive per file during ingest instead.
+- **NUL is stripped from `text` and from every string in `body`.** Postgres
+  `text` and `jsonb` reject it, and a tool result can contain it.
+- **`requireRemoteHost` answers 404 for someone else's host, not 403**, and
+  also for a malformed id. A malformed id would otherwise be a Prisma error,
+  which is a 500.

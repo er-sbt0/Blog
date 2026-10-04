@@ -5,6 +5,7 @@ import { findDocument } from "@/repositories/document";
 import { findThreadById } from "@/repositories/copilotThread";
 import { findCanvasById, findNoteById } from "@/repositories/notes";
 import { findProjectById } from "@/repositories/project";
+import { findRemoteHostById } from "@/repositories/remoteSessions";
 import { getCachedRevision } from "@/repositories/revision";
 import { findSeriesById } from "@/repositories/series";
 import type { CloudPost } from "@/types";
@@ -296,4 +297,21 @@ export async function requireBlobRead(
   const isPublic = user ? await isBlobPubliclyReadable(hash) : true;
 
   return { blob, isPublic };
+}
+
+/**
+ * Fetch a remote host and authorize the caller as its owner, or throw
+ * (docs/plans/remote-claude.md §3). A host's sessions are authorized through it,
+ * so this is the only check the remote-session routes need — and 404 rather
+ * than 403 for someone else's, since a host id is not a capability and saying
+ * "it exists" is already more than the caller is owed.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function requireRemoteHost(hostId: string, user: SessionUser) {
+  const host = UUID_RE.test(hostId) ? await findRemoteHostById(hostId) : null;
+  if (!host || host.userId !== user.id) {
+    throw new ApiError(404, "Host not found");
+  }
+  return host;
 }

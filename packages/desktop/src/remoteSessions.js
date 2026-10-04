@@ -15,7 +15,9 @@
  */
 
 /**
- * An ssh destination: an alias from `~/.ssh/config`, or `user@host`.
+ * An ssh destination: an alias from `~/.ssh/config`, or `user@host`. The same
+ * pattern as `SSH_HOST_RE` in `src/lib/claudeSessions/sync.ts`, where the host
+ * is stored; a spec pins that the two agree.
  *
  * The leading character excludes `-`, which is what keeps `-oProxyCommand=…`
  * from being a destination. `@` is allowed once, for `user@host` — the plan's
@@ -62,8 +64,12 @@ export const LIST_SCRIPT = [
 /**
  * §4.3 step 2. Reads `from\tto\tpath` lines on stdin and, for each, writes
  *
- *   \x1e <length> \t <sha256 of first 4 KiB> \t <path> \n <exactly length bytes>
+ *   \x1e <length> \t <sha256 of first min(from, 4096) bytes> \t <path> \n <exactly length bytes>
  *
+ * The hash covers bytes the server already holds, so a match means "what you
+ * stored is still what is here" — even for a file shorter than 4 KiB that has
+ * merely grown. `from === to` is a valid range: it reads nothing and is how a
+ * same-length rewrite is noticed.
  * A path is refused (length `-1`, no bytes) unless it is relative, ends in
  * `.jsonl` and has no `..` component — so a manifest altered on its way back
  * cannot turn this into `cat ~/.ssh/id_ed25519`. A file now shorter than `to`
@@ -83,7 +89,8 @@ export const READ_SCRIPT = [
   '  size=$(stat -c %s -- "$f" 2>/dev/null) || { printf "%s-1\\t-\\t%s\\n" "$rs" "$rel"; continue; }',
   '  if [ "$size" -lt "$to" ]; then printf "%s-2\\t-\\t%s\\n" "$rs" "$rel"; continue; fi',
   '  len=$((to - from))',
-  '  head=$(head -c 4096 -- "$f" | sha256sum | cut -c1-64)',
+  '  n=$from; [ "$n" -gt 4096 ] && n=4096',
+  '  head=$(head -c "$n" -- "$f" | sha256sum | cut -c1-64)',
   '  printf "%s%s\\t%s\\t%s\\n" "$rs" "$len" "$head" "$rel"',
   '  tail -c +$((from + 1)) -- "$f" | head -c "$len"',
   "done",
@@ -97,7 +104,7 @@ export function sshArgv(host, script) {
   return [...SSH_OPTIONS, "--", host, shWrap(script)];
 }
 
-/** Parses LIST_SCRIPT's output into `{ method, files: [{ path, size, mtime }] }`. */
+/** Parses LIST_SCRIPT's output into `{ method, files: [{ path, size, mtime }] }`, mtime in ms. */
 export function parseManifest(buf) {
   const nl = buf.indexOf(10);
   const method = buf.subarray(0, nl).toString("utf8");
@@ -107,7 +114,12 @@ export function parseManifest(buf) {
     if (!rec) continue;
     const [size, mtime, path, extra] = rec.split("\t");
     if (extra !== undefined || !path) continue;
-    files.push({ path: path.replace(/^\.\//, ""), size: Number(size), mtime: Number(mtime) });
+    // Whole milliseconds, so the server can compare it exactly (§7.1).
+    files.push({
+      path: path.replace(/^\.\//, ""),
+      size: Number(size),
+      mtime: Math.round(Number(mtime) * 1000),
+    });
   }
   return { method, files };
 }
@@ -144,6 +156,136 @@ export function parseFrames(buf) {
  */
 export function consumableLength(data) {
   return data.lastIndexOf(10) + 1;
+}
+
+/** One ingest request's worth of transcript bytes — under the route's 8 MiB cap. */
+export const INGEST_BUDGET = 6 * 1024 * 1024;
+
+/** The largest single range; a bigger file is read as several. */
+export const PIECE_BYTES = 4 * 1024 * 1024;
+
+/** Bytes per ssh read, which `runRemote` buffers whole. */
+export const READ_BUDGET = 64 * 1024 * 1024;
+
+/**
+ * Splits wanted ranges into pieces of at most `piece` bytes, in order. Only a
+ * range's first piece carries the rewrite check; the rest are the same read.
+ * A zero-length range stays one piece — it is the probe.
+ */
+export function splitRanges(wanted, piece = PIECE_BYTES) {
+  const out = [];
+  for (const w of wanted) {
+    let from = w.from;
+    do {
+      const to = Math.min(w.to, from + piece);
+      out.push({ path: w.path, from, to, first: from === w.from });
+      from = to;
+    } while (from < w.to);
+  }
+  return out;
+}
+
+/** Groups consecutive items so each group's `cost` stays within `budget` where it can. */
+function batches(items, budget, cost) {
+  const out = [];
+  let cur = [];
+  let size = 0;
+  for (const it of items) {
+    if (cur.length && size + cost(it) > budget) {
+      out.push(cur);
+      cur = [];
+      size = 0;
+    }
+    cur.push(it);
+    size += cost(it);
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+
+/**
+ * Reads `wanted` from the host and posts it to the ingest route. Answers with
+ * the ranges the server found rewritten.
+ *
+ * A piece can end mid-line, and the server stores only through the last
+ * newline, so the tail of each piece is carried into the next one for the same
+ * path, whose `from` moves back to match — otherwise every second piece would
+ * arrive ahead of what was stored and be refused as stale.
+ */
+async function readAndIngest({ host, hostId, post, run, listed, wanted, onProgress, piece }) {
+  const refetch = [];
+  const carry = new Map();
+  const total = wanted.reduce((n, w) => n + (w.to - w.from), 0);
+  let done = 0;
+
+  for (const read of batches(splitRanges(wanted, piece), READ_BUDGET, (p) => p.to - p.from)) {
+    const input = read.map((p) => `${p.from}\t${p.to}\t${p.path}\n`).join("");
+    const frames = parseFrames(await run(host, READ_SCRIPT, input));
+    if (frames.length !== read.length) throw new Error("read returned the wrong number of frames");
+
+    const ranges = [];
+    frames.forEach((f, i) => {
+      const p = read[i];
+      done += p.to - p.from;
+      if (f.status !== "ok" || f.path !== p.path) return;
+      const prev = carry.get(p.path);
+      const data = prev ? Buffer.concat([prev.data, f.data]) : f.data;
+      const from = prev ? prev.from : p.from;
+      const keep = consumableLength(data);
+      carry.set(p.path, { from: from + keep, data: data.subarray(keep) });
+      const meta = listed.get(p.path);
+      ranges.push({
+        path: p.path,
+        from,
+        size: meta.size,
+        mtime: meta.mtime,
+        headHash: p.first ? f.headHash : null,
+        data,
+      });
+    });
+
+    for (const batch of batches(ranges, INGEST_BUDGET, (r) => r.data.length)) {
+      const res = await post(`/hosts/${hostId}/ingest`, {
+        ranges: batch.map((r) => ({ ...r, data: r.data.toString("base64") })),
+      });
+      refetch.push(...res.refetch);
+    }
+    onProgress({ done, total });
+  }
+  return refetch;
+}
+
+/**
+ * One sync of one host (§4.3): list, diff on the server, read what changed,
+ * store it, derive. `post(path, body)` reaches the server's
+ * `/api/remote-sessions` routes as the signed-in author and resolves to the
+ * response's `data`. Whatever fails, the host's `lastError` says why.
+ *
+ * Files the server finds rewritten are read once more, whole, in the same sync;
+ * a file still changing under a second read waits for the next one.
+ */
+export async function syncHost({
+  host,
+  hostId,
+  post,
+  run = runRemote,
+  onProgress = () => {},
+  piece = PIECE_BYTES,
+}) {
+  if (!isValidHost(host)) throw new Error(`not a valid ssh host: ${JSON.stringify(host)}`);
+  try {
+    const { files } = parseManifest(await run(host, LIST_SCRIPT));
+    const listed = new Map(files.map((f) => [f.path, f]));
+    let { wanted } = await post(`/hosts/${hostId}/manifest`, { files });
+    for (let round = 0; round < 2 && wanted.length; round++) {
+      wanted = await readAndIngest({ host, hostId, post, run, listed, wanted, onProgress, piece });
+    }
+    return await post(`/hosts/${hostId}/finish`, { error: null });
+  } catch (error) {
+    const message = String(error?.message ?? error).slice(0, 2000);
+    await post(`/hosts/${hostId}/finish`, { error: message }).catch(() => {});
+    throw error;
+  }
 }
 
 /**

@@ -104,8 +104,16 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 81 specs, 1572 tests, of which the list below walks the ones worth
-knowing about rather than all of them. The newest is
+Coverage is 85 specs, 1612 tests, of which the list below walks the ones worth
+knowing about rather than all of them. The newest four are remote-claude phase
+2 (docs/plans/remote-claude.md §7.2): `src/lib/claudeSessions/__tests__/`
+`parse.test.ts` and `sync.test.ts` (the transcript rules and the manifest
+diff, over hand-written fixtures only — a real transcript is where credentials
+end up), `packages/desktop/src/__tests__/remoteSessions.test.ts` (`syncHost`
+end to end over a fake remote and a fake server, pinning that what is stored is
+byte-for-byte the remote file through its last newline across split pieces,
+appends and same-length rewrites) and `src/lib/__tests__/desktopGates.test.ts`
+(`refuseOffDesktop` and `refuseOnDesktop`, both 404). Before those,
 `src/app/api/__tests__/renderRevision.test.ts`: that rendering a stored revision
 happens **in this process** — `/view` and `/embed` used to reach
 `generateServerHtml` by POSTing the whole editor state to this app's own
