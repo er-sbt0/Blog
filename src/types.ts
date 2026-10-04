@@ -138,7 +138,7 @@ export interface WorkspaceState {
 }
 
 /** Which view the left sidebar renders, switched from the activity rail. */
-export type SidebarView = "explorer" | "search" | "notes";
+export type SidebarView = "explorer" | "search" | "notes" | "sessions";
 
 // ─── The right panel ────────────────────────────────────────────────────────
 

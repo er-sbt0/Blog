@@ -1,6 +1,6 @@
 # Remote Claude Code sessions
 
-**Status: phases 1–2 done, 4 Oct 2026 (§7.1, §7.2); phases 3–5 not started.** A read-only browser for the
+**Status: phases 1–3 done, 4 Oct 2026 (§7.1–§7.3); phase 4 not started, phase 5 declined (§9).** A read-only browser for the
 Claude Code transcripts on remote machines — view, browse, toggle, search, and
 stats — in the desktop app. It ports `~/code/claude_remote` (a Python/Textual
 TUI over `coder ssh`) into the shell, with an incremental sync into the embedded
@@ -574,7 +574,9 @@ What it changed:
 1. **Is any remote not GNU/Linux?** `find -printf` and `stat -c` are GNU. A macOS
    coder workspace would need a BSD branch in the list script.
 2. **Main-area route instead of pane tabs (§4.6) — acceptable for v1?**
-3. **Fix `MarkdownText`'s `href` for Copilot too?** It is the same one-line
+   *Yes (4 Oct 2026).* Phase 5 is therefore not planned.
+3. **Fix `MarkdownText`'s `href` for Copilot too?** *Yes (4 Oct 2026), done
+   in phase 3 through `src/lib/safeHref.ts`.* It is the same one-line
    scheme check. It is out of this plan's scope, and the risk there is lower
    because the author of the text is the model.
 
@@ -635,3 +637,54 @@ What it changed from §4:
 - **`requireRemoteHost` answers 404 for someone else's host, not 403**, and
   also for a malformed id. A malformed id would otherwise be a Prisma error,
   which is a 500.
+
+### 7.3 Phase 3 log (4 Oct 2026)
+
+Built:
+
+- **Main process.** `remoteSessionsIpc.js` handles `sessions:sync` (UUID
+  check first, one sync per host at a time, progress events) on top of
+  `remoteSessionsBridge.js`, which has no imports and holds the
+  cookie-authenticated client. `preload.cjs` gains `sessions.sync` and
+  `sessions.onProgress`, and its docblock makes the narrowness argument §2.2
+  asks for.
+- **Read routes.** `GET /api/remote-sessions/sessions` (the tree),
+  `sessions/[id]` (the header; `DELETE` forgets the session),
+  `sessions/[id]/entries?from=&limit=`, and `DELETE hosts/[id]/projects?dir=`.
+  Authorization goes through `requireRemoteSession`, which checks via the host.
+- **UI** in `src/components/RemoteSessions/`:
+  - a fourth `SidebarView` (`sessions`), with an activity-rail button on
+    desktop only;
+  - a Remote hosts section in Settings;
+  - `/sessions` (a landing page with a marked spot for the phase 4 dashboard)
+    and `/sessions/[id]`, a transcript virtualised with
+    `@tanstack/react-virtual` (MIT, as is its `virtual-core`).
+- **Security spec.** `TranscriptEntry.test.tsx` renders the real entry
+  components over `<img onerror>`, `javascript:` and `data:` links,
+  `<script>`, `<svg onload>` and the contents of an HTML `Write`, and asserts
+  that none of it becomes markup.
+
+What it changed:
+
+- **§4.7 assumed the link handlers in `main.js` were already safe. They were
+  not.** `setWindowOpenHandler` passed *any* non-app URL to
+  `shell.openExternal`, which is `xdg-open`, so a `file://` link could launch
+  a `.desktop` file. Both handlers also recognised the app with
+  `startsWith(origin)`, which `http://127.0.0.1:PORT@evil.example/`
+  satisfies. `links.js` (`linkDisposition`) now compares parsed origins and
+  lets only http(s) reach the shell.
+- **`src/lib/diff` produces HTML, so the transcript cannot use it.** Edit
+  inputs use a small line diff in `transcriptModel.ts` instead.
+- **Progress stops at the end of the byte transfer.** Derivation in `finish`
+  sends no events, so the UI shows "Indexing…" from `done === total` until
+  `sync()` resolves (§7.2's 18 s).
+- **Deferred:**
+  - find-in-session searches only the pages already loaded, and outlines the
+    matching row rather than highlighting the match;
+  - pages load in order, with no jumping ahead to an unloaded part;
+  - "add one in Settings" is text, not a button, because whether Settings is
+    open is local state inside `RightRail`.
+- **Not verified: any of it on screen.** Nothing has run inside Electron, so
+  the IPC round trip, a sync through the real cookie, row measurement in the
+  virtualiser, both colour schemes, and whether links open in the system
+  browser are all unchecked. That is the same compositor limit as §6.3.

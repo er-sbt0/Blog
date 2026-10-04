@@ -4,7 +4,8 @@ import React from "react";
 import RouterLink from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar, Box, Tooltip } from "@mui/material";
-import { Code, Files, Newspaper, Search } from "lucide-react";
+import { Code, Files, MessagesSquare, Newspaper, Search } from "lucide-react";
+import { IS_DESKTOP_CLIENT } from "@/lib/desktop";
 import { actions, type RootState, useDispatch, useSelector } from "@/store";
 import type { SidebarView } from "@/types";
 import { ICON_SIZE } from "@/theme/icons";
@@ -111,6 +112,19 @@ const ActivityRail: React.FC = () => {
         showBar
         onClick={() => handleViewClick("search")}
       />
+      {
+        /* Remote Claude Code sessions — desktop only (docs/plans/remote-claude.md
+          §4.6). A build-time constant, so the server and client passes agree. */
+      }
+      {IS_DESKTOP_CLIENT && (
+        <RailIconButton
+          label="Sessions"
+          icon={<MessagesSquare size={ICON_SIZE.dense} strokeWidth={1.9} />}
+          active={sidebarOpen && sidebarView === "sessions"}
+          showBar
+          onClick={() => handleViewClick("sessions")}
+        />
+      )}
       <RailIconButton
         label="Posts"
         icon={<Newspaper size={ICON_SIZE.dense} strokeWidth={1.9} />}

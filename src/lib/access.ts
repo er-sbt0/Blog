@@ -5,7 +5,7 @@ import { findDocument } from "@/repositories/document";
 import { findThreadById } from "@/repositories/copilotThread";
 import { findCanvasById, findNoteById } from "@/repositories/notes";
 import { findProjectById } from "@/repositories/project";
-import { findRemoteHostById } from "@/repositories/remoteSessions";
+import { findRemoteHostById, findRemoteSessionOwner } from "@/repositories/remoteSessions";
 import { getCachedRevision } from "@/repositories/revision";
 import { findSeriesById } from "@/repositories/series";
 import type { CloudPost } from "@/types";
@@ -314,4 +314,16 @@ export async function requireRemoteHost(hostId: string, user: SessionUser) {
     throw new ApiError(404, "Host not found");
   }
   return host;
+}
+
+/**
+ * Authorize the caller for one remote session (a transcript file), through the
+ * host that owns it. Same 404 for missing, malformed and someone else's.
+ */
+export async function requireRemoteSession(fileId: string, user: SessionUser) {
+  const file = UUID_RE.test(fileId) ? await findRemoteSessionOwner(fileId) : null;
+  if (!file || file.host.userId !== user.id) {
+    throw new ApiError(404, "Session not found");
+  }
+  return file;
 }

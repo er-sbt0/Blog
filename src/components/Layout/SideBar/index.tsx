@@ -16,6 +16,7 @@ import { SidebarHeader } from "./SidebarHeader";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { ActivePostsSection } from "./ActivePostsSection";
 import { SidebarSearchView } from "./SidebarSearchView";
+import SessionsSidebarView from "@/components/RemoteSessions/SessionsSidebarView";
 import { CollapsedRail } from "./CollapsedRail";
 import { SidebarContextMenu } from "./SidebarContextMenu";
 import { SidebarEmptyState } from "./SidebarEmptyState";
@@ -215,9 +216,13 @@ const SideBar: React.FC = () => {
               the explorer the tree's own "Notes"/"Projects" section headers label
               the content and carry the create ("+") affordances. */
             }
-            {sidebarView === "search" && <SidebarHeader view={sidebarView} />}
+            {(sidebarView === "search" || sidebarView === "sessions") && (
+              <SidebarHeader view={sidebarView} />
+            )}
             {sidebarView === "search"
               ? <SidebarSearchView />
+              : sidebarView === "sessions"
+              ? <SessionsSidebarView />
               : hasContent
               ? (
                 <ActivePostsSection

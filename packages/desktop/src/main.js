@@ -39,6 +39,8 @@ import {
   waitForHealth,
 } from "./server.js";
 import { installTerminal } from "./pty.js";
+import { installRemoteSessions } from "./remoteSessionsIpc.js";
+import { linkDisposition } from "./links.js";
 
 /**
  * Phases 2–3 of docs/plans/desktop-app.md: the whole stack under Electron, with
@@ -98,6 +100,8 @@ let cluster = null;
 let nextServer = null;
 /** The terminal's PTY and its IPC handlers (docs/plans/in-app-terminal.md). */
 let terminal = null;
+/** `sessions:sync` and its single-flight map (docs/plans/remote-claude.md §4.2). */
+let remoteSessions = null;
 let mainWindow = null;
 let shuttingDown = false;
 /** Set if the Next child dies; read by the health wait so a crash is not a hang. */
@@ -265,6 +269,10 @@ async function boot() {
     execPath: process.execPath,
     log,
   });
+  // The remote-sessions sync, for the same reason and at the same point: a
+  // handler registered after `loadURL` is a race. It reaches the server as the
+  // local author with the cookie `establishSession` just set.
+  remoteSessions = installRemoteSessions({ origin, cookie: () => sessionCookieHeader, log });
 
   // 10. The window, and only now.
   await openWindow(origin);
@@ -460,10 +468,13 @@ async function openWindow(origin) {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
-  // Anything that is not the local app opens in the real browser rather than in
-  // a chromeless Electron window with no address bar.
+  // No new windows. An http(s) link opens in the real browser rather than in a
+  // chromeless Electron window with no address bar; anything else is dropped.
+  // Only http(s) reaches the shell — `openExternal` is `xdg-open`, and a
+  // `file://` link from a transcript would open with whatever the desktop
+  // associates with it (docs/plans/remote-claude.md §4.7). See `links.js`.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (!url.startsWith(origin)) shell.openExternal(url);
+    if (linkDisposition(url, origin) === "external") shell.openExternal(url);
     return { action: "deny" };
   });
   // Dropping a file anywhere the editor is not listening navigates the window to
@@ -478,9 +489,10 @@ async function openWindow(origin) {
   // browser. Anything else — `file://`, and whatever a dropped folder produces
   // — is refused outright.
   mainWindow.webContents.on("will-navigate", (event, url) => {
-    if (url.startsWith(origin)) return;
+    const disposition = linkDisposition(url, origin);
+    if (disposition === "app") return;
     event.preventDefault();
-    if (url.startsWith("http://") || url.startsWith("https://")) {
+    if (disposition === "external") {
       shell.openExternal(url);
       log(`opened ${url} in the browser`);
     } else {
@@ -617,6 +629,12 @@ async function shutdown() {
     console.error("[desktop] failed to stop the terminal", error);
   }
   terminal = null;
+  try {
+    remoteSessions?.dispose();
+  } catch (error) {
+    console.error("[desktop] failed to remove the remote-sessions handler", error);
+  }
+  remoteSessions = null;
   try {
     await stopNextServer(nextServer, { group: DEV });
   } catch (error) {

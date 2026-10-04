@@ -34,9 +34,28 @@ const { contextBridge, ipcRenderer } = require("electron");
  * cases; a `.js` here would work in `pnpm desktop` and fail only in the
  * packaged build, which is the worst available split.
  *
- * Channel names are repeated from `pty.js` rather than imported: a sandboxed
- * preload cannot import an ES module from the shell, and inventing a bundle
- * step to share four strings would cost more than the repetition.
+ * **`sessions` is the second capability, and makes its own argument**
+ * (docs/plans/remote-claude.md §2.2, §4.2). It cannot reuse the terminal's
+ * "the argv is fixed" — an ssh destination is user input and does become an
+ * argv element. What keeps it narrow instead:
+ *
+ * - The renderer passes a host **id**, never an alias. The main process reads
+ *   the alias from the server, which answers only for a host the signed-in
+ *   author already added in Settings, and validates it again before spawning
+ *   (`isValidHost` in `remoteSessions.js`, `--` before it, no shell). So a
+ *   compromised renderer can re-sync a host the user chose; it cannot name a
+ *   new one, or choose what an existing one runs.
+ * - The ssh options and both remote scripts are constants in the main process.
+ *   Nothing that crosses this bridge reaches a command line, and the read
+ *   script refuses any path outside `~/.claude/projects`.
+ * - The answer is `{ ok, derived }` or `{ ok: false, error }` — a count or
+ *   ssh's message, never transcript bytes. Those reach the renderer only
+ *   through the authorized `/api/remote-sessions` routes, like any other data.
+ *
+ * Channel names are repeated from `pty.js` and `remoteSessionsIpc.js` rather
+ * than imported: a sandboxed preload cannot import an ES module from the
+ * shell, and inventing a bundle step to share a handful of strings would cost
+ * more than the repetition.
  */
 
 /**
@@ -89,5 +108,15 @@ contextBridge.exposeInMainWorld("desktop", {
     onData: (callback) => subscribe("terminal:data", callback),
     /** `({ code, signal }) => void`. Returns an unsubscribe. */
     onExit: (callback) => subscribe("terminal:exit", callback),
+  },
+  sessions: {
+    /**
+     * Sync one host the user added. Resolves to `{ ok: true, derived }` or
+     * `{ ok: false, error }`; never rejects. A second call for a host already
+     * syncing gets the same answer as the first.
+     */
+    sync: (hostId) => ipcRenderer.invoke("sessions:sync", hostId),
+    /** `({ hostId, done, total }) => void`, bytes read so far. Returns an unsubscribe. */
+    onProgress: (callback) => subscribe("sessions:progress", callback),
   },
 });

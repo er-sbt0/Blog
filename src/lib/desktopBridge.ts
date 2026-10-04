@@ -67,8 +67,33 @@ export interface DesktopTerminal {
   onExit(cb: (info: TerminalExit) => void): () => void;
 }
 
+/** The answer to a sync. Never a rejection — a failure carries ssh's message. */
+export type SessionSyncResult =
+  | { ok: true; derived: number }
+  | { ok: false; error: string };
+
+/** Bytes read so far in one host's sync. */
+export interface SessionSyncProgress {
+  hostId: string;
+  done: number;
+  total: number;
+}
+
+/**
+ * Remote Claude Code sessions (docs/plans/remote-claude.md §4.2). The renderer
+ * names a host by **id** — one the author already added — and the main process
+ * reads the alias from the server and validates it again, so nothing here can
+ * name a new ssh destination.
+ */
+export interface DesktopSessions {
+  sync(hostId: string): Promise<SessionSyncResult>;
+  /** Subscribe to every host's progress. Returns the unsubscribe. */
+  onProgress(cb: (progress: SessionSyncProgress) => void): () => void;
+}
+
 export interface DesktopBridge {
   terminal: DesktopTerminal;
+  sessions: DesktopSessions;
 }
 
 declare global {

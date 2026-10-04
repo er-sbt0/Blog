@@ -23,6 +23,8 @@ import { AI_MODELS } from "@/lib/ai/models";
 import { useAIModel } from "@/contexts/AIModelContext";
 import { useSidebarFontSize } from "@/components/Layout/SideBar/hooks/useSidebarFontSize";
 import ProviderKeys from "./ProviderKeys";
+import RemoteHostsSettings from "@/components/RemoteSessions/RemoteHostsSettings";
+import { IS_DESKTOP_CLIENT } from "@/lib/desktop";
 import { ICON_SIZE } from "@/theme/icons";
 
 interface SettingsPanelProps {
@@ -264,6 +266,26 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ open, onClose }) => {
             <ProviderKeys />
           </Box>
         </Box>
+
+        {
+          /* Remote Claude Code hosts — the desktop build only
+            (docs/plans/remote-claude.md §4.6). */
+        }
+        {IS_DESKTOP_CLIENT && (
+          <>
+            <Divider />
+            <Box>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ display: "block", mb: 2 }}
+              >
+                Remote hosts
+              </Typography>
+              <RemoteHostsSettings />
+            </Box>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

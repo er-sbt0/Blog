@@ -1,7 +1,20 @@
 import { createHash } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { prisma } from "@/lib/prisma";
-import { PARSER_VERSION, parseTranscript } from "@/lib/claudeSessions/parse";
+import {
+  PARSER_VERSION,
+  parseTranscript,
+  type EntryBody,
+  type EntryKind,
+} from "@/lib/claudeSessions/parse";
+import {
+  agentIdOf,
+  type RemoteEntriesPage,
+  type RemoteHostSummary,
+  type RemoteSessionDetail,
+  type RemoteSessionSummary,
+  type RemoteSessionsTree,
+} from "@/lib/claudeSessions/types";
 import {
   HEAD_BYTES,
   diffManifest,
@@ -338,4 +351,154 @@ export async function finishSync(
     data: error === null ? { lastSyncAt: new Date(), lastError: null } : { lastError: error },
   });
   return { derived: stale.length };
+}
+
+// ─── Reads (phase 3) ─────────────────────────────────────────────────────────
+
+const iso = (d: Date | null) => (d ? d.toISOString() : null);
+
+const hostSummary = (h: RemoteHostRow): RemoteHostSummary => ({
+  id: h.id,
+  alias: h.alias,
+  label: h.label,
+  lastSyncAt: iso(h.lastSyncAt),
+  lastError: h.lastError,
+  createdAt: h.createdAt.toISOString(),
+});
+
+const sessionSelect = {
+  id: true,
+  hostId: true,
+  path: true,
+  title: true,
+  cwd: true,
+  cwdGuessed: true,
+  gitBranch: true,
+  startedAt: true,
+  endedAt: true,
+  goneAt: true,
+  isSubagent: true,
+  parentFileId: true,
+  activeMs: true,
+  userMsgs: true,
+  assistantMsgs: true,
+  toolCalls: true,
+  size: true,
+} satisfies Prisma.RemoteFileSelect;
+
+type SessionRow = Prisma.RemoteFileGetPayload<{ select: typeof sessionSelect }>;
+
+const sessionSummary = (f: SessionRow): RemoteSessionSummary => ({
+  id: f.id,
+  hostId: f.hostId,
+  path: f.path,
+  projectDir: projectDirOf(f.path),
+  title: f.title,
+  cwd: f.cwd,
+  cwdGuessed: f.cwdGuessed,
+  gitBranch: f.gitBranch,
+  startedAt: iso(f.startedAt),
+  endedAt: iso(f.endedAt),
+  goneAt: iso(f.goneAt),
+  isSubagent: f.isSubagent,
+  parentId: f.parentFileId,
+  activeMs: f.activeMs,
+  userMsgs: f.userMsgs,
+  assistantMsgs: f.assistantMsgs,
+  toolCalls: f.toolCalls,
+  size: Number(f.size),
+});
+
+/** Every host and session the user has, newest session first. No entries. */
+export async function findRemoteSessionsTree(userId: string): Promise<RemoteSessionsTree> {
+  const [hosts, files] = await Promise.all([
+    findRemoteHostsByUser(userId),
+    prisma.remoteFile.findMany({
+      where: { host: { userId } },
+      select: sessionSelect,
+      orderBy: [{ endedAt: { sort: "desc", nulls: "last" } }, { path: "asc" }],
+    }),
+  ]);
+  return { hosts: hosts.map(hostSummary), sessions: files.map(sessionSummary) };
+}
+
+/** The owner of a session, for `requireRemoteSession`. */
+export function findRemoteSessionOwner(id: string) {
+  return prisma.remoteFile.findUnique({
+    where: { id },
+    select: { id: true, hostId: true, host: { select: { userId: true } } },
+  });
+}
+
+export async function findRemoteSessionDetail(id: string): Promise<RemoteSessionDetail | null> {
+  const f = await prisma.remoteFile.findUnique({
+    where: { id },
+    select: {
+      ...sessionSelect,
+      firstPrompt: true,
+      tools: true,
+      host: { select: hostSelect },
+      parent: { select: { id: true, title: true } },
+      subagents: { select: { id: true, path: true, title: true }, orderBy: { startedAt: "asc" } },
+      _count: { select: { entries: true } },
+    },
+  });
+  if (!f) return null;
+  return {
+    ...sessionSummary(f),
+    host: hostSummary(f.host),
+    firstPrompt: f.firstPrompt,
+    tools: (f.tools ?? {}) as Record<string, number>,
+    entryCount: f._count.entries,
+    subagents: f.subagents.map((s) => ({ id: s.id, agentId: agentIdOf(s.path), title: s.title })),
+    parent: f.parent,
+  };
+}
+
+/** One page of a transcript, by position (§4.7). `text` is search-only and not sent. */
+export async function findRemoteEntries(
+  fileId: string,
+  from: number,
+  limit: number,
+): Promise<RemoteEntriesPage> {
+  const [rows, total] = await Promise.all([
+    prisma.remoteEntry.findMany({
+      where: { fileId, idx: { gte: from } },
+      orderBy: { idx: "asc" },
+      take: limit,
+      select: { idx: true, kind: true, uuid: true, parentUuid: true, at: true, tool: true, body: true },
+    }),
+    prisma.remoteEntry.count({ where: { fileId } }),
+  ]);
+  return {
+    total,
+    entries: rows.map((r) => ({
+      idx: r.idx,
+      kind: r.kind as EntryKind,
+      uuid: r.uuid,
+      parentUuid: r.parentUuid,
+      at: iso(r.at),
+      tool: r.tool,
+      body: r.body as unknown as EntryBody,
+    })),
+  };
+}
+
+/**
+ * Forget sessions (§4.8): the files, their chunks and entries, and — for a
+ * session — its subagent runs. A file still on the remote comes back on the
+ * next sync; one that is gone does not, which is why the UI confirms.
+ */
+export async function forgetRemoteSession(id: string): Promise<number> {
+  const { count } = await prisma.remoteFile.deleteMany({
+    where: { OR: [{ id }, { parentFileId: id }] },
+  });
+  return count;
+}
+
+export async function forgetRemoteProject(hostId: string, projectDir: string): Promise<number> {
+  const { count } = await prisma.remoteFile.deleteMany({
+    where: { hostId, path: { startsWith: `${projectDir}/` } },
+  });
+  return count;
 }

@@ -1,6 +1,7 @@
 "use client";
 import { Fragment, type ReactNode } from "react";
 import { Box, Link, Typography } from "@mui/material";
+import { safeExternalHref } from "@/lib/safeHref";
 
 /**
  * Minimal Markdown → MUI renderer for short Copilot replies. Intentionally
@@ -72,19 +73,25 @@ function renderInline(text: string, keyPrefix: string): ReactNode {
         </em>
       );
       break;
-    case "link":
-      node = (
+    case "link": {
+      // Only http(s) becomes an anchor; any other target (`javascript:`,
+      // `data:`, relative) is shown as its text. docs/plans/remote-claude.md §2.4.
+      const href = safeExternalHref(match[2]);
+      node = href ? (
         <Link
           key={key}
-          href={match[2]}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
           sx={{ color: "inherit", textDecorationColor: "currentColor" }}
         >
           {match[1]}
         </Link>
+      ) : (
+        <Fragment key={key}>{match[1]}</Fragment>
       );
       break;
+    }
     default:
       node = match[0];
   }

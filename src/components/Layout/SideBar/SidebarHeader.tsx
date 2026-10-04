@@ -9,6 +9,7 @@ const VIEW_TITLES: Record<SidebarView, string> = {
   explorer: "Explorer",
   search: "Search",
   notes: "Notes",
+  sessions: "Sessions",
 };
 
 interface SidebarHeaderProps {
