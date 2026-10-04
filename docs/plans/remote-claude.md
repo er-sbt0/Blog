@@ -1,6 +1,6 @@
 # Remote Claude Code sessions
 
-**Status: proposal, 4 Oct 2026. Nothing is built.** A read-only browser for the
+**Status: phase 1 done, 4 Oct 2026 (§7.1); phases 2–5 not started.** A read-only browser for the
 Claude Code transcripts on remote machines — view, browse, toggle, search, and
 stats — in the desktop app. It ports `~/code/claude_remote` (a Python/Textual
 TUI over `coder ssh`) into the shell, with an incremental sync into the embedded
@@ -521,6 +521,38 @@ superuser once and the migration's `IF NOT EXISTS` becomes a no-op.
 4. **Search and stats.** §4.9 and §4.10.
 5. **Optional: sessions in panes.** Only if §9 question 2 says the split matters.
    This is the §2.1 refactor.
+
+### 7.1 Phase 1 log (4 Oct 2026)
+
+`packages/desktop/src/remoteSessions.js` holds the host check, the argv, both
+fixed scripts and the frame parser, with `runRemote` as the only part that
+spawns. `scripts/spike-remote-sessions.mjs <host>` runs it and prints counts
+only. Run against `dev@192.168.1.33` (GNU/Linux, find 4.10), every check passed:
+a range read equals the same slice of a full read, `../`, absolute and
+non-`.jsonl` paths are refused, a range past EOF reports `rewritten` without
+desynchronising later frames, and an option-shaped host is refused before spawn.
+
+What it changed:
+
+- **§4.2's regex was too narrow.** The first real host was `user@host`, not an
+  alias. `@` is now allowed once, before the host part. The leading-`-` rule is
+  unchanged.
+- **The remote login shell is not assumed to be POSIX.** Both scripts run under
+  an explicit `sh -c '…'`. That quoting is sound only because the scripts
+  contain no `'`, and `shWrap` asserts it.
+- **The leading-dash hazard is real on the remote too.** Project directories are
+  named like `-home-dev-llvm`, so any remote command that takes one as a bare
+  argument reads it as an option. The scripts only ever pass `./…` or
+  `"$root/$rel"`.
+- **§6.1, for this host only:** 1 project, 1 session, 286 KB, 62 events, read in
+  one ~0.4 s round trip (the list takes ~0.8 s). That is too small to size
+  anything, so §6.1 stays open until a busier host is measured.
+- **The event vocabulary has grown since `model.py`.** Seen: `mode`,
+  `permission-mode`, `atis-latch`, `attachment`, `last-prompt`, `ai-title`,
+  `cost-state` and `file-history-snapshot`, beside `user`, `assistant` and
+  `system`. `ai-title` is a better source for a session title than the first
+  prompt, so `parse.ts` should prefer it. The rest are `meta`.
+- **§6.2 is still unverified.** This host is plain ssh, not coder.
 
 ## 8. Out of scope
 
