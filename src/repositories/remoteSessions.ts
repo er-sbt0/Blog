@@ -10,11 +10,21 @@ import {
 import {
   agentIdOf,
   type RemoteEntriesPage,
+  SEARCH_MAX_HITS,
   type RemoteHostSummary,
+  type RemoteSearchResult,
   type RemoteSessionDetail,
   type RemoteSessionSummary,
   type RemoteSessionsTree,
+  type RemoteStats,
 } from "@/lib/claudeSessions/types";
+import {
+  SNIPPET_RADIUS,
+  escapeLike,
+  snippetAround,
+  type SearchParams,
+} from "@/lib/claudeSessions/search";
+import { STATS_DAYS, dayInZone, fillDays, fillHours, lastNDays } from "@/lib/claudeSessions/stats";
 import {
   HEAD_BYTES,
   diffManifest,
@@ -25,7 +35,7 @@ import {
   type ListedFile,
   type WantedRange,
 } from "@/lib/claudeSessions/sync";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 // Rows for docs/plans/remote-claude.md. Owner-scoped only: there is no public
 // variant of anything here and there must never be one, because a transcript
@@ -501,4 +511,195 @@ export async function forgetRemoteProject(hostId: string, projectDir: string): P
     where: { hostId, path: { startsWith: `${projectDir}/` } },
   });
   return count;
+}
+
+// ─── Search and stats (phase 4, §4.9, §4.10) ─────────────────────────────────
+
+/** Caller-scoped files: the owner check is in the SQL, never a later filter. */
+const ownedFiles = (userId: string, hostId: string | null) => Prisma.sql`
+  SELECT f.* FROM "RemoteFile" f
+  JOIN "RemoteHost" h ON h.id = f."hostId"
+  WHERE h."userId" = ${userId}::uuid
+  ${hostId ? Prisma.sql`AND f."hostId" = ${hostId}::uuid` : Prisma.empty}`;
+
+interface SearchRow {
+  sessionId: string;
+  hostId: string;
+  title: string | null;
+  path: string;
+  cwd: string | null;
+  isSubagent: boolean;
+  endedAt: Date | null;
+  idx: number;
+  kind: EntryKind;
+  tool: string | null;
+  window: string;
+}
+
+/**
+ * Substring search over the caller's transcripts (§4.9), newest session first.
+ * `q` arrives lower-cased; its `LIKE` metacharacters are escaped so it matches
+ * literally, and the trigram index serves the `LIKE`. Only a window around the
+ * match leaves the database, never a whole 64 KiB `text`.
+ */
+export async function searchRemoteEntries(
+  userId: string,
+  p: SearchParams,
+): Promise<RemoteSearchResult> {
+  const pattern = `%${escapeLike(p.q)}%`;
+  const where = [
+    Prisma.sql`h."userId" = ${userId}::uuid`,
+    Prisma.sql`e.text LIKE ${pattern} ESCAPE '\\'`,
+  ];
+  if (p.hostId) where.push(Prisma.sql`f."hostId" = ${p.hostId}::uuid`);
+  if (p.project) where.push(Prisma.sql`split_part(f.path, '/', 1) = ${p.project}`);
+  if (p.kinds.length) where.push(Prisma.sql`e.kind IN (${Prisma.join(p.kinds)})`);
+  if (!p.thinking) where.push(Prisma.sql`e.kind <> 'thinking'`);
+
+  // strpos and substr count characters, so the window is at least SNIPPET_RADIUS
+  // UTF-16 units either side; `snippetAround` makes the exact cut.
+  const rows = await prisma.$queryRaw<SearchRow[]>`
+    SELECT f.id AS "sessionId", f."hostId", f.title, f.path, f.cwd, f."isSubagent",
+           f."endedAt", e.idx, e.kind, e.tool,
+           substr(e.text, greatest(1, m.pos - ${SNIPPET_RADIUS}::int),
+                  m.pos - greatest(1, m.pos - ${SNIPPET_RADIUS}::int) + length(${p.q}) + ${SNIPPET_RADIUS}::int
+           ) AS "window"
+    FROM "RemoteEntry" e
+    JOIN "RemoteFile" f ON f.id = e."fileId"
+    JOIN "RemoteHost" h ON h.id = f."hostId"
+    CROSS JOIN LATERAL (SELECT strpos(e.text, ${p.q}) AS pos) m
+    WHERE ${Prisma.join(where, " AND ")}
+    ORDER BY f."endedAt" DESC NULLS LAST, f.id, e.idx
+    LIMIT ${SEARCH_MAX_HITS + 1}`;
+
+  const truncated = rows.length > SEARCH_MAX_HITS;
+  return {
+    truncated,
+    hits: rows.slice(0, SEARCH_MAX_HITS).map((r) => ({
+      sessionId: r.sessionId,
+      hostId: r.hostId,
+      title: r.title,
+      projectDir: projectDirOf(r.path),
+      cwd: r.cwd,
+      isSubagent: r.isSubagent,
+      endedAt: iso(r.endedAt),
+      idx: r.idx,
+      kind: r.kind,
+      tool: r.tool,
+      ...snippetAround(r.window, p.q),
+    })),
+  };
+}
+
+/**
+ * Every number on the dashboard (§4.10), aggregated in SQL over `RemoteFile`.
+ *
+ * Subagent runs are never sessions. They are also left out of `userMsgs`,
+ * `activeMs`, `perDay` and `byHour`: a run's "prompt" is its parent's tool
+ * call, not the user, and its active time overlaps the parent's. They are
+ * counted in `assistantMsgs`, `toolCalls` and `tools`, which is work the run
+ * really did and the parent's own counts do not contain.
+ */
+export async function findRemoteStats(
+  userId: string,
+  hostId: string | null,
+  tz: string,
+  now = new Date(),
+): Promise<RemoteStats> {
+  const files = ownedFiles(userId, hostId);
+  const days = lastNDays(dayInZone(now, tz), STATS_DAYS);
+
+  const [totals, perProject, perDay, byHour, tools] = await Promise.all([
+    prisma.$queryRaw<
+      {
+        hosts: number;
+        projects: number;
+        sessions: number;
+        subagentRuns: number;
+        userMsgs: number;
+        assistantMsgs: number;
+        toolCalls: number;
+        activeMs: number;
+        first: Date | null;
+        last: Date | null;
+      }[]
+    >`
+      WITH f AS (${files})
+      SELECT count(DISTINCT f."hostId")::int AS hosts,
+             count(DISTINCT (f."hostId", split_part(f.path, '/', 1)))::int AS projects,
+             count(*) FILTER (WHERE NOT f."isSubagent")::int AS sessions,
+             count(*) FILTER (WHERE f."isSubagent")::int AS "subagentRuns",
+             coalesce(sum(f."userMsgs") FILTER (WHERE NOT f."isSubagent"), 0)::float8 AS "userMsgs",
+             coalesce(sum(f."assistantMsgs"), 0)::float8 AS "assistantMsgs",
+             coalesce(sum(f."toolCalls"), 0)::float8 AS "toolCalls",
+             coalesce(sum(f."activeMs") FILTER (WHERE NOT f."isSubagent"), 0)::float8 AS "activeMs",
+             min(f."startedAt") AS first,
+             max(f."endedAt") AS last
+      FROM f`,
+    prisma.$queryRaw<
+      {
+        hostId: string;
+        projectDir: string;
+        cwd: string | null;
+        cwdGuessed: boolean | null;
+        sessions: number;
+        subagentRuns: number;
+        userMsgs: number;
+        toolCalls: number;
+        activeMs: number;
+        last: Date | null;
+      }[]
+    >`
+      WITH f AS (SELECT *, split_part(path, '/', 1) AS dir FROM (${files}) owned),
+      latest AS (
+        SELECT DISTINCT ON ("hostId", dir) "hostId", dir, cwd, "cwdGuessed"
+        FROM f WHERE NOT "isSubagent" AND cwd IS NOT NULL
+        ORDER BY "hostId", dir, "endedAt" DESC NULLS LAST, "startedAt" DESC NULLS LAST
+      )
+      SELECT f."hostId", f.dir AS "projectDir", l.cwd, l."cwdGuessed",
+             count(*) FILTER (WHERE NOT f."isSubagent")::int AS sessions,
+             count(*) FILTER (WHERE f."isSubagent")::int AS "subagentRuns",
+             coalesce(sum(f."userMsgs") FILTER (WHERE NOT f."isSubagent"), 0)::float8 AS "userMsgs",
+             coalesce(sum(f."toolCalls"), 0)::float8 AS "toolCalls",
+             coalesce(sum(f."activeMs") FILTER (WHERE NOT f."isSubagent"), 0)::float8 AS "activeMs",
+             max(f."endedAt") AS last
+      FROM f LEFT JOIN latest l ON l."hostId" = f."hostId" AND l.dir = f.dir
+      GROUP BY f."hostId", f.dir, l.cwd, l."cwdGuessed"
+      ORDER BY last DESC NULLS LAST, f.dir`,
+    prisma.$queryRaw<{ day: string; sessions: number }[]>`
+      WITH f AS (${files})
+      SELECT to_char(f."startedAt" AT TIME ZONE ${tz}, 'YYYY-MM-DD') AS day,
+             count(*)::int AS sessions
+      FROM f
+      WHERE NOT f."isSubagent"
+        AND (f."startedAt" AT TIME ZONE ${tz})::date BETWEEN ${days[0]}::date AND ${days[days.length - 1]}::date
+      GROUP BY 1`,
+    prisma.$queryRaw<{ hour: number; count: number }[]>`
+      WITH f AS (${files})
+      SELECT extract(hour FROM t AT TIME ZONE ${tz})::int AS hour, count(*)::int AS count
+      FROM f CROSS JOIN LATERAL unnest(f."promptTimes") AS t
+      WHERE NOT f."isSubagent"
+      GROUP BY 1`,
+    prisma.$queryRaw<{ name: string; count: number }[]>`
+      WITH f AS (${files})
+      SELECT t.key AS name, sum(t.value::bigint)::float8 AS count
+      FROM f CROSS JOIN LATERAL jsonb_each_text(
+        CASE WHEN jsonb_typeof(f.tools) = 'object' THEN f.tools ELSE '{}'::jsonb END
+      ) AS t
+      GROUP BY t.key
+      ORDER BY count DESC, name`,
+  ]);
+
+  const t = totals[0];
+  return {
+    totals: { ...t, first: iso(t.first), last: iso(t.last) },
+    perProject: perProject.map((r) => ({
+      ...r,
+      cwdGuessed: r.cwdGuessed ?? false,
+      last: iso(r.last),
+    })),
+    perDay: fillDays(days, perDay),
+    byHour: fillHours(byHour),
+    tools,
+  };
 }

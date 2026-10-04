@@ -1,6 +1,6 @@
 # Remote Claude Code sessions
 
-**Status: phases 1–3 done, 4 Oct 2026 (§7.1–§7.3); phase 4 not started, phase 5 declined (§9).** A read-only browser for the
+**Status: v1 built, 4 Oct 2026 — phases 1–4 done (§7.1–§7.4), phase 5 declined (§9). Never yet run inside the desktop app.** A read-only browser for the
 Claude Code transcripts on remote machines — view, browse, toggle, search, and
 stats — in the desktop app. It ports `~/code/claude_remote` (a Python/Textual
 TUI over `coder ssh`) into the shell, with an incremental sync into the embedded
@@ -688,3 +688,58 @@ What it changed:
   the IPC round trip, a sync through the real cookie, row measurement in the
   virtualiser, both colour schemes, and whether links open in the system
   browser are all unchecked. That is the same compositor limit as §6.3.
+
+### 7.4 Phase 4 log (4 Oct 2026)
+
+Built:
+
+- **Routes.** `GET /api/remote-sessions/search` and `GET
+  /api/remote-sessions/stats`. Their contract is in
+  `src/lib/claudeSessions/types.ts`, and their parameter parsing, LIKE
+  escaping, snippet cutting and zero-fill helpers are in `search.ts` and
+  `stats.ts`, which have no imports.
+- **Search UI.** In the Sessions sidebar, the filter box turns into a
+  transcript search: a toggle, or Enter. Results are grouped by session, and a
+  hit opens `/sessions/<id>?entry=<idx>&q=`, which loads the page holding that
+  entry and highlights the query.
+- **Stats dashboard** on `/sessions`.
+
+Measured on this machine's history: 418 files, 36,437 entries, 433 MB raw, a
+40 MB trigram index.
+
+| Query | Time | Hits |
+| --- | --- | --- |
+| rare term (`remoteSessions`) | 17 ms | 173 |
+| common word (`the`) | 129 ms | 1000, truncated |
+| stats, all hosts | 3–4 ms | — |
+
+The plan uses `RemoteEntry_text_trgm_idx` both for literal queries and for
+the generic plan (`like_escape($2,'\')`).
+
+What it decided, where §4.9 and §4.10 were silent:
+
+- **LIKE metacharacters are escaped.** Searching `foo_bar`, `100%` or
+  `back\slash` matches only that literal text, checked against real rows.
+- **Thinking is excluded unless `thinking=1`, or unless `kind=thinking` is
+  asked for explicitly.** Otherwise that explicit filter would always return
+  nothing.
+- **Subagent runs never count as sessions.** They are also left out of
+  prompts, active time, sessions per day and prompts by hour: a run's "prompt"
+  comes from its parent, not from the user, and its active time overlaps the
+  parent's. They do count towards assistant messages and tools, as the work
+  they did. So the tool breakdown sums to `toolCalls`.
+- **`tz` must be an IANA name.** Offsets like `+05:00` are refused: Postgres
+  reads a bare offset in `AT TIME ZONE` with the opposite sign from ISO.
+- **The charts are drawn with MUI boxes, not `@mui/x-charts`.** That library
+  takes colours as JS values, which would fix one scheme's colour in both
+  (DESIGN.md §19).
+
+Deferred:
+
+- search has no project filter in the UI, though the route and fetcher
+  support one;
+- find-in-session still searches only the pages already loaded.
+
+**Not verified:** anything over HTTP or on screen, the same limit as §7.3.
+The queries ran against the scratch cluster through the repository, not
+through the routes.

@@ -5,6 +5,12 @@
  * the top, and per host a Sync button, the last-synced time and ssh's last
  * error verbatim. Opening a session navigates to `/sessions/[id]`.
  *
+ * The box at the top has two modes. "Filter" narrows the tree client-side by
+ * title, path and branch; "Search transcripts" (§4.9, the toggle at the box's
+ * end, or Enter) sends the same text to the server's full-text search and
+ * swaps the tree for `SessionSearch`'s grouped hits. Escape on an empty box
+ * goes back to the tree.
+ *
  * Desktop-only. The activity-rail button that selects this view is hidden on
  * the web build, but the view still answers for itself in case the persisted
  * view ever says "sessions" there.
@@ -37,6 +43,7 @@ import {
   RefreshCw,
   Search,
   Server,
+  TextSearch,
   Trash2,
 } from "lucide-react";
 import { ICON_SIZE } from "@/theme/icons";
@@ -62,6 +69,7 @@ import {
 import { useForget } from "./useForget";
 import { SessionTreeRow } from "./SessionTreeRow";
 import { GoneBadge, relativeTime } from "./SessionBits";
+import { SessionSearch } from "./SessionSearch";
 
 type MenuTarget =
   | { kind: "host"; node: HostNode }
@@ -213,6 +221,7 @@ export const SessionsSidebarView: React.FC = () => {
   const activeId = activeSessionId(pathname);
   const { forgetSession, forgetProject, forgetHost } = useForget();
   const [filter, setFilter] = useState("");
+  const [mode, setMode] = useState<"filter" | "search">("filter");
   const [collapsedHosts, setCollapsedHosts] = useState<Set<string>>(new Set());
   const [openProjects, setOpenProjects] = useState<Set<string>>(new Set());
   const [openSubagents, setOpenSubagents] = useState<Set<string>>(new Set());
@@ -223,10 +232,11 @@ export const SessionsSidebarView: React.FC = () => {
   }, [store.status]);
 
   const hosts = useMemo(
-    () => (store.tree ? buildSessionTree(store.tree, filter) : []),
-    [store.tree, filter],
+    () => (store.tree && mode === "filter" ? buildSessionTree(store.tree, filter) : []),
+    [store.tree, filter, mode],
   );
   const filtering = filter.trim() !== "";
+  const searching = mode === "search";
 
   // The project holding the open session starts expanded, so following a link
   // into a transcript shows where it sits.
@@ -521,14 +531,41 @@ export const SessionsSidebarView: React.FC = () => {
             fullWidth
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter by title, path or branch…"
-            inputProps={{ "aria-label": "Filter sessions" }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !searching && filter.trim()) {
+                e.preventDefault();
+                setMode("search");
+              } else if (e.key === "Escape") {
+                if (filter) setFilter("");
+                else if (searching) setMode("filter");
+              }
+            }}
+            placeholder={searching ? "Search transcripts…" : "Filter by title, path or branch…"}
+            inputProps={{ "aria-label": searching ? "Search transcripts" : "Filter sessions" }}
             sx={{ fontSize: SB_FONT.body, color: "text.primary" }}
           />
+          <Tooltip title={searching ? "Back to filtering the tree" : "Search inside transcripts (Enter)"}>
+            <IconButton
+              size="small"
+              aria-pressed={searching}
+              aria-label="Search transcripts"
+              onClick={() => setMode(searching ? "filter" : "search")}
+              sx={{
+                p: 0.25,
+                flexShrink: 0,
+                color: searching ? "primary.main" : "text.secondary",
+                bgcolor: searching ? "action.selected" : "transparent",
+              }}
+            >
+              <TextSearch size={ICON_SIZE.inline} />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pb: 1 }}>{body}</Box>
+      {searching
+        ? <SessionSearch query={filter} hosts={store.tree?.hosts ?? []} activeId={activeId} />
+        : <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pb: 1 }}>{body}</Box>}
 
       <Menu
         open={menu !== null}

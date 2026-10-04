@@ -14,9 +14,15 @@ import type { ApiError } from "./types";
 import type {
   RemoteEntriesPage,
   RemoteHostSummary,
+  RemoteSearchResult,
   RemoteSessionDetail,
   RemoteSessionsTree,
+  RemoteStats,
 } from "@/lib/claudeSessions/types";
+import {
+  type SearchParams,
+  searchQueryString,
+} from "@/components/RemoteSessions/searchModel";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -79,7 +85,30 @@ export const remoteSessionsApi = {
         method: "DELETE",
       }),
   },
+  /**
+   * Full-text search across every synced transcript (§4.9). A query under
+   * `SEARCH_MIN_LENGTH` is a 400 whose message is the hint; callers gate on
+   * `searchGate` first so that is not the usual path. `signal` lets a newer
+   * query abandon an older one.
+   */
+  search: (params: SearchParams, signal?: AbortSignal) =>
+    request<RemoteSearchResult>(`${BASE}/search?${searchQueryString(params)}`, { signal }),
+  /** The dashboard's numbers (§4.10), days and hours in the viewer's zone. */
+  stats: (hostId: string | null, signal?: AbortSignal) => {
+    const p = new URLSearchParams({ tz: viewerTimeZone() });
+    if (hostId) p.set("host", hostId);
+    return request<RemoteStats>(`${BASE}/stats?${p.toString()}`, { signal });
+  },
 } as const;
+
+/** The viewer's IANA zone, for bucketing days and hours; UTC if unknown. */
+export function viewerTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
 
 /** The message to show for a thrown fetcher error. */
 export const errorMessage = (error: unknown): string =>

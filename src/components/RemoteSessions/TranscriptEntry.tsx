@@ -40,6 +40,7 @@ import {
   type TranscriptRow,
 } from "./transcriptModel";
 import { TranscriptMarkdown } from "./TranscriptMarkdown";
+import { Hl } from "./Highlight";
 
 const monoSx = {
   fontFamily: MONO_FONT,
@@ -63,7 +64,7 @@ const panelSx = {
  */
 const WithImages: React.FC<{ text: string }> = ({ text }) => {
   const parts = text.split(/^\[image\]$/m);
-  if (parts.length === 1) return <>{text}</>;
+  if (parts.length === 1) return <Hl text={text} />;
   return (
     <>
       {parts.map((part, i) => (
@@ -88,7 +89,7 @@ const WithImages: React.FC<{ text: string }> = ({ text }) => {
               <ImageIcon size={ICON_SIZE.micro} aria-hidden /> image
             </Box>
           )}
-          {part}
+          <Hl text={part} />
         </React.Fragment>
       ))}
     </>
@@ -130,7 +131,7 @@ const EditDiff: React.FC<{ before: string; after: string }> = ({ before, after }
         <Box component="span" aria-hidden sx={{ userSelect: "none", color: "text.disabled", pr: 1 }}>
           {line.op}
         </Box>
-        {line.text}
+        <Hl text={line.text} />
       </Box>
     ))}
   </Box>
@@ -155,7 +156,7 @@ const ToolInput: React.FC<{ name: string; input: unknown }> = ({ name, input }) 
   }
   const obj = typeof input === "object" && input !== null ? (input as Record<string, unknown>) : null;
   if (name === "Bash" && typeof obj?.command === "string") {
-    return <Box component="pre" sx={panelSx}>{obj.command}</Box>;
+    return <Box component="pre" sx={panelSx}><Hl text={obj.command} /></Box>;
   }
   if (name === "Write" && typeof obj?.content === "string") {
     return (
@@ -165,7 +166,7 @@ const ToolInput: React.FC<{ name: string; input: unknown }> = ({ name, input }) 
       </>
     );
   }
-  return <Box component="pre" sx={panelSx}>{JSON.stringify(input, null, 2)}</Box>;
+  return <Box component="pre" sx={panelSx}><Hl text={JSON.stringify(input, null, 2)} /></Box>;
 };
 
 interface ToolCallProps {
@@ -215,7 +216,7 @@ export const ToolCall: React.FC<ToolCallProps> = ({ row, expanded, onToggle, sub
           noWrap
           sx={{ fontFamily: MONO_FONT, color: "text.secondary", minWidth: 0, flex: 1 }}
         >
-          {summary}
+          <Hl text={summary} />
         </Typography>
         <Box
           component="span"
@@ -285,7 +286,7 @@ const Collapsible: React.FC<{ label: string; text: string; expanded: boolean; on
           }),
         }}
       >
-        {text}
+        <Hl text={text} />
       </Typography>
     </ButtonBase>
   </Box>
@@ -348,7 +349,7 @@ export const TranscriptEntry: React.FC<TranscriptEntryProps> = ({ row, expanded,
             }}
           >
             <TerminalSquare size={ICON_SIZE.inline} aria-hidden />
-            <span>/{name}{body.args ? ` ${body.args}` : ""}</span>
+            <span><Hl text={`/${name}${body.args ? ` ${body.args}` : ""}`} /></span>
           </Box>
         </Box>
       );

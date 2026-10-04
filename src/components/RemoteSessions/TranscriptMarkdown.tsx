@@ -13,6 +13,7 @@ import { Box, Link, Typography } from "@mui/material";
 import { safeExternalHref } from "@/lib/safeHref";
 import { MONO_FONT } from "@/components/Layout/SideBar/constants";
 import { type Block, type Inline, tokenizeMarkdown } from "./markdown";
+import { Hl } from "./Highlight";
 
 const codeSx = {
   fontFamily: MONO_FONT,
@@ -27,9 +28,9 @@ export const InlineTokens: React.FC<{ tokens: Inline[] }> = ({ tokens }) => (
     {tokens.map((tok, i) => {
       switch (tok.t) {
         case "text":
-          return <Fragment key={i}>{tok.v}</Fragment>;
+          return <Hl key={i} text={tok.v} />;
         case "code":
-          return <Box key={i} component="code" sx={codeSx}>{tok.v}</Box>;
+          return <Box key={i} component="code" sx={codeSx}><Hl text={tok.v} /></Box>;
         case "bold":
           return <strong key={i}><InlineTokens tokens={tok.c} /></strong>;
         case "italic":
@@ -39,10 +40,10 @@ export const InlineTokens: React.FC<{ tokens: Inline[] }> = ({ tokens }) => (
           return href
             ? (
               <Link key={i} href={href} target="_blank" rel="noopener noreferrer">
-                {tok.text}
+                <Hl text={tok.text} />
               </Link>
             )
-            : <Fragment key={i}>{tok.text}</Fragment>;
+            : <Hl key={i} text={tok.text} />;
         }
       }
     })}
@@ -88,7 +89,7 @@ const BlockView: React.FC<{ block: Block }> = ({ block }) => {
             whiteSpace: "pre",
           }}
         >
-          {block.text}
+          <Hl text={block.text} />
         </Box>
       );
     case "list":

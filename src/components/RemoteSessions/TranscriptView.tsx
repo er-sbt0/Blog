@@ -5,11 +5,15 @@
  *
  * Entries arrive in pages by `idx` and render through `@tanstack/react-virtual`
  * (MIT) with measured row heights, so a session of thousands of entries is
- * neither sent nor mounted whole. Pages load in order as the end of what is
- * loaded scrolls into view.
+ * neither sent nor mounted whole. What is loaded is one contiguous window of
+ * positions (`transcriptWindow.ts`): it starts at the page holding `?entry=`
+ * when a search hit opened the session (§4.9), else at 0, and grows downwards
+ * as its end scrolls into view and upwards on "Load earlier entries".
  *
- * Find-in-session searches the entries loaded so far, client-side; the
- * server-side search of §4.9 is phase 4. n / p step between prompts; `/` focuses
+ * Find-in-session searches the entries loaded so far, client-side, and marks
+ * the query inside every rendered row (`Highlight.tsx` — still text children,
+ * §2.4); `?q=` prefills it. The server-side search is the sidebar's
+ * (`SessionSearch.tsx`). n / p step between prompts; `/` focuses
  * find. All three are bare keys, which none of the app's chords use (they all
  * carry a modifier — `menuTemplate.js`'s `APP_SHORTCUTS`), and they stand down
  * while typing in a field, inside an editor, or with the terminal focused.
@@ -55,6 +59,15 @@ import {
   stepIndex,
 } from "./transcriptModel";
 import { TranscriptEntry } from "./TranscriptEntry";
+import { HighlightContext } from "./Highlight";
+import {
+  type EntryWindow,
+  nextPage,
+  pageStartFor,
+  placePage,
+  prevPage,
+  rowForEntry,
+} from "./transcriptWindow";
 import { absoluteTime, GoneBadge, SessionsUnavailable } from "./SessionBits";
 
 const PAGE = 500;
@@ -139,106 +152,235 @@ type Load =
   | { state: "error"; message: string }
   | { state: "ready"; detail: RemoteSessionDetail };
 
-export const TranscriptView: React.FC<{ id: string }> = ({ id }) => {
+/** The loaded entries: one contiguous window of positions (`transcriptWindow.ts`). */
+interface Loaded extends EntryWindow {
+  entries: RemoteEntryRow[];
+}
+
+type PageDir = "next" | "prev";
+
+/** Rows whose body is hidden until expanded — what opening at a hit unfolds. */
+const collapsible = (kind: RemoteEntryRow["kind"]) =>
+  kind === "tool_use" || kind === "thinking" || kind === "meta";
+
+interface TranscriptViewProps {
+  id: string;
+  /** `?entry=` — open at this entry (a search hit) rather than at the top. */
+  entry?: number | null;
+  /** `?q=` — the search that led here; prefills find and is highlighted. */
+  q?: string | null;
+}
+
+export const TranscriptView: React.FC<TranscriptViewProps> = ({ id, entry = null, q = null }) => {
   const [load, setLoad] = useState<Load>({ state: "loading" });
-  const [entries, setEntries] = useState<RemoteEntryRow[]>([]);
+  const [data, setData] = useState<Loaded | null>(null);
   const [total, setTotal] = useState<number | null>(null);
-  const [pageError, setPageError] = useState<string | null>(null);
-  const [pageLoading, setPageLoading] = useState(false);
+  const [firstError, setFirstError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<{ dir: PageDir; message: string } | null>(null);
+  const [pageLoading, setPageLoading] = useState<PageDir | null>(null);
   const [showThinking, setShowThinking] = useState(false);
   const [showMeta, setShowMeta] = useState(false);
   const [expandAll, setExpandAll] = useState(false);
   /** Rows toggled away from the `expandAll` default, by entry idx. */
   const [toggled, setToggled] = useState<Set<number>>(new Set());
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(q ?? "");
   const [matchPos, setMatchPos] = useState(0);
-  /** The row last jumped to by n / p / find, outlined so the eye can find it. */
+  /**
+   * The entry last jumped to by n / p / find / a search hit, outlined so the
+   * eye can find it. An entry idx rather than a row position, because loading
+   * an earlier page shifts every row position.
+   */
   const [cursor, setCursor] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const findRef = useRef<HTMLInputElement>(null);
   const loadingRef = useRef(false);
+  /** Bumped on every reset; a response from an older generation is dropped. */
+  const genRef = useRef(0);
+  /** An entry to scroll to once the rows holding it exist (a search hit). */
+  const pendingRef = useRef<number | null>(null);
+  /** The entry to keep at the top while an earlier page is prepended. */
+  const anchorRef = useRef<number | null>(null);
+  /** Set when `query` is filled from the URL, so it does not also jump. */
+  const skipQueryJumpRef = useRef(false);
+  const queryRef = useRef(query);
+  queryRef.current = query;
 
-  // Session + first page, together. A new id starts from scratch.
+  // The header, once per session.
   useEffect(() => {
     if (!IS_DESKTOP_CLIENT) return;
     let live = true;
     setLoad({ state: "loading" });
-    setEntries([]);
-    setTotal(null);
-    setPageError(null);
-    setToggled(new Set());
-    setCursor(null);
-    loadingRef.current = true;
-    Promise.all([remoteSessionsApi.sessions.get(id), remoteSessionsApi.sessions.entries(id, 0, PAGE)])
-      .then(([detail, page]) => {
-        if (!live) return;
-        setLoad({ state: "ready", detail });
-        setEntries(page.entries);
-        setTotal(page.total);
-      })
-      .catch((error) => live && setLoad({ state: "error", message: errorMessage(error) }))
-      .finally(() => {
-        if (live) loadingRef.current = false;
-      });
+    remoteSessionsApi.sessions
+      .get(id)
+      .then((detail) => live && setLoad({ state: "ready", detail }))
+      .catch((error) => live && setLoad({ state: "error", message: errorMessage(error) }));
     return () => {
       live = false;
     };
   }, [id]);
 
-  const hasMore = total !== null && entries.length < total;
-
-  const loadMore = useCallback(() => {
-    if (loadingRef.current || !hasMore) return;
-    loadingRef.current = true;
-    setPageLoading(true);
+  // The first window: the page holding `entry`, or the first page. A new id or
+  // a new hit starts from scratch.
+  useEffect(() => {
+    if (!IS_DESKTOP_CLIENT) return;
+    const gen = ++genRef.current;
+    setData(null);
+    setTotal(null);
+    setFirstError(null);
     setPageError(null);
-    const from = entries.length;
-    remoteSessionsApi.sessions
-      .entries(id, from, PAGE)
-      .then((page) => {
-        setEntries((prev) => (prev.length === from ? [...prev, ...page.entries] : prev));
+    setPageLoading(null);
+    setToggled(new Set());
+    setCursor(null);
+    const nextQuery = q ?? "";
+    if (nextQuery !== queryRef.current) {
+      skipQueryJumpRef.current = entry !== null;
+      setQuery(nextQuery);
+    }
+    pendingRef.current = entry;
+    anchorRef.current = null;
+    loadingRef.current = true;
+
+    const fetchFrom = (from: number): Promise<void> =>
+      remoteSessionsApi.sessions.entries(id, from, PAGE).then((page): Promise<void> | void => {
+        if (gen !== genRef.current) return;
+        // A link past the end (the session was re-synced shorter): start at the top.
+        if (page.entries.length === 0 && from > 0) return fetchFrom(0);
+        const last = page.entries[page.entries.length - 1];
+        setData({ start: from, end: last ? last.idx + 1 : page.total, entries: page.entries });
         setTotal(page.total);
-      })
-      .catch((error) => setPageError(errorMessage(error)))
-      .finally(() => {
-        loadingRef.current = false;
-        setPageLoading(false);
+        const hit = entry === null ? undefined : page.entries.find((e) => e.idx === entry);
+        if (hit?.kind === "thinking") setShowThinking(true);
+        if (hit?.kind === "meta") setShowMeta(true);
       });
-  }, [entries.length, hasMore, id]);
+    fetchFrom(entry === null ? 0 : pageStartFor(entry, PAGE))
+      .catch((error) => gen === genRef.current && setFirstError(errorMessage(error)))
+      .finally(() => {
+        if (gen === genRef.current) loadingRef.current = false;
+      });
+    // `q` is read once per hit; editing find afterwards must not reload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, entry]);
+
+  const hasMore = Boolean(data && total !== null && data.end < total);
+  const hasEarlier = Boolean(data && data.start > 0);
+  const lead = hasEarlier ? 1 : 0;
 
   const rows = useMemo(
-    () => buildRows(entries, { showThinking, showMeta }),
-    [entries, showThinking, showMeta],
+    () => buildRows(data?.entries ?? [], { showThinking, showMeta }),
+    [data, showThinking, showMeta],
   );
   const prompts = useMemo(() => promptRowIndices(rows), [rows]);
   const matches = useMemo(() => findRows(rows, query), [rows, query]);
+  const trail = hasMore || pageError?.dir === "next" ? 1 : 0;
 
   const virtualizer = useVirtualizer({
-    count: rows.length + (hasMore || pageError ? 1 : 0),
+    count: lead + rows.length + trail,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 72,
     overscan: 8,
-    getItemKey: (i) => (i < rows.length ? rows[i].entry.idx : "more"),
+    getItemKey: (i) =>
+      i < lead ? "earlier" : i < lead + rows.length ? rows[i - lead].entry.idx : "more",
   });
   const items = virtualizer.getVirtualItems();
+  /** What is on screen now, for `loadPage`, which must not re-create per scroll frame. */
+  const viewRef = useRef({ items, rows, lead });
+  viewRef.current = { items, rows, lead };
 
-  // The sentinel row is in view: fetch the next page.
+  /** The first row on screen, as an entry idx. */
+  const firstVisibleEntry = (): number | null => {
+    const v = viewRef.current;
+    const first = v.items.find((it) => it.index >= v.lead && it.index < v.lead + v.rows.length);
+    return first ? v.rows[first.index - v.lead].entry.idx : null;
+  };
+
+  const loadPage = useCallback((dir: PageDir) => {
+    if (loadingRef.current || !data || total === null) return;
+    const req = dir === "next" ? nextPage(data, total, PAGE) : prevPage(data, PAGE);
+    if (!req) return;
+    const gen = genRef.current;
+    if (dir === "prev") anchorRef.current = firstVisibleEntry() ?? data.entries[0]?.idx ?? null;
+    loadingRef.current = true;
+    setPageLoading(dir);
+    setPageError(null);
+    remoteSessionsApi.sessions
+      .entries(id, req.from, req.limit)
+      .then((page) => {
+        if (gen !== genRef.current) return;
+        setData((prev) => {
+          if (!prev) return prev;
+          const place = placePage(prev, req);
+          if (place === "append") {
+            const last = page.entries[page.entries.length - 1];
+            return { ...prev, end: last ? last.idx + 1 : page.total, entries: [...prev.entries, ...page.entries] };
+          }
+          if (place === "prepend") {
+            return { ...prev, start: req.from, entries: [...page.entries, ...prev.entries] };
+          }
+          return prev;
+        });
+        setTotal(page.total);
+      })
+      .catch((error) => gen === genRef.current && setPageError({ dir, message: errorMessage(error) }))
+      .finally(() => {
+        if (gen !== genRef.current) return;
+        loadingRef.current = false;
+        setPageLoading(null);
+      });
+  }, [data, total, id]);
+
+  // The bottom sentinel is in view: fetch the next page.
   const lastItem = items[items.length - 1];
   useEffect(() => {
-    if (lastItem && lastItem.index >= rows.length && !pageError) loadMore();
-  }, [lastItem, rows.length, loadMore, pageError]);
+    if (lastItem && lastItem.index >= lead + rows.length && !pageError) loadPage("next");
+  }, [lastItem, lead, rows.length, loadPage, pageError]);
+
+  // Once the rows exist: scroll to a search hit (unfolding its row), or keep
+  // the anchored row in place after an earlier page was prepended.
+  const listReady = load.state === "ready";
+  useEffect(() => {
+    // The list mounts only once the header is in; scrolling before that has no
+    // content to scroll.
+    if (rows.length === 0 || !listReady) return;
+    const target = pendingRef.current;
+    if (target !== null) {
+      const ri = rowForEntry(rows, target);
+      if (ri < 0) return;
+      pendingRef.current = null;
+      const row = rows[ri];
+      if (collapsible(row.entry.kind)) {
+        setToggled((prev) => (expandAll ? prev : new Set(prev).add(row.entry.idx)));
+      }
+      setCursor(row.entry.idx);
+      const mi = matches.indexOf(ri);
+      if (mi >= 0) setMatchPos(mi);
+      requestAnimationFrame(() => virtualizer.scrollToIndex(ri + lead, { align: "center" }));
+      return;
+    }
+    const anchor = anchorRef.current;
+    if (anchor !== null) {
+      anchorRef.current = null;
+      const ri = rowForEntry(rows, anchor);
+      if (ri >= 0) virtualizer.scrollToIndex(ri + lead, { align: "start" });
+    }
+    // Only when the rows change; `matches` and `lead` are read alongside them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, listReady]);
 
   const jumpTo = useCallback((rowIndex: number) => {
-    setCursor(rowIndex);
-    virtualizer.scrollToIndex(rowIndex, { align: "start" });
-  }, [virtualizer]);
+    const row = rows[rowIndex];
+    if (!row) return;
+    setCursor(row.entry.idx);
+    virtualizer.scrollToIndex(rowIndex + lead, { align: "start" });
+  }, [rows, lead, virtualizer]);
 
   const stepPrompt = useCallback((dir: 1 | -1) => {
-    const from = cursor ?? (dir === 1 ? (items[0]?.index ?? 0) - 1 : (items[0]?.index ?? 0));
+    const top = Math.max(0, (items[0]?.index ?? 0) - lead);
+    const from = cursor !== null ? rowForEntry(rows, cursor) : dir === 1 ? top - 1 : top;
     const next = stepIndex(prompts, from, dir);
     if (next !== null) jumpTo(next);
-    else if (dir === 1 && hasMore) loadMore();
-  }, [cursor, items, prompts, jumpTo, hasMore, loadMore]);
+    else if (dir === 1 && hasMore) loadPage("next");
+    else if (dir === -1 && hasEarlier) loadPage("prev");
+  }, [cursor, items, lead, rows, prompts, jumpTo, hasMore, hasEarlier, loadPage]);
 
   const stepMatch = useCallback((dir: 1 | -1) => {
     if (matches.length === 0) return;
@@ -247,8 +389,13 @@ export const TranscriptView: React.FC<{ id: string }> = ({ id }) => {
     jumpTo(matches[pos]);
   }, [matches, matchPos, jumpTo]);
 
-  // A new query starts at its first match.
+  // A new query starts at its first match — unless it came with a hit, which
+  // has already said where to go.
   useEffect(() => {
+    if (skipQueryJumpRef.current) {
+      skipQueryJumpRef.current = false;
+      return;
+    }
     setMatchPos(0);
     if (matches.length > 0) jumpTo(matches[0]);
     // Only when the query changes — not when more pages add matches.
@@ -286,11 +433,12 @@ export const TranscriptView: React.FC<{ id: string }> = ({ id }) => {
 
   if (!IS_DESKTOP_CLIENT) return <SessionsUnavailable />;
 
-  if (load.state === "error") {
+  const failure = load.state === "error" ? load.message : firstError;
+  if (failure) {
     return (
       <Box sx={{ py: 3, maxWidth: 820, mx: "auto", width: "100%" }}>
         <Alert severity="error" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-          {load.message}
+          {failure}
         </Alert>
         <Button component={RouterLink} href="/sessions" sx={{ mt: 2 }}>Back to sessions</Button>
       </Box>
@@ -298,6 +446,71 @@ export const TranscriptView: React.FC<{ id: string }> = ({ id }) => {
   }
 
   const detail = load.state === "ready" ? load.detail : null;
+  const loaded = data?.entries.length ?? 0;
+  const partial = hasMore || hasEarlier;
+  const highlight = query.trim();
+
+  const pageAlert = (dir: PageDir) =>
+    pageError?.dir === dir && (
+      <Alert
+        severity="error"
+        action={<Button color="inherit" size="small" onClick={() => setPageError(null)}>Retry</Button>}
+        sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+      >
+        {pageError.message}
+      </Alert>
+    );
+
+  const renderItem = (index: number): React.ReactNode => {
+    if (index < lead) {
+      return pageAlert("prev") || (
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <Button
+            size="small"
+            onClick={() => loadPage("prev")}
+            disabled={pageLoading !== null}
+            startIcon={<ChevronUp size={ICON_SIZE.inline} />}
+            aria-busy={pageLoading === "prev"}
+          >
+            {pageLoading === "prev"
+              ? "Loading earlier entries…"
+              : `Load earlier entries (${data?.start ?? 0} before this)`}
+          </Button>
+        </Box>
+      );
+    }
+    const row = rows[index - lead];
+    if (row) {
+      const current = cursor !== null && (row.entry.idx === cursor || row.result?.idx === cursor);
+      return (
+        <Box
+          sx={{
+            borderRadius: 2,
+            ...(current && {
+              outline: "2px solid",
+              outlineColor: "primary.main",
+              outlineOffset: "4px",
+            }),
+          }}
+        >
+          <TranscriptEntry
+            row={row}
+            expanded={isExpanded(row.entry.idx)}
+            onToggle={() => toggleRow(row.entry.idx)}
+            subagents={detail?.subagents ?? []}
+          />
+        </Box>
+      );
+    }
+    return pageAlert("next") || (
+      <Box aria-busy={pageLoading === "next"} sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <Skeleton variant="rounded" height={36} />
+        <Typography variant="micro" component="p" color="text.secondary" sx={{ textAlign: "center" }}>
+          Loading entries {(data?.end ?? 0) + 1}–{Math.min((data?.end ?? 0) + PAGE, total ?? 0)} of {total}
+        </Typography>
+      </Box>
+    );
+  };
 
   return (
     <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 1.5 }}>
@@ -397,7 +610,7 @@ export const TranscriptView: React.FC<{ id: string }> = ({ id }) => {
             </IconButton>
           </Box>
           <Typography variant="micro" component="span" color="text.disabled" sx={{ width: "100%", textAlign: "right" }}>
-            n / p: next / previous prompt{hasMore ? " · find searches what is loaded" : ""}
+            n / p: next / previous prompt{partial ? " · find searches what is loaded" : ""}
           </Typography>
         </Box>
       </Box>
@@ -408,21 +621,20 @@ export const TranscriptView: React.FC<{ id: string }> = ({ id }) => {
         sx={{ flex: 1, minHeight: 0, overflowY: "auto", borderTop: "1px solid", borderColor: "divider" }}
       >
         <Box sx={{ maxWidth: 900, mx: "auto", width: "100%" }}>
-          {!detail
+          {!detail || !data
             ? <SkeletonRows />
-            : rows.length === 0 && !hasMore
+            : rows.length === 0 && !partial
             ? (
               <Typography variant="body2" color="text.secondary" sx={{ py: 6, textAlign: "center" }}>
-                {entries.length === 0
+                {loaded === 0
                   ? "This transcript has no messages yet."
                   : "Everything here is thinking or meta — turn those on above to see it."}
               </Typography>
             )
             : (
-              <Box sx={{ height: virtualizer.getTotalSize(), position: "relative" }}>
-                {items.map((item) => {
-                  const row = rows[item.index];
-                  return (
+              <HighlightContext.Provider value={highlight}>
+                <Box sx={{ height: virtualizer.getTotalSize(), position: "relative" }}>
+                  {items.map((item) => (
                     <Box
                       key={item.key}
                       data-index={item.index}
@@ -436,47 +648,11 @@ export const TranscriptView: React.FC<{ id: string }> = ({ id }) => {
                         py: 1,
                       }}
                     >
-                      {row
-                        ? (
-                          <Box
-                            sx={{
-                              borderRadius: 2,
-                              ...(cursor === item.index && {
-                                outline: "2px solid",
-                                outlineColor: "primary.main",
-                                outlineOffset: "4px",
-                              }),
-                            }}
-                          >
-                            <TranscriptEntry
-                              row={row}
-                              expanded={isExpanded(row.entry.idx)}
-                              onToggle={() => toggleRow(row.entry.idx)}
-                              subagents={detail.subagents}
-                            />
-                          </Box>
-                        )
-                        : pageError
-                        ? (
-                          <Alert
-                            severity="error"
-                            action={<Button color="inherit" size="small" onClick={() => setPageError(null)}>Retry</Button>}
-                          >
-                            {pageError}
-                          </Alert>
-                        )
-                        : (
-                          <Box aria-busy={pageLoading} sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                            <Skeleton variant="rounded" height={36} />
-                            <Typography variant="micro" component="p" color="text.secondary" sx={{ textAlign: "center" }}>
-                              Loading entries {entries.length + 1}–{Math.min(entries.length + PAGE, total ?? 0)} of {total}
-                            </Typography>
-                          </Box>
-                        )}
+                      {renderItem(item.index)}
                     </Box>
-                  );
-                })}
-              </Box>
+                  ))}
+                </Box>
+              </HighlightContext.Provider>
             )}
         </Box>
       </Box>

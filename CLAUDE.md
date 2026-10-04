@@ -104,7 +104,7 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 91 specs, 1692 tests, of which the list below walks the ones worth
+Coverage is 96 specs, 1764 tests, of which the list below walks the ones worth
 knowing about rather than all of them. The newest four are remote-claude phase
 2 (docs/plans/remote-claude.md §7.2): `src/lib/claudeSessions/__tests__/`
 `parse.test.ts` and `sync.test.ts` (the transcript rules and the manifest

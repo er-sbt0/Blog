@@ -13,12 +13,19 @@
  * `on*` attribute anywhere, no anchor that is not http(s). It also asserts the
  * payloads are *there*, as text — a renderer that dropped them would pass the
  * first half and be wrong.
+ *
+ * Phase 4 (§4.9) adds two more ways transcript bytes reach the DOM — a search
+ * hit's snippet in the sidebar, and find-in-session's highlight splitting text
+ * around `<mark>` — and the last block holds both to the same rule.
  */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { RemoteEntryRow } from "@/lib/claudeSessions/types";
 import { TranscriptEntry } from "../TranscriptEntry";
 import { buildRows } from "../transcriptModel";
+import { HighlightContext } from "../Highlight";
+import { SearchHitGroup } from "../SessionSearch";
+import { groupHits } from "../searchModel";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -129,4 +136,79 @@ it("shows every payload as text rather than dropping it", () => {
   expect(text).toContain("<svg onload=alert(1)></svg>");
   expect(text).toContain("<b onmouseover=alert(1)>x</b>");
   expect(text).toContain("/tmp/index.html");
+});
+
+describe("search snippets and highlights (§4.9)", () => {
+  let box: HTMLDivElement;
+  let r: Root;
+
+  const render = (node: React.ReactNode) => {
+    box = document.createElement("div");
+    document.body.append(box);
+    r = createRoot(box);
+    act(() => r.render(node));
+  };
+
+  afterEach(() => {
+    act(() => r.unmount());
+    box.remove();
+  });
+
+  const onAttributes = (root: Element) =>
+    [...root.querySelectorAll("*")].flatMap((el) =>
+      [...el.attributes].filter((a) => a.name.toLowerCase().startsWith("on")).map((a) => `${el.tagName}[${a.name}]`)
+    );
+
+  it("renders a hit whose snippet is markup as text, with the match marked", () => {
+    const snippet = `before ${IMG} after`;
+    const start = snippet.indexOf("onerror");
+    const [group] = groupHits([{
+      sessionId: "s1",
+      hostId: "h1",
+      title: `title ${IMG}`,
+      projectDir: "-p",
+      cwd: `/tmp/${IMG}`,
+      isSubagent: false,
+      endedAt: null,
+      idx: 7,
+      kind: "tool_result",
+      tool: "Bash",
+      snippet,
+      matchStart: start,
+      matchLength: "onerror".length,
+    }]);
+    render(<ul><SearchHitGroup group={group} q={IMG} /></ul>);
+
+    expect(box.querySelectorAll("img, script, iframe, object, embed")).toHaveLength(0);
+    expect(onAttributes(box)).toEqual([]);
+    expect(box.textContent).toContain(snippet);
+    expect(box.textContent).toContain(`title ${IMG}`);
+    const marks = [...box.querySelectorAll("mark")].map((m) => m.textContent);
+    expect(marks).toEqual(["onerror"]);
+    // The link is the app's own route, with the query encoded rather than spliced.
+    const href = box.querySelector("a")!.getAttribute("href")!;
+    const url = new URL(href, "http://app");
+    expect(url.pathname).toBe("/sessions/s1");
+    expect(url.searchParams.get("q")).toBe(IMG);
+  });
+
+  it("highlights a find query inside transcript rows without creating markup", () => {
+    const rows = buildRows(transcript, { showThinking: true, showMeta: true });
+    render(
+      <HighlightContext.Provider value="<img">
+        {rows.map((row) => (
+          <TranscriptEntry key={row.entry.idx} row={row} expanded onToggle={() => {}} subagents={[]} />
+        ))}
+      </HighlightContext.Provider>,
+    );
+    expect(box.querySelectorAll("img, script, iframe, object, embed, b")).toHaveLength(0);
+    expect(onAttributes(box)).toEqual([]);
+    const marks = [...box.querySelectorAll("mark")];
+    expect(marks.length).toBeGreaterThan(3);
+    for (const m of marks) {
+      expect(m.textContent).toBe("<img");
+      expect(m.children).toHaveLength(0);
+    }
+    expect(box.textContent).toContain(IMG);
+  });
 });

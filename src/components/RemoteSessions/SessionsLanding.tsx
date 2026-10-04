@@ -2,8 +2,7 @@
 /**
  * `/sessions` — where the sessions view lands before a transcript is picked
  * (docs/plans/remote-claude.md §4.6). For now a host list with counts and a
- * pointer to the sidebar; the stats dashboard of §4.10 is phase 4 and takes the
- * marked slot below.
+ * pointer to the sidebar, then the stats dashboard of §4.10 (`StatsDashboard`).
  */
 import React, { useEffect } from "react";
 import {
@@ -22,6 +21,7 @@ import { actions, useDispatch } from "@/store";
 import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
 import { refreshSessions, syncHost, useSessionsStore } from "./sessionsStore";
 import { relativeTime, SessionsUnavailable } from "./SessionBits";
+import { StatsDashboard } from "./StatsDashboard";
 
 export const SessionsLanding: React.FC = () => {
   const store = useSessionsStore();
@@ -108,7 +108,7 @@ export const SessionsLanding: React.FC = () => {
   }
 
   return (
-    <Box sx={{ maxWidth: 820, width: "100%", mx: "auto", py: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
+    <Box sx={{ maxWidth: 1040, width: "100%", mx: "auto", py: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         <MessagesSquare size={ICON_SIZE.large} strokeWidth={1.5} aria-hidden />
         <Box>
@@ -122,7 +122,9 @@ export const SessionsLanding: React.FC = () => {
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>{body}</Box>
 
-      {/* §4.10's stats dashboard (phase 4) renders here. */}
+      {store.status === "ready" && hosts.length > 0 && (
+        <StatsDashboard hosts={hosts} refreshKey={hosts.map((h) => h.lastSyncAt).join()} />
+      )}
     </Box>
   );
 };

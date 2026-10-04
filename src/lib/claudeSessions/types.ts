@@ -75,3 +75,75 @@ export interface RemoteEntriesPage {
 export function agentIdOf(path: string): string | null {
   return /\/subagents\/agent-([^/]+)\.jsonl$/.exec(path)?.[1] ?? null;
 }
+
+// ─── Phase 4: search and stats (§4.9, §4.10) ─────────────────────────────────
+
+/** Shorter queries cannot use the trigram index and are refused with a hint. */
+export const SEARCH_MIN_LENGTH = 3;
+/** Results are capped; `truncated` says the cap was hit. */
+export const SEARCH_MAX_HITS = 1000;
+
+/**
+ * `GET /api/remote-sessions/search?q=&host=&project=&kind=&thinking=1`
+ * `kind` may repeat. Thinking entries are excluded unless `thinking=1`.
+ */
+export interface RemoteSearchHit {
+  sessionId: string;
+  hostId: string;
+  title: string | null;
+  projectDir: string;
+  cwd: string | null;
+  isSubagent: boolean;
+  endedAt: string | null;
+  idx: number;
+  kind: EntryKind;
+  tool: string | null;
+  /** ±40 characters around the first match, cut from the lower-cased index text. */
+  snippet: string;
+  /** Where the match sits inside `snippet`. */
+  matchStart: number;
+  matchLength: number;
+}
+
+export interface RemoteSearchResult {
+  hits: RemoteSearchHit[];
+  truncated: boolean;
+}
+
+/**
+ * `GET /api/remote-sessions/stats?host=&tz=` — every number `report.py` shows.
+ * `tz` is an IANA zone (the viewer's), used for days and hours; default UTC.
+ * Subagent runs are counted separately and never as sessions.
+ */
+export interface RemoteStats {
+  totals: {
+    hosts: number;
+    projects: number;
+    sessions: number;
+    subagentRuns: number;
+    userMsgs: number;
+    assistantMsgs: number;
+    toolCalls: number;
+    activeMs: number;
+    first: string | null;
+    last: string | null;
+  };
+  perProject: {
+    hostId: string;
+    projectDir: string;
+    cwd: string | null;
+    cwdGuessed: boolean;
+    sessions: number;
+    subagentRuns: number;
+    userMsgs: number;
+    toolCalls: number;
+    activeMs: number;
+    last: string | null;
+  }[];
+  /** The last 30 days ending today in `tz`, oldest first, zero-filled. */
+  perDay: { day: string; sessions: number }[];
+  /** Prompts by hour of day in `tz`, index 0–23. */
+  byHour: number[];
+  /** Tool calls by tool name, most used first. */
+  tools: { name: string; count: number }[];
+}
