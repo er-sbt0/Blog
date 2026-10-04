@@ -4,19 +4,17 @@
 Claude Code transcripts on remote machines — view, browse, toggle, search, and
 stats — in the desktop app. It ports `~/code/claude_remote` (a Python/Textual
 TUI over `coder ssh`) into the shell, with an incremental sync into the embedded
-Postgres in place of a full dump per launch, and the content **encrypted at
-rest** (§4.5).
+Postgres in place of a full dump per launch. Content is stored **in plaintext**,
+indexed for substring search with `pg_trgm` (§4.5, §4.9).
 
-The scope was set by eleven answers given on 4 Oct 2026; §1 records them, so
-that a later reader can tell a decision from a default. Two of them this plan
-does not follow as given, and says so where it departs: §4.6 (sessions open in
-the main area, not as pane tabs) and §4.5 (encrypted, not plaintext — taken back
-by the author the same day on company policy grounds).
+The scope was set by answers given on 4 Oct 2026; §1 records them, so that a
+later reader can tell a decision from a default. One of them this plan does not
+follow as given, and says so where it departs: §4.6 (sessions open in the main
+area, not as pane tabs).
 
 Read §2 before anything else. §2.1 is why a session cannot simply be a pane tab,
-§2.4 is why the transcript renderer is a security surface rather than a styling
-job, and §2.5 is the trap that would make §4.5's encryption silently worthless
-on the machine this was asked from.
+and §2.4 is why the transcript renderer is a security surface rather than a
+styling job.
 
 This is a **desktop-only** feature by construction (§3). The VPS build answers
 404 for every route it adds.
@@ -32,19 +30,21 @@ This is a **desktop-only** feature by construction (§3). The VPS build answers
 
 Answered on 4 Oct 2026:
 
-| Question         | Answer                                                                                                                                                   |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Where data lives | **Postgres cache** in the embedded cluster; the remote JSONL stays the source of truth                                                                   |
-| Transport        | Author's call, noting `ssh coder.main` already goes through the coder CLI via `~/.ssh/config`. Taken as **system `ssh <alias>` only** (§4.1)             |
-| Freshness        | **Incremental, on demand** — a Sync that pulls only what changed                                                                                         |
-| UI surface       | **Activity-rail view** (host → project → session) **plus pane tabs** for transcripts. The second half is revised in §4.6                                 |
-| Organising       | **None.** No tags, pins, renames or notes — viewing, browsing, toggling and search only                                                                  |
-| v1 features      | **Transcript viewer, full-text search, stats dashboard.** Not export                                                                                     |
-| MCP access       | **Not in v1** — the in-app terminal's agent cannot read these                                                                                            |
-| Scope            | **Desktop only**                                                                                                                                         |
-| At rest          | First answered "plaintext in local Postgres"; **changed to encrypted** the same day, because company policy requires AES-256-GCM for sensitive data (§4.5) |
-| Hosts            | **Many, user-added** — alias plus display name, grouped by host in the explorer                                                                          |
-| Deletions        | **Keep locally** — a "gone from remote" badge and a manual Forget                                                                                        |
+| Question         | Answer                                                                                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Where data lives | **Postgres cache** in the embedded cluster; the remote JSONL stays the source of truth                                                       |
+| Transport        | Author's call, noting `ssh coder.main` already goes through the coder CLI via `~/.ssh/config`. Taken as **system `ssh <alias>` only** (§4.1) |
+| Freshness        | **Incremental, on demand** — a Sync that pulls only what changed                                                                             |
+| UI surface       | **Activity-rail view** (host → project → session) **plus pane tabs** for transcripts. The second half is revised in §4.6                     |
+| Organising       | **None.** No tags, pins, renames or notes — viewing, browsing, toggling and search only                                                      |
+| v1 features      | **Transcript viewer, full-text search, stats dashboard.** Not export                                                                         |
+| MCP access       | **Not in v1** — the in-app terminal's agent cannot read these                                                                                |
+| Scope            | **Desktop only**                                                                                                                             |
+| At rest          | **Plaintext in local Postgres.** No encryption, no extra mitigation beyond Forget (§4.5)                                                     |
+| Search           | **`pg_trgm` substring** over a derived entries table (§4.9)                                                                                  |
+| Storage          | **Raw chunks plus a derived entries table** (§4.4)                                                                                           |
+| Hosts            | **Many, user-added** — alias plus display name, grouped by host in the explorer                                                              |
+| Deletions        | **Keep locally** — a "gone from remote" badge and a manual Forget                                                                            |
 
 Taken literally, "organise" was answered no. What survives is *layout*: group by
 host and project, sort by recency, filter by text. Nothing a user does in this
@@ -52,7 +52,7 @@ view writes anything except a sync.
 
 ## 2. What the tree permits
 
-Six findings, gathered before designing.
+Five findings, gathered before designing.
 
 ### 2.1 A pane is a document, and four things are keyed on that
 
@@ -114,20 +114,7 @@ Two existing facts make this concrete:
 So §4.7 is a rule rather than a preference: **no transcript byte reaches the DOM
 as markup.**
 
-### 2.5 `safeStorage` on Linux can quietly be plaintext
-
-Electron's `safeStorage` wraps keys with the OS keyring — libsecret / kwallet on
-Linux. When neither is reachable it falls back to the **`basic_text`** backend,
-which "encrypts" with a hard-coded key. `isEncryptionAvailable()` still returns
-`true`. The only way to know is
-`safeStorage.getSelectedStorageBackend()`.
-
-This question was asked from WSL2, where a desktop keyring is commonly absent.
-A design that trusted `isEncryptionAvailable()` would wrap the data key with a
-constant compiled into Electron, and every check in this plan would pass. §4.5
-refuses `basic_text` by name.
-
-### 2.6 A transcript is a tree, and `claude_remote` reads it as a list
+### 2.5 A transcript is a tree, and `claude_remote` reads it as a list
 
 `claude-code-notebook.md` §2 measured 2144 events in one session, each with a
 `uuid` and a `parentUuid`. Rewinding a conversation (Esc-Esc) leaves the abandoned
@@ -165,9 +152,9 @@ was learned the hard way:
                                  │ ◀── wanted (path, from, to)
                                  │ ssh -- <alias> <FIXED_READ> ──▶ reads stdin, tail -c
                                  │   stdin: wanted ranges          length-framed bytes
-                                 │ POST chunks ───────▶ Next: parse, seal, store
+                                 │ POST chunks ───────▶ Next: store, parse, index
                                  ▼
- /sessions/... ◀────────── GET /api/remote-sessions/* (decrypt, render data)
+ /sessions/... ◀────────── GET /api/remote-sessions/* (render data)
 ```
 
 - **The main process owns ssh** (§2.3) and nothing else. It never parses a
@@ -175,7 +162,7 @@ was learned the hard way:
   to a loopback route, authenticated with the session cookie it already mints
   for the window (`session.js`).
 - **The Next server owns the data**, behind `userRoute` and new repositories,
-  like every other table. It parses, seals and serves. This keeps `access.ts`'s
+  like every other table. It parses, derives and serves. This keeps `access.ts`'s
   model intact — a session row belongs to a host row that belongs to a user, and
   `requireRemoteHost` / `requireRemoteSession` enforce it the way
   `requireDocument` does.
@@ -209,8 +196,8 @@ Options passed, always:
 
 ### 4.2 The alias is user input, so it is validated, and no shell sees it
 
-The policy concern is direct: a value the user typed becomes part of a spawned
-process. Three things together make that safe.
+A value the user typed becomes part of a spawned process. Three things together
+make that safe.
 
 1. **Validated where it is stored and again where it is used.** The zod schema on
    `POST /api/remote-sessions/hosts` and `remoteSessions.js` both require
@@ -243,7 +230,7 @@ Two ssh round trips per sync, whatever the history size:
    - same size and mtime → skip;
    - grown → want `[consumed, size)`;
    - shrunk, or the stored first-4-KiB SHA-256 no longer matches → the file was
-     rewritten: drop its chunks and want `[0, size)`;
+     rewritten: drop its chunks and entries and want `[0, size)`;
    - stored but not listed → set `goneAt` (§4.8).
 2. **Read.** The fixed read script takes ranges on stdin and, for each one,
    writes a header `\x1e<length>\t<path>\n` followed by **exactly** `length`
@@ -259,22 +246,22 @@ read again next time rather than parsed as a broken event.
 
 `GNU find -printf` is a dependency on the remote. If it fails, the list script
 falls back to `stat -c` and reports which one it used. A macOS remote is
-§9 question 2.
+§9 question 1.
 
 Budget: the ingest route takes at most 8 MiB per POST, and the main process
 batches chunks to fit. A first sync of a large history is many POSTs and one
 ssh read. Progress goes back over `onProgress`.
 
-### 4.4 Storage — raw bytes are the source of truth, everything else is derived
+### 4.4 Storage — raw bytes are the source of truth, entries are derived
 
 ```prisma
 model RemoteHost {
   id          String    @id @default(uuid()) @db.Uuid
   userId      String    @db.Uuid
-  alias       String    // §4.2 — validated, not sealed: it is a name in ~/.ssh/config
+  alias       String    // §4.2 — validated
   label       String
   lastSyncAt  DateTime? @db.Timestamptz
-  lastError   String?   // ssh's stderr, truncated; never transcript content
+  lastError   String?   // ssh's stderr, truncated
   createdAt   DateTime  @default(now()) @db.Timestamptz
   files       RemoteFile[]
   @@unique([userId, alias])
@@ -283,8 +270,7 @@ model RemoteHost {
 model RemoteFile {            // one .jsonl = one session or one subagent run
   id           String    @id @default(uuid()) @db.Uuid
   hostId       String    @db.Uuid
-  pathKey      Bytes     // HMAC-SHA256(macKey, relative path) — lookup without plaintext
-  pathSealed   Bytes     // the path itself, sealed (it encodes the cwd)
+  path         String    // relative to ~/.claude/projects
   size         BigInt
   mtime        Float
   consumed     BigInt    // bytes up to the last newline
@@ -292,7 +278,13 @@ model RemoteFile {            // one .jsonl = one session or one subagent run
   goneAt       DateTime? @db.Timestamptz
   isSubagent   Boolean
   parentFileId String?   @db.Uuid
-  // Derived at ingest, plaintext because it is numbers and tool names:
+  // Session metadata, derived at ingest:
+  title        String?
+  cwd          String?
+  cwdGuessed   Boolean   @default(false)
+  gitBranch    String?
+  firstPrompt  String?
+  // Stats, derived at ingest:
   startedAt    DateTime? @db.Timestamptz
   endedAt      DateTime? @db.Timestamptz
   activeMs     Int
@@ -300,10 +292,10 @@ model RemoteFile {            // one .jsonl = one session or one subagent run
   assistantMsgs Int
   toolCalls    Int
   tools        Json      // { "Bash": 41, "Read": 17, … }
-  promptTimes  DateTime[] @db.Timestamptz  // prompts-by-hour, without the prompts
-  metaSealed   Bytes     // { title, cwd, gitBranch, projectPath, firstPrompt }
+  promptTimes  DateTime[] @db.Timestamptz
   chunks       RemoteChunk[]
-  @@unique([hostId, pathKey])
+  entries      RemoteEntry[]
+  @@unique([hostId, path])
 }
 
 model RemoteChunk {
@@ -311,71 +303,54 @@ model RemoteChunk {
   fileId  String @db.Uuid
   seq     Int
   offset  BigInt
-  sealed  Bytes  // gzip, then AES-256-GCM
+  data    Bytes  // the raw JSONL bytes, gzipped
   @@unique([fileId, seq])
+}
+
+model RemoteEntry {           // one rendered row of a transcript
+  id      String   @id @default(uuid()) @db.Uuid
+  fileId  String   @db.Uuid
+  idx     Int      // position in file order
+  kind    String   // prompt | assistant | thinking | tool_use | tool_result | meta | command
+  uuid    String?
+  parentUuid String?
+  at      DateTime? @db.Timestamptz
+  tool    String?  // for tool_use / tool_result
+  body    Json     // what the viewer needs: blocks, tool input, result, isError
+  text    String   // lower-cased searchable text, §4.9
+  @@unique([fileId, idx])
 }
 ```
 
 Stored this way because:
 
-- **Raw chunks, not parsed entries.** A parser fix (and there will be several,
-  since the format changes between Claude Code versions — `model.py` says so)
-  re-derives from what is stored, without fetching again. The stats columns are
-  recomputed by re-parsing the whole file at ingest. That is affordable because
-  ingest only touches changed files.
-- **Sealing covers everything derived from content.** That includes the title,
-  since it falls back to the first prompt, which is where people paste tokens;
-  the cwd and branch, which name customers' repos; and the path, which encodes
-  the cwd. What stays plaintext is counts, timestamps, tool names, and the ssh
-  alias.
-- **The AAD binds each ciphertext to its row**, as `credentialAad` does for
-  provider keys (`src/lib/providerCredentials/crypto.ts`): `fileId‖seq‖offset`
-  for a chunk, `fileId‖"meta"` for metadata. Chunks copied between rows fail to
-  open.
+- **Raw chunks are the source of truth.** A parser fix (and there will be
+  several, since the format changes between Claude Code versions — `model.py`
+  says so) re-derives entries and stats from what is stored, without fetching
+  again. A `PARSER_VERSION` constant in `parse.ts` is recorded per file; a file
+  whose version is behind is re-derived on next read or sync.
+- **Entries are a derived index, not a second source.** They exist so the viewer
+  can page through a session without parsing it, and so search has something to
+  index. On every ingest that touches a file, its entries are deleted and
+  rebuilt from all of its chunks, in one transaction with the stats columns.
+  That is affordable because ingest only touches changed files; if a long
+  session's rebuild proves slow, appending entries from the new chunk alone is
+  the optimisation, and it is deferred until measured (§6.1).
+- **Chunks are gzipped.** JSONL compresses well and the chunks are read only on
+  re-derive, so the cost is paid rarely.
 
-`crypto.ts` is import-free and already does AES-256-GCM with a 96-bit IV and a
-full tag. **Reuse its seal/open functions.** Do not reuse its keyring, which
-reads `AI_CREDENTIAL_KEYS` (§4.5).
+### 4.5 At rest — plaintext
 
-### 4.5 Keys — a random data key, wrapped by the OS keyring, never `basic_text`
-
-The author first chose plaintext. It was changed to encrypted on 4 Oct 2026
-because the company's Data Protection policy requires AES-256-GCM for sensitive
-data at rest, and transcripts routinely contain credentials (`Read` of a `.env`,
-a pasted token) and output from customer environments.
-
-- On first use the main process generates 64 random bytes. The first 32 are the
-  AES-256-GCM data key and the last 32 the HMAC key for `pathKey`. It wraps them
-  with `safeStorage.encryptString` into `userData/remote-sessions.key` (0600).
-- **Before wrapping, and on every unwrap, it checks
-  `safeStorage.getSelectedStorageBackend()`.** `basic_text`, or `unknown`, means
-  the feature is **unavailable**, and the view says why: "no OS keyring
-  (gnome-keyring / KWallet) is running, so sessions cannot be stored encrypted".
-  There is no plaintext fallback and no "store it anyway" button (§2.5).
-- The unwrapped key goes to the Next child as `REMOTE_SESSIONS_KEY` in
-  `serverEnv`. That is the same channel and the same exposure as
-  `NEXTAUTH_SECRET` and the cluster password: `/proc/<pid>/environ`, readable
-  only by this uid. `serverEnv.test.ts` gains the assertion that it is passed
-  only when the shell set it, and is blanked otherwise, so a traced `.env` can
-  never supply it.
-- **A lost key is lost data, by design.** If the keyring entry is gone (new
-  machine, profile reset), unwrap fails and the view offers exactly one action,
-  "Forget cached sessions and re-sync". The remote is the source of truth, so
-  this costs a sync, except for files that are already `goneAt` (§4.8). That
-  loss is stated in the dialog.
-
-**This is a policy question as well as a design one.** The policy names cloud
-KMS and HashiCorp Vault as approved key stores. An offline desktop app cannot
-reach any of them, and the OS keyring is the platform equivalent. It still needs
-confirming with security before this ships: §9 question 1.
-
-Search consequence: there can be no Postgres full-text index, because the text
-is not in Postgres. §4.9.
+Transcripts, paths and metadata are stored in plaintext in the embedded cluster,
+which lives in `userData` under the user's own account. There is no data key, no
+keyring dependency and no `safeStorage` involvement. Transcripts routinely
+contain credentials (`Read` of a `.env`, a pasted token); the store holds them
+exactly as the remote does, and Forget (§4.8) is the only control.
 
 ### 4.6 Placement — a sidebar view and a `/sessions` route, not pane tabs
 
 The author asked for pane tabs. This plan proposes the main area instead, as a
-route, and asks for that to be confirmed (§9 question 3):
+route, and asks for that to be confirmed (§9 question 2):
 
 - **Sidebar**: a fourth `SidebarView`, `"sessions"`, beside explorer, search and
   notes, with an activity-rail button. It shows a tree of host → project →
@@ -405,7 +380,7 @@ child.** No `dangerouslySetInnerHTML`, no HTML-capable Markdown library, no
   through the shell (`setWindowOpenHandler` → `shell.openExternal`), never inside
   the app window. The bug in the existing component (§2.4) is reported, not
   silently fixed here. It is a one-line change, and the author should decide
-  whether Copilot output needs it too (§9 question 4).
+  whether Copilot output needs it too (§9 question 3).
 - **Tool inputs and results** are monospace text. `Bash` commands and `Write`
   contents get syntax colouring from `shiki`, which is already a dependency,
   through its token API (`codeToTokens`), rendering spans as React elements and
@@ -427,52 +402,59 @@ collide with the app's 25 chords (`menuTemplate.test.ts` has the list):
   started/ended, active time (5-minute idle gap, as `model.py`), message and
   tool counts.
 
-Long sessions need **virtualised rendering**. 2000+ entries as MUI elements is
-too slow to scroll, and there is no list virtualiser in `package.json` today, so
-this is a dependency decision. `@tanstack/react-virtual` is MIT; the licence
-check is part of phase 3. Results are clipped at 200 lines in the viewer, as in
-`transcript.py`, with "show all" in place of "export to see all".
+The viewer reads `RemoteEntry` rows in pages by `idx`, so a long session is
+never sent whole. Long sessions still need **virtualised rendering**: 2000+
+entries as MUI elements is too slow to scroll, and there is no list virtualiser
+in `package.json` today, so this is a dependency decision.
+`@tanstack/react-virtual` is MIT; the licence check is part of phase 3. Results
+are clipped at 200 lines in the viewer, as in `transcript.py`, with "show all"
+in place of "export to see all".
 
 All states DESIGN.md requires: loading (skeleton rows), empty ("No sessions on
 this host yet — Sync"), error (ssh's message, verbatim and truncated), and
-unavailable (§4.5's keyring message, and "the web build has no sessions").
+unavailable ("the web build has no sessions").
 
 ### 4.8 Deletions — keep, badge, forget
 
 Claude Code prunes transcripts after `cleanupPeriodDays` (30 by default). A file
 the manifest no longer lists gets `goneAt`, keeps every byte, and shows a "gone
-from remote" badge. **Forget** is per session, per project and per host. It is
-the only delete in the feature, and it is irreversible for a gone file, so it
-confirms and says so. Removing a host forgets everything under it, with the same
-confirmation.
+from remote" badge. **Forget** is per session, per project and per host. It
+deletes the file's chunks and entries; it is the only delete in the feature, and
+it is irreversible for a gone file, so it confirms and says so. Removing a host
+forgets everything under it, with the same confirmation.
 
-Postgres frees the space on vacuum. Forgotten ciphertext is unreadable without
-the key anyway, but this plan does not claim more than that.
+Postgres frees the space on vacuum; this plan does not claim the bytes are gone
+from disk before then.
 
-### 4.9 Search — decrypt and scan, in the server, with a bound
+### 4.9 Search — `pg_trgm` over `RemoteEntry.text`
 
-There is no plaintext to index (§4.5), so search works as `model.search` does:
-decrypt, parse, lower-case, `includes`. It runs in the Next server, never in
-the renderer, because the renderer should not hold every transcript at once.
+The migration runs `CREATE EXTENSION IF NOT EXISTS pg_trgm` and adds a GIN
+trigram index on `RemoteEntry.text` (raw SQL in the migration — Prisma's schema
+cannot express a `gin_trgm_ops` index). `pg_trgm.control` ships in the bundled
+`@embedded-postgres/linux-x64` 17 binaries, so the desktop cluster has it
+without anything extra.
 
-- `GET /api/remote-sessions/search?q=` streams results newest session first and
-  stops at 1000 matches. Each result has session, entry index, kind and a
-  ±40-character snippet. Clicking one opens the session at that entry with the
-  match highlighted.
-- A per-process LRU of parsed, lower-cased sessions (keyed by `fileId` and
-  `consumed`) holds up to 256 MiB, so a second search is a scan, not a decrypt.
-  That memory is plaintext in use, not at rest. It is never written to disk, and
-  it is dropped on Forget and on exit.
+- `text` is what a reader would search: prompt and assistant text, tool inputs
+  (the command, the file path, the pattern), and tool results — lower-cased at
+  ingest so the query is `text LIKE '%' || lower($q) || '%'` and the index
+  serves it. Substring rather than word matching is the point: it finds paths,
+  identifiers and fragments, the way `model.search`'s `includes` does today.
+- `GET /api/remote-sessions/search?q=` returns results newest session first,
+  capped at 1000. Each has session, entry `idx`, kind and a ±40-character
+  snippet cut from `text`. Clicking one opens the session at that entry with the
+  match highlighted. Filters by host, project and kind are `WHERE` clauses.
+- Queries shorter than three characters cannot use a trigram index; they are
+  refused with a hint rather than falling into a sequential scan.
+- Thinking entries are indexed but excluded by default, matching the viewer.
 
-How fast this is depends on how big a real history is, and nobody has measured
-that (§6.1). If a full scan is too slow, the next step is a **sealed
-token index** (HMAC of each lower-cased word → file ids) rather than plaintext
-`tsvector`. It is deliberately left out of v1.
+The tables are created on the VPS too, since migrations are shared, and stay
+empty there. That makes `CREATE EXTENSION pg_trgm` a production migration as
+well — `postgres:17` ships contrib, but the app's database role must be allowed
+to create it (§6.4).
 
 ### 4.10 Stats — computed at ingest, aggregated in SQL
 
-Every number `report.py` shows can be computed from the plaintext columns in
-§4.4 without decrypting anything except project names. That covers totals,
+Every number `report.py` shows is a column on `RemoteFile` (§4.4): totals,
 per-project sessions, subagent runs, messages, tools, active time, first and
 last, the 30-day sessions-per-day sparkline, prompts by hour, and the tool
 breakdown. `/sessions` renders them with MUI and the existing chart conventions
@@ -482,18 +464,15 @@ breakdown. `/sessions` renders them with MUI and the existing chart conventions
 
 | Where | What |
 | --- | --- |
-| `prisma/schema.prisma` + a migration | §4.4's three models |
+| `prisma/schema.prisma` + a migration | §4.4's four models; `pg_trgm` and the trigram index (§4.9) |
 | `packages/desktop/src/remoteSessions.js` | spawn, the two fixed scripts, framing, batching to the ingest route |
-| `packages/desktop/src/sessionsKey.js` | §4.5: generate, wrap, unwrap, refuse `basic_text` |
-| `packages/desktop/src/preload.cjs` | `sessions.sync(hostId)`, `sessions.onProgress`, `sessions.status()` |
-| `packages/desktop/src/server.js` | pass `REMOTE_SESSIONS_KEY`; add to the blanked list otherwise |
-| `src/lib/claudeSessions/parse.ts` | port of `model.parse_session`, import-free |
+| `packages/desktop/src/preload.cjs` | `sessions.sync(hostId)`, `sessions.onProgress` |
+| `src/lib/claudeSessions/parse.ts` | port of `model.parse_session` to entries + stats, import-free |
 | `src/lib/claudeSessions/sync.ts` | manifest diff and newline-boundary consumption, import-free |
-| `src/lib/claudeSessions/seal.ts` | key from env, AAD builders, over `providerCredentials/crypto.ts` |
 | `src/repositories/remoteSessions.ts` | rows; owner-scoped only, no public variant exists |
 | `src/lib/access.ts` | `requireRemoteHost`, `requireRemoteSession` |
 | `src/lib/api-utils.ts` | `refuseOffDesktop` |
-| `src/app/api/remote-sessions/**` | hosts CRUD, manifest, ingest, list, session, search, stats — all `userRoute`, all `parseBody`, all `.strict()` |
+| `src/app/api/remote-sessions/**` | hosts CRUD, manifest, ingest, list, session entries, search, stats — all `userRoute`, all `parseBody`, all `.strict()` |
 | `src/components/RemoteSessions/` | sidebar tree, transcript, dashboard |
 | `src/app/(workspace)/sessions/` | the two routes |
 
@@ -502,44 +481,45 @@ breakdown. `/sessions` renders them with MUI and the existing chart conventions
 ### 6.1 How big a real history is
 
 `claude_remote` loads everything into memory in one go and works, but nobody has
-measured `~/.claude/projects` on `coder.main`. §4.9's scan and §4.3's first sync
-both depend on that number. Phase 1 measures it before phase 3 builds on it.
+measured `~/.claude/projects` on `coder.main`. §4.3's first sync and §4.4's
+rebuild-entries-per-file both depend on that number, as does the size of the
+trigram index (roughly 2–3× the indexed text). Phase 1 measures it before
+phase 2 builds on it.
 
-### 6.2 Whether the WSL2 environment has a keyring
-
-§2.5 says it commonly does not. If it does not, this feature is unavailable on
-the machine it was asked from until gnome-keyring is running. Phase 1's first
-check is `getSelectedStorageBackend()` there.
-
-### 6.3 That `BatchMode=yes` works with coder's `ProxyCommand`
+### 6.2 That `BatchMode=yes` works with coder's `ProxyCommand`
 
 It should, because coder authenticates with its own token and not ssh's prompt.
 It has not been tried. If it fails, the error must say so, and not report
 "permission denied".
 
-### 6.4 What it looks like
+### 6.3 What it looks like
 
 Same compositor limit as `desktop-app.md` and `in-app-terminal.md`.
 
+### 6.4 That the production role may `CREATE EXTENSION pg_trgm`
+
+`pg_trgm` is a trusted extension since Postgres 13, so a role with `CREATE` on
+the database can install it. That has not been checked against
+`docker-compose.prod.yml`'s role. If it cannot, the extension is created by the
+superuser once and the migration's `IF NOT EXISTS` becomes a no-op.
+
 ## 7. Phases
 
-1. **Spike: reach and measure.** Write `sessionsKey.js` with the `basic_text`
-   refusal, and `remoteSessions.js` able to list and read one host, printing
-   counts and bytes. No database. Answers §6.1–§6.3. The gate: if there is no
-   keyring and none can be run, stop and go back to the author before phase 2.
-2. **Schema, parse, sync.** The models, `parse.ts` and `sync.ts` with specs, the
-   ingest and manifest routes, and `seal.ts`. The specs use **synthetic
-   fixtures written by hand**. A real transcript must never be committed: it is
-   exactly the data §4.5 encrypts. They cover the `model.py` rules in §2.6,
-   truncation at the last newline, the rewrite detection, AAD swap refusal, and
-   `refuseOffDesktop`.
+1. **Spike: reach and measure.** `remoteSessions.js` able to list and read one
+   host, printing counts and bytes. No database. Answers §6.1 and §6.2.
+2. **Schema, parse, sync.** The models and migration, `parse.ts` and `sync.ts`
+   with specs, the ingest and manifest routes. The specs use **synthetic
+   fixtures written by hand** — a real transcript must never be committed, since
+   it is exactly where credentials end up. They cover the `model.py` rules in
+   §2.5, truncation at the last newline, rewrite detection, entry rebuild on
+   re-ingest, `PARSER_VERSION` re-derive, and `refuseOffDesktop`.
 3. **Browse and view.** The sidebar view, host management in Settings, the
    transcript route with §4.7's renderer, and the virtualiser (licence checked).
    Includes a spec that feeds a transcript containing
    `<img src=x onerror=…>`, a `javascript:` link and an HTML file's contents, and
    asserts none of it becomes markup.
 4. **Search and stats.** §4.9 and §4.10.
-5. **Optional: sessions in panes.** Only if §9 question 3 says the split matters.
+5. **Optional: sessions in panes.** Only if §9 question 2 says the split matters.
    This is the §2.1 refactor.
 
 ## 8. Out of scope
@@ -549,22 +529,19 @@ Same compositor limit as `desktop-app.md` and `in-app-terminal.md`.
   reference if this comes back.
 - Agent access through MCP (§1). When it comes back, it is a decision about
   showing secrets to an agent, not a wiring task.
+- Encryption at rest, and redaction of secrets in storage or display (§4.5).
 - Live tail of a running session.
 - The VPS build.
-- The branch-aware view of §2.6. v1 renders both branches in file order, as
+- The branch-aware view of §2.5. v1 renders both branches in file order, as
   `claude_remote` does.
 - The machine's own `~/.claude/projects`. Adding a host whose alias is
   `localhost` works if sshd runs; a native local source is a later decision.
 
 ## 9. Open questions
 
-1. **Does the OS keyring meet the key-storage requirement?** The policy lists
-   cloud KMS and Vault. Ask security whether a desktop app's
-   libsecret/KWallet-wrapped key is acceptable, or whether an exception is
-   needed. This blocks shipping, not building.
-2. **Is any remote not GNU/Linux?** `find -printf` and `stat -c` are GNU. A macOS
+1. **Is any remote not GNU/Linux?** `find -printf` and `stat -c` are GNU. A macOS
    coder workspace would need a BSD branch in the list script.
-3. **Main-area route instead of pane tabs (§4.6) — acceptable for v1?**
-4. **Fix `MarkdownText`'s `href` for Copilot too?** It is the same one-line
+2. **Main-area route instead of pane tabs (§4.6) — acceptable for v1?**
+3. **Fix `MarkdownText`'s `href` for Copilot too?** It is the same one-line
    scheme check. It is out of this plan's scope, and the risk there is lower
    because the author of the text is the model.
