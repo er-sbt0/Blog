@@ -304,7 +304,7 @@ export const TranscriptEntry: React.FC<TranscriptEntryProps> = ({ row, expanded,
   switch (entry.kind) {
     case "prompt":
       return (
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
           <Box
             sx={{
               maxWidth: "85%",
@@ -331,7 +331,7 @@ export const TranscriptEntry: React.FC<TranscriptEntryProps> = ({ row, expanded,
       const body = entry.body as { name?: string; args?: string };
       const name = (body.name ?? "").replace(/^\//, "");
       return (
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
           <Box
             sx={{
               display: "inline-flex",

@@ -83,9 +83,7 @@ const typingTarget = (target: EventTarget | null): boolean => {
 const SkeletonRows = () => (
   <Box sx={{ display: "flex", flexDirection: "column", gap: 2, py: 2 }} aria-busy>
     {[60, 90, 40, 75, 55].map((w, i) => (
-      <Box key={i} sx={{ display: "flex", justifyContent: i % 2 ? "flex-start" : "flex-end" }}>
-        <Skeleton variant="rounded" width={`${w}%`} height={i % 2 ? 72 : 36} />
-      </Box>
+      <Skeleton key={i} variant="rounded" width={`${w}%`} height={i % 2 ? 72 : 36} />
     ))}
   </Box>
 );
