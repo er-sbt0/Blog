@@ -461,7 +461,7 @@ function SketchDialog(
       open
       onOpenChange={dismissRequest(handleClose)}
     >
-      <DialogPopup fullScreen="always" showCloseButton={false}>
+      <DialogPopup fullScreen="inset" showCloseButton={false}>
         <DialogBody flush>
           {loading && (
             <div className={css.appletLoading}>

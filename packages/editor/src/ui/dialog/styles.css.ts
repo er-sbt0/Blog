@@ -42,9 +42,9 @@ const MOBILE = "(max-width: 899.95px)";
 
 /**
  * Edge-to-edge: no corners, no border, no centering transform. Used both by
- * `fullScreen="always"` (Sketch, Graph — Excalidraw and the GeoGebra applet
- * size themselves to the viewport) and, inside `MOBILE`, by
- * `fullScreen="mobile"`.
+ * `fullScreen="always"` (Graph — the GeoGebra applet sizes itself to the
+ * viewport) and, inside `MOBILE`, by `fullScreen="mobile"` and
+ * `fullScreen="inset"` (Sketch).
  */
 const fullBleed = {
   top: 0,
@@ -59,6 +59,9 @@ const fullBleed = {
   borderRadius: 0,
   border: "none",
 } as const;
+
+/** The backdrop margin around a `fullScreen="inset"` popup. */
+const INSET = "clamp(1rem, 4vw, 3rem)";
 
 /** Full-bleed has nothing to slide from, so it fades. */
 const fullIn = keyframes({ from: { opacity: 0 }, to: { opacity: 1 } });
@@ -126,6 +129,24 @@ export const popup = recipe({
         "@media": { [MOBILE]: { ...fullBleed, selectors: fullBleedAnimation } },
       },
       always: { ...fullBleed, selectors: fullBleedAnimation },
+      /**
+       * Nearly full-screen: the popup keeps its corners and a margin of
+       * backdrop on every side, and goes edge-to-edge on mobile. Sized by
+       * `inset` alone, because an applet host contributes no height of its own.
+       */
+      inset: {
+        top: INSET,
+        left: INSET,
+        right: INSET,
+        bottom: INSET,
+        transform: "none",
+        width: "auto",
+        maxWidth: "none",
+        height: "auto",
+        maxHeight: "none",
+        selectors: fullBleedAnimation,
+        "@media": { [MOBILE]: { ...fullBleed } },
+      },
     },
   },
   // No default `size`: `DialogPopup` supplies `sm` itself, except for

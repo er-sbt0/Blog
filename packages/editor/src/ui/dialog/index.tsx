@@ -46,7 +46,7 @@ export type DialogSize = "xs" | "sm" | "md" | "lg";
  * media query in `styles.css.ts`, not by a JS breakpoint hook — see the note
  * on `MOBILE` there for why that distinction is worth a prop.
  */
-export type DialogFullScreen = "never" | "mobile" | "always";
+export type DialogFullScreen = "never" | "mobile" | "always" | "inset";
 
 export type DialogPopupProps =
   & Omit<ComponentProps<typeof DialogPrimitive.Popup>, "className">
@@ -74,7 +74,9 @@ export function DialogPopup({
           css.popup({
             // A size means nothing to a popup that fills the viewport, and
             // applying one caps its width — see `defaultVariants` in styles.
-            size: fullScreen === "always" ? undefined : (size ?? "sm"),
+            size: fullScreen === "always" || fullScreen === "inset"
+              ? undefined
+              : (size ?? "sm"),
             fullScreen,
           }),
           className,
