@@ -1,6 +1,8 @@
 # Claude Code as a Lexical notebook
 
-**Status: proposal. Nothing is built, and one load-bearing claim is unverified.**
+**Status: superseded, 14 Nov 2026, by [agent-block.md](./agent-block.md)** — a session as a block inside a post, on the Agent SDK. Kept for §2.1 and §5, which that plan relies on; §2.2 is out of date (the preload bridge now exists). What follows is the original proposal.
+
+**Original status: proposal. Nothing is built, and one load-bearing claim is unverified.**
 The design below is settled — sixteen decisions, each recorded in §4 with the
 alternative that was declined — but §4.1 and §4.6 together assert something about
 the `claude` CLI's stdio protocol that nobody here has checked. §7's phase 0 is
