@@ -52,6 +52,24 @@ const { contextBridge, ipcRenderer } = require("electron");
  *   ssh's message, never transcript bytes. Those reach the renderer only
  *   through the authorized `/api/remote-sessions` routes, like any other data.
  *
+ * **`agent` is the third capability** (docs/plans/agent-block.md §4.3). It
+ * starts a Claude Agent SDK session, which is a `claude` with the user's
+ * privileges, so its argument has to be at least as strong as the terminal's:
+ *
+ * - The renderer sends a **prompt** — text to a model, never an argv element,
+ *   an environment or a path. The cwd is chosen in the main process (the
+ *   terminal's workspace in phase 0, a main-process folder dialog from phase 1)
+ *   and only handed back for display, so a script in the renderer cannot point
+ *   a session at a directory of its choosing. Which tools the session has is
+ *   fixed in `agent.js`; phase 0 has no built-in tools at all.
+ * - Session ids and tool-call ids are minted in the main process, and every
+ *   message naming one is checked against the WebContents that owns it
+ *   (`agentIpc.js`). A `toolResult` can only answer a call that is pending.
+ * - What comes back is a narrow projection of the SDK's stream — text, tool
+ *   names, a result — and doc-tool calls whose names main defined. The
+ *   renderer executes those against its own editor; main never writes a
+ *   document.
+ *
  * Channel names are repeated from `pty.js` and `remoteSessionsIpc.js` rather
  * than imported: a sandboxed preload cannot import an ES module from the
  * shell, and inventing a bundle step to share a handful of strings would cost
@@ -118,5 +136,28 @@ contextBridge.exposeInMainWorld("desktop", {
     sync: (hostId) => ipcRenderer.invoke("sessions:sync", hostId),
     /** `({ hostId, done, total }) => void`, bytes read so far. Returns an unsubscribe. */
     onProgress: (callback) => subscribe("sessions:progress", callback),
+  },
+  agent: {
+    /**
+     * Start a session on a prompt. Resolves to `{ ok: true, sessionId, cwd }`
+     * or `{ ok: false, error }`. Only the prompt crosses; the cwd is main's.
+     */
+    start: (options) => ipcRenderer.invoke("agent:start", { prompt: options?.prompt }),
+    /** Interrupt the current turn of a session this window started. */
+    interrupt: (sessionId) => ipcRenderer.invoke("agent:interrupt", sessionId),
+    /**
+     * `(event) => void` for one session. Returns an unsubscribe. Filtered here
+     * rather than by channel, so main has one channel to send on.
+     */
+    onEvent: (sessionId, callback) =>
+      typeof callback === "function"
+        ? subscribe("agent:event", (event) => {
+            if (event?.sessionId === sessionId) callback(event);
+          })
+        : () => {},
+    /** `({ callId, sessionId, name, input }) => void`. Returns an unsubscribe. */
+    onToolCall: (callback) => subscribe("agent:tool-call", callback),
+    /** Answer a pending tool call. The result is structured-cloned as plain data. */
+    toolResult: (callId, result) => ipcRenderer.send("agent:tool-result", callId, result),
   },
 });

@@ -22,6 +22,7 @@ import { actions, type RootState, useDispatch, useSelector } from "@/store";
 import { selectFocusedDocId } from "@/store/selectors/layoutSelectors";
 import { useBackgroundRefresh } from "@/hooks/useBackgroundRefresh";
 import { useChangeFeed } from "@/hooks/useChangeFeed";
+import { useAgentDocTools } from "@/hooks/useAgentDocTools";
 import { useSidebarWidth } from "@/contexts/SidebarWidthContext";
 import { useLayoutMode } from "@/contexts/LayoutModeContext";
 import { usePathname } from "next/navigation";
@@ -91,6 +92,9 @@ const AppLayoutContent = ({ children }: { children: React.ReactNode }) => {
   // the same catch-up, so having both cannot leave the store in two states.
   useChangeFeed();
   useBackgroundRefresh();
+  // Desktop only, and a no-op elsewhere: the agent's doc tools run against the
+  // focused editor (docs/plans/agent-block.md §3.1).
+  useAgentDocTools(activeEditorRef);
 
   // Derived, never stored: the panel is open iff a view is in a slot. The rail
   // itself reads the same hook, so the column and its contents cannot disagree

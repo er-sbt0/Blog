@@ -91,9 +91,65 @@ export interface DesktopSessions {
   onProgress(cb: (progress: SessionSyncProgress) => void): () => void;
 }
 
+/**
+ * What starting an agent session answers. `cwd` is the main process's choice,
+ * handed back for the block to display (docs/plans/agent-block.md §4.3).
+ */
+export type AgentStartResult =
+  | { ok: true; sessionId: string; cwd: string }
+  | { ok: false; error: string };
+
+/**
+ * A session's events: a narrow projection of the SDK's message stream, made in
+ * `packages/desktop/src/agent.js` (`project`). Never a raw SDK message.
+ */
+export type AgentEvent = { sessionId: string } & (
+  | {
+    type: "init";
+    model: string;
+    apiKeySource: string;
+    claudeCodeVersion: string;
+    tools: string[];
+  }
+  | { type: "assistant"; text: string; toolUses: string[] }
+  | {
+    type: "result";
+    subtype: string;
+    isError: boolean;
+    turns: number;
+    costUsd: number;
+  }
+  | { type: "error"; message: string }
+  | { type: "closed" }
+);
+
+/** A doc-tool call main forwards for the renderer to run on the live editor. */
+export interface AgentToolCall {
+  callId: string;
+  sessionId: string;
+  name: string;
+  input: unknown;
+}
+
+/**
+ * Claude Agent SDK sessions (docs/plans/agent-block.md §4.3). The renderer
+ * sends a prompt and nothing else — no cwd, argv or environment — and answers
+ * the doc-tool calls main forwards to it. Ids are minted in main.
+ */
+export interface DesktopAgent {
+  start(options: { prompt: string }): Promise<AgentStartResult>;
+  interrupt(sessionId: string): Promise<boolean>;
+  /** Subscribe to one session's events. Returns the unsubscribe. */
+  onEvent(sessionId: string, cb: (event: AgentEvent) => void): () => void;
+  /** Subscribe to doc-tool calls for every session this window owns. */
+  onToolCall(cb: (call: AgentToolCall) => void): () => void;
+  toolResult(callId: string, result: unknown): void;
+}
+
 export interface DesktopBridge {
   terminal: DesktopTerminal;
   sessions: DesktopSessions;
+  agent: DesktopAgent;
 }
 
 declare global {

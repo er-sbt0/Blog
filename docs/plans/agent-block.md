@@ -1,6 +1,7 @@
 # `/agent` — a Claude Code session as a block in the post
 
-**Status: proposal, 14 Nov 2026. Nothing is built.** Supersedes
+**Status: phase 0 (spike) done, 14 Nov 2026 — see §7. Phases 1–6 not
+started.** Supersedes
 [claude-code-notebook.md](./claude-code-notebook.md), which stays for its §2.1
 (the transcript is already block-shaped) and §5 (the autosave/streaming
 conflict) — both still apply here. Its §2.2 ("there is no preload bridge") is
@@ -216,3 +217,102 @@ come from `outline` so they match what `apply_ops` accepts.
 5. **Is the log visible to blog-content readers?** It is part of the post's
    JSON. Proposal: the codec describes it ("agent session · 6 turns") and never
    returns its contents.
+
+## 7. Phase 0 log (14 Nov 2026)
+
+A paragraph written by an Agent SDK session appeared in an open post in the
+desktop app (`pnpm desktop:dev` on a scratch `--data-dir`), and autosave stored
+it with its `blk_` id. Proven three ways, each cheaper than the last to rerun:
+`scripts/spike-agent-sdk.mjs` (SDK + auth + in-process tool, under Node and
+under Electron's Node), a throwaway Electron script driving the real
+`preload.cjs` and `agentIpc.js` from a page (the IPC round trip), and
+`packages/editor/src/utils/__tests__/agentDocTools.test.ts` (the executor on a
+real headless editor).
+
+**What was built**, and is meant to be grown rather than replaced:
+
+- `packages/desktop/src/agent.js` — `createAgentSession({ cwd, prompt,
+  executeTool, onEvent })`. Defines the `doc` in-process MCP server
+  (`createSdkMcpServer`, one tool: `insert_blocks`) and projects the SDK stream
+  onto `init` / `assistant` / `result` / `error` / `closed`. No `electron`
+  import, so a script can drive it.
+- `packages/desktop/src/agentIpc.js` — `installAgent({ workspace, log })`:
+  `agent:start`, `agent:interrupt`, `agent:tool-result` handlers; sends
+  `agent:event` and `agent:tool-call`. Ids minted in main, every message
+  checked against the owning WebContents, a 30 s timeout per tool call. Loads
+  the SDK lazily, as `pty.js` loads `node-pty`.
+- `window.desktop.agent` in `preload.cjs`: `start({ prompt })`,
+  `interrupt(id)`, `onEvent(id, cb)`, `onToolCall(cb)`, `toolResult(callId,
+  result)`. `send` and `answerPermission` are phase 1 and 2.
+- `packages/editor/src/utils/agentDocTools.ts` — `runAgentDocTool(editor,
+  name, input)`: validates with `opSchema`, builds nodes with `blockToNode` +
+  `$parseSerializedNode`, stamps fresh ids, splices them in one discrete
+  `editor.update` tagged `agent-write`. Resolves `blk_` ids and `bN.M` paths
+  against the live tree.
+- `src/hooks/useAgentDocTools.ts`, mounted in `AppLayoutContent`, answers
+  calls against the focused editor — and holds the spike's temporary trigger,
+  `await agentSpike()` in the window's devtools console, marked for deletion.
+
+**Auth (§6 q4): answered — yes, no API key.** The SDK spawns a `claude` binary
+and that binary reads the user's own Claude Code credentials
+(`~/.claude/.credentials.json`). With no `ANTHROPIC_API_KEY` in the
+environment every run reported `apiKeySource: "none"`, which the SDK's types
+define as "no API key in use — e.g. claude.ai OAuth login". One caveat for
+phase 1 to keep in mind: if `ANTHROPIC_API_KEY` *is* set in the shell's
+environment, the child inherits it (the env is the terminal's open one), and
+it takes precedence over the login.
+
+**Bundling.** Nothing special, because nothing is bundled: the SDK is a plain
+production dependency of `@blog/desktop`, which is how `node-pty` and
+`embedded-postgres` already ship (electron-builder copies the package's
+production `node_modules` into `resources/app`). Two things that are not
+obvious:
+
+- **It brings its own 293 MB `claude`.** The SDK runs a native binary from a
+  per-platform optional dependency (`@anthropic-ai/claude-agent-sdk-linux-x64`),
+  version-matched to the SDK (0.3.309 runs claude 2.1.309), not the user's
+  `~/.local/bin/claude`. That roughly doubles the installer. `verify-package.mjs`
+  now asserts the binary is packaged and executable, because an SDK without it
+  starts fine and fails on the first prompt. **Phase 1 should decide** between
+  shipping it and passing `pathToClaudeCodeExecutable` from
+  `resolveClaudeBinary` (the terminal's binary) with the optional dependency
+  excluded — smaller, one `claude` for both surfaces, but exposed to version
+  skew between the SDK and whatever the user has installed.
+- **Peers.** The SDK's peers are zod ^4, `@modelcontextprotocol/sdk` ^1.29 and
+  `@anthropic-ai/sdk`; the root is on zod 3, so the desktop package declares
+  its own zod 4. pnpm keeps the two apart.
+
+The packaged AppImage itself was **not** rebuilt in this phase (a full
+`build:desktop` + `package` is minutes); the verify check is what will catch it.
+
+**What the plan got wrong or left out.**
+
+- **The tool schema cannot be shared as written.** §4.1 says the doc tools are
+  "built on the content bridge", and on the renderer side they are — but main
+  is plain JavaScript on zod 4 and `content-bridge/schema.ts` is TypeScript on
+  zod 3, so main declares a loose `insert_blocks` shape and the renderer
+  enforces `opSchema`. The model is told less than it should be (no
+  `BLOCK_DOC`). Phase 1: bundle the schema and `BLOCK_DOC` into main with
+  esbuild, as `build-mcp.mjs` already does for the MCP server.
+- **One id, not two.** The SDK accepts a caller-chosen `sessionId`, so the id
+  main mints is also the SDK's session id, `resume`'s argument and the
+  `<sessionId>.jsonl` name. §3.3's transcript link and §5's `resume` need no
+  mapping table.
+- **`onEvent(sessionId, cb)` is filtered in the preload**, on one channel; and
+  `onToolCall` is per window, not per session. A tool call therefore goes to
+  the *focused* editor in phase 0. Phase 1 must route it to the editor that
+  holds the call's block (by `blockKey`/session), or a split view writes into
+  the wrong post.
+- **Phase 0 is sealed down, deliberately**: `tools: []` (no Bash, no file
+  tools), `permissionMode: "dontAsk"`, `settingSources: []` (no user hooks,
+  CLAUDE.md or MCP servers). §2.7's full Claude Code comes back with the
+  folder picker in phase 1 and the permission cards in phase 2, not before.
+  The cwd is the terminal's workspace directory; the picker is not built.
+- **Address resolution in a live tree stops at nested editors.** A `bN.M`
+  path or `blk_` id inside a sticky, nested doc or canvas resolves to nothing,
+  because their blocks are not live children of this editor. Same limit
+  `findUnregisterable` exists for; phase 1's `outline` must agree with it.
+- **An Electron ESM entry must not `await app.whenReady()` at top level** —
+  `ready` never fires. Only met in the throwaway bridge script (`main.js`
+  already uses `.then`), but worth knowing before phase 1 writes another one.
+

@@ -345,6 +345,28 @@ export function verifyPackage(appOutDir, { buildDir = DESKTOP_BUILD_DIR } = {}) 
     }
   });
 
+  // 4b. The Agent SDK behind `/agent` blocks (docs/plans/agent-block.md §5
+  //     phase 0). It ships as an ordinary production dependency of this
+  //     package, the way `node-pty` and `embedded-postgres` do — but it runs
+  //     a native `claude` from a per-platform optional dependency that it
+  //     finds by `require.resolve` from its own directory. A package that
+  //     carried the SDK and dropped the optional dependency would start, and
+  //     fail on the first prompt with nothing in the build to say why.
+  check("the Agent SDK and its native claude binary are packaged", () => {
+    const roots = [
+      path.join(resources, "app", "node_modules", "@anthropic-ai"),
+      path.join(resources, "node_modules", "@anthropic-ai"),
+    ];
+    const root = roots.find((dir) => fs.existsSync(path.join(dir, "claude-agent-sdk", "sdk.mjs")));
+    if (!root) throw new Error("No @anthropic-ai/claude-agent-sdk in the package.");
+    const binary = path.join(root, `claude-agent-sdk-linux-${os.arch()}`, "claude");
+    if (!fs.existsSync(binary)) {
+      throw new Error(`The SDK is packaged but its native binary is not (${path.relative(resources, binary)}).`);
+    }
+    fs.accessSync(binary, fs.constants.X_OK);
+    return `${(fs.statSync(binary).size / 1024 / 1024).toFixed(0)} MB binary`;
+  });
+
   // 5. The 14 symlinks. §10.3 — the one packaging risk the plan named in advance.
   const native = findNativeDir(resources);
   check("the embedded Postgres shared-library symlinks survived as symlinks", () => {

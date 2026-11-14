@@ -40,6 +40,7 @@ import {
 } from "./server.js";
 import { installTerminal } from "./pty.js";
 import { installRemoteSessions } from "./remoteSessionsIpc.js";
+import { installAgent } from "./agentIpc.js";
 import { linkDisposition } from "./links.js";
 
 /**
@@ -102,6 +103,8 @@ let nextServer = null;
 let terminal = null;
 /** `sessions:sync` and its single-flight map (docs/plans/remote-claude.md §4.2). */
 let remoteSessions = null;
+/** Agent SDK sessions behind `/agent` blocks (docs/plans/agent-block.md). */
+let agent = null;
 let mainWindow = null;
 let shuttingDown = false;
 /** Set if the Next child dies; read by the health wait so a crash is not a hang. */
@@ -273,6 +276,10 @@ async function boot() {
   // handler registered after `loadURL` is a race. It reaches the server as the
   // local author with the cookie `establishSession` just set.
   remoteSessions = installRemoteSessions({ origin, cookie: () => sessionCookieHeader, log });
+  // Agent sessions, for the same reason again. Phase 0 runs them in the
+  // terminal's workspace directory; phase 1 replaces that with a per-block
+  // folder dialog, still in this process (docs/plans/agent-block.md §4.3).
+  agent = installAgent({ workspace: paths.workspace, log });
 
   // 10. The window, and only now.
   await openWindow(origin);
@@ -635,6 +642,14 @@ async function shutdown() {
     console.error("[desktop] failed to remove the remote-sessions handler", error);
   }
   remoteSessions = null;
+  // An agent mid-turn is aborted, not drained: its writes go to the live
+  // editor (docs/plans/agent-block.md §3.2), and the window is going too.
+  try {
+    agent?.dispose();
+  } catch (error) {
+    console.error("[desktop] failed to stop the agent sessions", error);
+  }
+  agent = null;
   try {
     await stopNextServer(nextServer, { group: DEV });
   } catch (error) {
