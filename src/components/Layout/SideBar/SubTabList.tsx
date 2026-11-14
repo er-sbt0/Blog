@@ -76,9 +76,9 @@ export const SubTabList: React.FC<SubTabListProps> = (
     dispatch(actions.setActiveTab({ paneId, tabId }));
   };
 
-  // The first (root) tab renames its own `tabLabel`; the rest rename `name`.
+  // The first (root) tab renames its own `tabLabel`; the rest rename `title`.
   const fieldFor = (tabId: string): RenameField =>
-    tabId === rootTabId ? "tabLabel" : "name";
+    tabId === rootTabId ? "tabLabel" : "title";
 
   // Right-click menu, anchored at the cursor. A sub-tab sits inside the post
   // row, which has its own menu, so the event must stop here.

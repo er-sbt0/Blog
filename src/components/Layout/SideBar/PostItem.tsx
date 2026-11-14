@@ -134,10 +134,10 @@ export const PostItem = memo(
     // between a navigation landing and the deep-link seam dispatching
     // `openPane`.
     const isSelected = isOpenRoot;
-    // The post row renames the post title (`name`); the first sub-tab (same id)
+    // The post row renames the post title; the first sub-tab (same id)
     // renames `tabLabel`. Disambiguate by field so only one input shows.
     const isRenaming = rename.renamingId === post.id &&
-      rename.context === "name";
+      rename.context === "title";
 
     // Tab entries: the root itself is the first tab, then each child.
     //
@@ -280,7 +280,7 @@ export const PostItem = memo(
             onDoubleClick={(e) => {
               if (sidebarOpen) {
                 e.preventDefault();
-                rename.start(post.id, "name");
+                rename.start(post.id, "title");
               }
             }}
             sx={[

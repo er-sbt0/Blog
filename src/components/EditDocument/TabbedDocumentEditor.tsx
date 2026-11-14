@@ -22,6 +22,7 @@ import {
   ListItemText,
 } from "@mui/material";
 import { v4 as uuidv4 } from "uuid";
+import type { PostUpdateInput } from "@/types";
 import { actions, postsSelectors, useDispatch, useSelector } from "@/store";
 import { useCommandRun } from "@/commands/CommandProvider";
 import { paneCommands } from "@/commands";
@@ -275,11 +276,11 @@ const TabbedDocumentEditor: React.FC<TabbedDocumentEditorProps> = ({
     // Persist through the store (IndexedDB + cloud) rather than hitting the API
     // directly, so the document title rendered above the editor and the tab
     // name in the sidebar update immediately to match the renamed tab.
-    // Renaming the root tab edits its own `tabLabel` so the post title (`name`)
-    // stays independent; child tabs are plain docs, so their `name` is the label.
-    const partial = tabId === rootId
+    // Renaming the root tab edits its own `tabLabel` so the post title
+    // stays independent; child tabs are plain docs, so their `title` is the label.
+    const partial: PostUpdateInput = tabId === rootId
       ? { tabLabel: trimmed }
-      : { name: trimmed };
+      : { title: trimmed };
     await dispatch(actions.updatePost({ id: tabId, partial }));
   }, [dispatch, rootId]);
 

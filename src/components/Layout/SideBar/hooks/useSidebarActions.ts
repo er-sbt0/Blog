@@ -9,7 +9,13 @@ import {
   useDispatch,
   useSelector,
 } from "@/store";
-import { MAX_PANES, type Post, type Project, type Series } from "@/types";
+import {
+  MAX_PANES,
+  type Post,
+  type PostUpdateInput,
+  type Project,
+  type Series,
+} from "@/types";
 import { type ContextMenuState, useContextMenu } from "@/hooks/useContextMenu";
 import {
   type InlineRenameResult,
@@ -25,7 +31,7 @@ import { useCloseDeletedDocument } from "@/hooks/useCloseDeletedDocument";
  * the first sub-tab renames `tabLabel` (the tab's own label) — both keyed by the
  * same id, so the field disambiguates which is being edited.
  */
-export type RenameField = "name" | "tabLabel";
+export type RenameField = "title" | "tabLabel";
 
 /** Rename machinery for the rows of one entity type, plus their right-click menu. */
 interface RowActions<C = undefined> {
@@ -174,15 +180,15 @@ export function useSidebarActions(): SidebarActionsResult {
     // placeholder, so naming an untitled post "Untitled" for real still writes.
     getStoredTitle: (post, field) =>
       (field === "tabLabel" ? post.tabLabel : post.title) ?? "",
-    initialContext: "name",
+    initialContext: "title",
     onCommit: (post, title, field) => {
-      const partial: { name?: string; tabLabel?: string } = { [field]: title };
+      const partial: PostUpdateInput = { [field]: title };
       // Renaming the post title must not drag the first tab's label with it.
-      // The first tab falls back to the post `name` until `tabLabel` is set, so
+      // The first tab falls back to the post `title` until `tabLabel` is set, so
       // when renaming a tabbed post's title we pin the first tab to its current
-      // label by seeding `tabLabel` with the old name. Single-tab posts have no
-      // separate first-tab item, so their heading keeps following the post name.
-      if (field === "name") {
+      // label by seeding `tabLabel` with the old title. Single-tab posts have no
+      // separate first-tab item, so their heading keeps following the post title.
+      if (field === "title") {
         const hasTabs = documents.some((doc) => doc.parentId === post.id);
         if (hasTabs && !post.tabLabel && post.title) {
           partial.tabLabel = post.title;
@@ -231,7 +237,7 @@ export function useSidebarActions(): SidebarActionsResult {
   const handleRenamePostFromMenu = useCallback(
     (postId: string) => {
       closePostMenu();
-      startPostRename(postId, "name");
+      startPostRename(postId, "title");
     },
     [closePostMenu, startPostRename],
   );
@@ -284,7 +290,7 @@ export function useSidebarActions(): SidebarActionsResult {
         // Seed the rename explicitly — this closure's `documents` predates the
         // new row, so `start` would find nothing to read a title off.
         pendingOpenRef.current = payload.id;
-        startPostRenameWith(payload.id, UNTITLED_POST, "name");
+        startPostRenameWith(payload.id, UNTITLED_POST, "title");
       } catch {
         // Create failed; the thunk already surfaced an announcement.
       }
