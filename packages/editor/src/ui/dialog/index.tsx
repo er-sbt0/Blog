@@ -70,7 +70,15 @@ export function DialogPopup({
     <DialogPortal>
       <DialogBackdrop />
       <DialogPrimitive.Popup
-        className={cx(css.popup({ size, fullScreen }), className)}
+        className={cx(
+          css.popup({
+            // A size means nothing to a popup that fills the viewport, and
+            // applying one caps its width — see `defaultVariants` in styles.
+            size: fullScreen === "always" ? undefined : (size ?? "sm"),
+            fullScreen,
+          }),
+          className,
+        )}
         {...props}
       >
         {children}

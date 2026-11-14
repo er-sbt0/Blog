@@ -128,7 +128,11 @@ export const popup = recipe({
       always: { ...fullBleed, selectors: fullBleedAnimation },
     },
   },
-  defaultVariants: { size: "sm", fullScreen: "never" },
+  // No default `size`: `DialogPopup` supplies `sm` itself, except for
+  // `fullScreen="always"`. A size's `max-width` sits in a media query, which
+  // vanilla-extract emits after `fullBleed` — so it would win and cap a
+  // full-screen popup at 28rem, pinned to the top-left corner.
+  defaultVariants: { fullScreen: "never" },
 });
 
 /**
