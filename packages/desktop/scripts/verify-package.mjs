@@ -367,6 +367,22 @@ export function verifyPackage(appOutDir, { buildDir = DESKTOP_BUILD_DIR } = {}) 
     return `${(fs.statSync(binary).size / 1024 / 1024).toFixed(0)} MB binary`;
   });
 
+  // 4c. The doc-tool schema `agent.js` imports (docs/plans/agent-block.md §7,
+  //     phase 1). Generated, and gitignored, so a package cut from a tree where
+  //     the build step did not run would start fine and fail the first `/agent`
+  //     with ERR_MODULE_NOT_FOUND. Checked for the export, not merely the file.
+  check("the agent's doc-tool schema bundle is packaged", () => {
+    const bundle = path.join(resources, "app", "src", "generated", "docSchema.mjs");
+    if (!fs.existsSync(bundle)) {
+      throw new Error(`No ${path.relative(resources, bundle)} — run build:agent-schema before packaging.`);
+    }
+    const source = fs.readFileSync(bundle, "utf8");
+    if (!/\bopSchema\b/.test(source) || !/\bBLOCK_DOC\b/.test(source)) {
+      throw new Error("The schema bundle does not export opSchema and BLOCK_DOC.");
+    }
+    return `${(source.length / 1024).toFixed(0)} KB`;
+  });
+
   // 5. The 14 symlinks. §10.3 — the one packaging risk the plan named in advance.
   const native = findNativeDir(resources);
   check("the embedded Postgres shared-library symlinks survived as symlinks", () => {

@@ -276,10 +276,15 @@ async function boot() {
   // handler registered after `loadURL` is a race. It reaches the server as the
   // local author with the cookie `establishSession` just set.
   remoteSessions = installRemoteSessions({ origin, cookie: () => sessionCookieHeader, log });
-  // Agent sessions, for the same reason again. Phase 0 runs them in the
-  // terminal's workspace directory; phase 1 replaces that with a per-block
-  // folder dialog, still in this process (docs/plans/agent-block.md §4.3).
-  agent = installAgent({ workspace: paths.workspace, log });
+  // Agent sessions, for the same reason again. Each block's folder is chosen
+  // in a main-process dialog (the workspace is only its starting point), and
+  // recorded beside the other per-install state so a reopened post can resume
+  // without the renderer naming a path (docs/plans/agent-block.md §4.3).
+  agent = installAgent({
+    workspace: paths.workspace,
+    sessionsFile: path.join(paths.userData, "agent-sessions.json"),
+    log,
+  });
 
   // 10. The window, and only now.
   await openWindow(origin);

@@ -92,16 +92,33 @@ export interface DesktopSessions {
 }
 
 /**
- * What starting an agent session answers. `cwd` is the main process's choice,
- * handed back for the block to display (docs/plans/agent-block.md §4.3).
+ * What starting an agent session answers. The folder is chosen in a
+ * main-process dialog and only handed back for display
+ * (docs/plans/agent-block.md §4.3); `cancelled` is the author dismissing it.
  */
 export type AgentStartResult =
   | { ok: true; sessionId: string; cwd: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; cancelled?: boolean };
+
+export type AgentSendResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Text the block hands main for §4.5's system prompt. Never a path, an argv
+ * element or an environment: main caps every field and only ever puts them in
+ * front of the model.
+ */
+export interface AgentTurnContext {
+  title: string;
+  blockId: string;
+  outline: string;
+  selection: unknown;
+}
 
 /**
  * A session's events: a narrow projection of the SDK's message stream, made in
- * `packages/desktop/src/agent.js` (`project`). Never a raw SDK message.
+ * `packages/desktop/src/agentProtocol.js` (`project`). Never a raw SDK message.
+ * Mirrored by `AgentSessionEvent` in the editor package, which this has to stay
+ * assignable to — `src/lib/agentHost.ts` is where the compiler checks it.
  */
 export type AgentEvent = { sessionId: string } & (
   | {
@@ -111,7 +128,13 @@ export type AgentEvent = { sessionId: string } & (
     claudeCodeVersion: string;
     tools: string[];
   }
-  | { type: "assistant"; text: string; toolUses: string[] }
+  | {
+    type: "assistant";
+    text: string;
+    toolUses: string[];
+    toolCalls: { name: string; detail: string }[];
+  }
+  | { type: "tool-result"; isError: boolean; preview: string }
   | {
     type: "result";
     subtype: string;
@@ -120,7 +143,7 @@ export type AgentEvent = { sessionId: string } & (
     costUsd: number;
   }
   | { type: "error"; message: string }
-  | { type: "closed" }
+  | { type: "turn-end" }
 );
 
 /** A doc-tool call main forwards for the renderer to run on the live editor. */
@@ -133,11 +156,16 @@ export interface AgentToolCall {
 
 /**
  * Claude Agent SDK sessions (docs/plans/agent-block.md §4.3). The renderer
- * sends a prompt and nothing else — no cwd, argv or environment — and answers
- * the doc-tool calls main forwards to it. Ids are minted in main.
+ * sends prompts and text context and nothing else — no cwd, argv or
+ * environment — and answers the doc-tool calls main forwards to it. Ids are
+ * minted in main and checked against the window that owns them.
  */
 export interface DesktopAgent {
-  start(options: { prompt: string }): Promise<AgentStartResult>;
+  start(options: { prompt: string; context: AgentTurnContext }): Promise<AgentStartResult>;
+  send(
+    sessionId: string,
+    options: { prompt: string; context: AgentTurnContext },
+  ): Promise<AgentSendResult>;
   interrupt(sessionId: string): Promise<boolean>;
   /** Subscribe to one session's events. Returns the unsubscribe. */
   onEvent(sessionId: string, cb: (event: AgentEvent) => void): () => void;

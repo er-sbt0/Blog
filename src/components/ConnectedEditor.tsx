@@ -1,5 +1,5 @@
 "use client";
-import { RefCallback, RefObject } from "react";
+import { RefCallback, RefObject, useEffect, useState } from "react";
 import { COMMAND_PRIORITY_LOW } from "lexical";
 import { mergeRegister } from "@lexical/utils";
 import type { Post } from "@/types";
@@ -12,6 +12,11 @@ import { actions, useDispatch } from "@/store";
 import type { EditorState, LexicalEditor } from "lexical";
 import Editor from "@/editor/Editor";
 import { EditorDocumentProvider } from "@/editor/context/DocumentContext";
+import {
+  type AgentHost,
+  AgentHostProvider,
+} from "@/editor/context/AgentHostContext";
+import { getAgentHost } from "@/lib/agentHost";
 
 const ConnectedEditor: React.FC<{
   document: Post;
@@ -42,6 +47,11 @@ const ConnectedEditor: React.FC<{
   },
 ) => {
   const dispatch = useDispatch();
+  // The desktop's agent capability, injected rather than imported by the
+  // editor (docs/plans/agent-block.md §4.4). Read after mount: the server pass
+  // has no bridge, and rendering from it during render would not hydrate.
+  const [agentHost, setAgentHost] = useState<AgentHost | null>(null);
+  useEffect(() => setAgentHost(getAgentHost()), []);
   const editorRefCallback = (editor: LexicalEditor) => {
     if (typeof editorRef === "function") {
       editorRef(editor);
@@ -122,16 +132,18 @@ const ConnectedEditor: React.FC<{
   // pane. See `EditorDocumentProvider`.
   return (
     <EditorDocumentProvider documentId={document.id}>
-      <Editor
-        initialConfig={initialConfig}
-        onChange={onChange}
-        editorRef={editorRefCallback}
-        ignoreHistoryMerge={ignoreHistoryMerge}
-        onSave={onSave}
-        onReset={onReset}
-        isActive={isActive}
-        editable={editable}
-      />
+      <AgentHostProvider host={agentHost} postTitle={document.title}>
+        <Editor
+          initialConfig={initialConfig}
+          onChange={onChange}
+          editorRef={editorRefCallback}
+          ignoreHistoryMerge={ignoreHistoryMerge}
+          onSave={onSave}
+          onReset={onReset}
+          isActive={isActive}
+          editable={editable}
+        />
+      </AgentHostProvider>
     </EditorDocumentProvider>
   );
 };

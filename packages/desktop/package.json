@@ -9,12 +9,13 @@
   "desktopName": "blog-desktop.desktop",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron .",
-    "start:no-sandbox": "electron . --no-sandbox",
-    "dev": "DESKTOP_DEV=1 electron .",
-    "dev:no-sandbox": "DESKTOP_DEV=1 electron . --no-sandbox",
+    "start": "node scripts/build-agent-schema.mjs && electron .",
+    "start:no-sandbox": "node scripts/build-agent-schema.mjs && electron . --no-sandbox",
+    "dev": "node scripts/build-agent-schema.mjs && DESKTOP_DEV=1 electron .",
+    "dev:no-sandbox": "node scripts/build-agent-schema.mjs && DESKTOP_DEV=1 electron . --no-sandbox",
     "rebuild:native": "electron-rebuild -f -w node-pty -m ../..",
     "build:mcp": "node scripts/build-mcp.mjs",
+    "build:agent-schema": "node scripts/build-agent-schema.mjs",
     "stage:resources": "node scripts/stage-resources.mjs",
     "package": "node scripts/stage-resources.mjs && electron-builder --linux",
     "verify:package": "node scripts/verify-package.mjs"

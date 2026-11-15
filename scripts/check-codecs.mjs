@@ -106,6 +106,8 @@ const OPAQUE_ALLOWLIST = {
     "a board, addressed *through*: `BLOCK_CONTAINERS` descends to its notes and each note to its blocks, so the board itself has only its height left and an agent has no business setting that (docs/plans/nested-editor-support.md §4)",
   sticky:
     "the same, one level shallower — its blocks are addressed individually and its colour is not the IR's business",
+  agent:
+    "an `/agent` session's prompts and log (docs/plans/agent-block.md §6 q5). A working record, not post content: an outline says it is there and how many turns it has, and nothing reads or writes what it says",
   "page-break":
     "no attributes at all. A codec could only encode `{}`, which buys an agent nothing it cannot already do by moving or deleting the block",
 };

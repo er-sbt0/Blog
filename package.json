@@ -7,7 +7,7 @@
     "postinstall": "patch-package",
     "dev": "next dev",
     "build": "next build",
-    "build:desktop": "DESKTOP=1 BUILD_DIR=.next-desktop next build && pnpm --filter @blog/desktop build:mcp",
+    "build:desktop": "DESKTOP=1 BUILD_DIR=.next-desktop next build && pnpm --filter @blog/desktop build:mcp && pnpm --filter @blog/desktop build:agent-schema",
     "clean": "rm -rf .next .next-desktop .next-desktop-dev && rm -rf node_modules/.cache",
     "start": "next start",
     "lint": "next lint",

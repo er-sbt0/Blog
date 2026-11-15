@@ -135,6 +135,20 @@ export function describeNode(node: SerializedNode): string {
     case "page-break":
     case "pagebreak":
       return "page break";
+    // An `/agent` block (docs/plans/agent-block.md §6 q5). Its prompts and log
+    // are a working record, not the post, so a reader gets the count and never
+    // the contents — the same "shape, not content" rule as everything here, held
+    // more strictly because the log can quote tool output from the author's
+    // machine. `turns` is what the live editor's stand-in carries (the doc tools
+    // strip the log before hashing; see `agentDocTools.ts`).
+    case "agent": {
+      const turns = Array.isArray(node.prompts)
+        ? node.prompts.length
+        : typeof node.turns === "number"
+        ? node.turns
+        : 0;
+      return `agent session · ${plural(turns, "turn")}`;
+    }
     case "tablerow": {
       const cells = kids
         .map((cell) => (cellText(cell) ?? plainText(childrenOf(cell))).trim())

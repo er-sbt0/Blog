@@ -56,19 +56,21 @@ const { contextBridge, ipcRenderer } = require("electron");
  * starts a Claude Agent SDK session, which is a `claude` with the user's
  * privileges, so its argument has to be at least as strong as the terminal's:
  *
- * - The renderer sends a **prompt** — text to a model, never an argv element,
- *   an environment or a path. The cwd is chosen in the main process (the
- *   terminal's workspace in phase 0, a main-process folder dialog from phase 1)
- *   and only handed back for display, so a script in the renderer cannot point
- *   a session at a directory of its choosing. Which tools the session has is
- *   fixed in `agent.js`; phase 0 has no built-in tools at all.
+ * - The renderer sends a **prompt** and a **context** — text for a model,
+ *   never an argv element, an environment or a path. Both are copied out here
+ *   field by field (`turn` below) and capped again in main. The cwd is chosen
+ *   in a main-process folder dialog when `start` runs and only handed back for
+ *   display; a resume reads it from main's own record, never from the block.
+ *   So a script in the renderer cannot point a session at a directory of its
+ *   choosing. Which tools the session has is fixed in `agent.js`; phase 1 has
+ *   the doc tools and no built-in tools at all.
  * - Session ids and tool-call ids are minted in the main process, and every
  *   message naming one is checked against the WebContents that owns it
  *   (`agentIpc.js`). A `toolResult` can only answer a call that is pending.
  * - What comes back is a narrow projection of the SDK's stream — text, tool
- *   names, a result — and doc-tool calls whose names main defined. The
- *   renderer executes those against its own editor; main never writes a
- *   document.
+ *   names with a one-line description, a result — and doc-tool calls whose
+ *   names main defined. The renderer executes those against the editor holding
+ *   the session's block; main never writes a document.
  *
  * Channel names are repeated from `pty.js` and `remoteSessionsIpc.js` rather
  * than imported: a sandboxed preload cannot import an ES module from the
@@ -112,6 +114,31 @@ function size(value) {
   return { cols: value?.cols, rows: value?.rows };
 }
 
+/**
+ * A turn's prompt and context, copied out by hand for the reason `size` is:
+ * only these fields, as strings (the selection as the plain JSON object
+ * `captureSelection` makes), so nothing else the caller hung on the object
+ * crosses — and nothing that cannot be cloned turns a send into an exception.
+ */
+function turn(value) {
+  const context = value?.context ?? {};
+  let selection = null;
+  try {
+    selection = context.selection ? JSON.parse(JSON.stringify(context.selection)) : null;
+  } catch {
+    selection = null;
+  }
+  return {
+    prompt: typeof value?.prompt === "string" ? value.prompt : "",
+    context: {
+      title: typeof context.title === "string" ? context.title : "",
+      blockId: typeof context.blockId === "string" ? context.blockId : "",
+      outline: typeof context.outline === "string" ? context.outline : "",
+      selection,
+    },
+  };
+}
+
 contextBridge.exposeInMainWorld("desktop", {
   terminal: {
     /** `{ available: true, running, command, cwd }` or `{ available: false, reason, searched }`. */
@@ -139,11 +166,13 @@ contextBridge.exposeInMainWorld("desktop", {
   },
   agent: {
     /**
-     * Start a session on a prompt. Resolves to `{ ok: true, sessionId, cwd }`
-     * or `{ ok: false, error }`. Only the prompt crosses; the cwd is main's.
+     * Choose a folder (a main-process dialog) and run the first turn. Resolves
+     * to `{ ok: true, sessionId, cwd }` or `{ ok: false, error, cancelled? }`.
      */
-    start: (options) => ipcRenderer.invoke("agent:start", { prompt: options?.prompt }),
-    /** Interrupt the current turn of a session this window started. */
+    start: (options) => ipcRenderer.invoke("agent:start", turn(options)),
+    /** A follow-up turn of a session; resumes it if main no longer holds it. */
+    send: (sessionId, options) => ipcRenderer.invoke("agent:send", sessionId, turn(options)),
+    /** Interrupt the current turn of a session this window owns. */
     interrupt: (sessionId) => ipcRenderer.invoke("agent:interrupt", sessionId),
     /**
      * `(event) => void` for one session. Returns an unsubscribe. Filtered here

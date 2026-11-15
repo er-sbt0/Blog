@@ -55,6 +55,7 @@ import {
   AlignJustify,
   AlignLeft,
   AlignRight,
+  Bot,
   Brush,
   ChevronDown,
   Code,
@@ -82,6 +83,9 @@ import { LayoutContainerNode } from "@/editor/nodes/LayoutNode";
 import { DetailsContainerNode } from "@/editor/nodes/DetailsNode";
 import { AttachmentNode } from "@/editor/nodes/AttachmentNode";
 import { INSERT_DETAILS_COMMAND } from "../DetailsPlugin";
+import { AgentBlockNode } from "@/editor/nodes/AgentBlockNode";
+import { INSERT_AGENT_BLOCK_COMMAND } from "../AgentPlugin";
+import { useAgentHost } from "@/editor/context/AgentHostContext";
 import { ICON_SIZE } from "@/theme/icons";
 import * as css from "./picker.css";
 
@@ -228,6 +232,9 @@ class ComponentPickerOption extends MenuOption {
 
 export default function ComponentPickerMenuPlugin() {
   const [editor] = useLexicalComposerContext();
+  // Desktop only, and learned from the host rather than from the build: the
+  // app injects an agent capability where it has one (AgentHostContext).
+  const hasAgentHost = useAgentHost() !== null;
   const [queryString, setQueryString] = useState<string | null>(null);
   const openImageDialog = useCallback(
     () =>
@@ -665,6 +672,17 @@ export default function ComponentPickerMenuPlugin() {
         }),
       );
     }
+    if (hasAgentHost && editor.hasNode(AgentBlockNode)) {
+      baseOptions.push(
+        new ComponentPickerOption("Agent", {
+          icon: <Bot />,
+          keywords: ["agent", "claude", "ai", "assistant", "write"],
+          keyboardShortcut: "/agent",
+          onSelect: () =>
+            editor.dispatchCommand(INSERT_AGENT_BLOCK_COMMAND, undefined),
+        }),
+      );
+    }
     const dynamicOptions = getDynamicOptions();
 
     return queryString
@@ -683,6 +701,7 @@ export default function ComponentPickerMenuPlugin() {
   }, [
     editor,
     getDynamicOptions,
+    hasAgentHost,
     queryString,
     openAttachmentDialog,
     openGraphDialog,

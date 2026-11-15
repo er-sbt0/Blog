@@ -32,6 +32,7 @@ import { AttachmentNode } from "./nodes/AttachmentNode";
 import theme from "./theme";
 import { PageBreakNode } from "./nodes/PageBreakNode";
 import { IFrameNode } from "./nodes/IFrameNode";
+import { AgentBlockNode } from "./nodes/AgentBlockNode";
 import { LayoutContainerNode, LayoutItemNode } from "./nodes/LayoutNode";
 import type { InitialConfigType } from "@lexical/react/LexicalComposer";
 import type { CreateEditorArgs } from "lexical";
@@ -122,6 +123,10 @@ export const editorConfig = {
     AttachmentNode,
     PageBreakNode,
     IFrameNode,
+    // Everywhere, so a post holding one loads on the VPS too; *not* in
+    // `nodes/nestedConfig.tsx`, so a sticky or nested doc cannot hold one. Only
+    // offered in the picker when the host injects an agent capability.
+    AgentBlockNode,
     LayoutContainerNode,
     LayoutItemNode,
     DetailsContainerNode,

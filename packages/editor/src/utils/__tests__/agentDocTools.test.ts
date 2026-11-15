@@ -9,119 +9,289 @@ import {
   type LexicalEditor,
 } from "lexical";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { ListItemNode, ListNode } from "@lexical/list";
 import { blockIdState } from "@/lib/content-bridge";
-import { runAgentDocTool } from "../agentDocTools";
+import {
+  $createAgentBlockNode,
+  AgentBlockNode,
+} from "@/editor/nodes/AgentBlockNode";
+import type { AgentToolTarget } from "@/editor/context/AgentHostContext";
+import { commonSubsequence, runAgentDocTool } from "../agentDocTools";
 
 /**
- * The renderer's doc-tool executor (docs/plans/agent-block.md §4.1, phase 0).
- *
- * A real headless editor, because the claim is about the *live* tree: the
- * blocks land beside the nodes already there, by `editor.update` rather than a
- * state replacement — which the spec pins by holding a node key across the
- * call and finding the same node, with the same key, afterwards.
+ * The renderer's doc-tool executor (docs/plans/agent-block.md §4.1, phase 1),
+ * on a real headless editor, because every claim here is about the *live*
+ * tree: that a write is spliced in rather than replacing the state (the spec
+ * holds node keys across a call and finds the same nodes afterwards), that the
+ * freshness guard refuses before anything is touched, and that the agent's own
+ * block is described and never read, rewritten or moved.
  */
+
+const SECRET = "tool output that quoted ~/.ssh/config";
 
 const makeEditor = () =>
   createHeadlessEditor({
     namespace: "agent-doc-tools-test",
-    nodes: [HeadingNode, QuoteNode],
+    nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, AgentBlockNode],
     onError: (error) => {
       throw error;
     },
   });
 
-function seed(editor: LexicalEditor, texts: string[], ids: string[] = []): string[] {
+interface Seeded {
+  editor: LexicalEditor;
+  target: AgentToolTarget;
+  keys: string[];
+}
+
+/** `texts` around one agent block at `agentAt`, which has a stored log. */
+function seed(texts: string[], agentAt = 1): Seeded {
+  const editor = makeEditor();
   const keys: string[] = [];
+  let blockKey = "";
   editor.update(
     () => {
       const root = $getRoot();
       texts.forEach((text, i) => {
+        if (i === agentAt) {
+          const agent = $createAgentBlockNode({
+            sessionId: "s-1",
+            prompts: ["write an intro"],
+            log: [{ turn: 0, kind: "text", text: SECRET }],
+          });
+          $setState(agent, blockIdState, "blk_agent");
+          root.append(agent);
+          blockKey = agent.getKey();
+        }
         const p = $createParagraphNode().append($createTextNode(text));
-        if (ids[i]) $setState(p, blockIdState, ids[i]);
         root.append(p);
         keys.push(p.getKey());
       });
+      if (agentAt >= texts.length) {
+        const agent = $createAgentBlockNode({ sessionId: "s-1", prompts: ["go"] });
+        $setState(agent, blockIdState, "blk_agent");
+        root.append(agent);
+        blockKey = agent.getKey();
+      }
     },
     { discrete: true, tag: HISTORY_MERGE_TAG },
   );
-  return keys;
+  return { editor, target: { editor, blockKey }, keys };
 }
 
 const texts = (editor: LexicalEditor) =>
   editor.getEditorState().read(() =>
-    $getRoot().getChildren().map((node) => node.getTextContent())
+    $getRoot().getChildren().map((node) =>
+      node.getType() === "agent" ? "<agent>" : node.getTextContent()
+    )
   );
 
-describe("insert_blocks against the live editor", () => {
-  it("appends to the end with no placement, and stamps what it wrote", () => {
-    const editor = makeEditor();
-    const [firstKey] = seed(editor, ["one", "two"]);
+const hashOf = (text: string) => /stateHash: (h_[0-9a-f]+)/.exec(text)?.[1] ?? "";
 
-    const result = runAgentDocTool(editor, "insert_blocks", {
-      blocks: [{ type: "paragraph", text: "**three**" }],
+function outlineOf(target: AgentToolTarget): string {
+  const result = runAgentDocTool(target, "outline", {});
+  if (!result.ok) throw new Error(result.error);
+  return result.text;
+}
+
+describe("outline and read_blocks on the live editor", () => {
+  it("describes the agent block and never quotes its log", () => {
+    const { target } = seed(["one", "two"]);
+    const text = outlineOf(target);
+    expect(text).toMatch(/stateHash: h_/);
+    expect(text).toContain("Your agent block is blk_agent");
+    expect(text).toContain("agent session · 1 turn");
+    expect(text).not.toContain(SECRET);
+
+    const read = runAgentDocTool(target, "read_blocks", {
+      blocks: ["blk_agent", "b1"],
     });
-
-    expect(result.ok).toBe(true);
-    expect(texts(editor)).toEqual(["one", "two", "three"]);
-    if (!result.ok) return;
-    expect(result.inserted).toHaveLength(1);
-    expect(result.inserted[0]).toMatch(/^blk_/);
-    editor.getEditorState().read(() => {
-      const root = $getRoot();
-      // Same node, same key: spliced in, not a replaced state.
-      expect(root.getFirstChild()?.getKey()).toBe(firstKey);
-      expect($getState(root.getLastChild()!, blockIdState)).toBe(result.inserted[0]);
+    expect(read.ok).toBe(true);
+    if (!read.ok) return;
+    expect(read.text).not.toContain(SECRET);
+    expect(JSON.parse(read.text).blocks[0]).toMatchObject({
+      type: "opaque",
+      nodeType: "agent",
     });
   });
 
-  it("inserts after a structural address, in order", () => {
-    const editor = makeEditor();
-    seed(editor, ["one", "two"]);
-    const result = runAgentDocTool(editor, "insert_blocks", {
-      after: "b1",
-      blocks: [
-        { type: "heading", level: 2, text: "A" },
-        { type: "paragraph", text: "B" },
+  it("answers for a missing target and an unknown tool rather than throwing", () => {
+    expect(runAgentDocTool(null, "outline", {}).ok).toBe(false);
+    const { target } = seed(["one"]);
+    expect(runAgentDocTool(target, "rm_rf", {}).ok).toBe(false);
+    expect(runAgentDocTool(target, "read_blocks", {}).ok).toBe(false);
+  });
+});
+
+describe("apply_ops against the live editor", () => {
+  it("inserts after the agent block by default, in order, and keeps going after its last insert", () => {
+    const { editor, target, keys } = seed(["one", "two"]);
+    const first = runAgentDocTool(target, "apply_ops", {
+      stateHash: hashOf(outlineOf(target)),
+      ops: [
+        { op: "insert_blocks", blocks: [{ type: "paragraph", text: "A" }] },
+        { op: "insert_blocks", blocks: [{ type: "paragraph", text: "B" }] },
+      ],
+    });
+    expect(first.ok).toBe(true);
+    expect(texts(editor)).toEqual(["one", "<agent>", "A", "B", "two"]);
+    expect(target.lastInserted).toMatch(/^blk_/);
+
+    const second = runAgentDocTool(target, "apply_ops", {
+      stateHash: hashOf(first.ok ? first.text : ""),
+      ops: [{
+        op: "insert_blocks",
+        blocks: [{ type: "heading", level: 2, text: "C" }],
+      }],
+    });
+    expect(second.ok).toBe(true);
+    expect(texts(editor)).toEqual(["one", "<agent>", "A", "B", "C", "two"]);
+
+    // Spliced, not replaced: the author's paragraphs are the same nodes.
+    editor.getEditorState().read(() => {
+      const children = $getRoot().getChildren();
+      expect(children[0].getKey()).toBe(keys[0]);
+      expect(children[5].getKey()).toBe(keys[1]);
+    });
+  });
+
+  it("honours an explicit placement", () => {
+    const { editor, target } = seed(["one", "two"]);
+    const result = runAgentDocTool(target, "apply_ops", {
+      stateHash: hashOf(outlineOf(target)),
+      ops: [{
+        op: "insert_blocks",
+        appendTo: "root",
+        blocks: [{ type: "quote", text: "end" }],
+      }],
+    });
+    expect(result.ok).toBe(true);
+    expect(texts(editor)).toEqual(["one", "<agent>", "two", "end"]);
+  });
+
+  it("sets text in place, keeping the paragraph node and everything else", () => {
+    const { editor, target, keys } = seed(["one", "two", "three"]);
+    const result = runAgentDocTool(target, "apply_ops", {
+      stateHash: hashOf(outlineOf(target)),
+      ops: [{ op: "set_text", id: "b3", text: "**TWO**" }],
+    });
+    expect(result.ok).toBe(true);
+    expect(texts(editor)).toEqual(["one", "<agent>", "TWO", "three"]);
+    editor.getEditorState().read(() => {
+      const children = $getRoot().getChildren();
+      expect(children.map((c) => c.getKey())).toEqual([
+        keys[0],
+        children[1].getKey(),
+        keys[1],
+        keys[2],
+      ]);
+      // Stamped, because a write touched it.
+      expect($getState(children[2], blockIdState)).toMatch(/^blk_/);
+    });
+  });
+
+  it("deletes, moves and replaces with snapshot addressing", () => {
+    const { editor, target } = seed(["one", "two", "three", "four"], 4);
+    const result = runAgentDocTool(target, "apply_ops", {
+      stateHash: hashOf(outlineOf(target)),
+      ops: [
+        { op: "delete_block", id: "b1" },
+        // Still "two": addresses resolve against the read, not the half-done batch.
+        { op: "move_block", id: "b2", appendTo: "root" },
+        { op: "replace_block", id: "b3", block: { type: "heading", level: 1, text: "Three" } },
       ],
     });
     expect(result.ok).toBe(true);
-    expect(texts(editor)).toEqual(["one", "A", "B", "two"]);
+    expect(texts(editor)).toEqual(["Three", "four", "<agent>", "two"]);
   });
 
-  it("inserts before a block id", () => {
-    const editor = makeEditor();
-    seed(editor, ["one", "two"], ["", "blk_two"]);
-    const result = runAgentDocTool(editor, "insert_blocks", {
-      before: "blk_two",
-      blocks: [{ type: "quote", text: "q" }],
+  it("refuses a stale read without touching the document", () => {
+    const { editor, target } = seed(["one", "two"]);
+    const stale = hashOf(outlineOf(target));
+    editor.update(
+      () => {
+        $getRoot().getFirstChildOrThrow().selectEnd().insertText("!");
+      },
+      { discrete: true },
+    );
+    const before = texts(editor);
+    const result = runAgentDocTool(target, "apply_ops", {
+      stateHash: stale,
+      ops: [{ op: "set_text", id: "b1", text: "x" }],
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toMatch(/^stale:/);
+    expect(texts(editor)).toEqual(before);
+  });
+
+  it("is not stale because the agent block's log changed", () => {
+    const { editor, target } = seed(["one"]);
+    const hash = hashOf(outlineOf(target));
+    editor.update(
+      () => {
+        const agent = $getRoot().getChildren()[1] as AgentBlockNode;
+        agent.setData({ log: [{ turn: 0, kind: "text", text: "more" }], status: "done" });
+      },
+      { discrete: true },
+    );
+    const result = runAgentDocTool(target, "apply_ops", {
+      stateHash: hash,
+      ops: [{ op: "set_text", id: "b1", text: "uno" }],
     });
     expect(result.ok).toBe(true);
-    expect(texts(editor)).toEqual(["one", "q", "two"]);
   });
 
-  it("refuses an unknown address without touching the document", () => {
-    const editor = makeEditor();
-    seed(editor, ["one"]);
-    const result = runAgentDocTool(editor, "insert_blocks", {
-      after: "b9",
-      blocks: [{ type: "paragraph", text: "x" }],
+  it("refuses to rewrite, move, delete or fill an agent block", () => {
+    const { editor, target } = seed(["one", "two"]);
+    const hash = hashOf(outlineOf(target));
+    for (const op of [
+      { op: "delete_block", id: "blk_agent" },
+      { op: "move_block", id: "b2", appendTo: "root" },
+      { op: "replace_block", id: "blk_agent", block: { type: "paragraph", text: "x" } },
+      { op: "insert_blocks", appendTo: "blk_agent", blocks: [{ type: "paragraph", text: "x" }] },
+    ]) {
+      const result = runAgentDocTool(target, "apply_ops", { stateHash: hash, ops: [op] });
+      expect(result.ok).toBe(false);
+    }
+    expect(texts(editor)).toEqual(["one", "<agent>", "two"]);
+    editor.getEditorState().read(() => {
+      const agent = $getRoot().getChildren()[1] as AgentBlockNode;
+      expect(agent.getData().log[0].text).toBe(SECRET);
     });
-    expect(result.ok).toBe(false);
-    expect(texts(editor)).toEqual(["one"]);
   });
 
-  it("refuses a block the schema rejects", () => {
-    const editor = makeEditor();
-    seed(editor, ["one"]);
-    const result = runAgentDocTool(editor, "insert_blocks", {
-      blocks: [{ type: "heading", level: 9, text: "x" }],
-    });
-    expect(result.ok).toBe(false);
-    expect(texts(editor)).toEqual(["one"]);
+  it("refuses an invalid call and a read-only editor", () => {
+    const { editor, target } = seed(["one"]);
+    const hash = hashOf(outlineOf(target));
+    expect(
+      runAgentDocTool(target, "apply_ops", {
+        stateHash: hash,
+        ops: [{ op: "insert_blocks", blocks: [{ type: "heading", level: 9, text: "x" }] }],
+      }).ok,
+    ).toBe(false);
+    editor.setEditable(false);
+    expect(
+      runAgentDocTool(target, "apply_ops", {
+        stateHash: hash,
+        ops: [{ op: "set_text", id: "b1", text: "x" }],
+      }).ok,
+    ).toBe(false);
+    expect(texts(editor)).toEqual(["one", "<agent>"]);
   });
+});
 
-  it("answers for a missing editor and an unknown tool rather than throwing", () => {
-    expect(runAgentDocTool(null, "insert_blocks", {}).ok).toBe(false);
-    expect(runAgentDocTool(makeEditor(), "rm_rf", {}).ok).toBe(false);
+describe("commonSubsequence", () => {
+  it("matches prefix, suffix and the longest middle", () => {
+    expect(commonSubsequence(["a", "b", "c", "d"], ["a", "x", "c", "d"])).toEqual([
+      [0, 0],
+      [2, 2],
+      [3, 3],
+    ]);
+    expect(commonSubsequence(["a", "b", "c"], ["c", "a", "b"])).toEqual([
+      [0, 1],
+      [1, 2],
+    ]);
+    expect(commonSubsequence([], ["a"])).toEqual([]);
   });
 });

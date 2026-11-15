@@ -1,7 +1,7 @@
 # `/agent` — a Claude Code session as a block in the post
 
-**Status: phase 0 (spike) done, 14 Nov 2026 — see §7. Phases 1–6 not
-started.** Supersedes
+**Status: phases 0 and 1 done (14–15 Nov 2026) — see §7 and §8. Phases 2–6
+not started.** Supersedes
 [claude-code-notebook.md](./claude-code-notebook.md), which stays for its §2.1
 (the transcript is already block-shaped) and §5 (the autosave/streaming
 conflict) — both still apply here. Its §2.2 ("there is no preload bridge") is
@@ -216,7 +216,16 @@ come from `outline` so they match what `apply_ops` accepts.
    phase 0.
 5. **Is the log visible to blog-content readers?** It is part of the post's
    JSON. Proposal: the codec describes it ("agent session · 6 turns") and never
-   returns its contents.
+   returns its contents. *Done in phase 1 (§8).*
+6. **Which `claude` binary.** Phase 1 keeps the SDK's own (§7: a 293 MB
+   per-platform optional dependency, version-matched to the SDK, roughly
+   doubling the installer). The alternative is `pathToClaudeCodeExecutable`
+   from the terminal's `resolveClaudeBinary` with the optional dependency
+   excluded: one `claude` for both surfaces and a much smaller package, but the
+   SDK's control protocol then talks to whatever version the user installed,
+   and nothing pins the two together. Decide before the first real
+   distribution, with a measured skew test (SDK N against `claude` N±k) rather
+   than an argument. `createAgentSession` already takes the option.
 
 ## 7. Phase 0 log (14 Nov 2026)
 
@@ -315,4 +324,146 @@ The packaged AppImage itself was **not** rebuilt in this phase (a full
 - **An Electron ESM entry must not `await app.whenReady()` at top level** —
   `ready` never fires. Only met in the throwaway bridge script (`main.js`
   already uses `.then`), but worth knowing before phase 1 writes another one.
+
+## 8. Phase 1 log (15 Nov 2026)
+
+`/agent` in the desktop app inserts a block. You type a prompt, choose a folder,
+and a session writes into the post through `outline` / `read_blocks` /
+`apply_ops`. Follow-ups resume the same SDK session, including after a restart,
+and `Esc` or Stop interrupts it.
+
+**What was built.**
+
+- `packages/editor/src/nodes/AgentBlockNode/` holds the node (`index.tsx`), the
+  UI (`AgentBlockComponent.tsx`), and a pure `model.ts`. The model covers the
+  stored shape, a tolerant reader, the per-entry (4 KB) and per-block (400
+  entry) log caps, the event → log-entry and live-status rules, and the turn
+  outcome. `exportDOM` is `{ element: null }`, `getTextContent` is `""`, there
+  is no docx arm, and `describeNode` says "agent session · N turns". The
+  node is registered in the main config everywhere, so a post with one loads on
+  the VPS. It is not in `nestedConfig.tsx`, and `"agent"` joins
+  `NESTED_EDITOR_REFUSES` (the containers spec derives that set from the two
+  configs). `check:codecs` allowlists it as opaque, with the reason.
+- `context/AgentHostContext.tsx` is the injected capability. The editor never
+  imports the bridge: `ConnectedEditor` provides an `AgentHost` built by
+  `src/lib/agentHost.ts` from `window.desktop.agent`, and the picker offers
+  `/agent` only when one is present. That is the whole desktop gate. The VPS,
+  a browser and every test have no host. A stored block then renders its record
+  read-only and says that sessions run in the desktop app.
+- `plugins/AgentPlugin` inserts the block. It stamps a `blk_` id at birth,
+  captures `$captureSelection()` before inserting, and hands focus to the
+  prompt through `focus.ts`.
+- `utils/agentDocTools.ts` (the executor) and `utils/agentRouter.ts` (routing):
+  see the deviations below.
+- On the main side: `agentProtocol.js` (pure: projection, tool-call
+  descriptions, `sanitizeContext`, `buildSystemPrompt`), `agent.js` (one
+  `query()` per turn, `resume` from the second on), `agentSessions.js` (main's
+  sessionId → folder record in `userData/agent-sessions.json`), and
+  `agentIpc.js` (`agent:start` opens the folder dialog, plus `agent:send` and
+  `agent:interrupt`). `preload.cjs` gains `send` and copies the turn's prompt
+  and context out field by field.
+- `scripts/build-agent-schema.mjs` compiles `content-bridge/schema.ts` into the
+  gitignored `src/generated/docSchema.mjs`, with zod left external so it
+  resolves to this package's zod 4, the SDK's instance. It runs on every
+  `pnpm desktop` / `desktop:dev` launch (about 50 ms), after
+  `pnpm build:desktop`, and in `stage-resources.mjs`. `verify-package.mjs`
+  asserts that the bundle shipped. zod 4 parses the schema unchanged (it was
+  checked with real ops, and `toJSONSchema` converts it).
+- The phase-0 `agentSpike` trigger and `useAgentDocTools` are deleted.
+
+**Deviations from the plan, and why.**
+
+- **Live application is `applyOps` plus a reconcile, not per-op node surgery.**
+  §4.1 sketched resolving each op to a live node. Instead the executor
+  snapshots the live tree (`exportJSON` inside the update), runs the content
+  bridge's own `applyOps` on it, and patches the live tree towards the result.
+  Unchanged children keep their node and key. A same-type element is reused
+  and given its new shell by `updateFromJSON`, so a `set_text` keeps the
+  author's paragraph node even though it stamps an id. Only what differs is
+  rebuilt, through `$parseSerializedNode`. That gives the same contract as
+  blog-content by construction: snapshot addressing, the destination guards,
+  all-or-nothing, the codecs and the `stateHash` guard (§6 q2) are the same
+  code. The guard is coarse: any keystroke anywhere makes the next write stale,
+  and the agent re-reads. If real use shows that contention, a per-block hash
+  is the refinement §6 q2 first proposed. It has not been needed yet.
+- **The agent's own block is stubbed out of the hash.** The snapshot replaces
+  each agent block with `{ type, version, $, turns }`. Otherwise its session id
+  (written just after `start`) and its log would make every read stale. A write
+  may not name an agent block as `id` or `appendTo`. When a rewritten container
+  holds one, its real JSON is restored before parsing, so its log survives.
+- **Default placement chains.** With no placement, `insert_blocks` goes after
+  the session's previous default insert, or after the block on the first call.
+  It is spelled internally as `before: <next sibling>` so several inserts in
+  one batch keep their order. §4.1 said "after the block", which reverses
+  successive inserts.
+- **The log is written per turn, not per event.** A turn's entries live in the
+  component and land on the node once, at `turn-end`. That write, the prompt
+  and the session id/folder are all tagged `historic`, so they are not undo
+  steps. The agent's own writes (`agent-write`) are ordinary undo steps.
+  Remaining wrinkle, for phase 6: undoing past a turn's end also rolls back
+  that turn's log entries, because history snapshots the whole state.
+- **Statuses** are thinking / running *tool* / idle, plus the stored outcome
+  (done / interrupted / failed). "Waiting on you" belongs to phase 2's
+  permission cards.
+- **Context.** Through the slash menu the selection is always a collapsed caret,
+  because typing "/" replaces a range, and `$captureSelection` answers that
+  with `null` on purpose. The block's id in the outline carries the position
+  instead. A selection-first entry point (e.g. a floating-toolbar "Ask agent")
+  is where §2.9 would pay off, and it is not built.
+- **Interrupt is not an error.** After `interrupt()`, SDK 0.3.309 ends the turn
+  with an `error_during_execution` result and the iterator throws "Claude Code
+  returned an error result". Main suppresses that throw for an interrupted
+  turn, and the block logs "Stopped by you." instead of an error.
+
+**Verified.** `tsc`, lint, `check:nodes`, `check:codecs` and `check:theme` all
+pass. The full vitest suite passes (101 files, 1799 tests, 5.7 s). New specs:
+`agentDocTools.test.ts` (a real headless editor: node keys survive writes,
+chained default inserts, stale refusal with the document untouched, the log
+never read and never hashed, agent blocks untouchable), `agentRouter.test.ts`,
+`nodes/__tests__/agentBlock.test.ts` (round trip through the real registry,
+`/view` HTML without the log, the bridge describes but never reads it, the
+model), `desktop/__tests__/agentSessions.test.ts`, and an extended
+`agent.test.ts`. Three live checks were run:
+
+1. **The real SDK under Electron's Node.** The bundled schema was accepted, the
+   model called `apply_ops` with no placement, and a fresh
+   `createAgentSession({ resume: true })` remembered the previous turn.
+2. **A throwaway Electron script over the real `preload.cjs` and
+   `agentIpc.js`**, with the dialog stubbed. It covered start, the tool-call
+   round trip and events. After `dispose()` + reinstall (a simulated restart) a
+   follow-up resumed from main's record with no second dialog. It also covered
+   busy refusal, interrupt, and refusal of malformed and unknown session ids.
+3. **`pnpm desktop:dev` on a scratch `--data-dir`, driven over CDP.** `/agent`
+   was offered and inserted, the prompt was focused, and Backspace/Enter in the
+   textarea did not reach Lexical (`stopLexicalPropagation` from a native
+   listener on the card).
+
+The native folder dialog itself, and a full turn writing into a real post in
+the app, were not driven: there is no way to answer a GTK dialog from CDP.
+
+**What phase 2 needs to know.**
+
+- **Turning tools on is three lines in `agent.js`:** `tools`, `permissionMode`
+  and `settingSources`. They stay sealed until `canUseTool` is wired, so that
+  nothing reaches Bash without a card.
+- **`canUseTool` is an async callback in main.** It needs a third round trip
+  shaped like `agent:tool-call`: an id minted in main, owner-checked, with a
+  timeout whose default answer is *deny*, and an `agent:permission` event the
+  block renders as a card. "Always for this session" is remembered on the block
+  (§5), but the answer has to be enforced in main. The block's copy is display
+  only, for the same reason as the folder.
+- **The ownership widening, which phase 2 makes real.** A reopened block claims
+  its session on first send, so anything that can read the post can resume its
+  session in the folder the author chose (`agentIpc.js` says so). With only
+  doc tools that is harmless. With a shell, the first resumed turn after a
+  restart should probably require a fresh confirmation in the block before any
+  non-doc tool is allowed.
+- **Statuses:** add "waiting on you" (a pending card) to `AgentLiveStatus`. A
+  pending card should probably also pause the 30 s tool timeout's analogue.
+- **The SDK binary question** is §6 q6. Phase 2's full Claude Code makes skew
+  between SDK and binary more visible (hooks, MCP config, settings), which
+  argues for keeping the bundled binary.
+- **`ANTHROPIC_API_KEY` in the launching shell** still overrides the user's
+  login (§7). That matters more once sessions run real tools under the user's
+  account.
 

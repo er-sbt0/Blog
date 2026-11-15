@@ -24,6 +24,9 @@ node_modules/
 # is *not* ignored — it holds the committed app icon.
 /packages/desktop/.stage/
 /packages/desktop/.dist/
+# The agent's doc-tool schema, compiled from src/lib/content-bridge/schema.ts
+# on every desktop launch and before packaging (build-agent-schema.mjs).
+/packages/desktop/src/generated/
 
 # misc
 .DS_Store

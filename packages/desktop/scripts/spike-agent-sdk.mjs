@@ -18,14 +18,16 @@ const ms = (t) => `${(performance.now() - t).toFixed(0)} ms`;
 const started = performance.now();
 let called = null;
 
+let finished;
+const done = new Promise((resolve) => {
+  finished = resolve;
+});
+
 const session = createAgentSession({
   cwd: os.tmpdir(),
-  prompt:
-    "Call the insert_blocks tool exactly once with one paragraph block whose " +
-    'text is "Hello from the agent spike." Then reply with the word done.',
   executeTool: async (name, input) => {
     called = { name, input };
-    return { ok: true, inserted: ["blk_spike"] };
+    return { ok: true, text: "stateHash: h_spike\n\nb1         paragraph       Hello." };
   },
   onEvent: (event) => {
     if (event.type === "init") {
@@ -35,11 +37,17 @@ const session = createAgentSession({
       );
     } else if (event.type === "result") {
       console.log(`result: ${event.subtype}, ${event.turns} turn(s), $${event.costUsd} — ${ms(started)}`);
+    } else if (event.type === "turn-end") {
+      finished();
     }
   },
   log: (message) => console.warn(message),
 });
 
-await session.done;
+session.send(
+  "Call the outline tool exactly once. Then reply with the word done.",
+  { title: "Spike", blockId: "", outline: "", selection: null },
+);
+await done;
 console.log(called ? `PASS  tool ${called.name} ${JSON.stringify(called.input)}` : "FAIL  tool never called");
 if (!called) process.exitCode = 1;

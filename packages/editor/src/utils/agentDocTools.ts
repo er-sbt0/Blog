@@ -4,235 +4,589 @@
  *
  * The tools are *defined* in the Electron main process (`packages/desktop/src/
  * agent.js`) and *executed* here, against the live `LexicalEditor` of the post
- * the author has open. That split is the whole of §3.2: the editor is the only
- * writer, so an agent's write merges with the author's typing, lands on the
- * undo stack, and reaches autosave, revisions and the change feed exactly as
- * a keystroke would — nothing writes Postgres behind an open tab.
+ * holding the session's block. That split is the whole of §3.2: the editor is
+ * the only writer, so an agent's write merges with the author's typing, lands
+ * on the undo stack, and reaches autosave, revisions and the change feed exactly
+ * as a keystroke would — nothing writes Postgres behind an open tab.
  *
- * It is also why this file never replaces the editor state. `setEditorState`
- * would apply the same blocks, and reset the author's selection and the undo
- * history while doing it. Each call is one `editor.update` that splices new
- * nodes in beside the ones already there.
+ * ### Same contract as blog-content, by running the same code
  *
- * Built on the content bridge rather than beside it, so a block, an address and
- * a codec mean the same thing here as in blog-content and the Copilot:
+ * `outline`, `read_blocks` and `apply_ops` answer exactly what the blog-content
+ * MCP tools answer, because they *are* those functions — `outline`,
+ * `readBlocks` and `applyOps` from `content-bridge` — run over a snapshot of the
+ * live tree instead of a stored revision. Addresses, codecs, the destination
+ * guards, snapshot addressing, all-or-nothing and the `stateHash` freshness
+ * guard (§6 q2) therefore mean the same thing here as in the terminal, and a
+ * batch `applyOps` refuses is refused before the editor is touched.
  *
- * - the call is validated with `opSchema`'s `insert_blocks` arm — the main
- *   process only describes the shape to the model (plain JS on zod 4 cannot
- *   import this zod 3 schema), so this is where it is enforced;
- * - blocks become nodes through `blockToNode`, the codec every other write
- *   path uses, and then `$parseSerializedNode`, so the node classes'
- *   `importJSON` → `updateFromJSON` path is the one that builds them;
- * - every inserted block is stamped with a fresh `blk_` id (`blockId.ts`) and
- *   the ids are returned, so the agent can address what it just wrote even
- *   after the author has typed above it.
+ * ### …and a reconcile, not a state replacement
  *
- * Phase 0 implements `insert_blocks` only. The other doc tools of §4.1 arrive
- * in phase 1 behind the same `runAgentDocTool` switch.
+ * `applyOps` returns a new serialized state. Handing that to `setEditorState`
+ * would apply it — and reset the author's selection and undo history while
+ * doing it. So `$reconcile` patches the live tree towards it instead: children
+ * whose JSON did not change keep their live node (and key, and selection), an
+ * element whose shell is unchanged is recursed into, and only what differs is
+ * rebuilt through `$parseSerializedNode` — which is `importJSON` →
+ * `updateFromJSON`, the one parse path (`pnpm check:nodes`). One `editor.update`
+ * per call, tagged `agent-write`, so it is an ordinary undo step.
+ *
+ * ### The agent's own block
+ *
+ * An agent block's log changes while its turn runs (well — at the turn's end;
+ * see `AgentBlockNode/model.ts`), and its session id lands just after `start`.
+ * If either were hashed, every read would be stale by the time the write that
+ * followed it arrived. So the snapshot stands each agent block in for a stub —
+ * type, version, node state, turn count — and a write may not name one as its
+ * target. The stub is also what `describeNode` reads, so the agent sees "agent
+ * session · 2 turns" and never a log (§6 q5).
  */
 import {
+  $getNodeByKey,
   $getRoot,
   $getState,
   $isElementNode,
-  $isRootNode,
   $parseSerializedNode,
   type ElementNode,
   type LexicalEditor,
   type LexicalNode,
   type SerializedLexicalNode,
 } from "lexical";
-import { BLOCK_CONTAINERS, blockIdState } from "@/lib/content-bridge";
-import { parseAddress } from "@/lib/content-bridge/address";
-import { blockToNode } from "@/lib/content-bridge/blocks";
-import { isBlockId, mintBlockId, writeBlockId } from "@/lib/content-bridge/blockId";
-import { findWrongChildType } from "@/lib/content-bridge/containers";
+import { z } from "zod";
+import {
+  BLOCK_CONTAINERS,
+  blockIdState,
+  formatAddress,
+  walkBlocks,
+} from "@/lib/content-bridge";
+import { applyOps, type Op, OpError } from "@/lib/content-bridge/ops";
+import { formatOutline, outline, readBlocks } from "@/lib/content-bridge/outline";
+import { StaleStateError, stateHash } from "@/lib/content-bridge/stateHash";
+import { readBlockId } from "@/lib/content-bridge/blockId";
+import { typeOf } from "@/lib/content-bridge/containers";
 import { opSchema } from "@/lib/content-bridge/schema";
-import type { SerializedNode, WritableBlock } from "@/lib/content-bridge/types";
+import type { SerializedNode, StoredState } from "@/lib/content-bridge/types";
+import type { AgentToolTarget } from "../context/AgentHostContext";
+import { AGENT_BLOCK_TYPE } from "../nodes/AgentBlockNode/model";
 
 /** What every doc tool answers. Plain data: it is structured-cloned to main. */
 export type AgentToolResult =
-  | { ok: true; inserted: string[] }
+  | { ok: true; text: string }
   | { ok: false; error: string };
 
+/** The tools this executor answers. Main declares the same three. */
+export const AGENT_DOC_TOOLS = ["outline", "read_blocks", "apply_ops"] as const;
+
 /**
- * Run one doc-tool call against an editor.
+ * The tag on every agent write. History treats it as an ordinary update (one
+ * undo step per call); it is here so phase 6's one-undo-step-per-turn has a way
+ * to recognise a turn's writes.
+ */
+export const AGENT_WRITE_TAG = "agent-write";
+
+/**
+ * Run one doc-tool call against the editor holding the session's block.
  *
- * `null` editor is a normal case — the post was closed, or the focus is on a
- * pane with no document — and answers as a tool error the agent can report,
- * not as a throw.
+ * `null` target is a normal case — the post was closed — and answers as a tool
+ * error the agent can report, not as a throw.
  */
 export function runAgentDocTool(
-  editor: LexicalEditor | null,
+  target: AgentToolTarget | null,
   name: string,
   input: unknown,
 ): AgentToolResult {
-  if (!editor) return { ok: false, error: "No post is open in the editor." };
-  if (!editor.isEditable()) {
-    return { ok: false, error: "The open post is read-only." };
-  }
+  if (!target) return { ok: false, error: "The post is not open in the editor." };
+  const { editor } = target;
   switch (name) {
-    case "insert_blocks":
-      return insertBlocks(editor, input);
+    case "outline":
+      return outlineTool(target);
+    case "read_blocks":
+      return readBlocksTool(editor, input);
+    case "apply_ops":
+      if (!editor.isEditable()) {
+        return {
+          ok: false,
+          error: "The post is open read-only, so it cannot be edited now.",
+        };
+      }
+      return applyOpsTool(target, input);
     default:
       return { ok: false, error: `Unknown doc tool: ${name}` };
   }
 }
 
-type Placement =
-  | { kind: "after" | "before"; address: string }
-  | { kind: "append"; address: string };
+// ---------------------------------------------------------------------------
+// Snapshot
+// ---------------------------------------------------------------------------
 
-function placementOf(op: {
-  after?: string;
-  before?: string;
-  appendTo?: string;
-}): Placement | string {
-  const given = [op.after, op.before, op.appendTo].filter((v) => v !== undefined);
-  if (given.length > 1) return "Give at most one of after, before and appendTo.";
-  if (op.after !== undefined) return { kind: "after", address: op.after };
-  if (op.before !== undefined) return { kind: "before", address: op.before };
-  return { kind: "append", address: op.appendTo ?? "root" };
+/**
+ * Serialize one live node the way `EditorState.toJSON` does — `exportJSON`,
+ * then the children — but inside the active read or update, so it sees the
+ * same tree the reconcile is about to patch, and with agent blocks stubbed.
+ */
+function $exportTree(node: LexicalNode): SerializedNode {
+  const json = node.exportJSON() as unknown as SerializedNode;
+  if (json.type === AGENT_BLOCK_TYPE) return agentStub(json);
+  if ($isElementNode(node)) {
+    json.children = node.getChildren().map($exportTree);
+  }
+  return json;
 }
 
-function insertBlocks(editor: LexicalEditor, input: unknown): AgentToolResult {
-  const parsed = opSchema.safeParse({
-    ...(input && typeof input === "object" ? input : {}),
-    op: "insert_blocks",
+/** What an agent block contributes to a snapshot. See the file comment. */
+function agentStub(json: SerializedNode): SerializedNode {
+  const stub: SerializedNode = {
+    type: AGENT_BLOCK_TYPE,
+    version: json.version,
+    turns: Array.isArray(json.prompts) ? json.prompts.length : 0,
+  };
+  if (json.$ !== undefined) stub.$ = json.$;
+  return stub;
+}
+
+/** The live post as a stored state. Must run inside a read or an update. */
+function $snapshot(): StoredState {
+  return { root: $exportTree($getRoot()) } as StoredState;
+}
+
+const readSnapshot = (editor: LexicalEditor): StoredState =>
+  editor.getEditorState().read(() => $snapshot());
+
+/** The block's own address, or "" if it has none (yet). */
+function $blockIdOf(key: string): string {
+  const node = $getNodeByKey(key);
+  return node ? $getState(node, blockIdState) : "";
+}
+
+// ---------------------------------------------------------------------------
+// Reads
+// ---------------------------------------------------------------------------
+
+/** The outline text both the tool and the system prompt hand the model. */
+export function agentOutlineText(
+  editor: LexicalEditor,
+  blockKey?: string,
+): string {
+  return editor.getEditorState().read(() => {
+    const result = outline($snapshot());
+    const blockId = blockKey ? $blockIdOf(blockKey) : "";
+    return formatOutlineText(result, blockId);
   });
-  if (!parsed.success || parsed.data.op !== "insert_blocks") {
-    const issue = parsed.success ? undefined : parsed.error.issues[0];
+}
+
+function formatOutlineText(
+  result: ReturnType<typeof outline>,
+  blockId: string,
+): string {
+  const self = blockId
+    ? `\nYour agent block is ${blockId}. Blocks you insert with no placement ` +
+      `go after it (after your previous insert, once there is one), in order.`
+    : "";
+  if (result.blocks.length === 0) {
+    return `The post is empty.\nstateHash: ${result.stateHash}${self}`;
+  }
+  return `stateHash: ${result.stateHash}${self}\n\n${formatOutline(result)}`;
+}
+
+function outlineTool(target: AgentToolTarget): AgentToolResult {
+  return { ok: true, text: agentOutlineText(target.editor, target.blockKey) };
+}
+
+const readInput = z.object({ blocks: z.array(z.string()).min(1) });
+
+function readBlocksTool(editor: LexicalEditor, input: unknown): AgentToolResult {
+  const parsed = readInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "read_blocks needs blocks: [address, …]." };
+  }
+  const result = readBlocks(readSnapshot(editor), parsed.data.blocks);
+  if (result.blocks.length === 0) {
     return {
       ok: false,
-      error: issue
-        ? `Invalid insert_blocks call at ${issue.path.join(".") || "(root)"}: ${issue.message}`
-        : "Invalid insert_blocks call.",
+      error: `No blocks matched ${result.missing.join(", ")} — re-run outline.`,
     };
   }
-  const op = parsed.data;
-  const placement = placementOf(op);
-  if (typeof placement === "string") return { ok: false, error: placement };
+  return { ok: true, text: JSON.stringify(result) };
+}
 
-  // Serialize before touching the editor, so a block the codec refuses fails
-  // the call while the document is still exactly as the author left it.
-  let serialized: SerializedNode[];
-  try {
-    serialized = op.blocks.map((block) => {
-      const node = blockToNode(block as WritableBlock);
-      writeBlockId(node, mintBlockId());
-      return node;
-    });
-  } catch (error) {
-    return { ok: false, error: (error as Error).message };
+// ---------------------------------------------------------------------------
+// apply_ops
+// ---------------------------------------------------------------------------
+
+const applyInput = z.object({
+  stateHash: z.string(),
+  ops: z.array(opSchema).min(1),
+});
+
+/** Addresses — id and path spelling — of every agent block in a state. */
+function agentAddresses(state: StoredState): Set<string> {
+  const found = new Set<string>();
+  for (const entry of walkBlocks(state)) {
+    if (typeOf(entry.node) !== AGENT_BLOCK_TYPE) continue;
+    found.add(entry.address);
+    found.add(formatAddress(entry.path));
   }
+  return found;
+}
 
-  let result: AgentToolResult = { ok: false, error: "The edit did not run." };
-  editor.update(
-    () => {
-      result = $insert(serialized, placement);
-    },
-    // Committed before `update` returns, so the answer the agent gets is about
-    // a document that already has the blocks in it.
-    { discrete: true, tag: AGENT_WRITE_TAG },
-  );
-  return result;
+/** The first op that would rewrite, move, delete or fill an agent block. */
+function touchesAgentBlock(ops: readonly Op[], agents: Set<string>): string | null {
+  for (const [index, op] of ops.entries()) {
+    const named = "id" in op ? op.id : undefined;
+    const into = "appendTo" in op ? op.appendTo : undefined;
+    const hit = [named, into].find((address) => address && agents.has(address));
+    if (hit) {
+      return `op ${index + 1}: ${hit} is an agent block — the author's, and ` +
+        `not yours to edit, move, delete or put blocks inside. Place your ` +
+        `blocks after it instead.`;
+    }
+  }
+  return null;
+}
+
+/** The structural path of a live node, if every ancestor is addressable. */
+function $pathOf(node: LexicalNode): number[] | null {
+  const path: number[] = [];
+  let current: LexicalNode = node;
+  for (;;) {
+    const parent: ElementNode | null = current.getParent();
+    if (!parent) return null;
+    if (!BLOCK_CONTAINERS.has(parent.getType())) return null;
+    path.unshift(current.getIndexWithinParent());
+    if (parent.getType() === "root") return path;
+    current = parent;
+  }
+}
+
+interface DefaultPlacement {
+  /** The placement to write into every op that named none. */
+  spec: { before: string } | { appendTo: string };
+  /** Live node the inserts land in front of, or null when appending. */
+  next: LexicalNode | null;
+  parent: ElementNode;
 }
 
 /**
- * The tag on every agent write. Nothing filters on it yet; it is there so
- * phase 6's one-undo-step-per-turn has a way to recognise a turn's updates.
+ * Where an insert with no placement goes: after the session's last such insert
+ * if it is still there, otherwise straight after the agent block.
+ *
+ * Spelled as `before: <the block after the anchor>` (or `appendTo` its parent
+ * when the anchor is last) rather than `after: <anchor>`, so that several
+ * default inserts in one batch land in the order they were given instead of
+ * each one jumping in front of the last.
  */
-export const AGENT_WRITE_TAG = "agent-write";
+function $defaultPlacement(target: AgentToolTarget): DefaultPlacement | null {
+  const block = $getNodeByKey(target.blockKey);
+  if (!block) return null;
+  let anchor: LexicalNode = block;
+  if (target.lastInserted) {
+    const last = $findById(target.lastInserted);
+    if (last && last.getParent()?.is(block.getParent())) anchor = last;
+  }
+  const parent = anchor.getParent();
+  if (!parent) return null;
+  const next = anchor.getNextSibling();
+  if (next) {
+    const path = $pathOf(next);
+    return path ? { spec: { before: formatAddress(path) }, next, parent } : null;
+  }
+  if (parent.getType() === "root") {
+    return { spec: { appendTo: "root" }, next: null, parent };
+  }
+  const parentPath = $pathOf(parent);
+  return parentPath
+    ? { spec: { appendTo: formatAddress(parentPath) }, next: null, parent }
+    : null;
+}
 
-function $insert(
-  serialized: SerializedNode[],
-  placement: Placement,
-): AgentToolResult {
-  const anchor = $resolveAddress(placement.address);
-  if (!anchor) {
+function $findById(id: string): LexicalNode | null {
+  const walk = (node: LexicalNode): LexicalNode | null => {
+    if ($getState(node, blockIdState) === id) return node;
+    if (!$isElementNode(node)) return null;
+    for (const child of node.getChildren()) {
+      const found = walk(child);
+      if (found) return found;
+    }
+    return null;
+  };
+  return walk($getRoot());
+}
+
+const hasPlacement = (op: Op): boolean =>
+  "after" in op && op.after !== undefined ||
+  "before" in op && op.before !== undefined ||
+  "appendTo" in op && op.appendTo !== undefined;
+
+function applyOpsTool(target: AgentToolTarget, input: unknown): AgentToolResult {
+  const parsed = applyInput.safeParse(input);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
     return {
       ok: false,
-      error: `No block ${placement.address} — re-read the outline and retry.`,
+      error: `Invalid apply_ops call at ${issue?.path.join(".") || "(root)"}: ${
+        issue?.message ?? "unreadable input"
+      }`,
     };
   }
+  const { editor } = target;
+  let result: AgentToolResult = { ok: false, error: "The edit did not run." };
+  let changed = 0;
 
-  const parent = placement.kind === "append" ? anchor : anchor.getParent();
-  if (!parent || !$isElementNode(parent)) {
-    return {
-      ok: false,
-      error: `${placement.address} is not a container blocks can go into.`,
-    };
-  }
-  const wrong = findWrongChildType(parent.getType(), serialized);
-  if (wrong) {
-    return {
-      ok: false,
-      error: `a ${wrong.container} holds ${wrong.required} blocks only, and this one is a ${wrong.nodeType}.`,
-    };
-  }
+  editor.update(
+    () => {
+      const before = $snapshot();
+      let ops = parsed.data.ops as Op[];
 
-  // Build every node before attaching any, so a node class that throws on
-  // import leaves nothing half-inserted.
-  const nodes = serialized.map((node) =>
-    $parseSerializedNode(node as unknown as SerializedLexicalNode)
+      const refused = touchesAgentBlock(ops, agentAddresses(before));
+      if (refused) {
+        result = { ok: false, error: refused };
+        return;
+      }
+
+      const defaultInserts = ops.some((op) =>
+        op.op === "insert_blocks" && !hasPlacement(op)
+      );
+      const placement = defaultInserts ? $defaultPlacement(target) : null;
+      if (placement) {
+        ops = ops.map((op) =>
+          op.op === "insert_blocks" && !hasPlacement(op)
+            ? { ...op, ...placement.spec }
+            : op
+        );
+      }
+
+      let applied: ReturnType<typeof applyOps>;
+      try {
+        applied = applyOps(before, parsed.data.stateHash, ops);
+      } catch (error) {
+        result = { ok: false, error: refusal(error) };
+        return;
+      }
+
+      // Nothing has been touched yet, and from here nothing can be refused.
+      const agents = $agentJsonByBlockId();
+      $reconcile(
+        $getRoot(),
+        before.root.children ?? [],
+        applied.state.root.children ?? [],
+        (json) => $build(json, agents),
+      );
+      changed = applied.changed;
+
+      if (placement) {
+        const last = placement.next?.isAttached()
+          ? placement.next.getPreviousSibling()
+          : placement.parent.getLastChild();
+        const id = last ? $getState(last, blockIdState) : "";
+        if (id) target.lastInserted = id;
+      }
+      result = { ok: true, text: "" };
+    },
+    // Committed before `update` returns, so the answer the agent gets is about
+    // a document that already has the change in it.
+    { discrete: true, tag: AGENT_WRITE_TAG },
   );
 
-  if (placement.kind === "append") {
-    (anchor as ElementNode).append(...nodes);
-  } else if (placement.kind === "before") {
-    for (const node of nodes) anchor.insertBefore(node);
-  } else {
-    let previous: LexicalNode = anchor;
-    for (const node of nodes) {
-      previous.insertAfter(node);
-      previous = node;
-    }
-  }
-
+  if (!result.ok) return result;
+  const after = agentOutlineText(editor, target.blockKey);
   return {
     ok: true,
-    inserted: nodes.map((node) => $getState(node, blockIdState)),
+    text: `Applied ${changed} block change${changed === 1 ? "" : "s"} to the ` +
+      `open post. They are live — on the author's undo stack, and saved like ` +
+      `their own typing.\n${after}`,
   };
 }
 
-/**
- * A content-bridge address, resolved against the live tree.
- *
- * The same two spellings `locate` accepts — a `blk_` id wins, a structural
- * `b4.2` path is the fallback — and the same descent rule as `walkBlocks`:
- * only through `BLOCK_CONTAINERS`. What this cannot follow is a container
- * whose children live in a nested editor (sticky, nested doc, canvas): those
- * are decorators with no live children here, and an address inside one
- * resolves to nothing rather than to the wrong node.
- */
-function $resolveAddress(address: string): LexicalNode | null {
-  const root = $getRoot();
-  if (address === "root") return root;
-
-  if (isBlockId(address)) {
-    const walk = (node: LexicalNode): LexicalNode | null => {
-      if (!$isRootNode(node) && $getState(node, blockIdState) === address) {
-        return node;
-      }
-      if (!$isElementNode(node)) return null;
-      for (const child of node.getChildren()) {
-        const found = walk(child);
-        if (found) return found;
-      }
-      return null;
-    };
-    return walk(root);
+/** The sentence a refused batch reaches the model as. */
+function refusal(error: unknown): string {
+  if (error instanceof StaleStateError) {
+    return `stale: ${error.message} (the author may be typing — re-run outline).`;
   }
+  if (error instanceof OpError) {
+    return error.code ? `${error.code}: ${error.message}` : error.message;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
 
-  const path = parseAddress(address);
-  if (!path) return null;
-  let current: LexicalNode = root;
-  for (const index of path) {
-    if (!$isElementNode(current) || !BLOCK_CONTAINERS.has(current.getType())) {
-      return null;
+// ---------------------------------------------------------------------------
+// Reconcile
+// ---------------------------------------------------------------------------
+
+/** Every live agent block's full JSON, by block id, to undo the stub. */
+function $agentJsonByBlockId(): Map<string, SerializedNode> {
+  const found = new Map<string, SerializedNode>();
+  const walk = (node: LexicalNode) => {
+    if (node.getType() === AGENT_BLOCK_TYPE) {
+      const json = node.exportJSON() as unknown as SerializedNode;
+      const id = readBlockId(json);
+      if (id) found.set(id, json);
+      return;
     }
-    const next: LexicalNode | null = current.getChildAtIndex(index);
-    if (!next) return null;
-    current = next;
+    if ($isElementNode(node)) node.getChildren().forEach(walk);
+  };
+  walk($getRoot());
+  return found;
+}
+
+/**
+ * Build a node from JSON the reconcile could not keep. A stubbed agent block
+ * inside it — a container the batch rewrote around one — gets its real
+ * contents back first, so rebuilding a column never empties a session's log.
+ */
+function $build(
+  json: SerializedNode,
+  agents: Map<string, SerializedNode>,
+): LexicalNode {
+  const restore = (node: SerializedNode): SerializedNode => {
+    if (node.type === AGENT_BLOCK_TYPE) {
+      const full = agents.get(readBlockId(node));
+      return full ? structuredClone(full) : node;
+    }
+    if (!Array.isArray(node.children)) return node;
+    return { ...node, children: node.children.map(restore) };
+  };
+  return $parseSerializedNode(restore(json) as unknown as SerializedLexicalNode);
+}
+
+const keyOf = (node: SerializedNode): string => stateHash(node);
+
+/** An element whose own fields — everything but its children — are unchanged. */
+const shellOf = (node: SerializedNode): string =>
+  stateHash({ ...node, children: undefined });
+
+/**
+ * Patch `parent`'s live children from `before` (their JSON, index-aligned) to
+ * `after`. Exported for the spec; it is the part with the most ways to be
+ * subtly wrong.
+ */
+export function $reconcile(
+  parent: ElementNode,
+  before: readonly SerializedNode[],
+  after: readonly SerializedNode[],
+  build: (json: SerializedNode) => LexicalNode,
+): void {
+  const live = parent.getChildren();
+  if (live.length !== before.length) {
+    throw new Error("reconcile: the snapshot does not match the live tree");
   }
-  return current;
+  const oldKeys = before.map(keyOf);
+  const newKeys = after.map(keyOf);
+  const matches = commonSubsequence(oldKeys, newKeys);
+
+  const desired: LexicalNode[] = [];
+  const kept = new Set<number>();
+
+  /**
+   * Fill the gap old[i0, i1) → new[j0, j1). An element of the same type is
+   * reused rather than rebuilt — one with an identical shell first, otherwise
+   * any — and given its new shell through `updateFromJSON`, which is how a
+   * `set_text` that stamps a block id keeps the author's paragraph node.
+   */
+  const fillGap = (i0: number, i1: number, j0: number, j1: number) => {
+    for (let j = j0; j < j1; j++) {
+      const next = after[j];
+      let reuse = -1;
+      let sameShell = false;
+      if (Array.isArray(next.children)) {
+        const shell = shellOf(next);
+        for (let i = i0; i < i1; i++) {
+          const prev = before[i];
+          if (
+            kept.has(i) || !$isElementNode(live[i]) ||
+            prev.type !== next.type || !Array.isArray(prev.children)
+          ) continue;
+          if (shellOf(prev) === shell) {
+            reuse = i;
+            sameShell = true;
+            break;
+          }
+          if (reuse === -1) reuse = i;
+        }
+      }
+      if (reuse === -1) {
+        desired.push(build(next));
+        continue;
+      }
+      kept.add(reuse);
+      const node = live[reuse] as ElementNode;
+      if (!sameShell) {
+        node.updateFromJSON(
+          { ...next, children: undefined } as unknown as Parameters<
+            typeof node.updateFromJSON
+          >[0],
+        );
+      }
+      $reconcile(node, before[reuse].children ?? [], next.children ?? [], build);
+      desired.push(node);
+    }
+  };
+
+  let i = 0;
+  let j = 0;
+  for (const [mi, mj] of matches) {
+    fillGap(i, mi, j, mj);
+    kept.add(mi);
+    desired.push(live[mi]);
+    i = mi + 1;
+    j = mj + 1;
+  }
+  fillGap(i, live.length, j, after.length);
+
+  // Remove first, keeping the parent even if it empties: an empty root or
+  // column is the batch's own result, not something to tidy away.
+  live.forEach((node, index) => {
+    if (!kept.has(index)) node.remove(true);
+  });
+  desired.forEach((node, index) => {
+    const current = parent.getChildAtIndex(index);
+    if (current?.is(node)) return;
+    if (current) current.insertBefore(node);
+    else parent.append(node);
+  });
+}
+
+/**
+ * Index pairs of a longest common subsequence of two key lists.
+ *
+ * Prefix and suffix are matched first: a batch touches a few blocks, so the
+ * quadratic middle is almost always tiny even in a long post.
+ */
+export function commonSubsequence(
+  a: readonly string[],
+  b: readonly string[],
+): [number, number][] {
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let endA = a.length;
+  let endB = b.length;
+  while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) {
+    endA--;
+    endB--;
+  }
+
+  const n = endA - start;
+  const m = endB - start;
+  // lengths[x][y]: LCS length of a[start+x..endA) and b[start+y..endB).
+  const lengths = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+  for (let x = n - 1; x >= 0; x--) {
+    for (let y = m - 1; y >= 0; y--) {
+      lengths[x][y] = a[start + x] === b[start + y]
+        ? lengths[x + 1][y + 1] + 1
+        : Math.max(lengths[x + 1][y], lengths[x][y + 1]);
+    }
+  }
+
+  const pairs: [number, number][] = [];
+  for (let k = 0; k < start; k++) pairs.push([k, k]);
+  let x = 0;
+  let y = 0;
+  while (x < n && y < m) {
+    if (a[start + x] === b[start + y]) {
+      pairs.push([start + x, start + y]);
+      x++;
+      y++;
+    } else if (lengths[x + 1][y] >= lengths[x][y + 1]) x++;
+    else y++;
+  }
+  for (let k = 0; k < a.length - endA; k++) pairs.push([endA + k, endB + k]);
+  return pairs;
 }
