@@ -5,7 +5,7 @@ import { BLOCK_DOC, opSchema, RECOVERY_DOC } from "./generated/docSchema.mjs";
 import { agentEnv, buildSystemPrompt, DOC_SERVER, DOC_TOOLS, project } from "./agentProtocol.js";
 import { grantsToOptions } from "./agentPermissions.js";
 
-export { DOC_SERVER, DOC_TOOLS, TOOL_TIMEOUT_MS } from "./agentProtocol.js";
+export { DOC_SERVER, DOC_TOOLS, TOOL_TIMEOUT_MS, toolTimeoutMs } from "./agentProtocol.js";
 
 /**
  * One Claude Agent SDK session, owned by the main process — every turn of it
@@ -129,6 +129,28 @@ const IMAGE_DOC =
   "is shown under it as inline markdown. " +
   PLACEMENT_DOC;
 
+const SKETCH_DOC =
+  "Draw a diagram into the open post as an Excalidraw sketch, live (like " +
+  "apply_ops: no proposal, on the author's undo stack). It opens and edits " +
+  "in the sketch editor exactly like one the author drew, so prefer it to a " +
+  "picture of a diagram. Exactly one of: mermaid — a Mermaid definition, " +
+  "which lays itself out; flowcharts convert best (`flowchart LR\n  A[Client] " +
+  "--> B[Server]`), sequence and class diagrams convert too, and other kinds " +
+  "arrive as a picture inside the sketch. Prefer it for anything that is a " +
+  "graph of boxes and arrows. Or shapes — for when placement matters: " +
+  "[{id, kind, x, y, w, h, label, from, to}], pixels with y pointing down. " +
+  "rect, ellipse and diamond need x, y (their top-left corner); w, h default " +
+  "to 160×80; label is the text inside. text needs x, y and label. arrow and " +
+  "line join two shapes by id with from and to — an arrow stays attached when " +
+  "the author moves them, and its ends are worked out for you — or run from " +
+  "x, y by the offset w, h. A shape needs an id only if an arrow names it. " +
+  "alt describes the drawing for a reader who cannot see it (by default, its " +
+  "shapes and labels); caption is shown under it. id redraws the existing " +
+  "sketch block it names, in place, keeping its caption — instead of " +
+  "inserting a new one. A mistake in the input is refused with the shape it " +
+  "is about; fix that and call again. " +
+  PLACEMENT_DOC;
+
 const placementShape = {
   after: z.string().optional().describe("Place after this block"),
   before: z.string().optional().describe("Place before this block"),
@@ -225,6 +247,33 @@ function docServer(executeTool) {
           ...placementShape,
         },
         call("insert_image"),
+      ),
+      tool(
+        "draw_sketch",
+        SKETCH_DOC,
+        {
+          mermaid: z.string().optional().describe("A Mermaid definition, e.g. flowchart LR"),
+          shapes: z
+            .array(
+              z.object({
+                id: z.string().optional().describe("Needed only if an arrow names it"),
+                kind: z.enum(["rect", "ellipse", "diamond", "text", "arrow", "line"]),
+                x: z.number().optional(),
+                y: z.number().optional(),
+                w: z.number().optional(),
+                h: z.number().optional(),
+                label: z.string().optional(),
+                from: z.string().optional().describe("Arrow/line: the id of the shape it starts at"),
+                to: z.string().optional().describe("Arrow/line: the id of the shape it ends at"),
+              }),
+            )
+            .optional(),
+          alt: z.string().optional().describe("What the drawing shows; defaults to its shapes and labels"),
+          caption: z.string().optional().describe("Shown under the sketch; inline markdown"),
+          id: z.string().optional().describe("An existing sketch block to redraw in place"),
+          ...placementShape,
+        },
+        call("draw_sketch"),
       ),
     ],
   });

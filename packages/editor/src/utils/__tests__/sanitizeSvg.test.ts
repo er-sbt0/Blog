@@ -12,6 +12,7 @@
  * be there when the module was first evaluated.
  */
 import { renderSvgDataUri, sanitizeSvgMarkup } from "../sanitizeSvg";
+import { sanitizeSketchSvg } from "../agentSketch";
 
 const dataUri = (svg: string) =>
   `data:image/svg+xml,${encodeURIComponent(svg)}`;
@@ -101,3 +102,46 @@ describe("renderSvgDataUri", () => {
       .toBeNull();
   });
 });
+
+/** `draw_sketch`'s export, as Excalidraw shapes it (agent-block.md phase 4). */
+const PAYLOAD = "eyJ0eXBlIjoiZXhjYWxpZHJhdyJ9";
+const sceneComments = () =>
+  "<!-- svg-source:excalidraw --><metadata>" +
+  "<!-- payload-type:application/vnd.excalidraw+json -->" +
+  "<!-- payload-version:2 --><!-- payload-start -->" +
+  `${PAYLOAD}<!-- payload-end --></metadata>`;
+const exported = (inner = '<rect x="1" y="1" width="10" height="10"/>') =>
+  `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" ` +
+  `width="200" height="100">${sceneComments()}<defs/>${inner}</svg>`;
+
+describe("sanitizeSketchSvg, with the real DOMPurify pass", () => {
+  it("strips script, handlers and javascript: links, and keeps the scene", () => {
+    const clean = sanitizeSketchSvg(
+      exported(
+        '<script>alert(1)</script><rect onload="alert(2)" width="5" height="5"/>' +
+          '<a href="javascript:alert(3)"><text x="1" y="1">go &amp; see now</text></a>',
+      ),
+      sanitizeSvgMarkup,
+    )!;
+    expect(clean).not.toContain("<script");
+    expect(clean).not.toMatch(/\son[a-z]+\s*=/i);
+    expect(clean).not.toContain("javascript:");
+    expect(clean).toContain("go &amp; see&#160;now");
+    // Back where Excalidraw's loader looks for it, byte for byte.
+    expect(clean.startsWith("<svg")).toBe(true);
+    expect(clean).toContain(sceneComments());
+    expect(clean.match(/<metadata/g)).toHaveLength(1);
+    // And the whole thing is still XML an `<img>` can render.
+    const parsed = new DOMParser().parseFromString(clean, "image/svg+xml");
+    expect(parsed.getElementsByTagName("parsererror")).toHaveLength(0);
+    expect(parsed.documentElement.getAttribute("xmlns")).toBe("http://www.w3.org/2000/svg");
+  });
+
+  it("refuses an export with no scene, or a scene that is not base64", () => {
+    expect(sanitizeSketchSvg('<svg xmlns="http://www.w3.org/2000/svg"/>', sanitizeSvgMarkup))
+      .toBeNull();
+    const smuggled = exported().replace(PAYLOAD, '--><script>alert(1)</script><!--');
+    expect(sanitizeSketchSvg(smuggled, sanitizeSvgMarkup)).toBeNull();
+  });
+});
+

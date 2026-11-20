@@ -76,9 +76,10 @@ export type AgentToolResult =
   | { ok: false; error: string };
 
 /**
- * The tools this executor answers. Main declares the same five (`DOC_TOOLS`).
- * `insert_image` is async — it uploads — so it runs through
- * `executeAgentDocTool` (`agentImage.ts`); the rest are answered here.
+ * The tools this executor answers. Main declares the same six (`DOC_TOOLS`).
+ * `insert_image` and `draw_sketch` are async — they render and upload — so
+ * they run through `executeAgentDocTool` (`agentImage.ts`, `agentSketch.ts`);
+ * the rest are answered here.
  */
 export const AGENT_DOC_TOOLS = [
   "outline",
@@ -86,6 +87,7 @@ export const AGENT_DOC_TOOLS = [
   "apply_ops",
   "insert_math",
   "insert_image",
+  "draw_sketch",
 ] as const;
 
 /**
@@ -120,9 +122,10 @@ export function runAgentDocTool(
       if (!editor.isEditable()) return READ_ONLY;
       return insertMathTool(target, input);
     case "insert_image":
+    case "draw_sketch":
       return {
         ok: false,
-        error: "insert_image runs through executeAgentDocTool, which uploads.",
+        error: `${name} runs through executeAgentDocTool, which uploads.`,
       };
     default:
       return { ok: false, error: `Unknown doc tool: ${name}` };
@@ -560,6 +563,67 @@ export function insertImageBlock(
     }],
     ...placementOf(image),
   } as Op]);
+}
+
+/** What `draw_sketch` writes once `agentSketch.ts` has rendered and stored it. */
+export interface ResolvedSketch extends PlacementInput {
+  src: string;
+  alt: string;
+  caption?: string;
+  width: number;
+  height: number;
+  /** An existing sketch to redraw in place, rather than a new one placed. */
+  id?: string;
+}
+
+/**
+ * The synchronous half of `draw_sketch`: a `sketch` block, placed — or, given
+ * `id`, put in place of the sketch it names through `replace_block`, which
+ * keeps that block's address, caption and layout (the codec's carry-through).
+ *
+ * The one writer of a sketch's `src`: the zod arm has none, so this goes
+ * straight to `runBatch` with a block no `apply_ops` call can spell.
+ */
+export function insertSketchBlock(
+  target: AgentToolTarget,
+  sketch: ResolvedSketch,
+): AgentToolResult {
+  if (!target.editor.isEditable()) return READ_ONLY;
+  const caption = sketch.caption?.trim() ? sketch.caption : undefined;
+  const block = {
+    type: "sketch" as const,
+    src: sketch.src,
+    alt: sketch.alt,
+    width: sketch.width,
+    height: sketch.height,
+    ...(caption === undefined ? {} : { caption, showCaption: true }),
+  };
+  if (sketch.id === undefined) {
+    return runBatch(target, sketch.stateHash ?? null, [{
+      op: "insert_blocks",
+      blocks: [block],
+      ...placementOf(sketch),
+    }]);
+  }
+  // Checked here rather than left to the codec: given a `src`, the codec would
+  // build a sketch in place of whatever the id names, paragraph included.
+  const found = readBlocks(readSnapshot(target.editor), [sketch.id]).blocks[0];
+  if (!found) {
+    return { ok: false, error: `block_not_found: ${sketch.id} — re-run outline.` };
+  }
+  if (found.type !== "sketch") {
+    const kind = found.type === "opaque" ? found.nodeType : found.type;
+    return {
+      ok: false,
+      error: `${sketch.id} is a ${kind}, not a sketch. id redraws an existing ` +
+        "sketch in place; to add a new one, leave id out and give a placement.",
+    };
+  }
+  return runBatch(target, sketch.stateHash ?? null, [{
+    op: "replace_block",
+    id: sketch.id,
+    block,
+  }]);
 }
 
 /** The sentence a refused batch reaches the model as. */

@@ -1,6 +1,6 @@
 # `/agent` — a Claude Code session as a block in the post
 
-**Status: phase 3 done (20 Nov 2026); phases 0–3 logged in §7–§10. Phases 4–6
+**Status: phase 4 done (20 Nov 2026); phases 0–4 logged in §7–§11. Phases 5–6
 not started.** Supersedes
 [claude-code-notebook.md](./claude-code-notebook.md), which stays for its §2.1
 (the transcript is already block-shaped) and §5 (the autosave/streaming
@@ -802,3 +802,190 @@ the Copilot, this one) can author through `apply_ops`.
 - **Inserted pictures have no width/height** (above). A sketch's SVG has an
   intrinsic size, so phase 4 may want to model or derive it.
 
+
+## 11. Phase 4 log (20 Nov 2026)
+
+A session can now draw: `draw_sketch { mermaid } | { shapes }` puts an
+Excalidraw sketch into the post that opens and edits in the sketch editor like
+one the author drew. Every agent surface can now read a sketch, and
+re-caption or resize one.
+
+**What was built.**
+
+- **The sketch codec** (`content-bridge/blocks.ts`, `types.ts` `SketchBlock`,
+  `schema.ts`, new `sketchScene.ts`). It reads `{ type: "sketch", alt,
+  caption?, showCaption?, width?, height?, summary? }`.
+  - `summary` describes the shapes, labels and arrows (`4 boxes, 3 arrows ·
+    Browser, Next.js server, … · Browser → Next.js server, …`). It is
+    derived only where the node still carries its scene as the deprecated
+    `value`. Everywhere else the scene is deflated inside the SVG, and a
+    synchronous, isomorphic read cannot reach it.
+  - `describeScene` also writes `draw_sketch`'s default alt text. So what an
+    agent drew reads back, to the next agent and to a screen reader, as what
+    it shows.
+  - `src` is never read back, so a read never dumps the drawing.
+  - `style`, `id` and the drawing are carried through (§4.6.1).
+  - `check:codecs` lost its `sketch` allowlist entry. The outline previews a
+    sketch by caption, then alt, then summary.
+- **Decision: `apply_ops` cannot make or change a drawing.** The zod arm has
+  no `src`, so a `src` from any caller is stripped like any unknown field.
+  - `replace_block` on an existing sketch can change its alt, caption and
+    size, and keeps the picture.
+  - An insert, or a replace of a non-sketch, is refused with an error that
+    names `draw_sketch`.
+  - The only writer of `src` is `insertSketchBlock` (`agentDocTools.ts`). It
+    goes straight to `runBatch` with a block no `apply_ops` call can spell.
+  - When a sketch is redrawn in place, the codec drops the old `value`.
+    Otherwise the Sketch dialog would load that stale scene in preference
+    to the new SVG.
+- **`draw_sketch`** (`agentSketch.ts`, new; `excalidrawSketch.ts`, new).
+  - **shapes**: `[{ id, kind: rect|ellipse|diamond|text|arrow|line, x, y, w,
+    h, label, from, to }]`, validated strictly. Every refusal names the shape
+    and says what to change: `shapes[2] (arrow): "cache" is not the id of any
+    shape in this sketch (ids: "api", "db").` Also refused: duplicate ids, an
+    unknown field (`width` → "a shape takes id, kind, x, …"), a line with a
+    label, half a binding, a self-loop, an arrow attached to a connector, and
+    more than 200 shapes.
+  - Arrows given `from`/`to` become bound skeleton arrows (`start`/`end` by
+    id), and their geometry is computed here, edge to edge with an 8 px gap,
+    for rectangles, ellipses and diamonds. The reason:
+    `convertToExcalidrawElements` records a binding but draws the arrow where
+    its points say. Points are always passed explicitly, because the
+    converter reads `width || 100`, which turns a vertical arrow diagonal.
+  - **mermaid**: `@excalidraw/mermaid-to-excalidraw` 2.2.2, the version
+    Excalidraw 0.18.1 itself pins. It is now a root dependency. It is called
+    as Excalidraw's own text-to-diagram calls it: no config, and one retry with
+    `"` → `'`. A parse error goes back to the model as a one-line tool error
+    with mermaid's message.
+  - Both paths then run the Sketch dialog's export (`exportToSvg` with
+    `exportEmbedScene`, padding 16), then `blobSrcOrFallback`, then the
+    batch. With `id`, the batch is a `replace_block` on that sketch (refused if
+    it is not one), which keeps its address and caption.
+  - Excalidraw sits behind `SketchRenderer`, injected as `AgentImageDeps`
+    injects the store. `excalidrawSketch.ts` is reached only through
+    `import()`, and it reaches Excalidraw and mermaid the same way, so all three
+    are async chunks. Nothing imports them statically (checked by grep; a
+    `next build` was not run).
+- **Sanitized on the way in, keeping the scene** (`sanitizeSketchSvg`). The
+  export goes through `sanitizeSvgMarkup`, the pass every stored sketch and
+  graph is held to. That pass drops comments, and the scene lives in
+  comments. So the Excalidraw payload is lifted out first and must match
+  exactly the markers plus base64 Excalidraw writes. It is then re-inserted
+  as `<metadata>` right after `<svg>`, `&nbsp;` is re-spelled for XML, and
+  `xmlns` is ensured. An export with no scene is refused.
+  - Element `link`s are set to null before export.
+  - Mermaid `click` lines are removed before parsing. They are links, and in
+    the browser run they also knocked their node out of the layout: the box
+    landed at the origin, detached from its arrow.
+- **Per-tool timeouts** (`agentProtocol.js` `toolTimeoutMs`): `draw_sketch`
+  120 s, `insert_image` 60 s, everything else still 30 s. `agentIpc.js`
+  uses it per call.
+- **Registered** in `DOC_TOOLS`, `AGENT_DOC_TOOLS` and `executeAgentDocTool`,
+  and declared in `agent.js` with a JSON-schema'd shape list and
+  `SKETCH_DOC`. The system prompt now says to use `draw_sketch` for a
+  diagram (mermaid for a graph, shapes when placement matters) and keep
+  `insert_image` for data plots. `describeToolCall` names a sketch call by
+  its mermaid header or its shape count, never its labels.
+
+**`/view` and `/embed` with a blob sketch.** A sketch stored as
+`/api/blob/<hash>` (every migrated one, and every one `draw_sketch` uploads)
+takes `SketchNode.exportDOM`'s non-data-URI branch. That branch is
+`ImageNode`'s `<img src>`: nothing is decoded, fetched or inlined. An `<img>`
+runs no script, and `GET /api/blob/[hash]` serves the bytes `nosniff` under
+`default-src 'none'; sandbox` for anyone who opens them directly. No fix was
+needed. `svgExport.test.ts` now pins it:
+- a blob src is one `<img>`, with no `<svg>` and no `fetch`;
+- a hostile non-SVG `data:` src is, on the re-parsed page, one inert `<img>`
+  and no script, svg or handler. HTML serialization leaves `<` unescaped in a
+  quoted attribute, so a string search would have flagged a non-issue.
+
+**Verified.**
+
+- `tsc`, `pnpm lint` (plus `eslint` on every touched file), `check:nodes`,
+  `check:codecs` and `check:theme` pass. The full suite passes: 106 files,
+  1940 tests, about 8 s.
+- New and extended specs:
+  - `codecs.test.ts`: the sketch round trip, a stripped `src`, refusals, carry
+    through, redraw dropping `value`, the summary and the outline preview.
+  - `editor/utils/__tests__/agentSketch.test.ts` (new, 37 tests): shape
+    validation and geometry, and the tool on a headless editor with the real
+    `SketchNode` and a stubbed renderer and store. It covers insert, mermaid
+    and its error, `click` stripping, link dropping, the local data-URI
+    fallback, redraw in place, a refused redraw of a paragraph, read-only
+    mid-render, and `apply_ops` re-captioning but never re-sourcing.
+  - `sanitizeSvg.test.ts`: `sanitizeSketchSvg` over the real DOMPurify under
+    jsdom, including a payload that tries to close its comment.
+  - `svgExport.test.ts`: the blob branch, as above.
+  - Desktop specs: `agent.test.ts` (tools, timeouts, descriptions, prompt) and
+    `agentIpc.test.ts` (fake timers: an `outline` times out at 30 s while a
+    `draw_sketch` is still pending, and that one times out later).
+- **In a real browser** (headless Chrome over CDP, scratchpad harness). An
+  esbuild bundle of the real `excalidrawRenderer`, `shapesToSkeleton` and
+  `sanitizeSketchSvg` ran against a local server that served `public/fonts`
+  and stored blobs with the blob route's headers.
+  - A 7-shape sketch (rect, diamond and ellipse with labels, two bound arrows,
+    a line, a text) and a 5-node mermaid flowchart both exported in about
+    130 ms. The sanitized output kept `<style>` and `@font-face`, rendered
+    identically to the raw export as an `<img>`, and was stored with its
+    payload intact.
+  - Fetched back from `/api/blob/<hash>` **and** as a data URI, each reopened
+    through `loadSceneOrLibraryFromBlob`, exactly as the Sketch dialog does.
+    Each came back as an `excalidraw` scene with the same element ids, the
+    arrows still bound at both ends, and the labels intact.
+  - A mermaid syntax error surfaced as mermaid's own "Parse error on line 3".
+- **Against the real SDK** (0.3.309 / claude 2.1.309, `apiKeySource: none`).
+  A driver ran `agent.js` → `executeAgentDocTool` on a headless editor (real
+  nodes) in Node, with the renderer proxied to that Chrome page over CDP.
+  Asked for "the flow of a save" and "an architecture sketch where placement
+  matters", the model:
+  - chose mermaid for the first;
+  - chose shapes for the second (four boxes, three bound arrows, a caption,
+    `after` the first sketch's `blk_` id);
+  - drew both with no refusal, in 3 turns.
+  Both blobs reopened as Excalidraw scenes.
+- **Not driven:** the running desktop app, for the same reason as §8–§10.
+  The live `/api/blob` upload is the path `insert_image` already uses.
+
+**Known and left.**
+
+- Excalidraw wraps a long mermaid label inside a diamond ("Autosa / ve").
+  Excalidraw's own text-to-diagram does the same: the converter sizes boxes
+  from mermaid's font metrics, not Excalifont's. An arrow label sits on its
+  line in the export, as it does in the editor.
+- A cylinder (`[(db)]`) arrives as a rectangle. That is the converter's
+  choice.
+- The hidden caption of a sketch defaults to its alt text, as every image
+  node's does (`ImageNode`'s constructor). So the long default alt is what
+  the author sees if they turn the caption on.
+
+**What phase 5 (graph) needs to know.**
+
+- **The pipeline is the same shape, three times now.** Add `plot_graph` to
+  `executeAgentDocTool` and a sync `insertGraphBlock`, with a renderer
+  injected as `SketchRenderer` is. The renderer is a **hidden GeoGebra
+  applet**: load `deployggb.js` from `public/geogebra` the way the Graph
+  dialog does, `evalCommand` each command (one failing command is the tool
+  error, named by index, like a shape), then `getBase64` for `value` and
+  `exportSVG` for the picture. Then `blobSrcOrFallback` and a batch.
+  `GraphNode` already branches on blob vs data URI, and `/view` takes the
+  same `<img>` branch for a blob graph that it does for a sketch, so the
+  render side needs nothing new.
+- **The spike comes first** (§6 q1): can the applet do all of that while it
+  is `visibility: hidden` / off-screen? Does `exportSVG` return before the
+  applet has painted? Measure the cold start: the 120 s budget here was sized
+  for Excalidraw plus mermaid, and GeoGebra's first load is heavier. Give
+  `plot_graph` its own `TOOL_TIMEOUTS_MS` entry.
+- **The graph codec** follows the sketch's decision: read `{ type: "graph",
+  alt, caption?, showCaption?, width?, height? }`; no `src` and no `value` in
+  the zod arm; `apply_ops` re-captions and resizes only. `value` is a `.ggb`
+  base64, so it must never be read back, for the same reason `src` is not.
+  `check:codecs` drops `graph` from the allowlist once the codec lands.
+- **Sanitize on the way in, too.** GeoGebra's SVG has no scene payload (the
+  scene is `value`), so the plain `sanitizeSvgMarkup` + `xmlns` repair from
+  `insert_image` is enough.
+- **The fallback, if the spike fails:** no new node work. `plot_graph`
+  answers with a refusal that says to plot with a script in cwd
+  (matplotlib), save a PNG or SVG, and `insert_image { path }`, which works
+  today. Say the same in the system prompt, and do not register a tool that
+  can only refuse. The graph codec (read side + re-caption) is worth landing
+  either way.

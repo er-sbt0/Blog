@@ -32,6 +32,7 @@ import type {
   ParagraphBlock,
   QuoteBlock,
   SerializedNode,
+  SketchBlock,
   SummaryBlock,
   TableCellBlock,
   WritableBlock,
@@ -44,6 +45,7 @@ import {
   findUnregisterable,
   typeOf,
 } from "./containers";
+import { describeScene } from "./sketchScene";
 
 const str = (value: unknown, fallback = ""): string =>
   typeof value === "string" ? value : fallback;
@@ -98,8 +100,10 @@ export function describeNode(node: SerializedNode): string {
       return str(node.value);
     case "graph":
       return `geogebra${str(node.altText) ? ` · ${str(node.altText)}` : ""}`;
-    case "sketch":
-      return "excalidraw drawing";
+    case "sketch": {
+      const alt = str(node.altText);
+      return `excalidraw drawing${alt && alt !== "Sketch" ? ` · ${alt}` : ""}`;
+    }
     case "image":
       return str(node.altText) || str(node.src);
     case "iframe":
@@ -394,6 +398,25 @@ export function nodeToBlock(node: SerializedNode): Block {
       if (caption) block.caption = caption;
       if (typeof node.showCaption === "boolean") {
         block.showCaption = node.showCaption;
+      }
+      return block;
+    }
+
+    // The drawing stays in the node; the block says what it shows. See
+    // `SketchBlock` for why a read never returns `src`.
+    case "sketch": {
+      const block: SketchBlock = { type: "sketch", alt: str(node.altText) };
+      const caption = captionText(node);
+      if (caption) block.caption = caption;
+      if (typeof node.showCaption === "boolean") {
+        block.showCaption = node.showCaption;
+      }
+      if (typeof node.width === "number" && node.width > 0) block.width = node.width;
+      if (typeof node.height === "number" && node.height > 0) {
+        block.height = node.height;
+      }
+      if (Array.isArray(node.value) && node.value.length > 0) {
+        block.summary = describeScene(node.value);
       }
       return block;
     }
@@ -806,6 +829,39 @@ export function blockToNode(
       return next;
     }
 
+    case "sketch": {
+      // `src` arrives only from `draw_sketch`, which bypasses the zod arm (it
+      // has none). Anything else names an existing sketch to re-describe, or
+      // nothing — and there is no drawing to make from nothing.
+      const src = block.src ?? str(carried?.src);
+      if (!src) {
+        throw new Error(
+          "a new sketch needs a drawing, which apply_ops cannot make — draw " +
+            "it with draw_sketch (the desktop /agent tool) or in the editor. " +
+            "replace_block on an existing sketch can change its alt, caption " +
+            "and size",
+        );
+      }
+      const next: SerializedNode = {
+        ...carried,
+        type: "sketch",
+        version: 1,
+        src,
+        altText: str(block.alt, str(carried?.altText, "Sketch")),
+        width: block.width ?? num(carried?.width, 0),
+        height: block.height ?? num(carried?.height, 0),
+        style: str(carried?.style),
+        id: str(carried?.id),
+        showCaption: block.showCaption ?? carried?.showCaption ?? false,
+      };
+      // A redraw replaces the picture, so the deprecated `value` — the old
+      // scene, which the sketch dialog would load in preference to the new
+      // one — goes with it.
+      if (block.src !== undefined && block.src !== carried?.src) delete next.value;
+      if (block.caption !== undefined) writeCaption(next, block.caption);
+      return next;
+    }
+
     case "math": {
       if (typeof block.latex !== "string") {
         throw new Error("a math block needs `latex`, a string of LaTeX");
@@ -1017,6 +1073,8 @@ export function blockText(block: Block): string {
       return block.text;
     case "math":
       return block.latex;
+    case "sketch":
+      return [block.alt, block.caption, block.summary].filter(Boolean).join("\n");
     case "opaque":
       return block.summary;
     default:

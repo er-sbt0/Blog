@@ -105,6 +105,17 @@ export const blockSchema = z.discriminatedUnion("type", [
     caption: z.string().optional(),
     showCaption: z.boolean().optional(),
   }),
+  // No `src`: a drawing is made by `draw_sketch`, never spelled in a block,
+  // so this arm can only re-describe or resize a sketch that exists. A `src`
+  // a caller sends is stripped like any unknown field. See `SketchBlock`.
+  z.object({
+    type: z.literal("sketch"),
+    alt: z.string().optional(),
+    caption: z.string().optional(),
+    showCaption: z.boolean().optional(),
+    width: z.number().positive().optional(),
+    height: z.number().positive().optional(),
+  }),
   z.object({
     type: z.literal("math"),
     latex: z.string().describe("LaTeX without $ delimiters, e.g. \\int_0^1 x^2\\,dx"),
@@ -198,6 +209,11 @@ export const BLOCK_DOC =
   "image {src, alt, caption?, showCaption?} where caption is inline markdown, " +
   "one paragraph per newline — omitting it keeps the caption already there and " +
   'passing "" empties it, ' +
+  "sketch {alt?, caption?, showCaption?, width?, height?} — an Excalidraw " +
+  "drawing, sized in pixels; a read adds a summary of its shapes when it has " +
+  "one. Through these ops a sketch can only be re-captioned, re-described or " +
+  "resized: a new drawing comes from draw_sketch where that tool exists, and " +
+  "an insert of a sketch is refused everywhere else. " +
   "math {latex} — an equation on a line of its own, LaTeX without $ " +
   "delimiters; an equation inside a sentence is $latex$ in that block's text " +
   "instead, " +
@@ -234,7 +250,7 @@ export const BLOCK_DOC =
   "container's children (b7.2 is the second note) and each note's blocks are " +
   "addressed inside it (b7.2.1). A note itself is read-only — insert into it, " +
   "not over it. A sticky note is the same, one level shallower. " +
-  "Node types with no codec (graph, sketch, " +
+  "Node types with no codec (graph, " +
   "iframe) are read-only: they can be read, moved or deleted " +
   "by address, but not rewritten. set_text needs a single text field, so it " +
   "applies only to paragraph, heading, quote, summary, cell, code and math " +

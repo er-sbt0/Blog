@@ -5,6 +5,8 @@ import {
   DOC_TOOLS,
   project,
   sanitizeContext,
+  TOOL_TIMEOUT_MS,
+  toolTimeoutMs,
 } from "../agentProtocol.js";
 
 /**
@@ -85,14 +87,23 @@ describe("project", () => {
     expect(project({ type: "user", parent_tool_use_id: null, message: { content: "hi" } })).toBeNull();
   });
 
-  it("defines the text doc tools (phase 1) plus math and image (phase 3)", () => {
+  it("defines the text doc tools (phase 1), math and image (3) and sketch (4)", () => {
     expect(DOC_TOOLS).toEqual([
       "outline",
       "read_blocks",
       "apply_ops",
       "insert_math",
       "insert_image",
+      "draw_sketch",
     ]);
+  });
+
+  it("gives the tools that render and upload longer than the tree edits", () => {
+    expect(toolTimeoutMs("apply_ops")).toBe(TOOL_TIMEOUT_MS);
+    expect(toolTimeoutMs("draw_sketch")).toBeGreaterThanOrEqual(4 * TOOL_TIMEOUT_MS);
+    expect(toolTimeoutMs("insert_image")).toBeGreaterThan(TOOL_TIMEOUT_MS);
+    // Not a property lookup an inherited name can answer.
+    expect(toolTimeoutMs("constructor")).toBe(TOOL_TIMEOUT_MS);
   });
 });
 
@@ -120,6 +131,17 @@ describe("describeToolCall", () => {
     expect(describeToolCall("mcp__doc__insert_image", { url: "https://x/y.png" }))
       .toBe("https://x/y.png");
   });
+
+  it("names a sketch by its mermaid header or its shape count, never its labels", () => {
+    expect(
+      describeToolCall("mcp__doc__draw_sketch", { mermaid: "flowchart LR\n  A[secret] --> B" }),
+    ).toBe("mermaid · flowchart LR");
+    expect(
+      describeToolCall("mcp__doc__draw_sketch", {
+        shapes: [{ kind: "rect", x: 0, y: 0, label: "secret" }, { kind: "text", x: 0, y: 0 }],
+      }),
+    ).toBe("2 shapes");
+  });
 });
 
 /**
@@ -138,6 +160,7 @@ describe("the system prompt", () => {
     expect(prompt).toContain('"On tides"');
     expect(prompt).toContain("blk_abc12");
     expect(prompt).toContain("prefer them over replying");
+    expect(prompt).toMatch(/diagram[^]*use draw_sketch/);
     expect(prompt).toContain('"text":"moon"');
     expect(prompt.indexOf("stateHash: h_1")).toBeGreaterThan(prompt.indexOf("blk_abc12"));
   });

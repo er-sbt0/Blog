@@ -41,6 +41,7 @@ import {
   READ_ONLY,
   runAgentDocTool,
 } from "./agentDocTools";
+import { loadSketchRenderer, runDrawSketch, type SketchRenderer } from "./agentSketch";
 
 /** The same cap as `POST /api/blob` and main's read. */
 export const AGENT_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
@@ -63,11 +64,17 @@ export interface AgentImageDeps {
   store: (file: Blob, dataUri: string, documentId: string | null) => Promise<string>;
   /** `sanitizeSvgMarkup`, injectable because a test has no DOMPurify window. */
   sanitizeSvg: (markup: string) => string;
+  /**
+   * `draw_sketch`'s Excalidraw, loaded on first use (`agentSketch.ts`).
+   * Optional so a spec of the other tools need not name it.
+   */
+  sketchRenderer?: () => Promise<SketchRenderer>;
 }
 
 const defaultDeps: AgentImageDeps = {
   store: blobSrcOrFallback,
   sanitizeSvg: sanitizeSvgMarkup,
+  sketchRenderer: loadSketchRenderer,
 };
 
 type Field = string | undefined;
@@ -189,7 +196,8 @@ async function insertImageTool(
 
 /**
  * Run one doc-tool call. What the router calls: every tool but `insert_image`
- * is the synchronous `runAgentDocTool`, answered as a resolved promise.
+ * and `draw_sketch` is the synchronous `runAgentDocTool`, answered as a
+ * resolved promise.
  */
 export async function executeAgentDocTool(
   target: AgentToolTarget | null,
@@ -197,6 +205,14 @@ export async function executeAgentDocTool(
   input: unknown,
   deps: AgentImageDeps = defaultDeps,
 ): Promise<AgentToolResult> {
-  if (name !== "insert_image" || !target) return runAgentDocTool(target, name, input);
-  return insertImageTool(target, input, deps);
+  if (!target) return runAgentDocTool(target, name, input);
+  if (name === "insert_image") return insertImageTool(target, input, deps);
+  if (name === "draw_sketch") {
+    return runDrawSketch(target, input, {
+      store: deps.store,
+      sanitizeSvg: deps.sanitizeSvg,
+      renderer: deps.sketchRenderer ?? loadSketchRenderer,
+    });
+  }
+  return runAgentDocTool(target, name, input);
 }

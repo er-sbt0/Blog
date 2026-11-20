@@ -276,3 +276,29 @@ describe("insert_image over IPC (phase 3)", () => {
     expect(a.sent.some((m) => m.channel === "agent:tool-call")).toBe(false);
   });
 });
+
+describe("per-tool timeouts (phase 4)", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("gives draw_sketch past the 30 s an outline gets, and still times it out", async () => {
+    install();
+    const a = window();
+    await invoke("agent:start", a, turn("go"));
+    const [session] = created;
+    vi.useFakeTimers();
+
+    const outlined = session.executeTool("outline", {});
+    const drawn = session.executeTool("draw_sketch", { mermaid: "flowchart LR\n A-->B" });
+    let drawnSettled = false;
+    void drawn.then(() => {
+      drawnSettled = true;
+    });
+
+    await vi.advanceTimersByTimeAsync(31_000);
+    await expect(outlined).resolves.toMatchObject({ ok: false, error: /did not answer in time/ });
+    expect(drawnSettled).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(90_000);
+    await expect(drawn).resolves.toMatchObject({ ok: false, error: /did not answer in time/ });
+  });
+});

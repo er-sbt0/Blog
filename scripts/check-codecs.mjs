@@ -97,8 +97,6 @@ const OPAQUE_ALLOWLIST = {
   // --- Content nodes whose payload the block IR does not model yet. ---
   graph:
     "a GeoGebra applet state blob; the IR models nothing of it and a round-trip would have to carry it verbatim",
-  sketch:
-    "an Excalidraw scene — elements, appState, files. Far outside what a block IR should try to spell",
   iframe: "an embed URL plus sizing the IR does not model",
   canvas:
     "a board, addressed *through*: `BLOCK_CONTAINERS` descends to its notes and each note to its blocks, so the board itself has only its height left and an agent has no business setting that (docs/plans/nested-editor-support.md §4)",

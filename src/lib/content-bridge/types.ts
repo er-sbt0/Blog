@@ -254,6 +254,39 @@ export interface ImageBlock {
 }
 
 /**
+ * An Excalidraw sketch (docs/plans/agent-block.md §4.2, phase 4).
+ *
+ * The drawing itself is not in the IR. `SketchNode` stores an SVG whose `src`
+ * embeds the whole scene, and spelling that scene as blocks is what §2.6
+ * turned down. So a read describes the sketch — its alt text, caption, size
+ * and, where the node still carries its scene as `value`, a `summary` of the
+ * shapes and labels — and a write through `apply_ops` can only re-caption,
+ * re-describe or resize one that exists. A new drawing comes from
+ * `draw_sketch`, the desktop agent's tool, which renders it in the editor and
+ * is the one caller that supplies `src`; the zod arm has no `src`, so no
+ * other surface can.
+ *
+ * `style`, `id` and the drawing are unmodelled and carried through (§4.6.1).
+ */
+export interface SketchBlock {
+  type: "sketch";
+  alt: string;
+  /** Inline markdown. Absent means the sketch has no caption. */
+  caption?: string;
+  showCaption?: boolean;
+  /** Pixels — `SketchNode.resizeUnit`. */
+  width?: number;
+  height?: number;
+  /** Read-only: shapes and labels, when the node carries its scene. */
+  summary?: string;
+  /**
+   * Write-only, and only from `draw_sketch`: the rendered SVG (a blob URL, or
+   * a data URI where the upload fell back). Never returned by a read.
+   */
+  src?: string;
+}
+
+/**
  * A displayed equation: a paragraph holding one `math` node and nothing else.
  *
  * `MathNode` is inline — it lives in text, which is where `$latex$` in a text
@@ -356,6 +389,7 @@ export type Block =
   | KanbanBlock
   | AttachmentBlock
   | ImageBlock
+  | SketchBlock
   | MathBlock
   | TableBlock
   | TableCellBlock

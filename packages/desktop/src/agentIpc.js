@@ -10,7 +10,7 @@ import {
   MAX_GRANTS,
   reconcileGrants,
 } from "./agentPermissions.js";
-import { CONTEXT_LIMITS, DOC_SERVER, DOC_TOOLS, TOOL_TIMEOUT_MS } from "./agentProtocol.js";
+import { CONTEXT_LIMITS, DOC_SERVER, DOC_TOOLS, toolTimeoutMs } from "./agentProtocol.js";
 import { createSessionStore, isSessionId } from "./agentSessions.js";
 import { prepareImageInput } from "./agentFiles.js";
 
@@ -143,7 +143,7 @@ export function installAgent({ workspace, sessionsFile, log }) {
       const timer = setTimeout(() => {
         pending.delete(callId);
         resolve({ ok: false, error: "The editor did not answer in time." });
-      }, TOOL_TIMEOUT_MS);
+      }, toolTimeoutMs(name));
       pending.set(callId, { owner, resolve, timer });
       send(owner, "agent:tool-call", { callId, sessionId, name, input });
     });

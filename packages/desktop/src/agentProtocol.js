@@ -24,10 +24,26 @@ export const DOC_TOOLS = [
   "apply_ops",
   "insert_math",
   "insert_image",
+  "draw_sketch",
 ];
 
 /** How long a tool call may wait on the renderer before the agent hears it failed. */
 export const TOOL_TIMEOUT_MS = 30_000;
+
+/**
+ * The tools that do more than edit the tree, and so get longer. The renderer's
+ * answer covers the whole of the work: an upload for `insert_image`; for
+ * `draw_sketch` loading Excalidraw (and mermaid, the first time), converting,
+ * exporting with fonts inlined, and the upload.
+ */
+export const TOOL_TIMEOUTS_MS = {
+  insert_image: 60_000,
+  draw_sketch: 120_000,
+};
+
+/** The timeout for one call to `name`. */
+export const toolTimeoutMs = (name) =>
+  Object.hasOwn(TOOL_TIMEOUTS_MS, name) ? TOOL_TIMEOUTS_MS[name] : TOOL_TIMEOUT_MS;
 
 /** Caps on what the renderer's context may put in front of the model. */
 export const CONTEXT_LIMITS = {
@@ -82,11 +98,16 @@ export function buildSystemPrompt(context) {
       "work.",
     "Your output goes into the post through the doc tools (mcp__doc__outline, " +
       "mcp__doc__read_blocks, mcp__doc__apply_ops, mcp__doc__insert_math, " +
-      "mcp__doc__insert_image) — prefer them over replying in prose. Text you " +
+      "mcp__doc__insert_image, mcp__doc__draw_sketch) — prefer them over " +
+      "replying in prose. Text you " +
       "reply with goes into a log the author sees in your block, not into the " +
       "post, so keep replies to a sentence or two.",
-    "For a chart or a plot, write it to a PNG or SVG file in your working " +
-      "folder with a script, then insert it with insert_image { path }.",
+    "For a diagram — boxes and arrows, a flow, an architecture, a sequence — " +
+      "use draw_sketch: mermaid when it is a graph (it lays itself out), " +
+      "shapes when the placement matters. It becomes a sketch the author can " +
+      "edit afterwards, which a picture of a diagram is not. For a chart or a " +
+      "plot of data, write it to a PNG or SVG file in your working folder " +
+      "with a script, then insert it with insert_image { path }.",
     "Your writes are live: they land in the open editor, on the author's undo " +
       "stack, and are saved like their typing. There is no review step, so " +
       "change only what you were asked to.",
@@ -133,6 +154,16 @@ export function describeToolCall(name, input) {
   if (short === "insert_image") {
     const source = typeof args.path === "string" ? args.path : args.url;
     return typeof source === "string" ? clip(source, 120) : "";
+  }
+  if (short === "draw_sketch") {
+    if (typeof args.mermaid === "string") {
+      const first = args.mermaid.trim().split("\n")[0] ?? "";
+      return clip(`mermaid · ${first}`, 120);
+    }
+    if (Array.isArray(args.shapes)) {
+      return `${args.shapes.length} shape${args.shapes.length === 1 ? "" : "s"}`;
+    }
+    return "";
   }
   if (short === "apply_ops" && Array.isArray(args.ops)) {
     const counts = new Map();

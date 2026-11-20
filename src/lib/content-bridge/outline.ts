@@ -160,6 +160,14 @@ function entryFor(block: Block): { preview: string; chars?: number } {
           block.caption || block.alt || block.src,
         ),
       };
+    case "sketch":
+      // The same order as an image, then what the drawing holds — which for a
+      // sketch `draw_sketch` made is also what its default alt says.
+      return {
+        preview: truncate(
+          block.caption || block.alt || block.summary || "excalidraw drawing",
+        ),
+      };
     case "math":
       return { preview: truncate(block.latex), chars: block.latex.length };
     case "table":

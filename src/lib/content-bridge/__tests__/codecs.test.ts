@@ -166,6 +166,17 @@ const FIXTURES = {
     caption: "Figure 1 — the **seam**",
     showCaption: true,
   },
+  sketch: {
+    type: "sketch",
+    // Write-only, and here only because a fixture has to build without a
+    // previous node: `draw_sketch` is the one real caller that supplies it.
+    src: "/api/blob/" + "b".repeat(64),
+    alt: "Client → Server",
+    caption: "The **round trip**",
+    showCaption: true,
+    width: 420,
+    height: 180,
+  },
   math: { type: "math", latex: "\\int_0^1 x^2\\,dx = \\tfrac{1}{3} \\quad \\$5" },
   table: {
     type: "table",
@@ -325,6 +336,99 @@ describe("image", () => {
       .editorState.root.children as unknown as SerializedNode[];
     expect(caption).toHaveLength(2);
     expect(nodeToBlock(node)).toMatchObject({ caption: "first\nsecond" });
+  });
+});
+
+describe("sketch", () => {
+  const scene = [
+    { id: "a", type: "rectangle", isDeleted: false },
+    { id: "a-label", type: "text", text: "Client", containerId: "a" },
+    { id: "b", type: "ellipse" },
+    { id: "b-label", type: "text", text: "Server", containerId: "b" },
+    {
+      id: "e",
+      type: "arrow",
+      startBinding: { elementId: "a" },
+      endBinding: { elementId: "b" },
+    },
+    { id: "note", type: "text", text: "draft", containerId: null },
+    { id: "gone", type: "diamond", isDeleted: true },
+  ];
+
+  it("round-trips, and a read never hands back the drawing", () => {
+    const { node, readBack } = rebuilds(FIXTURES.sketch);
+    expect(node).toMatchObject({
+      type: "sketch",
+      src: FIXTURES.sketch.src,
+      altText: "Client → Server",
+      width: 420,
+      height: 180,
+      showCaption: true,
+    });
+    const { src: _src, ...described } = FIXTURES.sketch;
+    expect(readBack).toEqual(described);
+    expect(readBack).not.toHaveProperty("src");
+  });
+
+  it("strips a src from a caller, so the zod arm cannot set a drawing", () => {
+    const parsed = blockSchema.parse({
+      type: "sketch",
+      src: "data:image/svg+xml,<svg onload=alert(1)>",
+      alt: "x",
+    });
+    expect(parsed).not.toHaveProperty("src");
+  });
+
+  it("refuses a new sketch with no drawing, naming draw_sketch", () => {
+    expect(() => blockToNode({ type: "sketch", alt: "a box" })).toThrow(/draw_sketch/);
+    // A paragraph is not a sketch, so there is nothing to carry a drawing from.
+    const paragraph = blockToNode({ type: "paragraph", text: "x" });
+    expect(() => blockToNode({ type: "sketch", alt: "a box" }, paragraph)).toThrow(
+      /draw_sketch/,
+    );
+  });
+
+  it("keeps the drawing, style, id and scene when only the caption changes", () => {
+    const previous: SerializedNode = {
+      ...blockToNode(FIXTURES.sketch),
+      src: "data:image/svg+xml,%3Csvg%2F%3E",
+      style: "float: left",
+      id: "sk-1",
+      value: scene,
+    };
+    const next = blockToNode({ type: "sketch", alt: "Client → Server", caption: "new" }, previous);
+    expect(next).toMatchObject({
+      src: "data:image/svg+xml,%3Csvg%2F%3E",
+      style: "float: left",
+      id: "sk-1",
+      width: 420,
+      height: 180,
+      value: scene,
+    });
+    expect(nodeToBlock(next)).toMatchObject({ caption: "new" });
+  });
+
+  it("drops the old scene when draw_sketch redraws in place", () => {
+    const previous: SerializedNode = { ...blockToNode(FIXTURES.sketch), value: scene };
+    const next = blockToNode(
+      { type: "sketch", src: "/api/blob/" + "c".repeat(64), alt: "v2", width: 10, height: 20 },
+      previous,
+    );
+    expect(next).not.toHaveProperty("value");
+    expect(next).toMatchObject({ width: 10, height: 20, caption: previous.caption });
+  });
+
+  it("summarises a scene the node still carries — shapes, labels, arrows", () => {
+    const block = nodeToBlock({ ...blockToNode(FIXTURES.sketch), value: scene });
+    expect(block).toMatchObject({
+      summary: "1 box, 1 ellipse, 1 arrow, 1 text · Client, Server, draft · Client → Server",
+    });
+  });
+
+  it("previews in the outline by caption, then alt", () => {
+    const state = stateFromBlocks([FIXTURES.sketch]);
+    const [row] = outline(state).blocks;
+    expect(row).toMatchObject({ kind: "sketch", preview: "The **round trip**" });
   });
 });
 

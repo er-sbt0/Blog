@@ -21,6 +21,7 @@
  * `packages/editor/src/utils/__tests__/sanitizeSvg.test.ts`.
  */
 import type { SerializedEditorState } from "lexical";
+import { JSDOM } from "jsdom";
 import { generateServerHtml } from "@/editor/utils/generateServerHtml";
 
 const EMPTY_CAPTION = {
@@ -204,5 +205,52 @@ describe("graph exportDOM, ordinary content", () => {
     expect(html).toContain('viewBox="0 0 640 480"');
     expect(html).toContain('width="400"');
     expect(html).toContain('height="300"');
+  });
+});
+
+/**
+ * A sketch `draw_sketch` made, or one `pnpm blobs:migrate` moved, stores
+ * `/api/blob/<hash>` rather than a data URI (docs/plans/agent-block.md phase
+ * 4). The sanitizing above was written around data URIs, so this is the other
+ * branch: the export must emit a plain `<img>` and never decode, fetch or
+ * inline the SVG — an `<img>` runs no script, and the blob route serves the
+ * bytes `nosniff` under a `sandbox` CSP for anyone who opens them directly.
+ */
+describe("sketch exportDOM, stored as a blob", () => {
+  const withSrc = (src: string) => {
+    const doc = documentWith("sketch", "<svg/>") as unknown as {
+      root: { children: [{ src: string }] };
+    };
+    doc.root.children[0].src = src;
+    return doc as unknown as SerializedEditorState;
+  };
+
+  it("is an <img> pointing at the blob, with nothing inlined or fetched", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const blob = "/api/blob/" + "a".repeat(64);
+    try {
+      const html = await generateServerHtml(withSrc(blob));
+      expect(html).toContain(`<img src="${blob}"`);
+      expect(html).toContain('width="400"');
+      expect(html).not.toContain("<svg");
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it("does not take the inline path for a src that only looks like an SVG", async () => {
+    // Not `data:image/svg+xml`, so not decoded: whatever it is, it is an
+    // `<img>` attribute, which is inert, and never markup. Asserted on the
+    // re-parsed page — what `/view` does with this string — because HTML
+    // serialization leaves `<` unescaped inside a quoted attribute, so the
+    // text contains "<script" without the document containing a script.
+    const src = 'data:text/html,"><script>alert(1)</script><svg onload=alert(2)>';
+    const html = await generateServerHtml(withSrc(src));
+    const page = new JSDOM(`<body>${html}</body>`).window.document;
+    expect(page.querySelectorAll("script, svg, [onload]")).toHaveLength(0);
+    const images = page.querySelectorAll("img");
+    expect(images).toHaveLength(1);
+    expect(images[0].getAttribute("src")).toBe(src);
   });
 });
