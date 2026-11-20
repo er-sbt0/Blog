@@ -2,8 +2,8 @@
  * The central claim of docs/plans/archive/claude-code-lexical.md, under test.
  *
  * §4.1: *losslessness comes from addressing, not from format coverage.* The
- * applier touches only the nodes an op names, so a kanban board or a GeoGebra
- * graph nobody mentioned has to come out identical — not "mostly intact", not
+ * applier touches only the nodes an op names, so a kanban board or an
+ * embed nobody mentioned has to come out identical — not "mostly intact", not
  * "re-serialized equivalently", identical. If that holds, the IR never needs to
  * grow a codec for those types on correctness grounds.
  */
@@ -231,10 +231,10 @@ describe("applyOps — atomicity", () => {
 describe("applyOps — what may not be rewritten", () => {
   it("refuses to set text on a block with no codec", () => {
     const state = makeState();
-    // b4.2.1 is a graph — a GeoGebra state blob that will never have a codec.
+    // b4.2.1 is an embed, a node type with no codec.
     expect(() => apply(state, [{ op: "set_text", id: "b4.2.1", text: "nope" }]))
       .toThrow(
-        /graph, which has no codec/,
+        /iframe, which has no codec/,
       );
   });
 
@@ -254,7 +254,7 @@ describe("applyOps — what may not be rewritten", () => {
       before: "b1",
     }]);
     const landed = (moved.state.root.children as SerializedNode[])[0];
-    expect(landed.type).toBe("graph");
+    expect(landed.type).toBe("iframe");
 
     // Its content survived the trip untouched. A move stamps the block with a
     // persistent id — that is exactly the case an id is for — so compare
@@ -271,7 +271,7 @@ describe("applyOps — what may not be rewritten", () => {
       .toMatch(/^blk_/);
 
     const deleted = apply(state, [{ op: "delete_block", id: "b4.2.1" }]);
-    expect(JSON.stringify(deleted.state)).not.toContain("GEOGEBRA_STATE_BLOB");
+    expect(JSON.stringify(deleted.state)).not.toContain("OPAQUE_STATE_BLOB");
   });
 
   it("refuses to flatten inline formatting it cannot express", () => {

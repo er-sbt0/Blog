@@ -101,11 +101,13 @@ export const makeState = (): StoredState => ({
             indent: 0,
             children: [
               {
-                type: "graph",
+                // An embed: a node type with no codec, which is what the
+                // "never touched, only moved or deleted" specs need. (It was a
+                // graph until graphs got a codec — agent-block.md §12.)
+                type: "iframe",
                 version: 1,
-                value: "GEOGEBRA_STATE_BLOB",
-                src: "/g.png",
-                altText: "f(x)=x^2",
+                src: "https://example.com/embed/OPAQUE_STATE_BLOB",
+                altText: "a talk on gradients",
                 width: 400,
                 height: 300,
                 style: "",

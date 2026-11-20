@@ -168,6 +168,8 @@ function entryFor(block: Block): { preview: string; chars?: number } {
           block.caption || block.alt || block.summary || "excalidraw drawing",
         ),
       };
+    case "graph":
+      return { preview: truncate(block.caption || block.alt || "geogebra graph") };
     case "math":
       return { preview: truncate(block.latex), chars: block.latex.length };
     case "table":

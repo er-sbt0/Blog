@@ -76,10 +76,10 @@ export type AgentToolResult =
   | { ok: false; error: string };
 
 /**
- * The tools this executor answers. Main declares the same six (`DOC_TOOLS`).
- * `insert_image` and `draw_sketch` are async — they render and upload — so
- * they run through `executeAgentDocTool` (`agentImage.ts`, `agentSketch.ts`);
- * the rest are answered here.
+ * The tools this executor answers. Main declares the same seven (`DOC_TOOLS`).
+ * `insert_image`, `draw_sketch` and `plot_graph` are async — they render and
+ * upload — so they run through `executeAgentDocTool` (`agentImage.ts`,
+ * `agentSketch.ts`, `agentGraph.ts`); the rest are answered here.
  */
 export const AGENT_DOC_TOOLS = [
   "outline",
@@ -88,6 +88,7 @@ export const AGENT_DOC_TOOLS = [
   "insert_math",
   "insert_image",
   "draw_sketch",
+  "plot_graph",
 ] as const;
 
 /**
@@ -123,6 +124,7 @@ export function runAgentDocTool(
       return insertMathTool(target, input);
     case "insert_image":
     case "draw_sketch":
+    case "plot_graph":
       return {
         ok: false,
         error: `${name} runs through executeAgentDocTool, which uploads.`,
@@ -588,40 +590,68 @@ export function insertSketchBlock(
   target: AgentToolTarget,
   sketch: ResolvedSketch,
 ): AgentToolResult {
+  return insertPicture(target, sketch, { type: "sketch" }, "redraws");
+}
+
+/** What `plot_graph` writes once `agentGraph.ts` has plotted and stored it. */
+export interface ResolvedGraph extends ResolvedSketch {
+  /** The applet's `.ggb`, base64 — what the Graph dialog reopens. */
+  value: string;
+}
+
+/**
+ * The synchronous half of `plot_graph`, and the one writer of a graph's `src`
+ * and `value` — `insertSketchBlock`'s twin, for the same reason.
+ */
+export function insertGraphBlock(
+  target: AgentToolTarget,
+  graph: ResolvedGraph,
+): AgentToolResult {
+  return insertPicture(target, graph, { type: "graph", value: graph.value }, "replots");
+}
+
+/** A generated picture block — sketch or graph — placed, or swapped in by id. */
+function insertPicture(
+  target: AgentToolTarget,
+  picture: ResolvedSketch,
+  kind: { type: "sketch" } | { type: "graph"; value: string },
+  verb: string,
+): AgentToolResult {
   if (!target.editor.isEditable()) return READ_ONLY;
-  const caption = sketch.caption?.trim() ? sketch.caption : undefined;
+  const caption = picture.caption?.trim() ? picture.caption : undefined;
   const block = {
-    type: "sketch" as const,
-    src: sketch.src,
-    alt: sketch.alt,
-    width: sketch.width,
-    height: sketch.height,
+    ...kind,
+    src: picture.src,
+    alt: picture.alt,
+    width: picture.width,
+    height: picture.height,
     ...(caption === undefined ? {} : { caption, showCaption: true }),
   };
-  if (sketch.id === undefined) {
-    return runBatch(target, sketch.stateHash ?? null, [{
+  if (picture.id === undefined) {
+    return runBatch(target, picture.stateHash ?? null, [{
       op: "insert_blocks",
       blocks: [block],
-      ...placementOf(sketch),
+      ...placementOf(picture),
     }]);
   }
   // Checked here rather than left to the codec: given a `src`, the codec would
-  // build a sketch in place of whatever the id names, paragraph included.
-  const found = readBlocks(readSnapshot(target.editor), [sketch.id]).blocks[0];
+  // build a picture in place of whatever the id names, paragraph included.
+  const found = readBlocks(readSnapshot(target.editor), [picture.id]).blocks[0];
   if (!found) {
-    return { ok: false, error: `block_not_found: ${sketch.id} — re-run outline.` };
+    return { ok: false, error: `block_not_found: ${picture.id} — re-run outline.` };
   }
-  if (found.type !== "sketch") {
-    const kind = found.type === "opaque" ? found.nodeType : found.type;
+  if (found.type !== kind.type) {
+    const foundKind = found.type === "opaque" ? found.nodeType : found.type;
     return {
       ok: false,
-      error: `${sketch.id} is a ${kind}, not a sketch. id redraws an existing ` +
-        "sketch in place; to add a new one, leave id out and give a placement.",
+      error: `${picture.id} is a ${foundKind}, not a ${kind.type}. id ${verb} an ` +
+        `existing ${kind.type} in place; to add a new one, leave id out and give ` +
+        "a placement.",
     };
   }
-  return runBatch(target, sketch.stateHash ?? null, [{
+  return runBatch(target, picture.stateHash ?? null, [{
     op: "replace_block",
-    id: sketch.id,
+    id: picture.id,
     block,
   }]);
 }

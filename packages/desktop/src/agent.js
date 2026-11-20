@@ -151,6 +151,26 @@ const SKETCH_DOC =
   "is about; fix that and call again. " +
   PLACEMENT_DOC;
 
+const GRAPH_DOC =
+  "Plot a function, curve or geometric construction into the open post as a " +
+  "GeoGebra graph, live (like apply_ops: no proposal, on the author's undo " +
+  "stack). It opens and edits in the Graph dialog exactly like one the " +
+  "author made, so prefer it to a picture of a plot for anything GeoGebra " +
+  "can construct. commands are GeoGebra input-bar commands with English " +
+  "names, one per entry, run in order in a fresh construction: " +
+  '"f(x)=sin(x)", "A=(1,2)", "a=Slider(0,5,0.1)", "g(x)=a*x^2", ' +
+  '"Circle(A, 2)", "SetColor(f, \"red\")", "SetValue(a, 2)". Set the visible ' +
+  "window with ZoomIn(xmin, ymin, xmax, ymax), otherwise it is GeoGebra's " +
+  "default around the origin. A command GeoGebra rejects is refused with " +
+  "its index and GeoGebra's message, and nothing is inserted — fix it and " +
+  "send the whole list again. Scripts (SetClickScript, Execute, …) are " +
+  "refused. width and height are the graph's size in pixels (default " +
+  "720×480). alt describes it for a reader who cannot see it (by default, " +
+  "the commands); caption is shown under it. id replots the existing graph " +
+  "block it names, in place, keeping its caption — instead of inserting a " +
+  "new one. For a chart of data, use a script and insert_image instead. " +
+  PLACEMENT_DOC;
+
 const placementShape = {
   after: z.string().optional().describe("Place after this block"),
   before: z.string().optional().describe("Place before this block"),
@@ -274,6 +294,24 @@ function docServer(executeTool) {
           ...placementShape,
         },
         call("draw_sketch"),
+      ),
+      tool(
+        "plot_graph",
+        GRAPH_DOC,
+        {
+          commands: z
+            .array(z.string())
+            .min(1)
+            .max(100)
+            .describe('GeoGebra commands, one per entry, e.g. ["f(x)=sin(x)", "ZoomIn(-7,-2,7,2)"]'),
+          alt: z.string().optional().describe("What the graph shows; defaults to the commands"),
+          caption: z.string().optional().describe("Shown under the graph; inline markdown"),
+          width: z.number().optional().describe("Pixels, 200-1600; default 720"),
+          height: z.number().optional().describe("Pixels, 200-1600; default 480"),
+          id: z.string().optional().describe("An existing graph block to replot in place"),
+          ...placementShape,
+        },
+        call("plot_graph"),
       ),
     ],
   });

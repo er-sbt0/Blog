@@ -87,7 +87,7 @@ describe("project", () => {
     expect(project({ type: "user", parent_tool_use_id: null, message: { content: "hi" } })).toBeNull();
   });
 
-  it("defines the text doc tools (phase 1), math and image (3) and sketch (4)", () => {
+  it("defines the text doc tools (phase 1), math and image (3), sketch (4) and graph (5)", () => {
     expect(DOC_TOOLS).toEqual([
       "outline",
       "read_blocks",
@@ -95,6 +95,7 @@ describe("project", () => {
       "insert_math",
       "insert_image",
       "draw_sketch",
+      "plot_graph",
     ]);
   });
 
@@ -102,6 +103,7 @@ describe("project", () => {
     expect(toolTimeoutMs("apply_ops")).toBe(TOOL_TIMEOUT_MS);
     expect(toolTimeoutMs("draw_sketch")).toBeGreaterThanOrEqual(4 * TOOL_TIMEOUT_MS);
     expect(toolTimeoutMs("insert_image")).toBeGreaterThan(TOOL_TIMEOUT_MS);
+    expect(toolTimeoutMs("plot_graph")).toBeGreaterThan(toolTimeoutMs("insert_image"));
     // Not a property lookup an inherited name can answer.
     expect(toolTimeoutMs("constructor")).toBe(TOOL_TIMEOUT_MS);
   });
@@ -142,6 +144,13 @@ describe("describeToolCall", () => {
       }),
     ).toBe("2 shapes");
   });
+
+  it("names a graph by its command count and first command", () => {
+    expect(
+      describeToolCall("mcp__doc__plot_graph", { commands: ["f(x)=sin(x)", "A=(1,2)"] }),
+    ).toBe("2 commands · f(x)=sin(x)");
+    expect(describeToolCall("mcp__doc__plot_graph", { commands: "f(x)=x" })).toBe("");
+  });
 });
 
 /**
@@ -161,6 +170,8 @@ describe("the system prompt", () => {
     expect(prompt).toContain("blk_abc12");
     expect(prompt).toContain("prefer them over replying");
     expect(prompt).toMatch(/diagram[^]*use draw_sketch/);
+    expect(prompt).toMatch(/function, curve or geometric construction[^]*plot_graph/);
+    expect(prompt).toMatch(/plot of data[^]*insert_image \{ path \}/);
     expect(prompt).toContain('"text":"moon"');
     expect(prompt.indexOf("stateHash: h_1")).toBeGreaterThan(prompt.indexOf("blk_abc12"));
   });

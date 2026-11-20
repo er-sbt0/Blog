@@ -22,6 +22,7 @@ import type {
   CodeBlock,
   CodeSnippetBlock,
   DetailsBlock,
+  GraphBlock,
   HeadingBlock,
   ImageBlock,
   KanbanTask,
@@ -417,6 +418,21 @@ export function nodeToBlock(node: SerializedNode): Block {
       }
       if (Array.isArray(node.value) && node.value.length > 0) {
         block.summary = describeScene(node.value);
+      }
+      return block;
+    }
+
+    // The picture and the applet state stay in the node; see `GraphBlock`.
+    case "graph": {
+      const block: GraphBlock = { type: "graph", alt: str(node.altText) };
+      const caption = captionText(node);
+      if (caption) block.caption = caption;
+      if (typeof node.showCaption === "boolean") {
+        block.showCaption = node.showCaption;
+      }
+      if (typeof node.width === "number" && node.width > 0) block.width = node.width;
+      if (typeof node.height === "number" && node.height > 0) {
+        block.height = node.height;
       }
       return block;
     }
@@ -862,6 +878,40 @@ export function blockToNode(
       return next;
     }
 
+    case "graph": {
+      // `src` and `value` arrive only from `plot_graph`, which bypasses the
+      // zod arm (it has neither). Anything else names an existing graph to
+      // re-describe, or nothing — and there is no graph to make from nothing.
+      const src = block.src ?? str(carried?.src);
+      if (!src) {
+        throw new Error(
+          "a new graph needs a plot, which apply_ops cannot make — plot it " +
+            "with plot_graph (the desktop /agent tool) or in the editor. " +
+            "replace_block on an existing graph can change its alt, caption " +
+            "and size",
+        );
+      }
+      // A replot replaces the picture, and the applet state has to go with
+      // it: the Graph dialog reopens `value`, so a new picture over the old
+      // state would open as the graph it no longer shows.
+      const replotted = block.src !== undefined && block.src !== carried?.src;
+      const next: SerializedNode = {
+        ...carried,
+        type: "graph",
+        version: 1,
+        src,
+        value: replotted ? str(block.value) : str(block.value, str(carried?.value)),
+        altText: str(block.alt, str(carried?.altText, "Graph")),
+        width: block.width ?? num(carried?.width, 0),
+        height: block.height ?? num(carried?.height, 0),
+        style: str(carried?.style),
+        id: str(carried?.id),
+        showCaption: block.showCaption ?? carried?.showCaption ?? false,
+      };
+      if (block.caption !== undefined) writeCaption(next, block.caption);
+      return next;
+    }
+
     case "math": {
       if (typeof block.latex !== "string") {
         throw new Error("a math block needs `latex`, a string of LaTeX");
@@ -1075,6 +1125,8 @@ export function blockText(block: Block): string {
       return block.latex;
     case "sketch":
       return [block.alt, block.caption, block.summary].filter(Boolean).join("\n");
+    case "graph":
+      return [block.alt, block.caption].filter(Boolean).join("\n");
     case "opaque":
       return block.summary;
     default:

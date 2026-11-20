@@ -47,7 +47,7 @@ describe("addresses", () => {
       "b4.1", //   layout-item
       "b4.1.1", //     paragraph
       "b4.2", //   layout-item
-      "b4.2.1", //     graph
+      "b4.2.1", //     iframe
       "b5", // code
       "b6", // list
       "b7", // pagebreak
@@ -77,7 +77,7 @@ describe("outline", () => {
       "b4.1 layout-item",
       "b4.1.1 paragraph",
       "b4.2 layout-item",
-      "b4.2.1 graph",
+      "b4.2.1 iframe",
       "b5 code[ts]",
       "b6 list[bullet]",
       "b7 pagebreak",
@@ -92,7 +92,7 @@ describe("outline", () => {
 
   it("still describes blocks with no codec by shape", () => {
     const byId = new Map(outline(makeState()).blocks.map((b) => [b.id, b]));
-    expect(byId.get("b4.2.1")?.preview).toBe("geogebra · f(x)=x^2");
+    expect(byId.get("b4.2.1")?.preview).toBe("https://example.com/embed/OPAQUE_STATE_BLOB");
     expect(byId.get("b7")?.preview).toBe("page break");
   });
 
@@ -127,7 +127,7 @@ describe("outline", () => {
       editable: true,
       textEditable: false,
     });
-    // A graph has no codec at all — neither op will touch it.
+    // An embed has no codec at all — neither op will touch it.
     expect(byId.get("b4.2.1")).toMatchObject({
       editable: false,
       textEditable: false,
@@ -153,7 +153,7 @@ describe("outline", () => {
   it("marks each refusal distinctly in the rendered outline", () => {
     const rendered = formatOutline(outline(makeState()));
     expect(rendered).toMatch(/b3\s+kanban.*\[replace only\]/);
-    expect(rendered).toMatch(/b4\.2\.1\s+graph.*\[read-only\]/);
+    expect(rendered).toMatch(/b4\.2\.1\s+iframe.*\[read-only\]/);
     expect(rendered).not.toMatch(/b2\s+paragraph.*\[/);
   });
 
@@ -209,8 +209,8 @@ describe("readBlocks", () => {
     expect(readBlocks(makeState(), ["b4.2.1"]).blocks[0]).toEqual({
       id: "b4.2.1",
       type: "opaque",
-      nodeType: "graph",
-      summary: "geogebra · f(x)=x^2",
+      nodeType: "iframe",
+      summary: "https://example.com/embed/OPAQUE_STATE_BLOB",
     });
   });
 });

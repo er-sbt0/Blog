@@ -1,6 +1,6 @@
 # `/agent` — a Claude Code session as a block in the post
 
-**Status: phase 4 done (20 Nov 2026); phases 0–4 logged in §7–§11. Phases 5–6
+**Status: phase 5 done (20 Nov 2026); phases 0–5 logged in §7–§12. Phase 6
 not started.** Supersedes
 [claude-code-notebook.md](./claude-code-notebook.md), which stays for its §2.1
 (the transcript is already block-shaped) and §5 (the autosave/streaming
@@ -204,7 +204,9 @@ come from `outline` so they match what `apply_ops` accepts.
 ## 6. Open questions
 
 1. **GeoGebra headless.** Can a hidden applet evaluate commands and export SVG
-   and `.ggb` without being on screen? Phase 5 is gated on it.
+   and `.ggb` without being on screen? Phase 5 is gated on it. *Answered yes
+   in phase 5 (§12): off-screen and `visibility: hidden`, painted on the first
+   export, about 0.6–1.5 s cold from local files and 0.1 s per plot after.*
 2. **Concurrent typing.** The author edits block 12 while the agent sends
    `set_text` on block 12. Proposal: the op carries the content hash it read,
    and a mismatch returns "the author changed this block — re-read" to the agent
@@ -989,3 +991,184 @@ needed. `svgExport.test.ts` now pins it:
   today. Say the same in the system prompt, and do not register a tool that
   can only refuse. The graph codec (read side + re-caption) is worth landing
   either way.
+
+## 12. Phase 5 log (20 Nov 2026)
+
+A session can now plot: `plot_graph { commands, alt?, caption?, width?,
+height?, id?, placement }` runs GeoGebra commands in a hidden applet and puts a
+graph into the post that opens and edits in the Graph dialog like one the
+author made. Every agent surface can now read a graph, and re-caption or resize
+one.
+
+**The spike (§6 q1): it works.** Headless Chrome over CDP, a static server over
+`public/`, the applet loaded exactly as `GraphDialog` loads it
+(`/geogebra/deployggb.js`, `GGBApplet`, `setHTML5Codebase("/geogebra/HTML5/
+5.0/web3d/")`, `inject`), inside a host at `left: -10000px` with
+`visibility: hidden`. GeoGebra 5.2.850.
+
+- **`evalCommand` works** for functions, points, sliders, `SetValue`,
+  `SetColor(f, "red")`, `ZoomIn(xmin, ymin, xmax, ymax)`.
+- **`exportSVG` is painted on the first call**, straight after the commands,
+  with no wait: 18 ms, ~100 KB, curves, labels and slider all present. (The
+  "blank strip" in the first screenshot was the 800×600 headless viewport, not
+  the export.)
+- **`getBase64` reopens in the Graph dialog.** Loaded as `ggbBase64` into an
+  applet with the dialog's own parameters (`appName: "suite"`), on the same
+  page as the hidden one: every object back, `f` still red, slider `a` still
+  2, `subApp="graphing"` (so the dialog's Update takes its SVG branch), and
+  that applet's `evalCommand` + `exportSVG` work — the Update path runs.
+- **Cold start**: script to `appletOnLoad` 0.5–0.6 s for `graphing`, about
+  0.75 s to a first finished plot; with `suite` (what shipped) 1.45 s to a
+  first plot. Warm: a reset (`setBase64` of the empty construction) about
+  50 ms, a plot 0.1–0.4 s. In the real-SDK run (below) the first call took
+  2.5 s end to end, later ones 0.6–1.9 s.
+
+Two things the spike found that changed the design:
+
+- **`evalCommand`'s boolean is not the error signal.** It answers `false` for
+  a rejected command *and* for one that ran and defined nothing (`SetValue`,
+  `ZoomIn`, `SetColor` all work and answer `false`); `asyncEvalCommand`
+  resolves `""` for everything, errors included; no client-listener event
+  fires. What does separate them is GeoGebra's **error dialog**, raised with
+  `errorDialogsActive: true` inside the applet's own frame, with the message
+  as `.gwt-Label`s ("Unknown command : Foo", "Unbalanced brackets …",
+  "Please check your input : Undefined variable b"). It is not synchronous:
+  one `setTimeout(0)` was *not* always enough — an error then surfaced against
+  the next command. So a `false` is followed by a 5 ms poll for up to 250 ms
+  (measured: it appears by the first poll), a `true` by nothing, and the
+  dialog is read and removed. Cost: 250 ms per void command.
+- **`appName: "graphing"` refuses geometry** — `Polygon`, `Segment` are
+  "Unknown command" there. The hidden applet is `suite`, the dialog's own
+  app, which takes them and still saves `subApp="graphing"`.
+
+**What was built.**
+
+- **The graph codec** (`content-bridge/blocks.ts`, `types.ts` `GraphBlock`,
+  `schema.ts`, `outline.ts`), the sketch's decision again: a read is `{ type:
+  "graph", alt, caption?, showCaption?, width?, height? }`, never `src` and
+  never `value` (a `.ggb` base64). The zod arm has neither, so `apply_ops` can
+  re-caption, re-describe and resize; an insert, or a replace of a non-graph,
+  is refused naming `plot_graph`. A replot replaces `value` with the picture
+  — a new `src` never keeps the old state, which the dialog would reopen as a
+  graph the picture no longer shows. `style`, `id`, `src` and `value` carry
+  through. `check:codecs` lost its `graph` entry (19 codecs, 9 allowlisted).
+  The content-bridge fixture's opaque node was a graph; it is an `iframe` now,
+  so the "no codec: move/delete only" specs still have something to hold.
+- **`plot_graph`** (`agentGraph.ts`, new; `geogebraGraph.ts`, new).
+  - Commands are checked before the applet is touched: 1–100, each one line
+    and ≤ 2000 chars, and no scripting or layout command (`SetClickScript`,
+    `SetUpdateScript`, `Run*Script`, `Execute`, `SetPerspective`). The saved
+    XML is also refused if it carries `<javascript>`/`<ggbscript>`: a `.ggb`
+    is opened by the author later, in the dialog, on this origin.
+  - A rejected command is the tool error, by index and with GeoGebra's text:
+    `commands[1] ("Foo(1,2)"): Unknown command : Foo. Nothing was inserted…`.
+  - Then `exportSVG` → `sanitizeSvgMarkup` → `standaloneSvg` (new in
+    `sanitizeSvg.ts`, factored out of `insert_image`: `xmlns` repair, and
+    `&nbsp;` → `&#160;`, which `insert_image` lacked) → `blobSrcOrFallback` →
+    `insertGraphBlock` (`agentDocTools.ts`, which now shares `insertPicture`
+    with `insertSketchBlock`). With `id`, a `replace_block` on that graph.
+  - Size: `width`/`height` 200–1600, default 720×480; the node gets the SVG's
+    own size (718×478 — the applet's border).
+  - Default alt: `Graph: f(x)=sin(x); A=(1,2); …`, capped at 300.
+  - **Names GeoGebra silently replaced.** `Polygon(A,B,C)` names its sides
+    `a`, `b`, `c`; a later `c=Circle(A,B,C)` redefines a side and the polygon
+    is deleted with it. The real-SDK run did exactly this. The tool now
+    compares the labels the commands defined with `getAllObjectNames` and
+    says which are gone ("Check it: t was defined but …"). A warning, not a
+    refusal: GeoGebra also renames on its own (`z(x)=…` became `z_{1}`). In
+    the rerun the model read it and replotted by `id` with new names.
+  - The applet is one per window, created on the first call (`import()`, so
+    the VPS and every page that never plots never loads it), reset to the
+    blank construction captured at load before each plot, and calls are
+    queued. A failed start is not cached.
+  - Registered in `DOC_TOOLS`, `AGENT_DOC_TOOLS`, `executeAgentDocTool`, with
+    `GRAPH_DOC` in `agent.js` and a 90 s `TOOL_TIMEOUTS_MS` entry. The system
+    prompt now splits three ways: diagrams → `draw_sketch`; functions, curves,
+    constructions → `plot_graph`; data plots → a script + `insert_image
+    { path }`. `describeToolCall` names a call by count and first command.
+
+**Verified.**
+
+- `tsc`, `check:nodes`, `check:codecs`, `check:theme` pass; `eslint` over
+  `src`, `packages/editor/src`, `packages/desktop/src` and `scripts` is clean.
+  **`pnpm lint` itself does not start** in this checkout: `next lint` dies
+  loading `globby` (`pify(...).bind is not a function`) before reading a file
+  — a dependency problem in `node_modules`, not in the tree. The full suite
+  passes: 107 files, 1976 tests, 7.2 s.
+- Specs: `codecs.test.ts` (graph round trip, stripped `src`/`value`,
+  refusals, carry-through, replot, a pre-codec stored node, outline,
+  `set_text` refused); `editor/utils/__tests__/agentGraph.test.ts` (new, 26:
+  command checks, insert, size clamp, the index-named error, nothing loaded
+  for a bad list, scripted XML refused, sanitizer-emptied refused, renderer
+  throw, local data URI, replot by id, a non-graph id, read-only mid-plot,
+  `apply_ops` re-captions but cannot re-source, a read never returns the
+  `.ggb`, the missing-label warning); `agent.test.ts` (tool list, timeout,
+  description, prompt).
+- **In a real browser**: an esbuild bundle of the real `geogebraGraph.ts` and
+  `sanitizeSvg.ts` against `public/geogebra`. Plots succeeded and failed as
+  above; an unknown command, unbalanced brackets and an undefined variable
+  each came back on the right index; a plot after errors was clean; two
+  concurrent plots were serialized with no leakage; the sanitized SVG had the
+  same paths and texts and rendered **pixel-identical** to the raw export as
+  an `<img>`; the `.ggb` reopened in a dialog-configured applet as above.
+- **Against the real SDK** (0.3.309 / claude 2.1.309, `apiKeySource: none`),
+  the phase-4 arrangement: `agent.js` → `executeAgentDocTool` on a headless
+  editor with the real `GraphNode`, the renderer and sanitizer proxied to the
+  Chrome page. Three turns: "sin and its derivative, peak marked" (10–15
+  commands with `If`, `SetColor`, `SetCaption`, `SetLabelMode`, `ZoomIn`,
+  placed `after` the intro by `blk_` id, first try); "a triangle and its
+  circumcircle" (the `c` clash above, then a replot by `id`); "make the first
+  one cover one period" (a replot by `id` in place, then an `apply_ops`
+  re-caption — refused once as stale because the replot had moved the hash,
+  re-read, applied). Both pictures checked by eye.
+- **Not driven:** the running desktop app (the GTK folder dialog, §8). Inside
+  the app the applet is served by Next from the same `public/geogebra`.
+
+**Known and left.**
+
+- 250 ms per void command (`SetColor`, `ZoomIn`, …). A 40-command styled
+  graph pays ~10 s; the timeout is 90 s.
+- The hidden caption defaults to the alt text, as for every image node.
+- The applet stays loaded (and its ~22 MB) for the window's life once a graph
+  has been plotted. Nothing unloads it.
+
+**What phase 6 (log and lifecycle) needs to know.**
+
+- **The capped log** is already capped per entry (4 KB) and per block (400
+  entries) in `AgentBlockNode/model.ts`; what is missing is the summary of
+  what was dropped and the link to the whole record. `plot_graph`'s
+  `describeToolCall` keeps the log line short; its result text (objects,
+  warning) is what fills a 4 KB entry, which is fine.
+- **The jsonl link into `TranscriptView`.** The session id *is* the
+  `<sessionId>.jsonl` name (§7), so the link needs no mapping, only the
+  project directory the SDK derives from the cwd. `TranscriptView` lives in
+  the remote-sessions surface, which renders untrusted transcript bytes with
+  no markup (`TranscriptEntry.test.tsx`); the local file is the same format
+  and should go through the same component, read in **main** (by session id,
+  from `agent-sessions.json`'s cwd), never by a path the renderer names.
+- **One undo step per turn.** Every agent write is one `agent-write` update
+  today; `plot_graph`/`draw_sketch` are one each. The plan was `historic`
+  merging on a per-turn tag. The open issue from §8/§9 stands and gets
+  wider: undoing past a turn's end also rolls back that turn's **log** and
+  **grants** writes (and a graph's replot is one undo away from its old
+  `value`, which is right). Either take the log/grants writes off the history
+  entirely (a separate store keyed by block id, as the session folder already
+  is in main) or make the turn-end write merge into the turn's last agent
+  step so they undo together.
+- **Closing the pane mid-turn (§6 q3).** Phase 1 interrupts. The slow tools
+  (`draw_sketch`, `plot_graph`, `insert_image`) resolve their target when the
+  call *starts* and re-check only `isEditable()` after the render and upload,
+  so a plot that finishes after its pane closed meets an editor that may be
+  unmounted rather than read-only. Not observed, not specced: phase 6 should
+  pin what such a late write does (refuse it, keyed on the target still being
+  the mounted editor). The applet's queue itself just drains. Decide
+  interrupt vs queue as planned; this phase changes neither.
+- **A reload denies the open cards but the turn keeps running** (§9): its doc
+  calls then fail `NOT_OPEN` until the block remounts. A reload also drops
+  the hidden applet, so the next `plot_graph` pays the cold start again (1.5
+  s). Decide whether a reload interrupts the turn; if it does not, the block
+  needs to re-attach to a running session on mount.
+- **The SDK init lists the user's claude.ai connector tools** even in the
+  sealed mode (`settingSources: []`), on the first turn of a session; the
+  sealed `allowedTools` still keeps them unusable. Worth a look when the
+  native resume dialog (§9) is revisited.

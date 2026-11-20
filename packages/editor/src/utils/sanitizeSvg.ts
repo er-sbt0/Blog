@@ -93,6 +93,26 @@ export function sanitizeSvgMarkup(markup: string): string {
   return purify.sanitize(markup, SVG_CONFIG);
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+/**
+ * Sanitized markup made fit to stand alone as an `.svg` — a blob, a data URI,
+ * an `<img>` — or null when the pass left no `<svg>` root.
+ *
+ * DOMPurify works through the HTML parser, which drops the XML prologue and
+ * can drop the root's namespace (harmless inline, fatal in an `<img>`, which
+ * renders an SVG with no `xmlns` as nothing), and whose serializer spells
+ * U+00A0 `&nbsp;`, which is not XML.
+ */
+export function standaloneSvg(sanitized: string): string | null {
+  let clean = sanitized.trim();
+  if (!/^<svg[\s>/]/i.test(clean)) return null;
+  if (!/^<svg[^>]*\sxmlns\s*=/i.test(clean)) {
+    clean = clean.replace(/^<svg/i, `<svg xmlns="${SVG_NS}"`);
+  }
+  return clean.replaceAll("&nbsp;", "&#160;");
+}
+
 /**
  * Decode a `data:image/svg+xml,…` src, drop the scene payload, sanitize, and
  * put the result inside `element`.

@@ -277,7 +277,7 @@ describe("isolateBlock — one block, renderable alone", () => {
 
   it("rebuilds a nested block's ancestors and drops its siblings", () => {
     const base = makeState();
-    // b4.2.1 is the graph in the second layout column.
+    // b4.2.1 is the embed in the second layout column.
     const layout = kids(base)[3];
     const column = (layout.children as SerializedNode[])[1];
     const graph = (column.children as SerializedNode[])[0];

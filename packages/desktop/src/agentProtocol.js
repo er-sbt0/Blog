@@ -25,6 +25,7 @@ export const DOC_TOOLS = [
   "insert_math",
   "insert_image",
   "draw_sketch",
+  "plot_graph",
 ];
 
 /** How long a tool call may wait on the renderer before the agent hears it failed. */
@@ -34,11 +35,14 @@ export const TOOL_TIMEOUT_MS = 30_000;
  * The tools that do more than edit the tree, and so get longer. The renderer's
  * answer covers the whole of the work: an upload for `insert_image`; for
  * `draw_sketch` loading Excalidraw (and mermaid, the first time), converting,
- * exporting with fonts inlined, and the upload.
+ * exporting with fonts inlined, and the upload; for `plot_graph` starting
+ * the hidden GeoGebra applet (about 0.6 s from local files the first time,
+ * measured in agent-block.md §12), the commands, the export and the upload.
  */
 export const TOOL_TIMEOUTS_MS = {
   insert_image: 60_000,
   draw_sketch: 120_000,
+  plot_graph: 90_000,
 };
 
 /** The timeout for one call to `name`. */
@@ -98,16 +102,22 @@ export function buildSystemPrompt(context) {
       "work.",
     "Your output goes into the post through the doc tools (mcp__doc__outline, " +
       "mcp__doc__read_blocks, mcp__doc__apply_ops, mcp__doc__insert_math, " +
-      "mcp__doc__insert_image, mcp__doc__draw_sketch) — prefer them over " +
+      "mcp__doc__insert_image, mcp__doc__draw_sketch, mcp__doc__plot_graph) — " +
+      "prefer them over " +
       "replying in prose. Text you " +
       "reply with goes into a log the author sees in your block, not into the " +
       "post, so keep replies to a sentence or two.",
     "For a diagram — boxes and arrows, a flow, an architecture, a sequence — " +
       "use draw_sketch: mermaid when it is a graph (it lays itself out), " +
       "shapes when the placement matters. It becomes a sketch the author can " +
-      "edit afterwards, which a picture of a diagram is not. For a chart or a " +
-      "plot of data, write it to a PNG or SVG file in your working folder " +
-      "with a script, then insert it with insert_image { path }.",
+      "edit afterwards, which a picture of a diagram is not.",
+    "For a function, curve or geometric construction — y = sin(x), a " +
+      "parabola with a slider, a triangle and its circumcircle — use " +
+      "plot_graph with GeoGebra commands. It becomes a graph the author can " +
+      "open and change in GeoGebra. For a chart or a plot of data (bars, " +
+      "scatter, anything read from a file), write it to a PNG or SVG file in " +
+      "your working folder with a script, then insert it with insert_image " +
+      "{ path }.",
     "Your writes are live: they land in the open editor, on the author's undo " +
       "stack, and are saved like their typing. There is no review step, so " +
       "change only what you were asked to.",
@@ -164,6 +174,11 @@ export function describeToolCall(name, input) {
       return `${args.shapes.length} shape${args.shapes.length === 1 ? "" : "s"}`;
     }
     return "";
+  }
+  if (short === "plot_graph" && Array.isArray(args.commands)) {
+    const n = args.commands.length;
+    const first = typeof args.commands[0] === "string" ? ` · ${args.commands[0]}` : "";
+    return clip(`${n} command${n === 1 ? "" : "s"}${first}`, 120);
   }
   if (short === "apply_ops" && Array.isArray(args.ops)) {
     const counts = new Map();

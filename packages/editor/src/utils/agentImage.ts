@@ -34,7 +34,7 @@
  */
 import type { AgentToolTarget } from "../context/AgentHostContext";
 import { blobSrcOrFallback } from "./uploadBlob";
-import { sanitizeSvgMarkup } from "./sanitizeSvg";
+import { sanitizeSvgMarkup, standaloneSvg } from "./sanitizeSvg";
 import {
   type AgentToolResult,
   insertImageBlock,
@@ -42,6 +42,7 @@ import {
   runAgentDocTool,
 } from "./agentDocTools";
 import { loadSketchRenderer, runDrawSketch, type SketchRenderer } from "./agentSketch";
+import { type GraphRenderer, loadGraphRenderer, runPlotGraph } from "./agentGraph";
 
 /** The same cap as `POST /api/blob` and main's read. */
 export const AGENT_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
@@ -55,7 +56,6 @@ const IMAGE_TYPES: ReadonlySet<string> = new Set([
   "image/svg+xml",
 ]);
 
-const SVG_NS = "http://www.w3.org/2000/svg";
 const BLOB_PATH = /^\/api\/blob\/[0-9a-f]{64}$/;
 const MAX_URL = 2048;
 
@@ -69,12 +69,15 @@ export interface AgentImageDeps {
    * Optional so a spec of the other tools need not name it.
    */
   sketchRenderer?: () => Promise<SketchRenderer>;
+  /** `plot_graph`'s hidden GeoGebra applet (`agentGraph.ts`), likewise. */
+  graphRenderer?: () => Promise<GraphRenderer>;
 }
 
 const defaultDeps: AgentImageDeps = {
   store: blobSrcOrFallback,
   sanitizeSvg: sanitizeSvgMarkup,
   sketchRenderer: loadSketchRenderer,
+  graphRenderer: loadGraphRenderer,
 };
 
 type Field = string | undefined;
@@ -89,11 +92,7 @@ function base64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-/**
- * The SVG to store, or null. DOMPurify works through the HTML parser, which
- * drops the XML prologue and can drop the root's namespace — harmless inline,
- * fatal in an `<img>`, which renders an SVG with no `xmlns` as nothing.
- */
+/** The SVG to store, or null (`standaloneSvg`). */
 function cleanSvg(bytes: Uint8Array, sanitize: (markup: string) => string): Uint8Array | null {
   let markup: string;
   try {
@@ -101,12 +100,8 @@ function cleanSvg(bytes: Uint8Array, sanitize: (markup: string) => string): Uint
   } catch {
     return null;
   }
-  let clean = sanitize(markup).trim();
-  if (!/^<svg[\s>/]/i.test(clean)) return null;
-  if (!/^<svg[^>]*\sxmlns\s*=/i.test(clean)) {
-    clean = clean.replace(/^<svg/i, `<svg xmlns="${SVG_NS}"`);
-  }
-  return new TextEncoder().encode(clean);
+  const clean = standaloneSvg(sanitize(markup));
+  return clean === null ? null : new TextEncoder().encode(clean);
 }
 
 /** Bytes main read → the `src` to store. */
@@ -195,9 +190,9 @@ async function insertImageTool(
 }
 
 /**
- * Run one doc-tool call. What the router calls: every tool but `insert_image`
- * and `draw_sketch` is the synchronous `runAgentDocTool`, answered as a
- * resolved promise.
+ * Run one doc-tool call. What the router calls: every tool but `insert_image`,
+ * `draw_sketch` and `plot_graph` is the synchronous `runAgentDocTool`,
+ * answered as a resolved promise.
  */
 export async function executeAgentDocTool(
   target: AgentToolTarget | null,
@@ -212,6 +207,13 @@ export async function executeAgentDocTool(
       store: deps.store,
       sanitizeSvg: deps.sanitizeSvg,
       renderer: deps.sketchRenderer ?? loadSketchRenderer,
+    });
+  }
+  if (name === "plot_graph") {
+    return runPlotGraph(target, input, {
+      store: deps.store,
+      sanitizeSvg: deps.sanitizeSvg,
+      renderer: deps.graphRenderer ?? loadGraphRenderer,
     });
   }
   return runAgentDocTool(target, name, input);

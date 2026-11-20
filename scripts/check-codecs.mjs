@@ -95,8 +95,6 @@ const OPAQUE_ALLOWLIST = {
     "never addressed on its own — the `list` codec reads and writes items, including nesting, inside the one list block",
 
   // --- Content nodes whose payload the block IR does not model yet. ---
-  graph:
-    "a GeoGebra applet state blob; the IR models nothing of it and a round-trip would have to carry it verbatim",
   iframe: "an embed URL plus sizing the IR does not model",
   canvas:
     "a board, addressed *through*: `BLOCK_CONTAINERS` descends to its notes and each note to its blocks, so the board itself has only its height left and an agent has no business setting that (docs/plans/nested-editor-support.md §4)",

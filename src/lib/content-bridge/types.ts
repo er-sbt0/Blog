@@ -287,6 +287,37 @@ export interface SketchBlock {
 }
 
 /**
+ * A GeoGebra graph (docs/plans/agent-block.md §4.2, phase 5).
+ *
+ * The same decision as `SketchBlock`, for the same reasons. `GraphNode` holds
+ * two payloads, neither of which belongs in the IR: `src`, the exported
+ * picture, and `value`, the applet's whole `.ggb` file as base64 — which is
+ * what the Graph dialog reopens. A read describes the graph (alt, caption,
+ * size) and never returns either; a write through `apply_ops` can only
+ * re-caption, re-describe or resize one that exists. A new graph comes from
+ * `plot_graph`, the desktop agent's tool, which runs the commands in a hidden
+ * applet and is the one caller that supplies `src` and `value`; the zod arm
+ * has neither, so no other surface can.
+ *
+ * `style`, `id`, the picture and the applet state are carried through
+ * (§4.6.1).
+ */
+export interface GraphBlock {
+  type: "graph";
+  alt: string;
+  /** Inline markdown. Absent means the graph has no caption. */
+  caption?: string;
+  showCaption?: boolean;
+  /** Pixels — `GraphNode.resizeUnit`. */
+  width?: number;
+  height?: number;
+  /** Write-only, and only from `plot_graph`: the exported SVG. Never read. */
+  src?: string;
+  /** Write-only, with `src`: the applet's `.ggb`, base64. Never read. */
+  value?: string;
+}
+
+/**
  * A displayed equation: a paragraph holding one `math` node and nothing else.
  *
  * `MathNode` is inline — it lives in text, which is where `$latex$` in a text
@@ -390,6 +421,7 @@ export type Block =
   | AttachmentBlock
   | ImageBlock
   | SketchBlock
+  | GraphBlock
   | MathBlock
   | TableBlock
   | TableCellBlock

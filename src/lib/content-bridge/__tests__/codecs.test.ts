@@ -177,6 +177,17 @@ const FIXTURES = {
     width: 420,
     height: 180,
   },
+  graph: {
+    type: "graph",
+    // Write-only, like the sketch's: `plot_graph` is the one real caller.
+    src: "/api/blob/" + "d".repeat(64),
+    value: "UEsDBBQAAAAIAGGB",
+    alt: "Graph: f(x)=sin(x)",
+    caption: "The **sine**",
+    showCaption: true,
+    width: 720,
+    height: 480,
+  },
   math: { type: "math", latex: "\\int_0^1 x^2\\,dx = \\tfrac{1}{3} \\quad \\$5" },
   table: {
     type: "table",
@@ -429,6 +440,107 @@ describe("sketch", () => {
     const state = stateFromBlocks([FIXTURES.sketch]);
     const [row] = outline(state).blocks;
     expect(row).toMatchObject({ kind: "sketch", preview: "The **round trip**" });
+  });
+});
+
+describe("graph", () => {
+  it("round-trips, and a read never hands back the plot or the applet state", () => {
+    const { node, readBack } = rebuilds(FIXTURES.graph);
+    expect(node).toMatchObject({
+      type: "graph",
+      version: 1,
+      src: FIXTURES.graph.src,
+      value: FIXTURES.graph.value,
+      altText: "Graph: f(x)=sin(x)",
+      width: 720,
+      height: 480,
+      showCaption: true,
+    });
+    const { src: _src, value: _value, ...described } = FIXTURES.graph;
+    expect(readBack).toEqual(described);
+    expect(readBack).not.toHaveProperty("src");
+    expect(readBack).not.toHaveProperty("value");
+  });
+
+  it("strips src and value from a caller, so the zod arm cannot set a plot", () => {
+    const parsed = blockSchema.parse({
+      type: "graph",
+      src: "data:image/svg+xml,<svg onload=alert(1)>",
+      value: "UEsDBA==",
+      alt: "x",
+    });
+    expect(parsed).not.toHaveProperty("src");
+    expect(parsed).not.toHaveProperty("value");
+  });
+
+  it("refuses a new graph with no plot, naming plot_graph", () => {
+    expect(() => blockToNode({ type: "graph", alt: "sin" })).toThrow(/plot_graph/);
+    const paragraph = blockToNode({ type: "paragraph", text: "x" });
+    expect(() => blockToNode({ type: "graph", alt: "sin" }, paragraph)).toThrow(/plot_graph/);
+  });
+
+  it("keeps the plot, the applet state, style and id when only the caption changes", () => {
+    const previous: SerializedNode = {
+      ...blockToNode(FIXTURES.graph),
+      src: "data:image/svg+xml,%3Csvg%2F%3E",
+      style: "float: left",
+      id: "g-1",
+    };
+    const next = blockToNode({ type: "graph", alt: "sine", caption: "new", width: 360 }, previous);
+    expect(next).toMatchObject({
+      src: "data:image/svg+xml,%3Csvg%2F%3E",
+      value: FIXTURES.graph.value,
+      style: "float: left",
+      id: "g-1",
+      width: 360,
+      height: 480,
+      altText: "sine",
+    });
+    expect(nodeToBlock(next)).toMatchObject({ caption: "new" });
+  });
+
+  it("replaces the applet state with the picture when plot_graph replots", () => {
+    const previous = blockToNode(FIXTURES.graph);
+    const next = blockToNode(
+      { type: "graph", src: "/api/blob/" + "e".repeat(64), value: "NEW", alt: "v2" },
+      previous,
+    );
+    expect(next).toMatchObject({ value: "NEW", caption: previous.caption });
+    // A new picture with no state of its own never keeps the old one, which
+    // the Graph dialog would reopen as a graph the picture no longer shows.
+    const bare = blockToNode({ type: "graph", src: "/api/blob/" + "f".repeat(64), alt: "v3" }, previous);
+    expect(bare.value).toBe("");
+  });
+
+  it("reads a stored graph that predates the codec", () => {
+    const stored: SerializedNode = {
+      type: "graph",
+      version: 1,
+      value: "UEsDBA==",
+      src: "data:image/svg+xml,%3Csvg%2F%3E",
+      altText: "Graph",
+      width: 0,
+      height: 0,
+      style: "",
+      id: "",
+      showCaption: false,
+      caption: { editorState: { root: {} } },
+    };
+    expect(nodeToBlock(stored)).toEqual({ type: "graph", alt: "Graph", showCaption: false });
+  });
+
+  it("previews in the outline by caption, then alt", () => {
+    const [row] = outline(stateFromBlocks([FIXTURES.graph])).blocks;
+    expect(row).toMatchObject({ kind: "graph", preview: "The **sine**", editable: true });
+    const { caption: _c, showCaption: _s, ...bare } = FIXTURES.graph;
+    const [plain] = outline(stateFromBlocks([bare])).blocks;
+    expect(plain.preview).toBe("Graph: f(x)=sin(x)");
+  });
+
+  it("refuses set_text, which has no single field to set", () => {
+    const state = stateFromBlocks([FIXTURES.graph]);
+    expect(() => applyOps(state, stateHash(state), [{ op: "set_text", id: "b1", text: "x" }]))
+      .toThrow(/no single text field/);
   });
 });
 
