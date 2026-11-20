@@ -100,6 +100,48 @@ const APPLY_DOC =
   " " +
   RECOVERY_DOC;
 
+const PLACEMENT_DOC =
+  "With no after/before/appendTo it goes where an insert_blocks with no " +
+  "placement would: after your agent block, or after your previous such " +
+  "insert. A placement is resolved against the post as it is now, unless you " +
+  "pass the stateHash of the read it came from — so name a block by its blk_ " +
+  "id, which does not shift when the author types above it.";
+
+const MATH_DOC =
+  "Write an equation into the open post, live (like apply_ops: no proposal, " +
+  "on the author's undo stack). latex is LaTeX without $ delimiters. By " +
+  "default it is a displayed equation on a line of its own — the math block " +
+  "apply_ops also takes. inline: true instead appends it to the end of the " +
+  "text block named by id (a paragraph, heading, quote, summary or cell); to " +
+  "put an equation mid-sentence, set_text that block with $latex$ where it " +
+  "belongs. " +
+  PLACEMENT_DOC;
+
+const IMAGE_DOC =
+  "Insert a picture into the open post, live. Exactly one of: path — a PNG, " +
+  "JPEG, GIF, WebP or SVG file inside your working folder (relative to it, or " +
+  "absolute within it; symlinks out of it are refused; at most 10 MB; the type " +
+  "is checked by content), e.g. a plot you just saved with matplotlib — the " +
+  "bytes are stored in the app's image store; or url — an http(s) image URL, " +
+  "stored as given and loaded from there by every reader. SVG is sanitized " +
+  "(scripts, event handlers and external references are removed). alt " +
+  "describes the picture for a reader who cannot see it; caption, if given, " +
+  "is shown under it as inline markdown. " +
+  PLACEMENT_DOC;
+
+const placementShape = {
+  after: z.string().optional().describe("Place after this block"),
+  before: z.string().optional().describe("Place before this block"),
+  appendTo: z
+    .string()
+    .optional()
+    .describe('Append inside this container, or "root" for the document'),
+  stateHash: z
+    .string()
+    .optional()
+    .describe("The stateHash of the read a path-style address (b3) came from"),
+};
+
 /** The renderer's `{ ok, text }` / `{ ok: false, error }` as an MCP result. */
 function toCallToolResult(result) {
   if (result && result.ok === true && typeof result.text === "string") {
@@ -154,6 +196,35 @@ function docServer(executeTool) {
           ops: z.array(opSchema).min(1),
         },
         call("apply_ops"),
+      ),
+      tool(
+        "insert_math",
+        MATH_DOC,
+        {
+          latex: z.string().min(1).describe("LaTeX without $ delimiters"),
+          inline: z
+            .boolean()
+            .optional()
+            .describe("Append to the end of block `id`'s text instead of a line of its own"),
+          id: z.string().optional().describe("With inline: the text block to append to"),
+          ...placementShape,
+        },
+        call("insert_math"),
+      ),
+      tool(
+        "insert_image",
+        IMAGE_DOC,
+        {
+          path: z
+            .string()
+            .optional()
+            .describe("A file inside your working folder, e.g. out/plot.png"),
+          url: z.string().optional().describe("An http(s) image URL, stored as given"),
+          alt: z.string().describe("What the picture shows, for a reader who cannot see it"),
+          caption: z.string().optional().describe("Shown under the picture; inline markdown"),
+          ...placementShape,
+        },
+        call("insert_image"),
       ),
     ],
   });

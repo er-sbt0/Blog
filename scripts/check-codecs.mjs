@@ -95,8 +95,6 @@ const OPAQUE_ALLOWLIST = {
     "never addressed on its own — the `list` codec reads and writes items, including nesting, inside the one list block",
 
   // --- Content nodes whose payload the block IR does not model yet. ---
-  math:
-    "TODO: the most graduate-worthy of these — a `{ value }` LaTeX string is a codec's worth of work and would let an agent author equations",
   graph:
     "a GeoGebra applet state blob; the IR models nothing of it and a round-trip would have to carry it verbatim",
   sketch:

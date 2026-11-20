@@ -315,6 +315,18 @@ function readKanbanTasks(node: SerializedNode): KanbanTask[] {
   });
 }
 
+/**
+ * The one `math` node a paragraph holds and nothing else, or null.
+ *
+ * That paragraph is a displayed equation (`MathBlock`). A paragraph with an
+ * equation and anything else — text, a second equation, a line break — is
+ * prose with inline math, and stays a paragraph.
+ */
+function soleMathOf(node: SerializedNode): SerializedNode | null {
+  const kids = childrenOf(node);
+  return kids.length === 1 && kids[0].type === "math" ? kids[0] : null;
+}
+
 /** Read one node as a block. Never throws: an unknown type reads as opaque. */
 export function nodeToBlock(node: SerializedNode): Block {
   const kids = childrenOf(node);
@@ -386,8 +398,17 @@ export function nodeToBlock(node: SerializedNode): Block {
       return block;
     }
 
+    // A bare math node standing as a block. Nothing writes one — the editor
+    // wraps an equation in a paragraph and so does this codec — but a node
+    // that arrives that way is still an equation, and reads as one. Writing it
+    // back wraps it (see `blockToNode`).
+    case "math":
+      return { type: "math", latex: str(node.value) };
+
     case "paragraph":
     case "quote": {
+      const equation = node.type === "paragraph" ? soleMathOf(node) : null;
+      if (equation) return { type: "math", latex: str(equation.value) };
       const text = renderInline(kids);
       const block = {
         type: node.type,
@@ -513,6 +534,7 @@ const NODE_TYPE_OF: Readonly<Record<string, string>> = {
   layout: "layout-container",
   details: "details-container",
   summary: "details-summary",
+  math: "paragraph",
 };
 
 const blockTypeToNodeType = (block: WritableBlock): string =>
@@ -784,6 +806,36 @@ export function blockToNode(
       return next;
     }
 
+    case "math": {
+      if (typeof block.latex !== "string") {
+        throw new Error("a math block needs `latex`, a string of LaTeX");
+      }
+      // The equation being replaced, wherever it sat: inside the paragraph
+      // this block reads from, or — for a stray bare node — the node itself.
+      const previousMath = previous?.type === "math"
+        ? previous
+        : carried
+        ? soleMathOf(carried)
+        : null;
+      const math: SerializedNode = {
+        ...previousMath,
+        type: "math",
+        version: 1,
+        value: block.latex,
+        style: str(previousMath?.style),
+        id: str(previousMath?.id),
+      };
+      // A bare node's block id moves to the paragraph that now holds it, so
+      // the address an agent read keeps naming this block — and leaves the
+      // equation, or one address would name two nodes.
+      let moved = {};
+      if (previous?.type === "math") {
+        if (previous.$ !== undefined) moved = { $: previous.$ };
+        delete math.$;
+      }
+      return { ...base, ...moved, type: "paragraph", children: [math] };
+    }
+
     case "summary":
       return elementNode("details-summary", parseInline(block.text ?? ""), {
         ...carried,
@@ -963,6 +1015,8 @@ export function blockText(block: Block): string {
       return `${block.filename} ${block.url}`;
     case "cell":
       return block.text;
+    case "math":
+      return block.latex;
     case "opaque":
       return block.summary;
     default:
@@ -990,5 +1044,14 @@ const isTextEditable = (block: Block): boolean =>
  * drift apart on it.
  */
 export const canSetText = (block: Block): boolean =>
-  (TEXT_BLOCKS.has(block.type) || block.type === "code") &&
+  (TEXT_BLOCKS.has(block.type) || LITERAL_TEXT_BLOCKS.has(block.type)) &&
   isTextEditable(block);
+
+/**
+ * Blocks whose single text field is literal rather than inline Markdown, so
+ * `set_text` replaces it verbatim: a code block's body and an equation's LaTeX.
+ */
+export const LITERAL_TEXT_BLOCKS: ReadonlySet<string> = new Set([
+  "code",
+  "math",
+]);

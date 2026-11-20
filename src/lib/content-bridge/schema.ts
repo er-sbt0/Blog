@@ -105,6 +105,10 @@ export const blockSchema = z.discriminatedUnion("type", [
     caption: z.string().optional(),
     showCaption: z.boolean().optional(),
   }),
+  z.object({
+    type: z.literal("math"),
+    latex: z.string().describe("LaTeX without $ delimiters, e.g. \\int_0^1 x^2\\,dx"),
+  }),
   z.object({ type: z.literal("kanban"), tasks: z.array(kanbanTaskSchema) }),
   // Containers nest, so their bodies are typed loosely here and validated by
   // the codec — zod cannot express the recursion inside a discriminated union
@@ -194,6 +198,9 @@ export const BLOCK_DOC =
   "image {src, alt, caption?, showCaption?} where caption is inline markdown, " +
   "one paragraph per newline — omitting it keeps the caption already there and " +
   'passing "" empties it, ' +
+  "math {latex} — an equation on a line of its own, LaTeX without $ " +
+  "delimiters; an equation inside a sentence is $latex$ in that block's text " +
+  "instead, " +
   "kanban {tasks[{name, description?, stage, priority low|medium|high, tags?}]}, " +
   'layout {templateColumns e.g. "1fr 1fr", columns[[block,…],[block,…]]}, ' +
   "details {summary, open?, body[block,…]}, summary {text}, " +
@@ -227,10 +234,11 @@ export const BLOCK_DOC =
   "container's children (b7.2 is the second note) and each note's blocks are " +
   "addressed inside it (b7.2.1). A note itself is read-only — insert into it, " +
   "not over it. A sticky note is the same, one level shallower. " +
-  "Node types with no codec (math as a block, graph, sketch, " +
+  "Node types with no codec (graph, sketch, " +
   "iframe) are read-only: they can be read, moved or deleted " +
   "by address, but not rewritten. set_text needs a single text field, so it " +
-  "applies only to paragraph, heading, quote, summary, cell and code; a list, " +
+  "applies only to paragraph, heading, quote, summary, cell, code and math " +
+  "(where the text is the LaTeX, verbatim); a list, " +
   "table, layout, details, nested-doc, code-snippet or kanban is rewritten " +
   "whole with replace_block.";
 

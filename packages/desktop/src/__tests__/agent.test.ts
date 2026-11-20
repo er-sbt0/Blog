@@ -85,8 +85,14 @@ describe("project", () => {
     expect(project({ type: "user", parent_tool_use_id: null, message: { content: "hi" } })).toBeNull();
   });
 
-  it("defines the three text doc tools in phase 1", () => {
-    expect(DOC_TOOLS).toEqual(["outline", "read_blocks", "apply_ops"]);
+  it("defines the text doc tools (phase 1) plus math and image (phase 3)", () => {
+    expect(DOC_TOOLS).toEqual([
+      "outline",
+      "read_blocks",
+      "apply_ops",
+      "insert_math",
+      "insert_image",
+    ]);
   });
 });
 
@@ -104,6 +110,15 @@ describe("describeToolCall", () => {
     ).toBe("insert_blocks ×2, set_text");
     expect(describeToolCall("mcp__doc__read_blocks", { blocks: ["b1", "blk_x"] })).toBe("b1, blk_x");
     expect(describeToolCall("mcp__doc__outline", {})).toBe("");
+  });
+
+  it("names an equation by its LaTeX and a picture by its source", () => {
+    expect(describeToolCall("mcp__doc__insert_math", { latex: "x^2" })).toBe("x^2");
+    expect(describeToolCall("mcp__doc__insert_math", { latex: "y", inline: true })).toBe("inline y");
+    expect(describeToolCall("mcp__doc__insert_image", { path: "out/plot.png", alt: "" }))
+      .toBe("out/plot.png");
+    expect(describeToolCall("mcp__doc__insert_image", { url: "https://x/y.png" }))
+      .toBe("https://x/y.png");
   });
 });
 

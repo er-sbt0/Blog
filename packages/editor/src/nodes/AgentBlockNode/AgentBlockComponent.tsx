@@ -57,6 +57,7 @@ import {
   type AgentToolTarget,
   useAgentHost,
 } from "../../context/AgentHostContext";
+import { useEditorDocumentId } from "../../context/DocumentContext";
 import { ActionButton, Alert, Spinner } from "../../ui";
 import { cx } from "../../ui/cx";
 import { agentOutlineText } from "../../utils/agentDocTools";
@@ -131,6 +132,7 @@ export default function AgentBlockComponent(
   const editable = useLexicalEditable();
   const agentHost = useAgentHost();
   const host = agentHost?.host ?? null;
+  const documentId = useEditorDocumentId();
 
   const [draft, setDraft] = useState("");
   const [live, setLive] = useState<AgentLiveStatus>({ phase: "idle" });
@@ -151,6 +153,8 @@ export default function AgentBlockComponent(
   const target = useRef<AgentToolTarget>({ editor, blockKey: nodeKey });
   target.current.editor = editor;
   target.current.blockKey = nodeKey;
+  // Where `insert_image` uploads to (see `AgentToolTarget.documentId`).
+  target.current.documentId = documentId;
 
   const running = live.phase !== "idle";
   const canRun = Boolean(host) && editable;

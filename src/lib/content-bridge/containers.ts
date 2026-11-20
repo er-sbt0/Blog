@@ -115,6 +115,15 @@ const isBag = (value: unknown): value is Bag =>
  * the question of what its editor cannot hold rather than inheriting silence —
  * and silence is the answer that loses documents.
  */
+/** What a freshly minted nested editor state's root carries. */
+const ROOT_SHELL = {
+  type: "root",
+  version: 1,
+  direction: null,
+  format: "",
+  indent: 0,
+} as const;
+
 function childrenAt(
   refuses: ReadonlySet<string>,
   ...path: readonly string[]
@@ -140,7 +149,11 @@ function childrenAt(
     ensure(node) {
       let holder: Bag = node;
       for (const key of path) {
-        if (!isBag(holder[key])) holder[key] = {};
+        // A minted `root` is a Lexical root, not a bare bag: the nested
+        // editor's `parseEditorState` refuses a root with no `type`, and an
+        // image's `importJSON` swallows that and drops the caption — which is
+        // what a caption given to an image that never had one used to do.
+        if (!isBag(holder[key])) holder[key] = key === "root" ? { ...ROOT_SHELL } : {};
         holder = holder[key] as Bag;
       }
       if (!Array.isArray(holder.children)) holder.children = [];

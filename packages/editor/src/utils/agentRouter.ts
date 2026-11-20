@@ -15,7 +15,8 @@
  * spec without an editor.
  */
 import type { AgentToolTarget } from "../context/AgentHostContext";
-import { type AgentToolResult, runAgentDocTool } from "./agentDocTools";
+import type { AgentToolResult } from "./agentDocTools";
+import { executeAgentDocTool } from "./agentImage";
 
 export interface AgentToolCallLike {
   sessionId: string;
@@ -32,7 +33,7 @@ export function createAgentRouter(
     target: AgentToolTarget,
     name: string,
     input: unknown,
-  ) => AgentToolResult = runAgentDocTool,
+  ) => AgentToolResult | Promise<AgentToolResult> = executeAgentDocTool,
 ) {
   const targets = new Map<string, AgentToolTarget>();
 
@@ -45,12 +46,16 @@ export function createAgentRouter(
       };
     },
 
-    /** Run one call against its own block's editor, never another. */
-    handle(call: AgentToolCallLike): AgentToolResult {
+    /**
+     * Run one call against its own block's editor, never another. Async,
+     * because `insert_image` uploads before it writes; the target is looked up
+     * once, up front, so a call that started in one post finishes there.
+     */
+    async handle(call: AgentToolCallLike): Promise<AgentToolResult> {
       const target = targets.get(call.sessionId);
       if (!target) return { ok: false, error: NOT_OPEN };
       try {
-        return run(target, call.name, call.input);
+        return await run(target, call.name, call.input);
       } catch (error) {
         return {
           ok: false,

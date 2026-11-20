@@ -166,6 +166,7 @@ const FIXTURES = {
     caption: "Figure 1 — the **seam**",
     showCaption: true,
   },
+  math: { type: "math", latex: "\\int_0^1 x^2\\,dx = \\tfrac{1}{3} \\quad \\$5" },
   table: {
     type: "table",
     rowCount: 0,
@@ -286,6 +287,11 @@ describe("image", () => {
       bare,
     );
     expect(nodeToBlock(next)).toMatchObject({ caption: "added" });
+    // A root Lexical will parse: the nested editor refuses one with no type,
+    // and the image then drops the caption on load.
+    const root = (next.caption as Record<string, Record<string, SerializedNode>>)
+      .editorState.root;
+    expect(root).toMatchObject({ type: "root", version: 1 });
   });
 
   it("keeps the size and layout fields the IR does not model", () => {
@@ -319,6 +325,97 @@ describe("image", () => {
       .editorState.root.children as unknown as SerializedNode[];
     expect(caption).toHaveLength(2);
     expect(nodeToBlock(node)).toMatchObject({ caption: "first\nsecond" });
+  });
+});
+
+describe("math", () => {
+  const latex = FIXTURES.math.latex;
+  const equation = (value: string, extra: Record<string, unknown> = {}) => ({
+    type: "math",
+    version: 1,
+    value,
+    style: "",
+    id: "",
+    ...extra,
+  });
+
+  it("round-trips as a paragraph holding one equation", () => {
+    const { node, readBack } = rebuilds(FIXTURES.math);
+    expect(node.type).toBe("paragraph");
+    expect(kids(node)).toEqual([equation(latex)]);
+    expect(readBack).toEqual(FIXTURES.math);
+  });
+
+  it("reads a stored display equation — the shape the editor's own /math writes", () => {
+    const stored: SerializedNode = {
+      type: "paragraph",
+      version: 1,
+      direction: null,
+      format: "",
+      indent: 0,
+      children: [equation("e^{i\\pi} + 1 = 0")],
+    };
+    expect(nodeToBlock(stored)).toEqual({ type: "math", latex: "e^{i\\pi} + 1 = 0" });
+  });
+
+  it("leaves an equation inside a sentence to the inline codec", () => {
+    const prose: SerializedNode = {
+      ...blockToNode({ type: "paragraph", text: "where $x^2$ is the area" }),
+    };
+    expect(nodeToBlock(prose)).toEqual({
+      type: "paragraph",
+      text: "where $x^2$ is the area",
+    });
+    const two = blockToNode({ type: "paragraph", text: "$a$$b$" });
+    expect(nodeToBlock(two).type).toBe("paragraph");
+  });
+
+  it("carries the equation's style and id, and the paragraph's format, through a rewrite", () => {
+    const previous: SerializedNode = {
+      ...blockToNode(FIXTURES.math),
+      format: "center",
+      indent: 1,
+      $: { blockId: "blk_eq1" },
+      children: [equation("x", { style: "color: red", id: "eq-1" })],
+    };
+    const next = blockToNode({ type: "math", latex: "y" }, previous);
+    expect(next).toMatchObject({ format: "center", indent: 1, $: { blockId: "blk_eq1" } });
+    expect(kids(next)).toEqual([equation("y", { style: "color: red", id: "eq-1" })]);
+  });
+
+  it("wraps a bare equation standing as a block, keeping its address", () => {
+    const bare: SerializedNode = {
+      ...equation("z", { style: "font-size: 2em" }),
+      $: { blockId: "blk_bare" },
+    };
+    expect(nodeToBlock(bare)).toEqual({ type: "math", latex: "z" });
+    const next = blockToNode({ type: "math", latex: "z^2" }, bare);
+    expect(next).toMatchObject({ type: "paragraph", $: { blockId: "blk_bare" } });
+    expect(kids(next)).toEqual([equation("z^2", { style: "font-size: 2em" })]);
+  });
+
+  it("takes set_text as the LaTeX, verbatim, and keeps the paragraph", () => {
+    const state = stateFromBlocks([{ type: "math", latex: "a+b" }]);
+    const { blocks, stateHash: hash } = outline(state);
+    expect(blocks[0]).toMatchObject({ kind: "math", textEditable: true });
+    const { state: after } = applyOps(state, hash, [
+      { op: "set_text", id: "b1", text: "\\frac{a}{b} \\$" },
+    ]);
+    const root = after.root as unknown as SerializedNode;
+    expect(nodeToBlock(kids(root)[0])).toEqual({
+      type: "math",
+      latex: "\\frac{a}{b} \\$",
+    });
+  });
+
+  it("can turn prose into an equation and back with replace_block", () => {
+    const state = stateFromBlocks([{ type: "paragraph", text: "E = mc^2" }]);
+    const { stateHash: hash } = outline(state);
+    const { state: after } = applyOps(state, hash, [
+      { op: "replace_block", id: "b1", block: { type: "math", latex: "E = mc^2" } },
+    ]);
+    const root = after.root as unknown as SerializedNode;
+    expect(nodeToBlock(kids(root)[0])).toEqual({ type: "math", latex: "E = mc^2" });
   });
 });
 

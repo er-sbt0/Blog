@@ -21,7 +21,13 @@ import type {
   StoredState,
   WritableBlock,
 } from "./types";
-import { blockToNode, canSetText, nodeToBlock, TEXT_BLOCKS } from "./blocks";
+import {
+  blockToNode,
+  canSetText,
+  LITERAL_TEXT_BLOCKS,
+  nodeToBlock,
+  TEXT_BLOCKS,
+} from "./blocks";
 import { assertFresh, stateHash } from "./stateHash";
 import { formatAddress, walkBlocks } from "./address";
 import { mintBlockId, readBlockId, writeBlockId } from "./blockId";
@@ -277,7 +283,7 @@ function applySetText(target: Target, text: string, opIndex: number): void {
         opIndex,
       );
     }
-    if (!TEXT_BLOCKS.has(block.type) && block.type !== "code") {
+    if (!TEXT_BLOCKS.has(block.type) && !LITERAL_TEXT_BLOCKS.has(block.type)) {
       throw new OpError(
         `a ${block.type} block has no single text field — use replace_block`,
         opIndex,
@@ -295,6 +301,8 @@ function applySetText(target: Target, text: string, opIndex: number): void {
   // alignment, indent and any unmodelled fields survive the text change.
   const next = block.type === "code"
     ? blockToNode({ ...block, code: text }, target.node)
+    : block.type === "math"
+    ? blockToNode({ type: "math", latex: text }, target.node)
     : blockToNode(
       { ...(block as ParagraphBlock), text } as WritableBlock,
       target.node,

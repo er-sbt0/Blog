@@ -34,6 +34,7 @@ type FakeSession = {
   sessionId: string;
   canUseTool: (name: string, input: unknown, options: unknown) => Promise<Record<string, unknown>>;
   grants: () => string[];
+  executeTool: (name: string, input: unknown) => Promise<Record<string, unknown>>;
   sends: { prompt: string; gate: Gate }[];
   running: boolean;
   interrupted: number;
@@ -45,11 +46,13 @@ vi.mock("../agent.js", () => ({
     sessionId?: string;
     canUseTool: FakeSession["canUseTool"];
     grants: () => string[];
+    executeTool: FakeSession["executeTool"];
   }) => {
     const session: FakeSession & { send: unknown; interrupt: unknown; close: unknown } = {
       sessionId: options.sessionId ?? "0b6c1f0e-4d4e-4f7a-9d55-3a1c2b9e8f10",
       canUseTool: options.canUseTool,
       grants: options.grants,
+      executeTool: options.executeTool,
       sends: [],
       running: false,
       interrupted: 0,
@@ -229,5 +232,47 @@ describe("agent permissions over IPC", () => {
     await expect(decided).resolves.toMatchObject({ behavior: "deny" });
     expect(a.events("permission-resolved")[0]).toMatchObject({ reason: "interrupted" });
     expect(created[0].interrupted).toBe(1);
+  });
+});
+
+describe("insert_image over IPC (phase 3)", () => {
+  const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13]);
+
+  it("reads the file in main, against main's folder, and sends bytes — never the path", async () => {
+    install();
+    const a = window();
+    await invoke("agent:start", a, turn("go"));
+    fs.mkdirSync(path.join(dir, "out"));
+    fs.writeFileSync(path.join(dir, "out", "plot.png"), PNG);
+    const [session] = created;
+
+    const pending = session.executeTool("insert_image", {
+      path: "out/plot.png",
+      alt: "a plot",
+      // A model-made `file` must not survive to the renderer.
+      file: { bytes: [1, 2, 3], mime: "image/png", name: "forged" },
+    });
+    await vi.waitFor(() => expect(a.sent.some((m) => m.channel === "agent:tool-call")).toBe(true));
+    const call = a.sent.find((m) => m.channel === "agent:tool-call")!.payload;
+    const input = call.input as Record<string, unknown>;
+    expect(input).not.toHaveProperty("path");
+    expect(input.alt).toBe("a plot");
+    const file = input.file as { bytes: Uint8Array; mime: string; name: string };
+    expect(file.mime).toBe("image/png");
+    expect(file.name).toBe("plot.png");
+    expect([...file.bytes]).toEqual([...PNG]);
+
+    ipc.listeners.get("agent:tool-result")!({ sender: a }, call.callId, { ok: true, text: "done" });
+    await expect(pending).resolves.toEqual({ ok: true, text: "done" });
+  });
+
+  it("refuses a path outside the folder without asking the renderer anything", async () => {
+    install();
+    const a = window();
+    await invoke("agent:start", a, turn("go"));
+    const [session] = created;
+    const result = await session.executeTool("insert_image", { path: "../escape.png", alt: "" });
+    expect(result.ok).toBe(false);
+    expect(a.sent.some((m) => m.channel === "agent:tool-call")).toBe(false);
   });
 });

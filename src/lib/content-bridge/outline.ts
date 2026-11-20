@@ -160,6 +160,8 @@ function entryFor(block: Block): { preview: string; chars?: number } {
           block.caption || block.alt || block.src,
         ),
       };
+    case "math":
+      return { preview: truncate(block.latex), chars: block.latex.length };
     case "table":
       return {
         preview: `${plural(block.rowCount, "row")} × ${

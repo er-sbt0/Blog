@@ -111,6 +111,13 @@ export interface AgentToolTarget {
    * the agent block. Mutable on purpose; it is per-session working state.
    */
   lastInserted?: string;
+  /**
+   * The document the editor is editing (`useEditorDocumentId`), which is where
+   * `insert_image` uploads its bytes — the same rule the image plugin follows.
+   * `null` or absent means there is nothing to upload to, and the picture is
+   * stored inline as a data URI.
+   */
+  documentId?: string | null;
 }
 
 export interface AgentHost {

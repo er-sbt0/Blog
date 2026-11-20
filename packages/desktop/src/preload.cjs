@@ -70,6 +70,12 @@ const { contextBridge, ipcRenderer } = require("electron");
  *   names with a one-line description, a result — and doc-tool calls whose
  *   names main defined. The renderer executes those against the editor holding
  *   the session's block; main never writes a document.
+ * - **`insert_image { path }` reads the disk in main, not here** (phase 3).
+ *   Main resolves the path against its own record of the session's folder,
+ *   follows symlinks and re-checks containment, caps the size and sniffs the
+ *   type (`agentFiles.js`); the tool call that reaches the renderer carries
+ *   the bytes and their type, never a path. No new method: it is the existing
+ *   `onToolCall`.
  * - **Permissions add one call, `answerPermission(requestId, decision)`, and no
  *   new subscription** (phase 2). The card arrives as a `permission` event on
  *   the session's existing `onEvent` stream. The answer is one of three fixed

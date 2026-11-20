@@ -1,6 +1,6 @@
 # `/agent` — a Claude Code session as a block in the post
 
-**Status: phase 2 done (20 Nov 2026); phases 0–2 logged in §7–§9. Phases 3–6
+**Status: phase 3 done (20 Nov 2026); phases 0–3 logged in §7–§10. Phases 4–6
 not started.** Supersedes
 [claude-code-notebook.md](./claude-code-notebook.md), which stays for its §2.1
 (the transcript is already block-shaped) and §5 (the autosave/streaming
@@ -657,3 +657,148 @@ follow:
   offers the exact command *and* accept-edits mode, and "always" grants both.
   The button says so. If that proves too broad in use, split it into two
   choices rather than silently dropping one.
+
+## 10. Phase 3 log (20 Nov 2026)
+
+A session can now write equations and pictures into the post:
+`insert_math { latex, inline?, id? }` and `insert_image { path | url, alt,
+caption? }`, plus a `math` block that every agent surface (blog-content MCP,
+the Copilot, this one) can author through `apply_ops`.
+
+**What was built.**
+
+- **The math codec** (`content-bridge/blocks.ts`, `types.ts` `MathBlock`,
+  `schema.ts`). `MathNode` is inline-only, so it never stands as a block on
+  its own. A displayed equation is a paragraph that holds one `math` node and
+  nothing else, and the codec reads and writes exactly that, as
+  `{ type: "math", latex }`. A paragraph with an equation plus anything else
+  stays a paragraph, and its equations stay `$latex$` in the text.
+  - The math node's `style`/`id` and the paragraph's format, indent and block
+    id are carried through (§4.6.1).
+  - A stray bare `math` node at block level also reads as `math`. On write it
+    is wrapped, and its block id moves to the paragraph.
+  - `set_text` works on a math block, with the text as the LaTeX, verbatim
+    (`LITERAL_TEXT_BLOCKS` joins `code`).
+  - The outline previews the LaTeX, and removals name it "equation".
+  - `check:codecs` lost its `math` allowlist entry. `BLOCK_DOC` describes the
+    block and no longer lists math as read-only.
+- **The doc tools.** `DOC_TOOLS` and `AGENT_DOC_TOOLS` gain `insert_math` and
+  `insert_image`, both still auto-allowed (`source === "sdk"`).
+  - They are sugar over the batch `apply_ops` runs (`runBatch` in
+    `agentDocTools.ts`), so they use the same default-placement chain, codecs
+    and guards.
+  - Their `stateHash` is optional. With none, the placement is resolved
+    against the live post, and the tool text says to name blocks by `blk_` id.
+  - `inline: true` appends `$latex$` to the end of the text block `id` through
+    `set_text`.
+- **`insert_image { path }` reads in main** (`agentFiles.js`, new, with its
+  own spec). It resolves against the session entry's `cwd`, never anything the
+  renderer sent, then `realpath`s and re-checks containment. It then:
+  - caps the size at 10 MB, the same as `POST /api/blob`;
+  - opens with `O_NOFOLLOW` and compares dev/ino with the checked path;
+  - sniffs PNG/JPEG/GIF/WebP/SVG by magic bytes (SVG by its prologue, with
+    UTF-8 required and no internal DTD subset).
+  `prepareImageInput` builds the renderer's input field by field, so the
+  renderer gets `file: { bytes, mime, name }` and never a path, and a `file`
+  the model invents is dropped. `agentIpc.js` calls it before the tool call
+  leaves main.
+- **The renderer uploads** (`agentImage.ts`, new: `executeAgentDocTool`, now
+  the router's executor, so `router.handle` is async). The bytes go through
+  `blobSrcOrFallback`, the paste and image-dialog path, against the block's
+  editor's document (`AgentToolTarget.documentId`, from
+  `useEditorDocumentId`). The node stores `/api/blob/<hash>`, and the save
+  that follows keeps `blobHashes`/`BlobRef` because it is the ordinary save.
+  Where that function falls back (a local post, a failed upload), the picture
+  is stored as a data URI, the same rule as the image plugin.
+
+**Decisions.**
+
+- **SVG is sanitized, not refused.** Plots are often SVG. The markup goes
+  through `sanitizeSvgMarkup` (the DOMPurify pass sketches and graphs use) in
+  the renderer, because main has no DOM. The root `xmlns` that the HTML parser
+  drops is put back, because an `<img>` renders an SVG without it as nothing.
+  An SVG the pass empties is refused.
+- **`{ url }` is stored as given**, as the image codec already does with
+  `src` for every surface. Only http(s) and `/api/blob/<hash>` are accepted.
+  The renderer does not fetch it.
+- **Not `resolveWithin`.** That helper takes the basename first, which would
+  quietly turn `out/plot.png` into `plot.png`. `resolveInside` allows
+  subdirectories and absolute paths inside the folder, and the authoritative
+  check is on the real path. `safePath.ts` is untouched.
+- **No width/height on inserted images.** The IR does not model them, so a
+  picture renders at the stylesheet's `width: 100%`. The author can resize it.
+
+**Found and fixed on the way.**
+
+- **A caption given to an image that never had one was silently dropped on
+  load, on every surface.** `ensureCaptionChildren` minted
+  `caption.editorState.root` as a bare object with no `type`. The bridge read
+  it back fine, so the codec spec passed. But the live `ImageNode.importJSON`
+  hands it to the nested editor's `parseEditorState`, which throws ("type
+  undefined not found"), and the node catches the error and keeps no caption.
+  The real-SDK run caught it. `childrenAt`'s `ensure` now mints a Lexical root
+  shell, and both the codec spec and the live-editor spec assert it.
+- **The inline codec cannot carry a LaTeX `\$`.** `escapeMath` escapes only
+  `$`, so `x\$` renders as `$x\\$$` and parses back as `x\\` plus a stray
+  `$`. This is pre-existing and was not changed: changing the escaping changes
+  what every read returns. `insert_math inline` refuses LaTeX that does not
+  round-trip and points to a displayed equation instead, which stores LaTeX
+  verbatim.
+
+**Verified.**
+
+- `tsc`, lint (plus `eslint` on the touched `packages/` files),
+  `check:nodes`, `check:codecs` and `check:theme` pass. The full suite passes:
+  105 files, 1888 tests, about 6.4 s.
+- New specs:
+  - `desktop/__tests__/agentFiles.test.ts`: traversal, deep traversal, an
+    absolute path elsewhere, a prefix-sharing sibling, NUL, a symlinked file
+    and a symlinked directory out of the folder, a symlink that stays inside,
+    oversize, a "png" that is a shell script, HTML, an SVG with a DTD subset,
+    and non-UTF-8.
+  - IPC cases in `agentIpc.test.ts`: bytes not path, a forged `file` dropped,
+    and a refusal that never reaches the renderer.
+  - `editor/utils/__tests__/agentMediaTools.test.ts`: the real `MathNode` and
+    `ImageNode` on a headless editor, covering upload, the data-URI fallback,
+    SVG sanitize, refused URLs, and a read-only editor.
+  - The math round trip and carry-through in `codecs.test.ts`.
+- **Against the real SDK** (0.3.309 / claude 2.1.309, `apiKeySource: none`).
+  A throwaway driver ran `agent.js` → `prepareImageInput` → `executeAgentDocTool`
+  on a headless editor with the real nodes and a stub blob store. The model:
+  - inserted a displayed equation;
+  - appended `$\pi r^2$` to a named paragraph;
+  - inserted `out/plot.png` with a caption, uploaded once against the
+    document;
+  - was refused, in main, on a symlink pointing out of the folder.
+- **Not driven:** the running desktop app. The GTK folder dialog still cannot
+  be answered from CDP (§8). The real `/api/blob` upload is the existing,
+  already-used path.
+
+**What phase 4 (sketch) needs to know.**
+
+- **The pipeline is in place.** An async doc tool goes in
+  `executeAgentDocTool` (`agentImage.ts`), with the work in the renderer and
+  then a synchronous `runBatch` insert. `draw_sketch` is the same shape:
+  shapes → `convertToExcalidrawElements` → `exportToSvg` with the scene
+  embedded → `blobSrcOrFallback` → a sketch node. Excalidraw needs the DOM,
+  which the renderer has. The headless specs do not, so inject the
+  export the way `AgentImageDeps` injects the store.
+- **The sketch codec cannot be write-only.** `check:codecs` wants a
+  `case "sketch"` in `nodeToBlock`, and the round-trip spec wants
+  build→read→build to be identical. A `sketch { src }` block, or one carrying
+  the scene opaquely, needs the same carry-through care as `image` (width,
+  height, style). `SketchNode` and `GraphNode` branch on the `src` prefix
+  (blob vs data URI) and must keep doing so.
+- **Sanitize once, on the way in.** The exported SVG is rendered by
+  `SketchNode.exportDOM` through `renderSvgDataUri`/`sanitizeSvgMarkup` on
+  `/view`. A blob-URL sketch is fetched rather than inlined, so check which
+  path `/view` takes for a blob `src` before trusting it.
+- **Mermaid** (`@excalidraw/mermaid-to-excalidraw`) is a renderer-only
+  dependency of the same pipeline. Load it lazily: it is large, and the VPS
+  build never needs it.
+- **The 30 s tool timeout** (`TOOL_TIMEOUT_MS`) covers the renderer's whole
+  answer, upload included. A large export plus an upload on a slow disk could
+  get close. Consider a per-tool timeout before mermaid.
+- **Inserted pictures have no width/height** (above). A sketch's SVG has an
+  intrinsic size, so phase 4 may want to model or derive it.
+

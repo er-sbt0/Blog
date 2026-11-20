@@ -253,6 +253,24 @@ export interface ImageBlock {
   showCaption?: boolean;
 }
 
+/**
+ * A displayed equation: a paragraph holding one `math` node and nothing else.
+ *
+ * `MathNode` is inline — it lives in text, which is where `$latex$` in a text
+ * block already reaches it (`inline.ts`). There is no separate display node, so
+ * an equation on a line of its own *is* that paragraph, and that is what this
+ * block reads from and writes. A paragraph with an equation and anything else
+ * beside it stays a paragraph.
+ *
+ * The math node's `style` and `id`, and the paragraph's own format and indent,
+ * are unmodelled and carried through (§4.6.1).
+ */
+export interface MathBlock {
+  type: "math";
+  /** LaTeX, without delimiters. */
+  latex: string;
+}
+
 export interface AttachmentBlock {
   type: "attachment";
   url: string;
@@ -338,6 +356,7 @@ export type Block =
   | KanbanBlock
   | AttachmentBlock
   | ImageBlock
+  | MathBlock
   | TableBlock
   | TableCellBlock
   | OpaqueBlock;

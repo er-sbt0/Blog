@@ -12,6 +12,7 @@ import {
 } from "./agentPermissions.js";
 import { CONTEXT_LIMITS, DOC_SERVER, DOC_TOOLS, TOOL_TIMEOUT_MS } from "./agentProtocol.js";
 import { createSessionStore, isSessionId } from "./agentSessions.js";
+import { prepareImageInput } from "./agentFiles.js";
 
 /**
  * The main process's half of `window.desktop.agent` (docs/plans/agent-block.md
@@ -117,13 +118,25 @@ export function installAgent({ workspace, sessionsFile, log }) {
     }
   }
 
-  /** The bridge's `executeTool`: one call to the renderer, one answer back. */
-  function callRenderer(owner, sessionId, name, input) {
+  /**
+   * The bridge's `executeTool`: one call to the renderer, one answer back.
+   *
+   * `cwd` is the session entry's — main's record, never anything the renderer
+   * sent. `insert_image { path }` is read here against it (`agentFiles.js`),
+   * and the renderer receives the bytes, never the path.
+   */
+  async function callRenderer(owner, sessionId, name, input, cwd) {
     if (!DOC_TOOLS.includes(name)) {
-      return Promise.resolve({ ok: false, error: `Unknown doc tool ${name}.` });
+      return { ok: false, error: `Unknown doc tool ${name}.` };
     }
     if (owner.isDestroyed()) {
-      return Promise.resolve({ ok: false, error: "The post's window is closed." });
+      return { ok: false, error: "The post's window is closed." };
+    }
+    if (name === "insert_image") {
+      const prepared = await prepareImageInput(input, cwd);
+      if (!prepared.ok) return prepared;
+      input = prepared.input;
+      if (owner.isDestroyed()) return { ok: false, error: "The post's window is closed." };
     }
     const callId = randomUUID();
     return new Promise((resolve) => {
@@ -160,7 +173,7 @@ export function installAgent({ workspace, sessionsFile, log }) {
       resume,
       cwd,
       executeTool: (name, input) =>
-        callRenderer(entry.owner, entry.session.sessionId, name, input),
+        callRenderer(entry.owner, entry.session.sessionId, name, input, entry.cwd),
       onEvent: (payload) => send(entry.owner, "agent:event", payload),
       log,
       canUseTool,

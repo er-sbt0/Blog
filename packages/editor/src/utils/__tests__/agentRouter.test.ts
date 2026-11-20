@@ -14,7 +14,7 @@ const target = (name: string): AgentToolTarget => ({
 });
 
 describe("the agent router", () => {
-  it("sends each session's calls to the editor that attached it", () => {
+  it("sends each session's calls to the editor that attached it", async () => {
     const seen: string[] = [];
     const router = createAgentRouter((t, name) => {
       seen.push(`${(t.editor as unknown as { name: string }).name}:${name}`);
@@ -22,12 +22,12 @@ describe("the agent router", () => {
     });
     router.attach("s1", target("left"));
     router.attach("s2", target("right"));
-    router.handle({ sessionId: "s2", name: "outline", input: {} });
-    router.handle({ sessionId: "s1", name: "apply_ops", input: {} });
+    await router.handle({ sessionId: "s2", name: "outline", input: {} });
+    await router.handle({ sessionId: "s1", name: "apply_ops", input: {} });
     expect(seen).toEqual(["right:outline", "left:apply_ops"]);
   });
 
-  it("answers an error, and runs nothing, for a session no open post holds", () => {
+  it("answers an error, and runs nothing, for a session no open post holds", async () => {
     let ran = false;
     const router = createAgentRouter(() => {
       ran = true;
@@ -35,30 +35,39 @@ describe("the agent router", () => {
     });
     const detach = router.attach("s1", target("left"));
     detach();
-    expect(router.handle({ sessionId: "s1", name: "outline", input: {} })).toEqual({
+    expect(await router.handle({ sessionId: "s1", name: "outline", input: {} })).toEqual({
       ok: false,
       error: NOT_OPEN,
     });
-    expect(router.handle({ sessionId: "nobody", name: "outline", input: {} }).ok).toBe(false);
+    expect((await router.handle({ sessionId: "nobody", name: "outline", input: {} })).ok)
+      .toBe(false);
     expect(ran).toBe(false);
   });
 
-  it("does not let a stale detach remove a newer attachment", () => {
+  it("does not let a stale detach remove a newer attachment", async () => {
     const router = createAgentRouter(() => ({ ok: true, text: "ran" }));
     const first = router.attach("s1", target("old"));
     router.attach("s1", target("new"));
     first();
-    expect(router.handle({ sessionId: "s1", name: "outline", input: {} }).ok).toBe(true);
+    expect((await router.handle({ sessionId: "s1", name: "outline", input: {} })).ok).toBe(true);
   });
 
-  it("turns an executor that throws into a tool error", () => {
+  it("turns an executor that throws, or rejects, into a tool error", async () => {
     const router = createAgentRouter(() => {
       throw new Error("kaboom");
     });
     router.attach("s1", target("left"));
-    expect(router.handle({ sessionId: "s1", name: "outline", input: {} })).toEqual({
+    expect(await router.handle({ sessionId: "s1", name: "outline", input: {} })).toEqual({
       ok: false,
       error: "kaboom",
+    });
+    const rejecting = createAgentRouter(async () => {
+      throw new Error("later");
+    });
+    rejecting.attach("s1", target("left"));
+    expect(await rejecting.handle({ sessionId: "s1", name: "outline", input: {} })).toEqual({
+      ok: false,
+      error: "later",
     });
   });
 });

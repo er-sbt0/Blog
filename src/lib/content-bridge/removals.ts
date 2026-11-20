@@ -47,7 +47,7 @@ const HOLDS_NOTHING: ReadonlySet<string> = new Set([
  * Node types whose own name is not the word for them.
  *
  * Everything absent from this map is named by its type, which is already the
- * word — canvas, table, image, sketch, graph, sticky, kanban, math, attachment.
+ * word — canvas, table, image, sketch, graph, sticky, kanban, attachment.
  */
 const NOUNS: Readonly<Record<string, string>> = {
   "code-snippet": "code snippet",
@@ -58,6 +58,7 @@ const NOUNS: Readonly<Record<string, string>> = {
   "details-content": "section body",
   tablerow: "table row",
   "canvas-note": "note",
+  math: "equation",
 };
 
 /**

@@ -40,7 +40,7 @@ export function getAgentHost(): AgentHost | null {
 
   const router = createAgentRouter();
   agent.onToolCall((call) => {
-    agent.toolResult(call.callId, router.handle(call));
+    void router.handle(call).then((result) => agent.toolResult(call.callId, result));
   });
 
   // The compiler's check that the two copies of the event union agree.

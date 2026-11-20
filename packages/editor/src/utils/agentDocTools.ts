@@ -63,6 +63,8 @@ import { formatOutline, outline, readBlocks } from "@/lib/content-bridge/outline
 import { StaleStateError, stateHash } from "@/lib/content-bridge/stateHash";
 import { readBlockId } from "@/lib/content-bridge/blockId";
 import { typeOf } from "@/lib/content-bridge/containers";
+import { canSetText } from "@/lib/content-bridge/blocks";
+import { parseInline, renderInline } from "@/lib/content-bridge/inline";
 import { opSchema } from "@/lib/content-bridge/schema";
 import type { SerializedNode, StoredState } from "@/lib/content-bridge/types";
 import type { AgentToolTarget } from "../context/AgentHostContext";
@@ -73,8 +75,18 @@ export type AgentToolResult =
   | { ok: true; text: string }
   | { ok: false; error: string };
 
-/** The tools this executor answers. Main declares the same three. */
-export const AGENT_DOC_TOOLS = ["outline", "read_blocks", "apply_ops"] as const;
+/**
+ * The tools this executor answers. Main declares the same five (`DOC_TOOLS`).
+ * `insert_image` is async — it uploads — so it runs through
+ * `executeAgentDocTool` (`agentImage.ts`); the rest are answered here.
+ */
+export const AGENT_DOC_TOOLS = [
+  "outline",
+  "read_blocks",
+  "apply_ops",
+  "insert_math",
+  "insert_image",
+] as const;
 
 /**
  * The tag on every agent write. History treats it as an ordinary update (one
@@ -102,17 +114,25 @@ export function runAgentDocTool(
     case "read_blocks":
       return readBlocksTool(editor, input);
     case "apply_ops":
-      if (!editor.isEditable()) {
-        return {
-          ok: false,
-          error: "The post is open read-only, so it cannot be edited now.",
-        };
-      }
+      if (!editor.isEditable()) return READ_ONLY;
       return applyOpsTool(target, input);
+    case "insert_math":
+      if (!editor.isEditable()) return READ_ONLY;
+      return insertMathTool(target, input);
+    case "insert_image":
+      return {
+        ok: false,
+        error: "insert_image runs through executeAgentDocTool, which uploads.",
+      };
     default:
       return { ok: false, error: `Unknown doc tool: ${name}` };
   }
 }
+
+export const READ_ONLY: AgentToolResult = {
+  ok: false,
+  error: "The post is open read-only, so it cannot be edited now.",
+};
 
 // ---------------------------------------------------------------------------
 // Snapshot
@@ -327,6 +347,25 @@ function applyOpsTool(target: AgentToolTarget, input: unknown): AgentToolResult 
       }`,
     };
   }
+  return runBatch(target, parsed.data.stateHash, parsed.data.ops as Op[]);
+}
+
+/**
+ * Apply one batch to the live editor: the guards, the default placement,
+ * `applyOps`, then the reconcile. Shared by `apply_ops` and the sugar tools
+ * (`insert_math`, `insert_image`), so a block they insert lands exactly where
+ * and how the same block would through `apply_ops`.
+ *
+ * `expected` null means "the post as it is now": the sugar tools take an
+ * optional hash, because an insert by `blk_` id stays meaningful however the
+ * author has typed since the agent's last read, and an equation is not worth
+ * a re-read when that typing was three blocks away.
+ */
+function runBatch(
+  target: AgentToolTarget,
+  expected: string | null,
+  batch: Op[],
+): AgentToolResult {
   const { editor } = target;
   let result: AgentToolResult = { ok: false, error: "The edit did not run." };
   let changed = 0;
@@ -334,7 +373,7 @@ function applyOpsTool(target: AgentToolTarget, input: unknown): AgentToolResult 
   editor.update(
     () => {
       const before = $snapshot();
-      let ops = parsed.data.ops as Op[];
+      let ops = batch;
 
       const refused = touchesAgentBlock(ops, agentAddresses(before));
       if (refused) {
@@ -356,7 +395,7 @@ function applyOpsTool(target: AgentToolTarget, input: unknown): AgentToolResult 
 
       let applied: ReturnType<typeof applyOps>;
       try {
-        applied = applyOps(before, parsed.data.stateHash, ops);
+        applied = applyOps(before, expected ?? stateHash(before), ops);
       } catch (error) {
         result = { ok: false, error: refusal(error) };
         return;
@@ -394,6 +433,133 @@ function applyOpsTool(target: AgentToolTarget, input: unknown): AgentToolResult 
       `open post. They are live — on the author's undo stack, and saved like ` +
       `their own typing.\n${after}`,
   };
+}
+
+// ---------------------------------------------------------------------------
+// insert_math, insert_image — sugar over the same batch
+// ---------------------------------------------------------------------------
+
+const placementInput = {
+  after: z.string().optional(),
+  before: z.string().optional(),
+  appendTo: z.string().optional(),
+  stateHash: z.string().optional(),
+};
+
+type PlacementInput = {
+  after?: string;
+  before?: string;
+  appendTo?: string;
+  stateHash?: string;
+};
+
+/** The placement fields an insert names — none means the default chain. */
+const placementOf = ({ after, before, appendTo }: PlacementInput) => ({
+  ...(after === undefined ? {} : { after }),
+  ...(before === undefined ? {} : { before }),
+  ...(appendTo === undefined ? {} : { appendTo }),
+});
+
+const mathInput = z.object({
+  latex: z.string().min(1),
+  inline: z.boolean().optional(),
+  id: z.string().optional(),
+  ...placementInput,
+});
+
+/** Text blocks an inline equation may be appended to — not code, not math. */
+const INLINE_HOSTS: ReadonlySet<string> = new Set([
+  "paragraph",
+  "heading",
+  "quote",
+  "summary",
+  "cell",
+]);
+
+/**
+ * `insert_math`: a `math` block through `insert_blocks`, or — `inline` — the
+ * equation appended to a text block through `set_text`, spelled `$latex$` by
+ * the inline codec itself so its escaping is the one a read gives back.
+ */
+function insertMathTool(target: AgentToolTarget, input: unknown): AgentToolResult {
+  const parsed = mathInput.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "insert_math needs latex: a string of LaTeX." };
+  }
+  const { latex, inline, id, stateHash: hash } = parsed.data;
+  if (!inline) {
+    if (id !== undefined) {
+      return {
+        ok: false,
+        error: "id is for inline: true. To place a displayed equation, use " +
+          "after, before or appendTo.",
+      };
+    }
+    return runBatch(target, hash ?? null, [{
+      op: "insert_blocks",
+      blocks: [{ type: "math", latex }],
+      ...placementOf(parsed.data),
+    } as Op]);
+  }
+
+  if (!id) {
+    return {
+      ok: false,
+      error: "inline: true needs id — the paragraph, heading, quote, summary " +
+        "or cell to append the equation to.",
+    };
+  }
+  const found = readBlocks(readSnapshot(target.editor), [id]).blocks[0];
+  if (!found) return { ok: false, error: `block_not_found: ${id} — re-run outline.` };
+  if (!INLINE_HOSTS.has(found.type) || !canSetText(found)) {
+    return {
+      ok: false,
+      error: `${id} is a ${found.type === "opaque" ? found.nodeType : found.type}` +
+        `${"readonlyText" in found && found.readonlyText ? " whose text cannot be rewritten" : ""}; ` +
+        "an inline equation goes into a paragraph, heading, quote, summary or cell.",
+    };
+  }
+  const text = "text" in found ? found.text : "";
+  const equation = renderInline([{ type: "math", version: 1, value: latex }]) ?? "";
+  // The inline spelling escapes only `$`, so a LaTeX `\$` comes out as
+  // `\\$`, which parses back as `\\` and the closing delimiter. Refuse what
+  // would not round-trip rather than write a different equation.
+  const back = parseInline(equation);
+  if (back.length !== 1 || back[0].type !== "math" || back[0].value !== latex) {
+    return {
+      ok: false,
+      error: "That LaTeX cannot be written inline (a \\$ is ambiguous inside " +
+        "$…$). Insert it as a displayed equation instead.",
+    };
+  }
+  const joined = text === "" || /\s$/.test(text) ? `${text}${equation}` : `${text} ${equation}`;
+  return runBatch(target, hash ?? null, [{ op: "set_text", id, text: joined }]);
+}
+
+/** What `insert_image` inserts once `agentImage.ts` has a `src` for it. */
+export interface ResolvedImage extends PlacementInput {
+  src: string;
+  alt: string;
+  caption?: string;
+}
+
+/** The synchronous half of `insert_image`: an `image` block, placed. */
+export function insertImageBlock(
+  target: AgentToolTarget,
+  image: ResolvedImage,
+): AgentToolResult {
+  if (!target.editor.isEditable()) return READ_ONLY;
+  const caption = image.caption?.trim() ? image.caption : undefined;
+  return runBatch(target, image.stateHash ?? null, [{
+    op: "insert_blocks",
+    blocks: [{
+      type: "image",
+      src: image.src,
+      alt: image.alt,
+      ...(caption === undefined ? {} : { caption, showCaption: true }),
+    }],
+    ...placementOf(image),
+  } as Op]);
 }
 
 /** The sentence a refused batch reaches the model as. */
