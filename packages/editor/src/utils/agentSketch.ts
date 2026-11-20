@@ -1,5 +1,5 @@
 /**
- * `draw_sketch`, the renderer's half (docs/plans/agent-block.md §2.6, §4.1,
+ * `draw_sketch`, the renderer's half (docs/plans/archive/agent-block.md §2.6, §4.1,
  * §4.2, phase 4): a diagram the agent describes becomes an Excalidraw sketch
  * in the post — one the author opens and edits in the sketch editor exactly
  * like one they drew.
@@ -42,6 +42,7 @@ import {
   type AgentToolResult,
   insertSketchBlock,
   READ_ONLY,
+  unavailable,
 } from "./agentDocTools";
 
 /** The same cap as `POST /api/blob`. */
@@ -528,12 +529,17 @@ export async function runDrawSketch(
   if (bytes.length > AGENT_SKETCH_MAX_BYTES) {
     return { ok: false, error: "That sketch is over the 10 MB cap; split it into several." };
   }
+  // Not worth uploading for a block that is already gone.
+  const gone = unavailable(target);
+  if (gone) return gone;
   // The Sketch dialog's spelling, so a fallback src is the one it would store.
   const dataUri = `data:image/svg+xml,${encodeURIComponent(markup)}`;
   const blob = new Blob([bytes], { type: "image/svg+xml" });
   const src = await deps.store(blob, dataUri, target.documentId ?? null);
-  // Rendering and uploading took a while; the post may be closed or locked now.
-  if (!target.editor.isEditable()) return READ_ONLY;
+  // Rendering and uploading took a while: the post may be closed or locked now,
+  // or the block deleted, which interrupted the turn (§6 q3).
+  const late = unavailable(target);
+  if (late) return late;
 
   const size = (n: number) => (Number.isFinite(n) && n > 0 ? Math.round(n) : 0);
   const result = insertSketchBlock(target, {

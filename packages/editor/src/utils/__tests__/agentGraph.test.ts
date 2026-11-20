@@ -1,5 +1,5 @@
 /**
- * `plot_graph` (docs/plans/agent-block.md phase 5) on a real headless editor
+ * `plot_graph` (docs/plans/archive/agent-block.md phase 5) on a real headless editor
  * with the real `GraphNode`, and with GeoGebra stubbed — it is a 22 MB applet
  * that needs a browser. The real applet was driven in headless Chrome (the
  * plan's phase-5 log); what is pinned here is everything around it:

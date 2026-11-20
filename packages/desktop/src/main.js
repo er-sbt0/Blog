@@ -103,7 +103,7 @@ let nextServer = null;
 let terminal = null;
 /** `sessions:sync` and its single-flight map (docs/plans/remote-claude.md §4.2). */
 let remoteSessions = null;
-/** Agent SDK sessions behind `/agent` blocks (docs/plans/agent-block.md). */
+/** Agent SDK sessions behind `/agent` blocks (docs/plans/archive/agent-block.md). */
 let agent = null;
 let mainWindow = null;
 let shuttingDown = false;
@@ -279,7 +279,7 @@ async function boot() {
   // Agent sessions, for the same reason again. Each block's folder is chosen
   // in a main-process dialog (the workspace is only its starting point), and
   // recorded beside the other per-install state so a reopened post can resume
-  // without the renderer naming a path (docs/plans/agent-block.md §4.3).
+  // without the renderer naming a path (docs/plans/archive/agent-block.md §4.3).
   agent = installAgent({
     workspace: paths.workspace,
     sessionsFile: path.join(paths.userData, "agent-sessions.json"),
@@ -648,7 +648,7 @@ async function shutdown() {
   }
   remoteSessions = null;
   // An agent mid-turn is aborted, not drained: its writes go to the live
-  // editor (docs/plans/agent-block.md §3.2), and the window is going too.
+  // editor (docs/plans/archive/agent-block.md §3.2), and the window is going too.
   try {
     agent?.dispose();
   } catch (error) {

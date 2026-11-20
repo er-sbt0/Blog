@@ -1,6 +1,6 @@
 /**
  * The renderer's half of an agent session's doc tools
- * (docs/plans/agent-block.md §3.1, §4.1).
+ * (docs/plans/archive/agent-block.md §3.1, §4.1).
  *
  * The tools are *defined* in the Electron main process (`packages/desktop/src/
  * agent.js`) and *executed* here, against the live `LexicalEditor` of the post
@@ -28,7 +28,8 @@
  * element whose shell is unchanged is recursed into, and only what differs is
  * rebuilt through `$parseSerializedNode` — which is `importJSON` →
  * `updateFromJSON`, the one parse path (`pnpm check:nodes`). One `editor.update`
- * per call, tagged `agent-write`, so it is an ordinary undo step.
+ * per call, tagged `agent-write`; a turn's writes share one undo step
+ * (`agentHistory.ts`).
  *
  * ### The agent's own block
  *
@@ -69,6 +70,7 @@ import { opSchema } from "@/lib/content-bridge/schema";
 import type { SerializedNode, StoredState } from "@/lib/content-bridge/types";
 import type { AgentToolTarget } from "../context/AgentHostContext";
 import { AGENT_BLOCK_TYPE } from "../nodes/AgentBlockNode/model";
+import { agentWriteTags, agentWrote } from "./agentHistory";
 
 /** What every doc tool answers. Plain data: it is structured-cloned to main. */
 export type AgentToolResult =
@@ -91,12 +93,7 @@ export const AGENT_DOC_TOOLS = [
   "plot_graph",
 ] as const;
 
-/**
- * The tag on every agent write. History treats it as an ordinary update (one
- * undo step per call); it is here so phase 6's one-undo-step-per-turn has a way
- * to recognise a turn's writes.
- */
-export const AGENT_WRITE_TAG = "agent-write";
+export { AGENT_WRITE_TAG } from "./agentHistory";
 
 /**
  * Run one doc-tool call against the editor holding the session's block.
@@ -138,6 +135,35 @@ export const READ_ONLY: AgentToolResult = {
   ok: false,
   error: "The post is open read-only, so it cannot be edited now.",
 };
+
+/**
+ * What a write answers when its block is gone — deleted, or its post closed —
+ * by the time it would land (§6 q3). The block going interrupts the turn, but
+ * a slow tool (`draw_sketch`, `plot_graph`, `insert_image`) may already be
+ * rendering or uploading; when it finishes it meets this, not a write into a
+ * post whose block no longer holds the session.
+ */
+export const BLOCK_GONE: AgentToolResult = {
+  ok: false,
+  error: "Your agent block was removed, or its post closed, so nothing was " +
+    "inserted. Stop: the author has ended this turn.",
+};
+
+/**
+ * Why `target` cannot take a write now, or null when it can: its block's
+ * component let go of it (`detached`, set by the router when the block
+ * unmounts — the pane closed, the block was deleted), the block is no longer
+ * in the editor, or the editor is read-only. The slow tools call it after
+ * every await; `runBatch` checks the block again inside its update.
+ */
+export function unavailable(target: AgentToolTarget): AgentToolResult | null {
+  if (target.detached) return BLOCK_GONE;
+  if (!target.editor.isEditable()) return READ_ONLY;
+  const present = target.editor.getEditorState().read(() =>
+    $getNodeByKey(target.blockKey)?.getType() === AGENT_BLOCK_TYPE
+  );
+  return present ? null : BLOCK_GONE;
+}
 
 // ---------------------------------------------------------------------------
 // Snapshot
@@ -372,11 +398,17 @@ function runBatch(
   batch: Op[],
 ): AgentToolResult {
   const { editor } = target;
+  if (target.detached) return BLOCK_GONE;
   let result: AgentToolResult = { ok: false, error: "The edit did not run." };
   let changed = 0;
+  const tags = agentWriteTags(editor, target.turn);
 
   editor.update(
     () => {
+      if ($getNodeByKey(target.blockKey)?.getType() !== AGENT_BLOCK_TYPE) {
+        result = BLOCK_GONE;
+        return;
+      }
       const before = $snapshot();
       let ops = batch;
 
@@ -427,10 +459,11 @@ function runBatch(
     },
     // Committed before `update` returns, so the answer the agent gets is about
     // a document that already has the change in it.
-    { discrete: true, tag: AGENT_WRITE_TAG },
+    { discrete: true, tag: tags },
   );
 
   if (!result.ok) return result;
+  agentWrote(editor, target.turn, tags);
   const after = agentOutlineText(editor, target.blockKey);
   return {
     ok: true,

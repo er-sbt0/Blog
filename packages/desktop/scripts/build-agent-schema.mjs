@@ -1,6 +1,6 @@
 /**
  * Bundle the content bridge's op schema and its prose into the main process
- * (docs/plans/agent-block.md §7, phase-0 note 2).
+ * (docs/plans/archive/agent-block.md §7, phase-0 note 2).
  *
  * The doc tools are declared in `src/agent.js`, and the model is told what a
  * block may be by whatever schema and description that declaration carries. In

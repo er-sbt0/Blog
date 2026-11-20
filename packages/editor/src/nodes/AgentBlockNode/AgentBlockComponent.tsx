@@ -1,6 +1,6 @@
 "use client";
 /**
- * The `/agent` block's UI (docs/plans/agent-block.md §3.3): the prompt that
+ * The `/agent` block's UI (docs/plans/archive/agent-block.md §3.3): the prompt that
  * locks once sent, follow-ups below it, live status with an interrupt (button
  * and `Esc`), permission cards, the session's "always" grants, the collapsed
  * log and the folder chip.
@@ -16,20 +16,31 @@
  *
  * ### What is written to the node, and when
  *
- * Three writes, all tagged `historic` so none of them is an undo step of its
- * own: the prompt when it is sent, the session id and folder once `start`
- * answers, and the turn's log and outcome when the turn ends. A turn's entries
- * live in component state until then — see `model.ts` for why. The agent's
- * *output* is not written here at all: it arrives as ordinary blocks through
- * the doc tools, and those writes are undoable like typing.
+ * The block's own record — the prompt when it is sent, the session id and
+ * folder once `start` answers, the turn's log and outcome when it ends, the
+ * grants when main reports them — goes through `writeAgentBookkeeping`
+ * (`bookkeeping.ts`): off the undo history, and re-asserted after an undo or
+ * redo, so taking back the agent's work never takes back the record of the
+ * turn that did it. A turn's entries live in component state until its end —
+ * see `model.ts` for why. The agent's *output* is not written here at all: it
+ * arrives as ordinary blocks through the doc tools, one undo step per turn
+ * (`utils/agentHistory.ts`).
+ *
+ * ### Lifecycle (phase 6, §6 q3)
+ *
+ * The turn belongs to this component. Unmounting it — the pane closing, the
+ * block being deleted, an undo that removes it — interrupts the turn and
+ * detaches its target, so a slow tool that comes back afterwards refuses
+ * rather than writes. A reload is interrupted by main, which sees the page go
+ * (`agentIpc.js`); the prompt is written with the outcome `interrupted` up
+ * front, so a turn that never reaches its end — a reload, a crash — is
+ * recorded as the stop it was rather than as the previous turn's outcome.
  */
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useLexicalEditable } from "@lexical/react/useLexicalEditable";
 import {
-  $getNodeByKey,
   $getState,
   $setState,
-  HISTORIC_TAG,
   type NodeKey,
   stopLexicalPropagation,
 } from "lexical";
@@ -37,6 +48,7 @@ import {
   AlertCircle,
   Bot,
   ChevronRight,
+  FileText,
   Folder,
   MessageSquare,
   Send,
@@ -62,15 +74,16 @@ import { ActionButton, Alert, Spinner } from "../../ui";
 import { cx } from "../../ui/cx";
 import { agentOutlineText } from "../../utils/agentDocTools";
 import { takeAgentFocus } from "./focus";
-import { $isAgentBlockNode } from ".";
+import { writeAgentBookkeeping } from "./bookkeeping";
 import {
   type AgentBlockData,
   type AgentLiveStatus,
   type AgentLogEntry,
   type AgentPermissionCard,
-  appendLog,
+  appendCounted,
   applyCardEvent,
   displayedStatus,
+  droppedSummary,
   entriesForEvent,
   grantLabel,
   markAnswering,
@@ -159,17 +172,10 @@ export default function AgentBlockComponent(
   const running = live.phase !== "idle";
   const canRun = Boolean(host) && editable;
 
-  /** Write to this block's node, outside the undo stack. */
+  /** Write to this block's record, outside the undo history (`bookkeeping.ts`). */
   const writeNode = useCallback(
-    (change: (data: AgentBlockData) => Partial<AgentBlockData>) => {
-      editor.update(
-        () => {
-          const node = $getNodeByKey(nodeKey);
-          if ($isAgentBlockNode(node)) node.setData(change(node.getData()));
-        },
-        { discrete: true, tag: HISTORIC_TAG },
-      );
-    },
+    (change: (data: AgentBlockData) => Partial<AgentBlockData>) =>
+      writeAgentBookkeeping(editor, nodeKey, change),
     [editor, nodeKey],
   );
 
@@ -184,7 +190,7 @@ export default function AgentBlockComponent(
       ? [...turn.entries, { turn: turn.index, kind: "result" as const, text: "Stopped by you." }]
       : turn.entries;
     writeNode((current) => ({
-      log: appendLog(current.log, entries),
+      ...appendCounted(current, entries),
       status: outcomeOf(turn.events, turn.interrupted),
     }));
   }, [writeNode]);
@@ -284,25 +290,23 @@ export default function AgentBlockComponent(
       return;
     }
     const index = data.prompts.length;
+    const previous = data.status;
     setError(null);
     setDraft("");
 
     // The prompt goes in first and the outline is taken after, so the
-    // stateHash the model starts from already counts this turn.
+    // stateHash the model starts from already counts this turn. The outcome
+    // is `interrupted` until the turn's end says otherwise: a turn that never
+    // gets there (a reload, a crash) was one.
     let blockId = "";
-    editor.update(
-      () => {
-        const node = $getNodeByKey(nodeKey);
-        if (!$isAgentBlockNode(node)) return;
-        blockId = $getState(node, blockIdState);
-        if (!blockId) {
-          blockId = mintBlockId();
-          $setState(node, blockIdState, blockId);
-        }
-        node.setData({ prompts: [...node.getData().prompts, prompt] });
-      },
-      { discrete: true, tag: HISTORIC_TAG },
-    );
+    writeAgentBookkeeping(editor, nodeKey, (current, node) => {
+      blockId = $getState(node, blockIdState);
+      if (!blockId) {
+        blockId = mintBlockId();
+        $setState(node, blockIdState, blockId);
+      }
+      return { prompts: [...current.prompts, prompt], status: "interrupted" };
+    });
     const context = {
       title: agentHost.postTitle,
       blockId,
@@ -311,12 +315,17 @@ export default function AgentBlockComponent(
     };
 
     turnRef.current = { index, events: [], entries: [], interrupted: false };
+    // Every write this turn makes shares one undo step (`agentHistory.ts`).
+    target.current.turn = `${nodeKey}:${index}:${Date.now()}`;
     setLive({ phase: "starting" });
 
     const undoPrompt = (message: string | null) => {
       turnRef.current = null;
       setLive({ phase: "idle" });
-      writeNode((current) => ({ prompts: current.prompts.slice(0, index) }));
+      writeNode((current) => ({
+        prompts: current.prompts.slice(0, index),
+        status: previous,
+      }));
       setDraft(prompt);
       setError(message);
     };
@@ -344,6 +353,7 @@ export default function AgentBlockComponent(
     data.context,
     data.grants,
     data.prompts.length,
+    data.status,
     draft,
     editor,
     host,
@@ -376,6 +386,11 @@ export default function AgentBlockComponent(
   }, [writeNode]);
 
   const log = [...data.log, ...pending];
+  const openTranscript = agentHost?.host.openTranscript;
+  const transcript = data.sessionId && openTranscript
+    ? () => openTranscript(data.sessionId as string)
+    : null;
+  const notShown = droppedSummary(data.dropped, transcript !== null);
   const shown = displayedStatus(live, cards);
   const waiting = shown.phase === "waiting";
   const status = statusLabel(shown);
@@ -523,17 +538,35 @@ export default function AgentBlockComponent(
         </p>
       )}
 
-      {log.length > 0 && (
+      {(log.length > 0 || transcript) && (
         <>
-          <button
-            aria-expanded={logOpen}
-            className={css.logToggle}
-            onClick={() => setLogOpen((open) => !open)}
-            type="button"
-          >
-            <ChevronRight aria-hidden className={css.caret} size={ICON_SIZE.inline} />
-            Log · {log.length} {log.length === 1 ? "entry" : "entries"}
-          </button>
+          <div className={css.logHeader}>
+            {log.length > 0 && (
+              <button
+                aria-expanded={logOpen}
+                className={css.logToggle}
+                onClick={() => setLogOpen((open) => !open)}
+                type="button"
+              >
+                <ChevronRight aria-hidden className={css.caret} size={ICON_SIZE.inline} />
+                Log · {log.length} {log.length === 1 ? "entry" : "entries"}
+                {notShown && <span className={css.logCapped}>(capped)</span>}
+              </button>
+            )}
+            <span className={css.spacer} />
+            {transcript && (
+              <ActionButton
+                onClick={transcript}
+                size="sm"
+                title="Everything the session did, read from Claude Code's own record"
+                variant="ghost"
+              >
+                <FileText aria-hidden size={ICON_SIZE.micro} />
+                Full transcript
+              </ActionButton>
+            )}
+          </div>
+          {logOpen && notShown && <p className={css.logNote}>{notShown}</p>}
           {logOpen && (
             <ul aria-label="Agent log" className={css.log}>
               {log.map((entry, index) => (

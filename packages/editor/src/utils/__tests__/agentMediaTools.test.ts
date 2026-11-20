@@ -18,7 +18,7 @@ import { runAgentDocTool } from "../agentDocTools";
 import { type AgentImageDeps, executeAgentDocTool } from "../agentImage";
 
 /**
- * `insert_math` and `insert_image` (docs/plans/agent-block.md phase 3) on a
+ * `insert_math` and `insert_image` (docs/plans/archive/agent-block.md phase 3) on a
  * real headless editor with the real `MathNode` and `ImageNode` registered:
  * that each is sugar over the same batch `apply_ops` runs (same default
  * placement, same codecs), that an inline equation lands in its paragraph's

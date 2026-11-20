@@ -5,7 +5,7 @@ import { createSessionStore, isSessionId, MAX_REMEMBERED } from "../agentSession
 
 /**
  * Main's record of which folder each agent session runs in
- * (docs/plans/agent-block.md §4.3). It is what lets a reopened post resume
+ * (docs/plans/archive/agent-block.md §4.3). It is what lets a reopened post resume
  * without the renderer naming a path — so the claims are about refusing what
  * did not come from main: a non-id, a relative path, a corrupt file.
  */

@@ -1,5 +1,6 @@
 import StoreProvider from "@/store/StoreProvider";
 import AlertDialog from "./Alert";
+import AgentTranscriptHost from "@/components/AgentTranscript/AgentTranscriptHost";
 import Announcer from "./Announcer";
 import ProgressBar from "./ProgressBar";
 import AppLayoutContent from "./AppLayoutContent";
@@ -27,6 +28,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
               <CommandProvider>
                 <AppLayoutContent>{children}</AppLayoutContent>
                 <AlertDialog />
+                <AgentTranscriptHost />
                 <Announcer />
               </CommandProvider>
             </TopBarActionsProvider>

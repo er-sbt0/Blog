@@ -1,6 +1,6 @@
 # Claude Code as a Lexical notebook
 
-**Status: superseded, 14 Nov 2026, by [agent-block.md](./agent-block.md)** — a session as a block inside a post, on the Agent SDK. Kept for §2.1 and §5, which that plan relies on; §2.2 is out of date (the preload bridge now exists). What follows is the original proposal.
+**Status: superseded, 14 Nov 2026, by [agent-block.md](./archive/agent-block.md)** — a session as a block inside a post, on the Agent SDK. Kept for §2.1 and §5, which that plan relies on; §2.2 is out of date (the preload bridge now exists). What follows is the original proposal.
 
 **Original status: proposal. Nothing is built, and one load-bearing claim is unverified.**
 The design below is settled — sixteen decisions, each recorded in §4 with the

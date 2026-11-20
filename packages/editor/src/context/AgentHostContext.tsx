@@ -5,7 +5,7 @@ import type { CapturedSelection } from "@/lib/ai/selection";
 
 /**
  * What an `/agent` block needs from whatever is hosting the editor
- * (docs/plans/agent-block.md §4.3, §4.4).
+ * (docs/plans/archive/agent-block.md §4.3, §4.4).
  *
  * The editor package cannot import the desktop bridge — `src/lib/desktopBridge`
  * is app code, and the package's whole seam (haklex-adoption.md §4) is that
@@ -118,6 +118,17 @@ export interface AgentToolTarget {
    * stored inline as a data URI.
    */
   documentId?: string | null;
+  /**
+   * The turn the block is running, so that all of its writes share one undo
+   * step (`utils/agentHistory.ts`). Set by the block when it sends.
+   */
+  turn?: string;
+  /**
+   * Set when the block let go of this target — it unmounted because its pane
+   * closed or it was deleted. A slow tool that finishes afterwards refuses
+   * rather than writing (`unavailable` in `utils/agentDocTools.ts`).
+   */
+  detached?: boolean;
 }
 
 export interface AgentHost {
@@ -152,6 +163,12 @@ export interface AgentHost {
    * the first tool call in the very next IPC message.
    */
   attach(sessionId: string, target: AgentToolTarget): () => void;
+  /**
+   * Show the session's whole transcript — main reads the SDK's own
+   * `<sessionId>.jsonl` from its record of the session's folder, and the app
+   * renders it as text. Absent on a shell that cannot (before phase 6).
+   */
+  openTranscript?: (sessionId: string) => void;
 }
 
 interface AgentHostValue {

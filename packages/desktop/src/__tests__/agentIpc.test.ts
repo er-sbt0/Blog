@@ -4,7 +4,7 @@ import path from "node:path";
 
 /**
  * `agentIpc.js` end to end over a fake `ipcMain` and a fake `agent.js`
- * (docs/plans/agent-block.md phase 2): the permission round trip as the
+ * (docs/plans/archive/agent-block.md phase 2): the permission round trip as the
  * renderer sees it, "always" enforced in main across a restart, and the
  * confirmation a claimed session needs before it runs. No window, no SDK — the
  * session is a stand-in that records what main handed it.
@@ -300,5 +300,117 @@ describe("per-tool timeouts (phase 4)", () => {
 
     await vi.advanceTimersByTimeAsync(90_000);
     await expect(drawn).resolves.toMatchObject({ ok: false, error: /did not answer in time/ });
+  });
+});
+
+/** A window whose `on`/`once` listeners the spec can fire. */
+function liveWindow() {
+  const base = window();
+  const handlers = new Map<string, ((...args: unknown[]) => void)[]>();
+  const add = (name: string, fn: (...args: unknown[]) => void) =>
+    handlers.set(name, [...(handlers.get(name) ?? []), fn]);
+  return {
+    ...base,
+    on: add,
+    once: add,
+    emit: (name: string, ...args: unknown[]) => handlers.get(name)?.forEach((fn) => fn(...args)),
+  };
+}
+
+describe("lifecycle (phase 6)", () => {
+  it("a reload interrupts the page's running turns and denies its cards; the session stays", async () => {
+    install();
+    const a = liveWindow();
+    await invoke("agent:start", a, turn("go"));
+    const [session] = created;
+    session.running = true;
+    const card = session.canUseTool("Bash", { command: "touch x" }, {
+      signal: new AbortController().signal,
+      ...BASH_SUGGESTION,
+    });
+
+    // A same-document navigation (Next's client routing) is not a reload.
+    a.emit("did-start-navigation", { isMainFrame: true, isSameDocument: true });
+    expect(session.interrupted).toBe(0);
+
+    a.emit("did-start-navigation", { isMainFrame: true, isSameDocument: false });
+    expect(session.interrupted).toBe(1);
+    await expect(card).resolves.toMatchObject({ behavior: "deny" });
+
+    // The reloaded block sends its next prompt into the same session, no card.
+    session.running = false;
+    const sent = await invoke("agent:send", a, session.sessionId, turn("again"));
+    expect(sent).toMatchObject({ ok: true });
+    expect(created).toHaveLength(1);
+    expect(session.sends.at(-1)?.gate).toBeUndefined();
+  });
+
+  it("a renderer crash interrupts too; an idle session is left alone", async () => {
+    install();
+    const a = liveWindow();
+    await invoke("agent:start", a, turn("go"));
+    const [session] = created;
+    a.emit("render-process-gone", {}, { reason: "crashed" });
+    expect(session.interrupted).toBe(0);
+    session.running = true;
+    a.emit("render-process-gone", {}, { reason: "crashed" });
+    expect(session.interrupted).toBe(1);
+  });
+});
+
+describe("agent:transcript (phase 6)", () => {
+  let config: string;
+  const saved = process.env.CLAUDE_CONFIG_DIR;
+  beforeEach(() => {
+    config = fs.mkdtempSync(path.join(os.tmpdir(), "agent-ipc-config-"));
+    process.env.CLAUDE_CONFIG_DIR = config;
+  });
+  afterEach(() => {
+    if (saved === undefined) delete process.env.CLAUDE_CONFIG_DIR;
+    else process.env.CLAUDE_CONFIG_DIR = saved;
+    fs.rmSync(config, { recursive: true, force: true });
+  });
+
+  function transcriptFor(cwd: string, sessionId: string, body: string) {
+    const projectDir = path.join(config, "projects", cwd.replace(/[^a-zA-Z0-9]/g, "-"));
+    fs.mkdirSync(projectDir, { recursive: true });
+    fs.writeFileSync(path.join(projectDir, `${sessionId}.jsonl`), body);
+  }
+
+  it("reads the session's own file from main's folder, for its owner only", async () => {
+    install();
+    const a = window();
+    const b = window();
+    await invoke("agent:start", a, turn("go"));
+    const [session] = created;
+    transcriptFor(fs.realpathSync(dir), session.sessionId, '{"type":"user"}\n');
+
+    await expect(invoke("agent:transcript", a, session.sessionId)).resolves.toMatchObject({
+      ok: true,
+      text: '{"type":"user"}\n',
+      truncated: false,
+    });
+    await expect(invoke("agent:transcript", b, session.sessionId)).resolves.toMatchObject({
+      ok: false,
+      error: /another window/,
+    });
+    for (const bad of ["../x", "", 42, null]) {
+      await expect(invoke("agent:transcript", a, bad)).resolves.toMatchObject({ ok: false });
+    }
+  });
+
+  it("after a restart, reads a recorded session for whichever window asks, and nothing unrecorded", async () => {
+    install();
+    const a = window();
+    await invoke("agent:start", a, turn("go"));
+    const [session] = created;
+    transcriptFor(fs.realpathSync(dir), session.sessionId, "{}\n");
+    install(); // A restart: main holds no session, only the record.
+
+    const b = window();
+    await expect(invoke("agent:transcript", b, session.sessionId)).resolves.toMatchObject({ ok: true });
+    await expect(
+      invoke("agent:transcript", b, "1b6c1f0e-4d4e-4f7a-9d55-3a1c2b9e8f10"),
+    ).resolves.toMatchObject({ ok: false, error: /no record/ });
   });
 });

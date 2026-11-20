@@ -1,5 +1,5 @@
 /**
- * `AgentBlockNode` (docs/plans/agent-block.md §3.3, §6 q5), through the real
+ * `AgentBlockNode` (docs/plans/archive/agent-block.md §3.3, §6 q5), through the real
  * registry and the real render paths, because the claims are about what
  * *leaves* the editor: a stored block survives a load with its node state, and
  * its prompts and log reach neither `/view` (`generateServerHtml`) nor an agent
@@ -12,9 +12,11 @@ import { generateServerHtml } from "@/editor/utils/generateServerHtml";
 import { formatOutline, outline, readAll } from "@/lib/content-bridge";
 import type { StoredState } from "@/lib/content-bridge";
 import {
+  appendCounted,
   appendLog,
   applyCardEvent,
   displayedStatus,
+  droppedSummary,
   entriesForEvent,
   markAnswering,
   MAX_LOG_ENTRIES,
@@ -106,6 +108,7 @@ describe("the agent block's model", () => {
       status: "idle",
       context: null,
       grants: [],
+      dropped: { entries: 0, bytes: 0 },
     });
     const odd = readAgentData({
       prompts: ["a", 3, null],
@@ -130,6 +133,46 @@ describe("the agent block's model", () => {
     );
     expect(many).toHaveLength(MAX_LOG_ENTRIES);
     expect(many[0].text).toBe("5");
+  });
+
+  it("counts what the caps cut, across turns, and says so", () => {
+    const empty = { log: [], dropped: { entries: 0, bytes: 0 } };
+    // 10 000 characters, of which MAX_LOG_TEXT - 1 are kept; "é" is two bytes.
+    const first = appendCounted(empty, [{ turn: 0, kind: "text", text: "é".repeat(10_000) }]);
+    expect(first.dropped).toEqual({ entries: 0, bytes: (10_000 - (MAX_LOG_TEXT - 1)) * 2 });
+    const second = appendCounted(
+      first,
+      Array.from({ length: MAX_LOG_ENTRIES + 2 }, (_, i) => ({
+        turn: 1,
+        kind: "text" as const,
+        text: String(i),
+      })),
+    );
+    expect(second.log).toHaveLength(MAX_LOG_ENTRIES);
+    expect(second.dropped.entries).toBe(3);
+    expect(second.dropped.bytes).toBe(first.dropped.bytes);
+
+    expect(droppedSummary({ entries: 0, bytes: 0 }, true)).toBeNull();
+    expect(droppedSummary(second.dropped, true)).toBe(
+      "Not shown: 3 earlier entries and 12 KB cut from long entries — the full transcript has everything.",
+    );
+    expect(droppedSummary({ entries: 1, bytes: 0 }, false)).toBe(
+      "Not shown: 1 earlier entry — not kept in the post.",
+    );
+  });
+
+  it("stores the counts, and reads a log stored over the cap as dropped entries", () => {
+    const stored = readAgentData({
+      prompts: ["a"],
+      log: Array.from({ length: MAX_LOG_ENTRIES + 4 }, (_, i) => ({ turn: 0, kind: "text", text: `${i}` })),
+      status: "done",
+      dropped: { entries: 10, bytes: 2048 },
+    });
+    expect(stored.dropped).toEqual({ entries: 14, bytes: 2048 });
+    expect(readAgentData({ dropped: { entries: -3, bytes: "x" } }).dropped).toEqual({
+      entries: 0,
+      bytes: 0,
+    });
   });
 
   it("turns events into entries and a live status", () => {

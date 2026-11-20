@@ -1,8 +1,9 @@
 # `/agent` — a Claude Code session as a block in the post
 
-**Status: phase 5 done (20 Nov 2026); phases 0–5 logged in §7–§12. Phase 6
-not started.** Supersedes
-[claude-code-notebook.md](./claude-code-notebook.md), which stays for its §2.1
+**Status: shipped (20 Nov 2026) — all seven phases, logged in §7–§13; §14
+lists what is still open.** Archived, so the paths below describe the tree as
+it was then. Supersedes
+[claude-code-notebook.md](../claude-code-notebook.md), which stays for its §2.1
 (the transcript is already block-shaped) and §5 (the autosave/streaming
 conflict) — both still apply here. Its §2.2 ("there is no preload bridge") is
 no longer true: `packages/desktop/src/preload.cjs` landed with the in-app
@@ -212,7 +213,8 @@ come from `outline` so they match what `apply_ops` accepts.
    and a mismatch returns "the author changed this block — re-read" to the agent
    (the freshness guard `ops.ts` already has), rather than overwriting.
 3. **Closing the pane mid-turn.** Interrupt (proposed), or keep running and
-   queue the writes until the post is open again?
+   queue the writes until the post is open again? *Interrupt — built in phase
+   6 (§13), along with deleting the block and reloading the page.*
 4. **SDK auth.** The SDK uses the user's Claude Code login, the same one the
    in-app terminal uses — confirm that, rather than requiring an API key, in
    phase 0.
@@ -1172,3 +1174,206 @@ Two things the spike found that changed the design:
   sealed mode (`settingSources: []`), on the first turn of a session; the
   sealed `allowedTools` still keeps them unusable. Worth a look when the
   native resume dialog (§9) is revisited.
+
+## 13. Phase 6 log (20 Nov 2026)
+
+The block now says what its capped log left out and links to the whole
+record; a turn undoes in one step without taking its own record with it; and
+a turn ends when its block, pane or page does — including for a slow tool
+that comes back afterwards.
+
+**What was built.**
+
+- **The capped log's summary** (`model.ts`). `dropped: { entries, bytes }`
+  is stored on the node next to the log: entries pushed out by the 400-entry
+  cap, oldest first, and the UTF-8 bytes the 4 KB per-entry cap cut.
+  `appendCounted` is what the turn's end writes, so the counts are exact. A
+  log stored over the cap (an older build) reads its overflow as dropped. The
+  block shows "Log · 400 entries (capped)", and inside the open log "Not
+  shown: 37 earlier entries and 12 KB cut from long entries — the full
+  transcript has everything."
+- **The full transcript** (`agentTranscript.js`, new; `agent:transcript` in
+  `agentIpc.js`; `transcript(sessionId)` in `preload.cjs`;
+  `components/AgentTranscript/`, new).
+  - Main finds `<config>/projects/<encoded cwd>/<sessionId>.jsonl` the way
+    the CLI names it. `<config>` is `CLAUDE_CONFIG_DIR` or `~/.claude`, and
+    the encoding is every non-`[a-zA-Z0-9]` character to `-` (SDK 0.3.309's
+    `pl()`). A name over 200 characters gets a hash suffix from the CLI, so a
+    long folder is found by its 200-character prefix plus the session's file
+    name, which is a UUID.
+  - The folder is main's record (the live entry, else `agent-sessions.json`),
+    the id must be a UUID, so every byte of the path is main's or a constant.
+    Opened `O_NOFOLLOW`, regular file only, capped at 20 MB. A longer file is
+    read from its **start**, cut at a whole line, and flagged: the block's
+    log keeps the newest entries, so the beginning is what the link exists to
+    recover.
+  - The renderer parses it with `parse.ts` and renders it with the
+    remote-sessions `TranscriptView`, which now takes a `TranscriptSource`
+    (the remote routes by default; a local one has no breadcrumbs). The same
+    `TranscriptEntry` rows, so the no-markup rule holds by construction, and
+    `localTranscript.test.tsx` pins it for the local path too.
+- **One undo step per turn** (`utils/agentHistory.ts`, new). A turn's first
+  write is tagged `history-push`, its later writes `history-merge`, keyed on
+  a per-turn id the block sets on its target when it sends.
+- **The block's record off the history** (`AgentBlockNode/bookkeeping.ts`,
+  new). Every write the block makes to itself — prompt, session id and
+  folder, log, outcome, grants, the block id the first send stamps — goes
+  through `writeAgentBookkeeping`, tagged `historic` + `agent-bookkeeping`,
+  and the newest record is kept per editor and node key. An update listener
+  re-asserts it whenever the node disagrees (an undo, a redo, a reset to the
+  saved state), itself `historic`, so neither stack moves.
+- **Lifecycle.** `AgentToolTarget.detached`, set by the router when a block
+  lets go of its target (it unmounts: the pane closed, the block was
+  deleted, an undo removed it). `unavailable(target)` in `agentDocTools.ts`
+  answers `BLOCK_GONE` for a detached target or a block no longer in the
+  editor. `draw_sketch`, `plot_graph` and `insert_image` check it after the
+  render (before uploading) and after the upload. `runBatch` re-checks the
+  block inside its update, so every write refuses, the sync tools included.
+  Main interrupts a page's running turns on a main-frame, cross-document
+  navigation and on `render-process-gone` (`pageGone` in `agentIpc.js`).
+
+**Decisions, and why.**
+
+- **Re-assert the record, rather than merge it into the turn's last step.**
+  §12 offered both. Merging makes the log undo *with* the agent's work, which
+  is exactly what the brief ruled out. Storing the log outside the node was
+  the other option, but the log is stored in revisions on purpose. Re-asserting
+  costs one historic update after an undo, and one identity comparison per
+  agent block per update otherwise (a write replaces the arrays it changes).
+  The record is the latest *write*, not a high-water mark, so a withdrawn
+  grant stays withdrawn. It is keyed by node key, which history preserves.
+  A block rebuilt with a new key (a container rewritten around it, a
+  cut-and-paste) loses its re-assertion, and its unmount interrupts the turn
+  anyway.
+- **Merge only while the turn's write is on top.** Any other update that
+  changes the document — typing, a paste, an undo or redo, anything
+  `historic` that is not bookkeeping — ends the run. Otherwise the agent's
+  next write would merge into the *author's* typing, and one undo would take
+  both. A turn the author typed into undoes in as many steps as it was split
+  into, in order. Selection-only updates do not end the run.
+- **A merged write asks for a save.** The editor's `OnChangePlugin` skips
+  `history-merge` updates (`ignoreHistoryMergeTagChange`), so a merged write
+  would sit unsaved until the next change. `agentWrote` dispatches
+  `UPDATE_DOCUMENT_COMMAND`, the nested editors' route to the same save.
+- **A reload interrupts; the block does not re-attach to a running turn.**
+  The turn's log entries and its cards lived in the page that went, and the
+  cards are denied on navigation (§9). A re-attached block would show a turn
+  already half over, with no history of it, that its next tool call would
+  find stopped anyway. Interrupting is one loop in main and agrees with the
+  cards. The session itself stays: the reloaded block re-attaches its
+  *session* on mount, as it always did, and its next prompt resumes in the
+  same window with no resume card. Client-side routing is same-document and
+  does not count.
+- **`status` is written as `interrupted` when a prompt is sent**, and the
+  turn's end overwrites it. A turn that never reaches its end — a reload, a
+  crash, the pane closing — is then recorded as the stop it was, rather than
+  showing the previous turn's "Done". Its log entries are lost with the page;
+  the full transcript has them.
+- **The transcript opens in a dialog, not a route.** A route would navigate
+  away from the post and unmount its editor, which interrupts the turn — and
+  mid-turn or just after is when the link is most wanted. One dialog per
+  window (`AgentTranscriptHost` in `AppLayout`), loaded on first open. The
+  block asks through `AgentHost.openTranscript`, which is absent on an older
+  shell, and then the link is not shown.
+- **Ownership for the transcript.** A session another live window holds is
+  refused. One no window holds — a record restored after a restart, before
+  any send — is readable by the window that asks, without a card. That is
+  the same claim a resume makes, minus the shell. What it hands back is the
+  text of what that session already did, in this author's folder, which the
+  block's log already summarises. Requiring a send first would leave the
+  link dead on every reopened post, which is its main use.
+
+**The preload grows by one method, `transcript(sessionId)`**, and the comment
+there argues it: one id in, the text of one file out, the path derived in main
+from its own record and an id it minted. There is no path, glob or directory
+in the call, so it is not a file reader.
+
+**Verified.**
+
+- `tsc`, `check:nodes`, `check:codecs` and `check:theme` pass. `eslint` over
+  `src`, `packages/editor/src`, `packages/desktop/src` and `scripts` is
+  clean. `pnpm lint` still does not start (see §14). The full suite passes:
+  111 files, 2010 tests, about 8 s.
+- New specs:
+  - `editor/utils/__tests__/agentHistory.test.tsx` (9 tests). It runs the
+    app's real `HistoryPlugin` inside a real `LexicalComposer` under jsdom,
+    driven by `UNDO_COMMAND` / `REDO_COMMAND`, with the real executor and the
+    real bookkeeping writes. It covers three writes undone and redone in one
+    step, two turns as two steps, a turn split by typing undone in order, no
+    merge into an undone turn, the save after a merged write, and the record
+    surviving undo and redo: the log, outcome, prompts, session id, a
+    withdrawn grant, and the redo stack left alone.
+    - Mutation-checked: with merging disabled, the grouping tests fail.
+      With the re-assertion disabled, the record tests fail.
+    - A note for the next spec of this kind: a command runs inside an
+      update, so an undo commits on the next microtask, and the spec has to
+      await it.
+  - `editor/utils/__tests__/agentLifecycle.test.ts` (8 tests). Through the
+    real router, with each renderer held on a promise: `draw_sketch` and
+    `plot_graph` refuse after a detach and after the block's deletion, and
+    upload nothing. `insert_image` refuses once its upload returns. The sync
+    tools refuse until the target is re-attached. Each tool still writes
+    when nothing went.
+  - `desktop/__tests__/agentTranscript.test.ts` (8 tests): the encoding,
+    `CLAUDE_CONFIG_DIR`, a long folder, non-UUID ids, relative and wrong
+    folders, a capped read cut at a whole line, a symlink refused, and no
+    file.
+  - `agentIpc.test.ts` gains reload and crash (interrupt and deny, a
+    same-document navigation ignored, the next send in the same session with
+    no gate) and `agent:transcript` (owner only, bad ids, after a restart
+    readable from the record only).
+  - `components/AgentTranscript/__tests__/localTranscript.test.tsx`: the
+    header and pages built from a file, and a hostile transcript rendered
+    through the real `TranscriptEntry` with no markup and every payload
+    present as text.
+  - `agentBlock.test.ts`: the counts, the summary text, and reading them
+    back.
+- **Not driven:** the running desktop app. Two reasons: the GTK folder dialog
+  (§8), and `next dev` does not start in this checkout (§14). The
+  dialog and the block's new row were therefore not seen.
+
+## 14. What is still open
+
+Across the whole feature, as of shipping:
+
+- **Which `claude` binary (§6 q6).** The SDK's own, 293 MB per platform and
+  version-matched, roughly doubling the installer. Phases 2–5 kept leaning on
+  version-sensitive CLI behaviour, which argues for keeping it. The decision
+  is still owed before a first real distribution, with a measured skew test.
+- **The selection-first entry point (§2.9, §8).** Through the slash menu the
+  captured selection is always a collapsed caret, so §2.9's selection-aware
+  context never carries a selection. A floating-toolbar "Ask agent" is where it
+  would.
+- **The native resume dialog (§9).** The resume card is answered in the
+  renderer, so a renderer script can answer it. `dialog.showMessageBox` from
+  main would not be, and needs no preload surface. The SDK init listing the
+  user's claude.ai connector tools in sealed mode (§12) is worth a look at the
+  same time.
+- **`pnpm lint` — and `next dev` and `next build` — do not start in this
+  checkout.** All three load `next.config.ts`, whose vendored `next-pwa`
+  requires `clean-webpack-plugin@4` → `del@4.1.1` → `globby@6.1.0`. Under
+  Next's config loader that chain resolves through pnpm's hoisted
+  `node_modules/.pnpm/node_modules` (on the `NODE_PATH` the `.bin/next` shim
+  exports), and there globby's `require("pify")` finds the hoisted `pify@4.0.1`
+  (del's) instead of its own `pify@2.3.0`. Both versions are legitimately in
+  the lockfile and the store is intact
+  (`.pnpm/globby@6.1.0/node_modules/pify` → 2.3.0). So this is not a corrupted
+  `node_modules`, and a reinstall would most likely reproduce it, because
+  hoisting follows the lockfile. Fixes, none taken here:
+  - keep `pify` out of the hoist (`hoist-pattern` in `pnpm-workspace.yaml`);
+  - drop `clean-webpack-plugin` from the vendored `next-pwa`;
+  - for lint only, move `pnpm lint` to the ESLint CLI, which Next 15.5 asks
+    for anyway (`next lint` is deprecated).
+
+  `eslint` run directly is clean. Which install first hoisted pify 4 is not
+  known: `.modules.yaml` dates from the phase-4 install of
+  `@excalidraw/mermaid-to-excalidraw`.
+- **Smaller, known and left.**
+  - A turn's live log entries are lost when its page goes (they are written
+    at the turn's end).
+  - An agent block rebuilt with a new node key by a rewritten container
+    interrupts its own turn on unmount.
+  - The 250 ms per void GeoGebra command (§12).
+  - The applet stays loaded for the window's life (§12).
+  - No subagent transcripts in the dialog: their files are separate, and the
+    dialog lists none, so a Task result shows no "Open subagent" link.

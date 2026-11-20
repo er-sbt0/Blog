@@ -1,5 +1,5 @@
 /**
- * Inserting an `/agent` block (docs/plans/agent-block.md §4.4).
+ * Inserting an `/agent` block (docs/plans/archive/agent-block.md §4.4).
  *
  * The command captures the selection *before* inserting — the insert moves it —
  * and stores it on the block as the first turn's context (§2.9). Typed through

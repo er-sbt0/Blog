@@ -300,7 +300,7 @@ export async function stage({ buildDir = DESKTOP_BUILD_DIR } = {}) {
   //    ERR_MODULE_NOT_FOUND at spawn time.
   await buildMcpServer({ standaloneRoot: stagedStandalone, log });
 
-  // 6b. The agent's doc-tool schema (docs/plans/agent-block.md §7, phase 1).
+  // 6b. The agent's doc-tool schema (docs/plans/archive/agent-block.md §7, phase 1).
   //     Not into the stage: it is imported by the shell's own `src/agent.js`,
   //     so it belongs under `src/generated/`, which electron-builder's
   //     `files: src/**` already ships. Built here so a package can never carry

@@ -10,7 +10,7 @@ import {
 } from "../agentProtocol.js";
 
 /**
- * The renderer's contract with an agent session (docs/plans/agent-block.md
+ * The renderer's contract with an agent session (docs/plans/archive/agent-block.md
  * §4.3): a narrow projection of the SDK's stream, never the stream itself. The
  * SDK adds message types often, and anything passed through unprojected would
  * make the block's contract whatever this SDK version happens to emit.
@@ -198,7 +198,7 @@ describe("agentEnv", () => {
       "/home/me",
     );
     // The SDK child must use the author's Claude Code login, not a key that
-    // happened to be in the launching shell (docs/plans/agent-block.md phase 2).
+    // happened to be in the launching shell (docs/plans/archive/agent-block.md phase 2).
     expect(env.ANTHROPIC_API_KEY).toBeUndefined();
     expect(env.SSH_AUTH_SOCK).toBe("/s");
     expect(env.ELECTRON_RUN_AS_NODE).toBeUndefined();

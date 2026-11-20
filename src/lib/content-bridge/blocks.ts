@@ -140,7 +140,7 @@ export function describeNode(node: SerializedNode): string {
     case "page-break":
     case "pagebreak":
       return "page break";
-    // An `/agent` block (docs/plans/agent-block.md §6 q5). Its prompts and log
+    // An `/agent` block (docs/plans/archive/agent-block.md §6 q5). Its prompts and log
     // are a working record, not the post, so a reader gets the count and never
     // the contents — the same "shape, not content" rule as everything here, held
     // more strictly because the log can quote tool output from the author's

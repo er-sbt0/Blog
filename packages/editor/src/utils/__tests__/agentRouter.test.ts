@@ -3,7 +3,7 @@ import type { AgentToolTarget } from "@/editor/context/AgentHostContext";
 import { createAgentRouter, NOT_OPEN } from "../agentRouter";
 
 /**
- * Routing a doc-tool call (docs/plans/agent-block.md §7, phase-0 note 3): to
+ * Routing a doc-tool call (docs/plans/archive/agent-block.md §7, phase-0 note 3): to
  * the editor holding the call's own block, never to whichever one is focused,
  * and to nothing at all when that post is not open.
  */

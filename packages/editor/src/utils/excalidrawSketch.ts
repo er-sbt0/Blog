@@ -1,5 +1,5 @@
 /**
- * The real `SketchRenderer` (docs/plans/agent-block.md §4.2, phase 4):
+ * The real `SketchRenderer` (docs/plans/archive/agent-block.md §4.2, phase 4):
  * Excalidraw and mermaid, in the renderer, where there is a DOM.
  *
  * Nothing imports this file statically. `agentSketch.ts` reaches it through a

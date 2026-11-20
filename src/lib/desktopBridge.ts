@@ -94,7 +94,7 @@ export interface DesktopSessions {
 /**
  * What starting an agent session answers. The folder is chosen in a
  * main-process dialog and only handed back for display
- * (docs/plans/agent-block.md §4.3); `cancelled` is the author dismissing it.
+ * (docs/plans/archive/agent-block.md §4.3); `cancelled` is the author dismissing it.
  */
 export type AgentStartResult =
   | { ok: true; sessionId: string; cwd: string }
@@ -102,7 +102,7 @@ export type AgentStartResult =
 
 export type AgentSendResult = { ok: true } | { ok: false; error: string };
 
-/** An answer to a permission card (docs/plans/agent-block.md phase 2). */
+/** An answer to a permission card (docs/plans/archive/agent-block.md phase 2). */
 export type AgentPermissionDecision = "allow" | "always" | "deny";
 
 /**
@@ -173,6 +173,14 @@ export type AgentEvent = { sessionId: string } & (
   | { type: "turn-end" }
 );
 
+/**
+ * The SDK's `<sessionId>.jsonl`, as text. `truncated` when it was over main's
+ * cap and only its start was read; `size` is the whole file's.
+ */
+export type AgentTranscriptResult =
+  | { ok: true; text: string; size: number; truncated: boolean }
+  | { ok: false; error: string };
+
 /** A doc-tool call main forwards for the renderer to run on the live editor. */
 export interface AgentToolCall {
   callId: string;
@@ -182,7 +190,7 @@ export interface AgentToolCall {
 }
 
 /**
- * Claude Agent SDK sessions (docs/plans/agent-block.md §4.3). The renderer
+ * Claude Agent SDK sessions (docs/plans/archive/agent-block.md §4.3). The renderer
  * sends prompts and text context and nothing else — no cwd, argv or
  * environment — and answers the doc-tool calls main forwards to it. Ids are
  * minted in main and checked against the window that owns them.
@@ -198,6 +206,12 @@ export interface DesktopAgent {
     options: { prompt: string; context: AgentTurnContext; grants: string[] },
   ): Promise<AgentSendResult>;
   interrupt(sessionId: string): Promise<boolean>;
+  /**
+   * The session's whole transcript, read in main from its own record of the
+   * session's folder (docs/plans/archive/agent-block.md phase 6). Absent on a
+   * shell from before it.
+   */
+  transcript?(sessionId: string): Promise<AgentTranscriptResult>;
   /** Subscribe to one session's events. Returns the unsubscribe. */
   onEvent(sessionId: string, cb: (event: AgentEvent) => void): () => void;
   /** Subscribe to doc-tool calls for every session this window owns. */

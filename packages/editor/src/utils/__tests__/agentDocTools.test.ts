@@ -19,7 +19,7 @@ import type { AgentToolTarget } from "@/editor/context/AgentHostContext";
 import { commonSubsequence, runAgentDocTool } from "../agentDocTools";
 
 /**
- * The renderer's doc-tool executor (docs/plans/agent-block.md §4.1, phase 1),
+ * The renderer's doc-tool executor (docs/plans/archive/agent-block.md §4.1, phase 1),
  * on a real headless editor, because every claim here is about the *live*
  * tree: that a write is spliced in rather than replacing the state (the spec
  * holds node keys across a call and finds the same nodes afterwards), that the

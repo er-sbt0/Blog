@@ -1,6 +1,6 @@
 /**
  * The `/agent` block's data, and the pure rules over it
- * (docs/plans/agent-block.md §3.3).
+ * (docs/plans/archive/agent-block.md §3.3).
  *
  * Import-free apart from types, like `dragGeometry.ts`: what the block stores,
  * how a stored value is read back, how a session's events become log entries
@@ -38,6 +38,13 @@ import type {
 
 export const AGENT_BLOCK_TYPE = "agent";
 
+/**
+ * The tag on the block's own writes — prompt, session, log, outcome, grants —
+ * alongside `historic` (`bookkeeping.ts`). Here rather than there so the
+ * doc-tool executor can recognise them without importing the node.
+ */
+export const AGENT_BOOKKEEPING_TAG = "agent-bookkeeping";
+
 /** How the last turn ended. `idle` is a block that has never run. */
 export type AgentOutcome = "idle" | "done" | "interrupted" | "error";
 
@@ -60,6 +67,19 @@ export interface AgentBlockData {
   context: CapturedSelection | null;
   /** "Always for this session" grants, as main last reported them. Display only. */
   grants: string[];
+  /** What the caps have cut from `log` so far (phase 6). Zeros when nothing. */
+  dropped: AgentLogDropped;
+}
+
+/**
+ * What the log's caps cost, so the block can say so instead of looking
+ * complete (phase 6): entries pushed out by `MAX_LOG_ENTRIES`, oldest first,
+ * and the UTF-8 bytes `MAX_LOG_TEXT` cut off the ends of the entries it kept.
+ * The full record is the session's `.jsonl`, which the block links to.
+ */
+export interface AgentLogDropped {
+  entries: number;
+  bytes: number;
 }
 
 /** One log entry's text, at most. §3.3's "say 4 KB each". */
@@ -95,10 +115,20 @@ export const emptyAgentData = (): AgentBlockData => ({
   status: "idle",
   context: null,
   grants: [],
+  dropped: { entries: 0, bytes: 0 },
 });
 
 const clip = (text: string, limit = MAX_LOG_TEXT): string =>
   text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
+
+/** UTF-8 bytes `clip` removes from `text`; 0 when it fits. */
+const clippedBytes = (text: string, limit = MAX_LOG_TEXT): number =>
+  text.length > limit ? new TextEncoder().encode(text.slice(limit - 1)).length : 0;
+
+const count = (value: unknown): number =>
+  typeof value === "number" && Number.isFinite(value) && value > 0
+    ? Math.floor(value)
+    : 0;
 
 /**
  * Read a stored node's fields, tolerating anything.
@@ -143,6 +173,10 @@ export function readAgentData(json: Record<string, unknown>): AgentBlockData {
       ),
     ].slice(0, MAX_GRANTS)
     : [];
+  const stored = json.dropped && typeof json.dropped === "object"
+    ? json.dropped as Record<string, unknown>
+    : {};
+  const overflow = Math.max(0, log.length - MAX_LOG_ENTRIES);
   return {
     sessionId: str(json.sessionId),
     cwd: str(json.cwd),
@@ -151,6 +185,10 @@ export function readAgentData(json: Record<string, unknown>): AgentBlockData {
     status,
     context,
     grants,
+    dropped: {
+      entries: count(stored.entries) + overflow,
+      bytes: count(stored.bytes),
+    },
   };
 }
 
@@ -163,13 +201,64 @@ export function appendLog(
   log: readonly AgentLogEntry[],
   entries: readonly AgentLogEntry[],
 ): AgentLogEntry[] {
+  return appendCounted({ log, dropped: { entries: 0, bytes: 0 } }, entries).log;
+}
+
+/**
+ * `appendLog`, counting what the caps cut into `dropped` — what the turn's
+ * end writes, so the block's summary is exact rather than estimated.
+ */
+export function appendCounted(
+  record: { log: readonly AgentLogEntry[]; dropped: AgentLogDropped },
+  entries: readonly AgentLogEntry[],
+): { log: AgentLogEntry[]; dropped: AgentLogDropped } {
+  let bytes = record.dropped.bytes;
   const next = [
-    ...log,
-    ...entries.map((entry) => ({ ...entry, text: clip(entry.text) })),
+    ...record.log,
+    ...entries.map((entry) => {
+      bytes += clippedBytes(entry.text);
+      return { ...entry, text: clip(entry.text) };
+    }),
   ];
-  return next.length > MAX_LOG_ENTRIES
-    ? next.slice(next.length - MAX_LOG_ENTRIES)
-    : next;
+  const overflow = Math.max(0, next.length - MAX_LOG_ENTRIES);
+  return {
+    log: overflow ? next.slice(overflow) : next,
+    dropped: { entries: record.dropped.entries + overflow, bytes },
+  };
+}
+
+/** How many bytes reads, for the summary: "812 B", "12 KB", "3.4 MB". */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * The line under the log that says what is not in it, or null when the log is
+ * whole. Says where the rest is only when there is somewhere to send the
+ * author (`hasTranscript`).
+ */
+export function droppedSummary(
+  dropped: AgentLogDropped,
+  hasTranscript: boolean,
+): string | null {
+  const parts: string[] = [];
+  if (dropped.entries > 0) {
+    parts.push(
+      `${dropped.entries.toLocaleString()} earlier ${
+        dropped.entries === 1 ? "entry" : "entries"
+      }`,
+    );
+  }
+  if (dropped.bytes > 0) {
+    parts.push(`${formatBytes(dropped.bytes)} cut from long entries`);
+  }
+  if (parts.length === 0) return null;
+  const tail = hasTranscript
+    ? " — the full transcript has everything."
+    : " — not kept in the post.";
+  return `Not shown: ${parts.join(" and ")}${tail}`;
 }
 
 /** `mcp__doc__apply_ops` reads as `apply_ops`: the server name is ours, not news. */
@@ -382,5 +471,6 @@ export function serializeAgentData(
   if (data.cwd) out.cwd = data.cwd;
   if (data.context) out.context = data.context;
   if (data.grants.length) out.grants = data.grants;
+  if (data.dropped.entries || data.dropped.bytes) out.dropped = data.dropped;
   return out;
 }

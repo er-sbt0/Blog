@@ -1,5 +1,5 @@
 /**
- * The pure half of an agent session (docs/plans/agent-block.md §4.1, §4.5):
+ * The pure half of an agent session (docs/plans/archive/agent-block.md §4.1, §4.5):
  * what the renderer is told about the SDK's stream, and what the model is told
  * about the post. No SDK import, no schema import, no `electron` — so the specs
  * run without the generated doc-schema bundle and without a `claude` binary.

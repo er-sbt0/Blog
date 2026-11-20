@@ -1,7 +1,7 @@
 "use client";
 /**
  * The desktop bridge's `agent` capability, adapted to the editor package's
- * `AgentHost` (docs/plans/agent-block.md §4.3).
+ * `AgentHost` (docs/plans/archive/agent-block.md §4.3).
  *
  * One per window, because the thing it wraps is: main sends every doc-tool call
  * for every session this window owns on one channel, so there is exactly one
@@ -16,6 +16,7 @@
 import type { AgentHost, AgentSessionEvent } from "@/editor/context/AgentHostContext";
 import { createAgentRouter } from "@/editor/utils/agentRouter";
 import { type AgentEvent, getDesktopBridge } from "@/lib/desktopBridge";
+import { openAgentTranscript } from "@/components/AgentTranscript/transcriptRequest";
 
 let host: AgentHost | null | undefined;
 
@@ -56,6 +57,11 @@ export function getAgentHost(): AgentHost | null {
     onEvent: (sessionId, cb) =>
       agent.onEvent(sessionId, (event) => cb(asSessionEvent(event))),
     attach: (sessionId, target) => router.attach(sessionId, target),
+    // A shell from before phase 6 has no `transcript`; the block then shows
+    // no link rather than one that cannot open.
+    ...(typeof agent.transcript === "function"
+      ? { openTranscript: (sessionId: string) => openAgentTranscript(sessionId) }
+      : {}),
   };
   return host;
 }

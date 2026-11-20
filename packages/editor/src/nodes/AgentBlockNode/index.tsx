@@ -1,6 +1,6 @@
 /**
  * `/agent` — a Claude Code session as a block in the post
- * (docs/plans/agent-block.md §3.3).
+ * (docs/plans/archive/agent-block.md §3.3).
  *
  * The block holds the session, not its output: the agent's work lands as
  * ordinary sibling blocks through the doc tools (`utils/agentDocTools.ts`), so
@@ -55,6 +55,7 @@ export type SerializedAgentBlockNode = Spread<
     status: AgentBlockData["status"];
     context?: AgentBlockData["context"];
     grants?: string[];
+    dropped?: AgentBlockData["dropped"];
   },
   SerializedLexicalNode
 >;

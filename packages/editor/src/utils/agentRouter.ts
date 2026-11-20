@@ -1,6 +1,6 @@
 /**
  * Which editor answers a session's doc-tool call
- * (docs/plans/agent-block.md §7, phase-0 note 3).
+ * (docs/plans/archive/agent-block.md §7, phase-0 note 3).
  *
  * Main forwards every call for every session a window owns on one channel. In
  * phase 0 the focused editor answered, which in a split view writes into
@@ -9,7 +9,9 @@
  * attaches its session when it starts one or mounts with one, and detaches when
  * it unmounts. A call for a session nobody has attached — the post was closed,
  * the block deleted — is answered as a tool error the agent can relay, never
- * run against some other document.
+ * run against some other document. A call that was already running when its
+ * block let go finds its target marked `detached` when it comes back to
+ * write, and refuses too (phase 6, `unavailable` in `agentDocTools.ts`).
  *
  * Pure apart from the executor it is handed, so the routing rule is pinned by a
  * spec without an editor.
@@ -41,8 +43,13 @@ export function createAgentRouter(
     /** Route `sessionId` to `target`. The returned function undoes exactly this. */
     attach(sessionId: string, target: AgentToolTarget): () => void {
       targets.set(sessionId, target);
+      target.detached = false;
       return () => {
-        if (targets.get(sessionId) === target) targets.delete(sessionId);
+        if (targets.get(sessionId) !== target) return;
+        targets.delete(sessionId);
+        // A call already running against it — a sketch rendering, a plot
+        // plotting — sees this when it comes back to write, and refuses.
+        target.detached = true;
       };
     },
 

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 /**
- * The permission half of an agent session (docs/plans/agent-block.md §2.7,
+ * The permission half of an agent session (docs/plans/archive/agent-block.md §2.7,
  * §3.3, phase 2): which tool calls need the author, what the card says, and
  * the broker that holds each question until the author — or a timeout, an
  * interrupt or a closed window — answers it.

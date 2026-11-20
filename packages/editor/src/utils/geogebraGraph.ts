@@ -1,5 +1,5 @@
 /**
- * The real `GraphRenderer` (docs/plans/agent-block.md §4.2, phase 5): a
+ * The real `GraphRenderer` (docs/plans/archive/agent-block.md §4.2, phase 5): a
  * hidden GeoGebra applet, loaded from `public/geogebra` exactly as the Graph
  * dialog loads it — `deployggb.js`, then `GGBApplet` with the `web3d`
  * codebase and the same `suite` app — but off-screen, and without toolbar,

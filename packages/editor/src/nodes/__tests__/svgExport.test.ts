@@ -210,7 +210,7 @@ describe("graph exportDOM, ordinary content", () => {
 
 /**
  * A sketch `draw_sketch` made, or one `pnpm blobs:migrate` moved, stores
- * `/api/blob/<hash>` rather than a data URI (docs/plans/agent-block.md phase
+ * `/api/blob/<hash>` rather than a data URI (docs/plans/archive/agent-block.md phase
  * 4). The sanitizing above was written around data URIs, so this is the other
  * branch: the export must emit a plain `<img>` and never decode, fetch or
  * inline the SVG — an `<img>` runs no script, and the blob route serves the

@@ -4,7 +4,7 @@ import { isGrant, MAX_GRANTS } from "./agentPermissions.js";
 
 /**
  * Which folder each agent session runs in, remembered by the main process
- * (docs/plans/agent-block.md §4.3, phase 1).
+ * (docs/plans/archive/agent-block.md §4.3, phase 1).
  *
  * A block stores its session id and, for display, the folder. When a post is
  * reopened after a restart and its block sends a follow-up, main has to know

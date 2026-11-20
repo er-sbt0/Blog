@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * docs/plans/agent-block.md §5 phase 0, the half that needs no window: the
+ * docs/plans/archive/agent-block.md §5 phase 0, the half that needs no window: the
  * Agent SDK loads, authenticates, and calls an in-process tool.
  *
  *   node packages/desktop/scripts/spike-agent-sdk.mjs

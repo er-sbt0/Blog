@@ -4,7 +4,7 @@ import path from "node:path";
 
 /**
  * The one doc tool that reads the filesystem: `insert_image { path }`
- * (docs/plans/agent-block.md §4.1, §4.2, phase 3).
+ * (docs/plans/archive/agent-block.md §4.1, §4.2, phase 3).
  *
  * Doc tools are auto-allowed — `canUseTool` lets anything from the in-process
  * server through without a card (`agentPermissions.js`) — so this is a read

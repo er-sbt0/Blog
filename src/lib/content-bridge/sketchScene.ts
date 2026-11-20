@@ -1,6 +1,6 @@
 /**
  * A one-line description of an Excalidraw scene: what shapes, what they say,
- * what points at what (docs/plans/agent-block.md §4.2, phase 4).
+ * what points at what (docs/plans/archive/agent-block.md §4.2, phase 4).
  *
  * Two callers, one vocabulary. The sketch codec uses it to describe a stored
  * sketch whose node still carries its elements as `value` (the deprecated

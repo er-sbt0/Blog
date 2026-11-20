@@ -345,7 +345,7 @@ export function verifyPackage(appOutDir, { buildDir = DESKTOP_BUILD_DIR } = {}) 
     }
   });
 
-  // 4b. The Agent SDK behind `/agent` blocks (docs/plans/agent-block.md §5
+  // 4b. The Agent SDK behind `/agent` blocks (docs/plans/archive/agent-block.md §5
   //     phase 0). It ships as an ordinary production dependency of this
   //     package, the way `node-pty` and `embedded-postgres` do — but it runs
   //     a native `claude` from a per-platform optional dependency that it
@@ -367,7 +367,7 @@ export function verifyPackage(appOutDir, { buildDir = DESKTOP_BUILD_DIR } = {}) 
     return `${(fs.statSync(binary).size / 1024 / 1024).toFixed(0)} MB binary`;
   });
 
-  // 4c. The doc-tool schema `agent.js` imports (docs/plans/agent-block.md §7,
+  // 4c. The doc-tool schema `agent.js` imports (docs/plans/archive/agent-block.md §7,
   //     phase 1). Generated, and gitignored, so a package cut from a tree where
   //     the build step did not run would start fine and fail the first `/agent`
   //     with ERR_MODULE_NOT_FOUND. Checked for the export, not merely the file.

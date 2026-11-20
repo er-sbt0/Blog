@@ -254,7 +254,7 @@ export interface ImageBlock {
 }
 
 /**
- * An Excalidraw sketch (docs/plans/agent-block.md §4.2, phase 4).
+ * An Excalidraw sketch (docs/plans/archive/agent-block.md §4.2, phase 4).
  *
  * The drawing itself is not in the IR. `SketchNode` stores an SVG whose `src`
  * embeds the whole scene, and spelling that scene as blocks is what §2.6
@@ -287,7 +287,7 @@ export interface SketchBlock {
 }
 
 /**
- * A GeoGebra graph (docs/plans/agent-block.md §4.2, phase 5).
+ * A GeoGebra graph (docs/plans/archive/agent-block.md §4.2, phase 5).
  *
  * The same decision as `SketchBlock`, for the same reasons. `GraphNode` holds
  * two payloads, neither of which belongs in the IR: `src`, the exported

@@ -17,6 +17,14 @@
  * find. All three are bare keys, which none of the app's chords use (they all
  * carry a modifier — `menuTemplate.js`'s `APP_SHORTCUTS`), and they stand down
  * while typing in a field, inside an editor, or with the terminal focused.
+ *
+ * **Where the entries come from is a `TranscriptSource`.** By default it is the
+ * remote-sessions routes for `id`. An `/agent` block's "Full transcript"
+ * passes a local one instead — the session's own `.jsonl`, read by the desktop
+ * shell and parsed in the page by the same `parse.ts`
+ * (`components/AgentTranscript/`) — so a local transcript goes through exactly
+ * these rows and `TranscriptEntry`'s text-only rendering. A local source has
+ * no `/sessions` to go back to, so its header has no breadcrumbs.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RouterLink from "next/link";
@@ -48,6 +56,7 @@ import { isTerminalFocused } from "@/lib/terminalFocus";
 import { MONO_FONT } from "@/components/Layout/SideBar/constants";
 import { errorMessage, remoteSessionsApi } from "@/api/remoteSessions";
 import type {
+  RemoteEntriesPage,
   RemoteEntryRow,
   RemoteSessionDetail,
 } from "@/lib/claudeSessions/types";
@@ -95,9 +104,25 @@ const Stat: React.FC<{ label: string; children: React.ReactNode }> = ({ label, c
   </Box>
 );
 
-const Header: React.FC<{ detail: RemoteSessionDetail }> = ({ detail }) => (
+/**
+ * Where a transcript's header and pages come from. Callers keep one stable per
+ * transcript (memoize it): a new source is a new transcript, loaded afresh.
+ */
+export interface TranscriptSource {
+  detail(): Promise<RemoteSessionDetail>;
+  entries(from: number, limit: number): Promise<RemoteEntriesPage>;
+  /** Not one of the synced remote sessions: no breadcrumbs back to `/sessions`. */
+  local?: boolean;
+}
+
+const remoteSource = (id: string): TranscriptSource => ({
+  detail: () => remoteSessionsApi.sessions.get(id),
+  entries: (from, limit) => remoteSessionsApi.sessions.entries(id, from, limit),
+});
+
+const Header: React.FC<{ detail: RemoteSessionDetail; local: boolean }> = ({ detail, local }) => (
   <Box component="header" sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-    <Breadcrumbs aria-label="Breadcrumb" sx={{ typography: "dense" }}>
+    {!local && <Breadcrumbs aria-label="Breadcrumb" sx={{ typography: "dense" }}>
       <Link component={RouterLink} href="/sessions" underline="hover" color="inherit">
         Sessions
       </Link>
@@ -107,7 +132,7 @@ const Header: React.FC<{ detail: RemoteSessionDetail }> = ({ detail }) => (
           {detail.parent.title ?? "Untitled session"}
         </Link>
       )}
-    </Breadcrumbs>
+    </Breadcrumbs>}
     <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
       <Typography variant="h5" component="h1" sx={{ wordBreak: "break-word" }}>
         {detail.title ?? (detail.isSubagent ? "Untitled subagent run" : "Untitled session")}
@@ -167,9 +192,14 @@ interface TranscriptViewProps {
   entry?: number | null;
   /** `?q=` — the search that led here; prefills find and is highlighted. */
   q?: string | null;
+  /** Where the entries come from; the remote-sessions routes for `id` by default. */
+  source?: TranscriptSource;
 }
 
-export const TranscriptView: React.FC<TranscriptViewProps> = ({ id, entry = null, q = null }) => {
+export const TranscriptView: React.FC<TranscriptViewProps> = (
+  { id, entry = null, q = null, source: given },
+) => {
+  const source = useMemo(() => given ?? remoteSource(id), [given, id]);
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [data, setData] = useState<Loaded | null>(null);
   const [total, setTotal] = useState<number | null>(null);
@@ -208,14 +238,14 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ id, entry = null
     if (!IS_DESKTOP_CLIENT) return;
     let live = true;
     setLoad({ state: "loading" });
-    remoteSessionsApi.sessions
-      .get(id)
+    source
+      .detail()
       .then((detail) => live && setLoad({ state: "ready", detail }))
       .catch((error) => live && setLoad({ state: "error", message: errorMessage(error) }));
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [source]);
 
   // The first window: the page holding `entry`, or the first page. A new id or
   // a new hit starts from scratch.
@@ -239,7 +269,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ id, entry = null
     loadingRef.current = true;
 
     const fetchFrom = (from: number): Promise<void> =>
-      remoteSessionsApi.sessions.entries(id, from, PAGE).then((page): Promise<void> | void => {
+      source.entries(from, PAGE).then((page): Promise<void> | void => {
         if (gen !== genRef.current) return;
         // A link past the end (the session was re-synced shorter): start at the top.
         if (page.entries.length === 0 && from > 0) return fetchFrom(0);
@@ -257,7 +287,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ id, entry = null
       });
     // `q` is read once per hit; editing find afterwards must not reload.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, entry]);
+  }, [source, entry]);
 
   const hasMore = Boolean(data && total !== null && data.end < total);
   const hasEarlier = Boolean(data && data.start > 0);
@@ -300,8 +330,8 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ id, entry = null
     loadingRef.current = true;
     setPageLoading(dir);
     setPageError(null);
-    remoteSessionsApi.sessions
-      .entries(id, req.from, req.limit)
+    source
+      .entries(req.from, req.limit)
       .then((page) => {
         if (gen !== genRef.current) return;
         setData((prev) => {
@@ -324,7 +354,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ id, entry = null
         loadingRef.current = false;
         setPageLoading(null);
       });
-  }, [data, total, id]);
+  }, [data, total, source]);
 
   // The bottom sentinel is in view: fetch the next page.
   const lastItem = items[items.length - 1];
@@ -438,7 +468,9 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ id, entry = null
         <Alert severity="error" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
           {failure}
         </Alert>
-        <Button component={RouterLink} href="/sessions" sx={{ mt: 2 }}>Back to sessions</Button>
+        {!source.local && (
+          <Button component={RouterLink} href="/sessions" sx={{ mt: 2 }}>Back to sessions</Button>
+        )}
       </Box>
     );
   }
@@ -514,7 +546,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ id, entry = null
     <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 1.5 }}>
       <Box sx={{ flexShrink: 0, maxWidth: 900, width: "100%", mx: "auto" }}>
         {detail
-          ? <Header detail={detail} />
+          ? <Header detail={detail} local={source.local === true} />
           : (
             <Box aria-busy>
               <Skeleton variant="text" width={160} />

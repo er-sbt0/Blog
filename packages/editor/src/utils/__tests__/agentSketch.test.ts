@@ -1,5 +1,5 @@
 /**
- * `draw_sketch` (docs/plans/agent-block.md phase 4) on a real headless editor
+ * `draw_sketch` (docs/plans/archive/agent-block.md phase 4) on a real headless editor
  * with the real `SketchNode`, and with Excalidraw stubbed — it needs a canvas
  * to measure text, which jsdom does not have. The real conversion and export
  * were verified in a browser (the plan's phase-4 log); what is pinned here is

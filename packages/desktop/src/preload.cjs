@@ -52,7 +52,7 @@ const { contextBridge, ipcRenderer } = require("electron");
  *   ssh's message, never transcript bytes. Those reach the renderer only
  *   through the authorized `/api/remote-sessions` routes, like any other data.
  *
- * **`agent` is the third capability** (docs/plans/agent-block.md §4.3). It
+ * **`agent` is the third capability** (docs/plans/archive/agent-block.md §4.3). It
  * starts a Claude Agent SDK session, which is a `claude` with the user's
  * privileges, so its argument has to be at least as strong as the terminal's:
  *
@@ -87,6 +87,15 @@ const { contextBridge, ipcRenderer } = require("electron");
  *   it could already do by typing a prompt. Grants the block shows go back on
  *   each send as `grants`, and main uses them only to *narrow* its own record:
  *   a grant main did not record is dropped, never applied.
+ *
+ * - **`transcript(sessionId)` is the one read** (phase 6), and it reads a
+ *   single file the renderer cannot name: main derives the path from its own
+ *   record of the session's folder and the id it minted, refuses a session
+ *   another window holds, caps the size, and answers with the text of that
+ *   session's own transcript — what a session this window ran already did. It
+ *   takes no path, glob or directory, so it is not a file reader; the bytes
+ *   are rendered as text only (`TranscriptEntry`, whose spec holds that no
+ *   transcript byte becomes markup).
  *
  * Channel names are repeated from `pty.js` and `remoteSessionsIpc.js` rather
  * than imported: a sandboxed preload cannot import an ES module from the
@@ -196,6 +205,12 @@ contextBridge.exposeInMainWorld("desktop", {
     send: (sessionId, options) => ipcRenderer.invoke("agent:send", sessionId, turn(options)),
     /** Interrupt the current turn of a session this window owns. */
     interrupt: (sessionId) => ipcRenderer.invoke("agent:interrupt", sessionId),
+    /**
+     * The session's own `.jsonl`, read by main from its record of the folder:
+     * `{ ok: true, text, size, truncated }` or `{ ok: false, error }`.
+     */
+    transcript: (sessionId) =>
+      ipcRenderer.invoke("agent:transcript", typeof sessionId === "string" ? sessionId : ""),
     /**
      * `(event) => void` for one session. Returns an unsubscribe. Filtered here
      * rather than by channel, so main has one channel to send on.

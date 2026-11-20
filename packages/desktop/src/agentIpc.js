@@ -13,9 +13,10 @@ import {
 import { CONTEXT_LIMITS, DOC_SERVER, DOC_TOOLS, toolTimeoutMs } from "./agentProtocol.js";
 import { createSessionStore, isSessionId } from "./agentSessions.js";
 import { prepareImageInput } from "./agentFiles.js";
+import { claudeConfigDir, readTranscript } from "./agentTranscript.js";
 
 /**
- * The main process's half of `window.desktop.agent` (docs/plans/agent-block.md
+ * The main process's half of `window.desktop.agent` (docs/plans/archive/agent-block.md
  * §4.3). Thin, as `pty.js` is to `terminal.js`: a session lives in `agent.js`;
  * this file owns `ipcMain`, the folder dialog, the session→owner map and the
  * tool-call round trip to the renderer.
@@ -64,6 +65,29 @@ import { prepareImageInput } from "./agentFiles.js";
  * is the same broker round trip as a tool's, so a decline, a timeout and an
  * interrupt all leave the turn unrun.
  *
+ * ### Lifecycle (phase 6)
+ *
+ * A turn's writes go to the editor holding its block, so a turn whose page is
+ * gone has nowhere to write. Closing the window aborts its sessions; a
+ * **reload** or navigation of the main frame — and a renderer crash —
+ * interrupts every running turn the page owned and denies its cards. The
+ * session stays: the reloaded block re-attaches to it on mount, and its next
+ * prompt resumes it in the same window with no confirmation. Re-attaching a
+ * *running* turn instead was considered and not done: the turn's log and
+ * cards lived in the page that went, so a re-attached block would show a turn
+ * already half over with none of its history, and the denied cards would have
+ * stopped it at its next tool call anyway.
+ *
+ * ### The transcript (phase 6)
+ *
+ * `agent:transcript` reads the session's own `<sessionId>.jsonl`
+ * (`agentTranscript.js`) from main's record of its folder, for the block's
+ * "Full transcript" link. The renderer names the session and nothing else. A
+ * session another live window holds is refused; one no window holds (a
+ * restored record) is readable by the window that asks — the same claim a
+ * resume makes, minus the shell, and without a card, because what it hands
+ * back is what that session already did in this author's folder.
+ *
  * What none of this defends against, said plainly: a card is answered by the
  * renderer, so a script running in it can answer one as easily as it can type
  * a prompt. The cards keep the *author* from being surprised; the folder
@@ -105,8 +129,21 @@ export function installAgent({ workspace, sessionsFile, log }) {
     owner.on("did-start-navigation", (details, _url, isInPlace, isMainFrame) => {
       const sameDocument = details?.isSameDocument ?? isInPlace;
       const mainFrame = details?.isMainFrame ?? isMainFrame;
-      if (mainFrame && !sameDocument) broker.denyOwner(owner, "closed");
+      if (mainFrame && !sameDocument) pageGone(owner);
     });
+    owner.on("render-process-gone", () => pageGone(owner));
+  }
+
+  /**
+   * The page holding `owner`'s blocks went — a reload, a navigation, a crash.
+   * Its cards are denied and its running turns interrupted (see the file
+   * comment); the sessions themselves stay, so the reloaded blocks resume.
+   */
+  function pageGone(owner) {
+    broker.denyOwner(owner, "closed");
+    for (const entry of sessions.values()) {
+      if (entry.owner === owner && entry.session.running) entry.session.interrupt();
+    }
   }
 
   function persistGrants(entry) {
@@ -323,6 +360,24 @@ export function installAgent({ workspace, sessionsFile, log }) {
     return entry.session.interrupt();
   });
 
+  ipcMain.handle("agent:transcript", async (event, sessionId) => {
+    if (!isSessionId(sessionId)) return { ok: false, error: "Unknown agent session." };
+    const entry = sessions.get(sessionId);
+    if (entry && entry.owner !== event.sender && !entry.owner.isDestroyed()) {
+      return { ok: false, error: "This session is open in another window." };
+    }
+    // Main's record, never the block's `cwd` (see the file comment).
+    const cwd = entry?.cwd ?? store.lookup(sessionId);
+    if (!cwd) {
+      return {
+        ok: false,
+        error: "This app has no record of that session's folder — it was " +
+          "started on another machine, or the record is gone.",
+      };
+    }
+    return readTranscript({ configDir: claudeConfigDir(process.env), cwd, sessionId });
+  });
+
   ipcMain.on("agent:permission-answer", (event, requestId, decision) => {
     broker.answer(event.sender, requestId, decision);
   });
@@ -358,6 +413,7 @@ export function installAgent({ workspace, sessionsFile, log }) {
       ipcMain.removeHandler("agent:start");
       ipcMain.removeHandler("agent:send");
       ipcMain.removeHandler("agent:interrupt");
+      ipcMain.removeHandler("agent:transcript");
       ipcMain.removeAllListeners("agent:tool-result");
       ipcMain.removeAllListeners("agent:permission-answer");
     },

@@ -1,5 +1,5 @@
 /**
- * `insert_image`, the renderer's half (docs/plans/agent-block.md §4.1, §4.2,
+ * `insert_image`, the renderer's half (docs/plans/archive/agent-block.md §4.1, §4.2,
  * phase 3), and the async entry point every doc-tool call goes through.
  *
  * Main has already done the part that touches the disk: a `{ path }` call
@@ -40,6 +40,7 @@ import {
   insertImageBlock,
   READ_ONLY,
   runAgentDocTool,
+  unavailable,
 } from "./agentDocTools";
 import { loadSketchRenderer, runDrawSketch, type SketchRenderer } from "./agentSketch";
 import { type GraphRenderer, loadGraphRenderer, runPlotGraph } from "./agentGraph";
@@ -173,8 +174,10 @@ async function insertImageTool(
     ? srcFromUrl(url)
     : { ok: false as const, error: "insert_image takes path or url." };
   if (!resolved.ok) return resolved;
-  // The upload took a while; the post may have been closed or locked since.
-  if (!target.editor.isEditable()) return READ_ONLY;
+  // The upload took a while: the post may have been closed or locked since,
+  // or the block deleted, which interrupted the turn (§6 q3).
+  const late = unavailable(target);
+  if (late) return late;
   const name = args.file && typeof args.file === "object"
     ? text((args.file as Record<string, unknown>).name)
     : undefined;

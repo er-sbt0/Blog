@@ -10,7 +10,7 @@ import {
 
 /**
  * `insert_image { path }` — the one doc tool that reads the disk, with no card
- * (docs/plans/agent-block.md phase 3). Almost entirely refusals, because a
+ * (docs/plans/archive/agent-block.md phase 3). Almost entirely refusals, because a
  * refusal that fails lets a post carry a file from anywhere the author can
  * read: traversal, an absolute path elsewhere, a symlink out of the folder,
  * an oversized file, and a file whose name lies about what it is.

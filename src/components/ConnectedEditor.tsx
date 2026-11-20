@@ -48,7 +48,7 @@ const ConnectedEditor: React.FC<{
 ) => {
   const dispatch = useDispatch();
   // The desktop's agent capability, injected rather than imported by the
-  // editor (docs/plans/agent-block.md §4.4). Read after mount: the server pass
+  // editor (docs/plans/archive/agent-block.md §4.4). Read after mount: the server pass
   // has no bridge, and rendering from it during render would not hydrate.
   const [agentHost, setAgentHost] = useState<AgentHost | null>(null);
   useEffect(() => setAgentHost(getAgentHost()), []);

@@ -178,6 +178,26 @@ export const logToggle = style({
   },
 });
 
+/** The log's toggle on the left, the full-transcript link on the right. */
+export const logHeader = style({
+  display: "flex",
+  alignItems: "center",
+  gap: SPACE.sm,
+  minHeight: "24px",
+});
+
+export const logCapped = style({
+  color: vars.color.textSecondary,
+  fontSize: FONT.sm,
+});
+
+/** What the caps cut — said once, above the entries it is about. */
+export const logNote = style({
+  margin: 0,
+  fontSize: FONT.sm,
+  color: vars.color.textSecondary,
+});
+
 export const caret = style({
   transition: `transform ${DURATION.base} ease`,
   selectors: {

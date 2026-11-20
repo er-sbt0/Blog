@@ -104,8 +104,28 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 96 specs, 1764 tests, of which the list below walks the ones worth
-knowing about rather than all of them. The newest four are remote-claude phase
+Coverage is 111 specs, 2010 tests, of which the list below walks the ones worth
+knowing about rather than all of them. The newest fifteen are the agent block's
+(docs/plans/archive/agent-block.md), and they split by process. In the editor
+package, `packages/editor/src/utils/__tests__/` holds `agentDocTools` (the
+executor on a real headless editor: node keys survive a write, the agent block
+is described and never read), `agentRouter`, `agentMediaTools`,
+`agentSketch` and `agentGraph` (each slow tool with its renderer stubbed),
+`agentLifecycle` (a slow tool whose block was deleted or whose pane closed
+mid-call refuses and uploads nothing), and `agentHistory.test.tsx`. That last
+one runs the app's real `HistoryPlugin` under jsdom: a turn undoes in one step,
+and undoing never rolls back the block's log, outcome or session. Its undo has
+to be awaited, because a command's `setEditorState` commits on the next
+microtask. `nodes/__tests__/agentBlock.test.ts` pins that the log reaches
+neither `/view` nor the content bridge. On the desktop side,
+`packages/desktop/src/__tests__/` holds `agent` (the SDK projection),
+`agentSessions`, `agentPermissions`, `agentIpc` (the owner checks, the resume
+card, grants narrowed and never added, a reload interrupting),
+`agentFiles` (`insert_image { path }` refusing traversal, symlinks out and
+non-images) and `agentTranscript`. Last,
+`src/components/AgentTranscript/__tests__/localTranscript.test.tsx` holds
+the local transcript to `TranscriptEntry`'s no-markup rule. Before those, the
+newest four are remote-claude phase
 2 (docs/plans/remote-claude.md §7.2): `src/lib/claudeSessions/__tests__/`
 `parse.test.ts` and `sync.test.ts` (the transcript rules and the manifest
 diff, over hand-written fixtures only — a real transcript is where credentials
@@ -781,6 +801,29 @@ Three things there are invariants rather than conventions:
   directory too high is `ERR_MODULE_NOT_FOUND` at spawn time, which reaches the
   user as "Claude Code cannot see any posts" (§10.2). `verify-package.mjs`
   asserts it loads, not merely that it exists.
+
+**The agent block** (docs/plans/archive/agent-block.md) is desktop-only too:
+`/agent` in a post inserts a block that runs a Claude Agent SDK session in the main
+process, and the agent writes into the post's **live editor**. That is a
+deliberate exception to agent-gating, and it is safe only because those writes
+are visible as they land, undo in one step per turn, and save like typing.
+Four things there are invariants rather than conventions:
+
+- **Doc tools are defined in main and executed only in the renderer**, against
+  the editor holding the session's block (`agentRouter.ts`). Main never writes a
+  document. A call whose block has gone — the pane closed, the block deleted —
+  refuses rather than writing somewhere else, even if it was already rendering.
+- **The cwd comes only from main's folder dialog.** The renderer never names a
+  path: a resume, `insert_image { path }` and the full-transcript read all use
+  main's own record (`agent-sessions.json`), so a `cwd` edited into a post moves
+  a label and nothing else.
+- **Grants are enforced in main.** "Always" is a rule main recorded from the
+  CLI's own suggestion and passes as `allowedTools` each turn. The block's copy
+  is display only and can narrow main's record, never widen it.
+- **The log is never exported.** `exportDOM` is `{ element: null }`, there is no
+  docx arm, and the content bridge describes the block ("agent session · 3
+  turns") without reading it. It is capped in the node, and the full record is
+  the SDK's own `.jsonl`, which only the desktop shell reads.
 
 ## Production operations
 

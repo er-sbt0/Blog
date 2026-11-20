@@ -11,7 +11,7 @@ import {
 
 /**
  * The permission broker behind an agent block's cards
- * (docs/plans/agent-block.md phase 2). The claims are all about what happens
+ * (docs/plans/archive/agent-block.md phase 2). The claims are all about what happens
  * when the author does *not* say yes: every way a question can end unanswered
  * is a deny, an answer counts only from the window that was asked, and
  * "always" grants exactly what main derived — never what a renderer names.

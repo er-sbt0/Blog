@@ -1,5 +1,5 @@
 /**
- * `plot_graph`, the renderer's half (docs/plans/agent-block.md §4.1, §4.2,
+ * `plot_graph`, the renderer's half (docs/plans/archive/agent-block.md §4.1, §4.2,
  * phase 5): GeoGebra commands the agent writes become a graph in the post —
  * one the author opens and edits in the Graph dialog exactly like one they
  * made there.
@@ -34,7 +34,7 @@
 import { z } from "zod";
 import type { AgentToolTarget } from "../context/AgentHostContext";
 import { standaloneSvg } from "./sanitizeSvg";
-import { type AgentToolResult, insertGraphBlock, READ_ONLY } from "./agentDocTools";
+import { type AgentToolResult, insertGraphBlock, READ_ONLY, unavailable } from "./agentDocTools";
 
 /** The same cap as `POST /api/blob`. */
 export const AGENT_GRAPH_MAX_BYTES = 10 * 1024 * 1024;
@@ -249,12 +249,17 @@ export async function runPlotGraph(
   };
   const width = svgSize("width", size.width);
   const height = svgSize("height", size.height);
+  // Not worth uploading for a block that is already gone.
+  const gone = unavailable(target);
+  if (gone) return gone;
   // The Graph dialog's spelling, so a fallback src is the one it would store.
   const dataUri = `data:image/svg+xml,${encodeURIComponent(markup)}`;
   const blob = new Blob([bytes], { type: "image/svg+xml" });
   const src = await deps.store(blob, dataUri, target.documentId ?? null);
-  // Plotting and uploading took a while; the post may be closed or locked now.
-  if (!target.editor.isEditable()) return READ_ONLY;
+  // Plotting and uploading took a while: the post may be closed or locked now,
+  // or the block deleted, which interrupted the turn (§6 q3).
+  const late = unavailable(target);
+  if (late) return late;
 
   const inserted = insertGraphBlock(target, {
     src,

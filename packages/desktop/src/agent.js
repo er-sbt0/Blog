@@ -9,7 +9,7 @@ export { DOC_SERVER, DOC_TOOLS, TOOL_TIMEOUT_MS, toolTimeoutMs } from "./agentPr
 
 /**
  * One Claude Agent SDK session, owned by the main process — every turn of it
- * (docs/plans/agent-block.md §3.1, §4.1, phase 1).
+ * (docs/plans/archive/agent-block.md §3.1, §4.1, phase 1).
  *
  * The SDK runs here rather than in the renderer because it spawns a `claude`
  * child with the user's privileges — the same reason `pty.js` owns the

@@ -89,7 +89,7 @@ const NESTED_EDITOR_REFUSES: ReadonlySet<string> = new Set([
   // back from its first load with every tab unnamed. See the note in
   // `packages/editor/src/nodes/nestedConfig.tsx`.
   "code-snippet",
-  // An `/agent` block (docs/plans/agent-block.md §3.3). No codec can author
+  // An `/agent` block (docs/plans/archive/agent-block.md §3.3). No codec can author
   // one, so no op can put one here; it is listed because a *move* could carry
   // one in, and because the nested config leaves it out on purpose — a session
   // is routed to the editor holding its block, and a nested editor is not one
