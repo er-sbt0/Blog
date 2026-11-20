@@ -78,6 +78,12 @@ export const statusError = style({
   color: vars.color.danger,
 });
 
+/** "Waiting on you": a card needs the author. */
+export const statusWaiting = style({
+  backgroundColor: vars.color.warningSoft,
+  color: vars.color.text,
+});
+
 export const statusDone = style({
   backgroundColor: vars.color.successSoft,
   color: vars.color.success,
@@ -233,3 +239,127 @@ export const live = style({
     },
   },
 });
+
+/** "Always allowed": the session's grants, each withdrawable. */
+export const grants = style({
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: SPACE.xs,
+  fontSize: FONT.sm,
+});
+
+export const grantsLabel = style({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: SPACE.xs,
+  color: vars.color.textTertiary,
+});
+
+export const grant = style([chip, {
+  maxWidth: "320px",
+  paddingRight: "2px",
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+}]);
+
+export const grantRemove = style({
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "18px",
+  height: "18px",
+  padding: 0,
+  border: 0,
+  borderRadius: "9999px",
+  background: "none",
+  color: vars.color.textTertiary,
+  cursor: "pointer",
+  selectors: {
+    "&:hover:not(:disabled)": {
+      backgroundColor: vars.color.fillSecondary,
+      color: vars.color.text,
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${vars.color.accent}`,
+      outlineOffset: "1px",
+    },
+    "&:disabled": { cursor: "not-allowed", opacity: 0.5 },
+  },
+});
+
+/** A permission card. Pending stands out; a closed one recedes. */
+export const permission = style({
+  display: "flex",
+  flexDirection: "column",
+  gap: SPACE.xs,
+  padding: `${SPACE.sm} ${SPACE.md}`,
+  border: `1px solid ${vars.color.border}`,
+  borderRadius: RADIUS.md,
+  backgroundColor: vars.color.bg,
+  transition: `border-color ${DURATION.base} ease`,
+  selectors: {
+    '&[data-state="pending"]': {
+      borderColor: vars.color.warning,
+      backgroundColor: vars.color.warningSoft,
+    },
+    '&[data-state="expired"]': { color: vars.color.textTertiary },
+  },
+});
+
+export const permissionHead = style({
+  display: "flex",
+  alignItems: "center",
+  gap: SPACE.sm,
+  fontWeight: 600,
+  overflowWrap: "anywhere",
+});
+
+export const permissionIcon = style({
+  flex: "0 0 auto",
+  color: vars.color.textSecondary,
+});
+
+export const permissionSummary = style({
+  display: "block",
+  padding: `${SPACE.xs} ${SPACE.sm}`,
+  borderRadius: RADIUS.sm,
+  backgroundColor: vars.color.fillTertiary,
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+  fontSize: FONT.sm,
+  whiteSpace: "pre-wrap",
+  overflowWrap: "anywhere",
+  maxHeight: "160px",
+  overflowY: "auto",
+});
+
+export const permissionDetail = style({
+  margin: 0,
+  fontSize: FONT.md,
+  color: vars.color.textSecondary,
+  whiteSpace: "pre-wrap",
+  overflowWrap: "anywhere",
+  maxHeight: "120px",
+  overflowY: "auto",
+});
+
+export const permissionActions = style({
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: SPACE.sm,
+  marginTop: SPACE.xs,
+});
+
+export const permissionNote = style({
+  marginLeft: "auto",
+  fontSize: FONT.sm,
+  color: vars.color.textTertiary,
+});
+
+export const permissionOutcome = style({
+  margin: 0,
+  fontSize: FONT.md,
+  color: vars.color.success,
+});
+
+export const permissionDenied = style({ color: vars.color.danger });

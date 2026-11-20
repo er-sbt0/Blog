@@ -13,7 +13,10 @@ import { formatOutline, outline, readAll } from "@/lib/content-bridge";
 import type { StoredState } from "@/lib/content-bridge";
 import {
   appendLog,
+  applyCardEvent,
+  displayedStatus,
   entriesForEvent,
+  markAnswering,
   MAX_LOG_ENTRIES,
   MAX_LOG_TEXT,
   nextLiveStatus,
@@ -102,6 +105,7 @@ describe("the agent block's model", () => {
       log: [],
       status: "idle",
       context: null,
+      grants: [],
     });
     const odd = readAgentData({
       prompts: ["a", 3, null],
@@ -157,5 +161,86 @@ describe("the agent block's model", () => {
     expect(outcomeOf([], false)).toBe("done");
     expect(outcomeOf(failed, false)).toBe("error");
     expect(outcomeOf(failed, true)).toBe("interrupted");
+  });
+});
+
+describe("permission cards", () => {
+  const sessionId = "s";
+  const opened = {
+    sessionId,
+    type: "permission" as const,
+    requestId: "r1",
+    kind: "tool" as const,
+    tool: "Bash",
+    title: "",
+    summary: "touch a.txt",
+    detail: "",
+    reason: "",
+    blockedPath: "",
+    defaultToNo: false,
+    label: "Bash · touch a.txt",
+    always: ["Bash(touch *)"],
+    expiresInMs: 600_000,
+  };
+
+  it("open pending, stay open after a click, and close only on main's word", () => {
+    let cards = applyCardEvent([], opened);
+    expect(cards).toMatchObject([{ requestId: "r1", state: "pending", answering: false }]);
+    expect(displayedStatus({ phase: "thinking" }, cards)).toEqual({ phase: "waiting" });
+
+    cards = markAnswering(cards, "r1");
+    expect(cards[0]).toMatchObject({ state: "pending", answering: true });
+
+    cards = applyCardEvent(cards, {
+      sessionId,
+      type: "permission-resolved",
+      requestId: "r1",
+      decision: "always",
+      reason: "answered",
+      label: opened.label,
+    });
+    expect(cards[0]).toMatchObject({ state: "answered", text: "Always allowed" });
+    expect(displayedStatus({ phase: "waiting" }, cards)).toEqual({ phase: "thinking" });
+  });
+
+  it("show an unanswered card as expired and log it as a denial", () => {
+    const resolved = {
+      sessionId,
+      type: "permission-resolved" as const,
+      requestId: "r1",
+      decision: "deny" as const,
+      reason: "expired" as const,
+      label: opened.label,
+    };
+    expect(applyCardEvent(applyCardEvent([], opened), resolved)[0]).toMatchObject({
+      state: "expired",
+      text: "Denied — no answer in time",
+    });
+    expect(entriesForEvent(resolved, 2)).toEqual([
+      { turn: 2, kind: "permission", text: "Denied — no answer in time: Bash · touch a.txt" },
+    ]);
+  });
+
+  it("count a declined resume as a stop, not a failure", () => {
+    const resume = { ...opened, requestId: "r2", kind: "resume" as const, always: null };
+    const declined = {
+      sessionId,
+      type: "permission-resolved" as const,
+      requestId: "r2",
+      decision: "deny" as const,
+      reason: "answered" as const,
+      label: "Resume session",
+    };
+    expect(outcomeOf([resume, declined, { sessionId, type: "turn-end" }], false)).toBe(
+      "interrupted",
+    );
+    // A denied *tool* is the author's answer inside a turn that still ran.
+    expect(outcomeOf([opened, { ...declined, requestId: "r1" }], false)).toBe("done");
+  });
+
+  it("stores grants for display, tolerating junk", () => {
+    expect(readAgentData({ grants: ["Bash(touch *)", 3, "", "Bash(touch *)"] }).grants)
+      .toEqual(["Bash(touch *)"]);
+    expect(readAgentData({}).grants).toEqual([]);
   });
 });

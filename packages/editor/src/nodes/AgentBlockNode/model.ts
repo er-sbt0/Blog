@@ -20,16 +20,28 @@
  * session from turning into a stream of autosaves and undo entries, which is the
  * notebook plan's §5 conflict answered on the write side. The full record is the
  * SDK's own `<sessionId>.jsonl`, never this.
+ *
+ * ### Permissions (phase 2)
+ *
+ * A card is live state too: it exists while main holds the question and is
+ * never stored. Its *outcome* is — one `permission` log entry per card, at
+ * the turn's end. The session's "always" grants are stored, **for display
+ * only**: main keeps its own record and applies a grant only if both agree
+ * (`packages/desktop/src/agentPermissions.js`), so a grant edited into a
+ * revision shows a chip and does nothing.
  */
 import type { CapturedSelection } from "@/lib/ai/selection";
-import type { AgentSessionEvent } from "../../context/AgentHostContext";
+import type {
+  AgentPermissionDecision,
+  AgentSessionEvent,
+} from "../../context/AgentHostContext";
 
 export const AGENT_BLOCK_TYPE = "agent";
 
 /** How the last turn ended. `idle` is a block that has never run. */
 export type AgentOutcome = "idle" | "done" | "interrupted" | "error";
 
-export type AgentLogKind = "text" | "tool" | "error" | "result";
+export type AgentLogKind = "text" | "tool" | "error" | "result" | "permission";
 
 export interface AgentLogEntry {
   /** 0-based index into `prompts`: which turn wrote it. */
@@ -46,6 +58,8 @@ export interface AgentBlockData {
   status: AgentOutcome;
   /** The selection captured when the block was inserted (§2.9). */
   context: CapturedSelection | null;
+  /** "Always for this session" grants, as main last reported them. Display only. */
+  grants: string[];
 }
 
 /** One log entry's text, at most. §3.3's "say 4 KB each". */
@@ -54,6 +68,10 @@ export const MAX_LOG_TEXT = 4096;
 export const MAX_LOG_ENTRIES = 400;
 /** A prompt longer than this is refused at the input, not truncated. */
 export const MAX_PROMPT = 20_000;
+/** Grants kept on a block; main's own cap is the same (`MAX_GRANTS`). */
+export const MAX_GRANTS = 50;
+/** The grant that is a mode, not a rule (`ACCEPT_EDITS` in main). */
+export const ACCEPT_EDITS = "@acceptEdits";
 
 const OUTCOMES: ReadonlySet<string> = new Set([
   "idle",
@@ -61,7 +79,13 @@ const OUTCOMES: ReadonlySet<string> = new Set([
   "interrupted",
   "error",
 ]);
-const KINDS: ReadonlySet<string> = new Set(["text", "tool", "error", "result"]);
+const KINDS: ReadonlySet<string> = new Set([
+  "text",
+  "tool",
+  "error",
+  "result",
+  "permission",
+]);
 
 export const emptyAgentData = (): AgentBlockData => ({
   sessionId: null,
@@ -70,6 +94,7 @@ export const emptyAgentData = (): AgentBlockData => ({
   log: [],
   status: "idle",
   context: null,
+  grants: [],
 });
 
 const clip = (text: string, limit = MAX_LOG_TEXT): string =>
@@ -109,6 +134,15 @@ export function readAgentData(json: Record<string, unknown>): AgentBlockData {
   const context = json.context && typeof json.context === "object"
     ? (json.context as CapturedSelection)
     : null;
+  const grants = Array.isArray(json.grants)
+    ? [
+      ...new Set(
+        json.grants.filter((g): g is string =>
+          typeof g === "string" && g !== "" && g.length <= 640
+        ),
+      ),
+    ].slice(0, MAX_GRANTS)
+    : [];
   return {
     sessionId: str(json.sessionId),
     cwd: str(json.cwd),
@@ -116,8 +150,13 @@ export function readAgentData(json: Record<string, unknown>): AgentBlockData {
     log: log.slice(-MAX_LOG_ENTRIES),
     status,
     context,
+    grants,
   };
 }
+
+/** How a grant reads on its chip. */
+export const grantLabel = (grant: string): string =>
+  grant === ACCEPT_EDITS ? "Edit files in the folder" : grant;
 
 /** Append, cap each entry and keep the newest `MAX_LOG_ENTRIES`. */
 export function appendLog(
@@ -166,6 +205,14 @@ export function entriesForEvent(
         : [];
     case "error":
       return [{ turn, kind: "error", text: event.message }];
+    case "permission-resolved":
+      return [{
+        turn,
+        kind: "permission",
+        text: event.label
+          ? `${resolutionText(event.decision, event.reason)}: ${event.label}`
+          : resolutionText(event.decision, event.reason),
+      }];
     case "result":
       return event.isError
         ? [{ turn, kind: "error", text: `Stopped: ${event.subtype}` }]
@@ -175,12 +222,91 @@ export function entriesForEvent(
   }
 }
 
+/** How a closed card reads, in the card and in the log. */
+export function resolutionText(
+  decision: AgentPermissionDecision,
+  reason: Extract<AgentSessionEvent, { type: "permission-resolved" }>["reason"],
+): string {
+  if (decision === "allow") return "Allowed once";
+  if (decision === "always") return "Always allowed";
+  switch (reason) {
+    case "expired":
+      return "Denied — no answer in time";
+    case "interrupted":
+      return "Denied — you stopped the turn";
+    case "closed":
+      return "Denied — the window closed";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return "Denied";
+  }
+}
+
+type PermissionEvent = Extract<AgentSessionEvent, { type: "permission" }>;
+
+/** A card in the block. Never stored; see the file comment. */
+export type AgentPermissionCard =
+  & Omit<PermissionEvent, "type" | "sessionId">
+  & (
+    | { state: "pending"; answering: boolean }
+    | {
+      state: "answered" | "expired";
+      decision: AgentPermissionDecision;
+      text: string;
+    }
+  );
+
+/**
+ * The cards after one event. A card opens on `permission` and closes on
+ * `permission-resolved` — only main closes one, so a click that main ignored
+ * (a stale id, the wrong window) leaves the card open rather than lying.
+ */
+export function applyCardEvent(
+  cards: readonly AgentPermissionCard[],
+  event: AgentSessionEvent,
+): AgentPermissionCard[] {
+  if (event.type === "permission") {
+    if (cards.some((card) => card.requestId === event.requestId)) {
+      return [...cards];
+    }
+    const { type: _type, sessionId: _sessionId, ...card } = event;
+    return [...cards, { ...card, state: "pending", answering: false }];
+  }
+  if (event.type === "permission-resolved") {
+    return cards.map((card) =>
+      card.requestId === event.requestId
+        ? {
+          ...card,
+          state: event.reason === "answered" ? "answered" : "expired",
+          decision: event.decision,
+          text: resolutionText(event.decision, event.reason),
+        }
+        : card
+    );
+  }
+  return [...cards];
+}
+
+/** Mark a card as answered-but-not-yet-confirmed, so it cannot be clicked twice. */
+export function markAnswering(
+  cards: readonly AgentPermissionCard[],
+  requestId: string,
+): AgentPermissionCard[] {
+  return cards.map((card) =>
+    card.requestId === requestId && card.state === "pending"
+      ? { ...card, answering: true }
+      : card
+  );
+}
+
 /** What the block shows while a turn runs. Never stored. */
 export type AgentLiveStatus =
   | { phase: "idle" }
   | { phase: "starting" }
   | { phase: "thinking" }
-  | { phase: "tool"; name: string };
+  | { phase: "tool"; name: string }
+  | { phase: "waiting" };
 
 export function nextLiveStatus(
   current: AgentLiveStatus,
@@ -196,11 +322,25 @@ export function nextLiveStatus(
         ? { phase: "tool", name: displayToolName(last.name) }
         : { phase: "thinking" };
     }
+    case "permission":
+      return { phase: "waiting" };
     case "turn-end":
       return { phase: "idle" };
     default:
       return current;
   }
+}
+
+/**
+ * The status to show: "waiting on you" while any card is open, whatever the
+ * stream last said (a second card can open while the first is answered).
+ */
+export function displayedStatus(
+  live: AgentLiveStatus,
+  cards: readonly AgentPermissionCard[],
+): AgentLiveStatus {
+  if (cards.some((card) => card.state === "pending")) return { phase: "waiting" };
+  return live.phase === "waiting" ? { phase: "thinking" } : live;
 }
 
 /** How a turn ended, from what it emitted and whether the author stopped it. */
@@ -209,6 +349,20 @@ export function outcomeOf(
   interrupted: boolean,
 ): AgentOutcome {
   if (interrupted) return "interrupted";
+  // A resume the author declined (or left unanswered) never ran: that is a
+  // stop, not a failure.
+  const resumes = new Set(
+    events.flatMap((event) =>
+      event.type === "permission" && event.kind === "resume"
+        ? [event.requestId]
+        : []
+    ),
+  );
+  const declined = events.some((event) =>
+    event.type === "permission-resolved" && resumes.has(event.requestId) &&
+    event.decision === "deny"
+  );
+  if (declined) return "interrupted";
   const failed = events.some((event) =>
     event.type === "error" || (event.type === "result" && event.isError)
   );
@@ -227,5 +381,6 @@ export function serializeAgentData(
   if (data.sessionId) out.sessionId = data.sessionId;
   if (data.cwd) out.cwd = data.cwd;
   if (data.context) out.context = data.context;
+  if (data.grants.length) out.grants = data.grants;
   return out;
 }

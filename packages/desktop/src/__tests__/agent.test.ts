@@ -1,4 +1,5 @@
 import {
+  agentEnv,
   buildSystemPrompt,
   describeToolCall,
   DOC_TOOLS,
@@ -138,5 +139,27 @@ describe("the system prompt", () => {
     expect(context.outline.length).toBeLessThanOrEqual(24_000);
     expect(context.selection).toBe("");
     expect(buildSystemPrompt(undefined)).toContain('"Untitled"');
+  });
+});
+
+describe("agentEnv", () => {
+  it("keeps the terminal's open environment but drops ANTHROPIC_API_KEY", () => {
+    const env = agentEnv(
+      { ANTHROPIC_API_KEY: "sk-from-a-dotenv", SSH_AUTH_SOCK: "/s", ELECTRON_RUN_AS_NODE: "1", PATH: "/usr/bin" },
+      "/home/me",
+    );
+    // The SDK child must use the author's Claude Code login, not a key that
+    // happened to be in the launching shell (docs/plans/agent-block.md phase 2).
+    expect(env.ANTHROPIC_API_KEY).toBeUndefined();
+    expect(env.SSH_AUTH_SOCK).toBe("/s");
+    expect(env.ELECTRON_RUN_AS_NODE).toBeUndefined();
+    expect(env.PATH).toContain("/home/me/.local/bin");
+  });
+});
+
+describe("describeToolCall for built-in tools", () => {
+  it("names the command or the file, never the payload", () => {
+    expect(describeToolCall("Bash", { command: "npm test", description: "x" })).toBe("npm test");
+    expect(describeToolCall("Write", { file_path: "/p/a.md", content: "secret" })).toBe("/p/a.md");
   });
 });

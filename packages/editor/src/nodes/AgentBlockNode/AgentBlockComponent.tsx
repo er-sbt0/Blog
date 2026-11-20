@@ -2,7 +2,13 @@
 /**
  * The `/agent` block's UI (docs/plans/agent-block.md §3.3): the prompt that
  * locks once sent, follow-ups below it, live status with an interrupt (button
- * and `Esc`), the collapsed log and the folder chip.
+ * and `Esc`), permission cards, the session's "always" grants, the collapsed
+ * log and the folder chip.
+ *
+ * A card is main's question, shown here: allow once, always for this session,
+ * or deny. A click sends the answer and disables the card; only main's
+ * `permission-resolved` closes it. `Esc` (or Stop) interrupts the turn, and
+ * main denies every open card when it does.
  *
  * It talks to the session only through the injected `AgentHost`
  * (`context/AgentHostContext.tsx`). With no host — the VPS build, a browser,
@@ -34,15 +40,19 @@ import {
   Folder,
   MessageSquare,
   Send,
+  ShieldCheck,
+  ShieldQuestion,
   Square,
   TextSelect,
   Wrench,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { blockIdState } from "@/lib/content-bridge";
 import { mintBlockId } from "@/lib/content-bridge/blockId";
 import { ICON_SIZE } from "@/theme/icons";
 import {
+  type AgentPermissionDecision,
   type AgentSessionEvent,
   type AgentToolTarget,
   useAgentHost,
@@ -56,8 +66,13 @@ import {
   type AgentBlockData,
   type AgentLiveStatus,
   type AgentLogEntry,
+  type AgentPermissionCard,
   appendLog,
+  applyCardEvent,
+  displayedStatus,
   entriesForEvent,
+  grantLabel,
+  markAnswering,
   MAX_PROMPT,
   nextLiveStatus,
   outcomeOf,
@@ -102,6 +117,8 @@ function statusLabel(live: AgentLiveStatus): string {
       return "Thinking…";
     case "tool":
       return `Running ${live.name}…`;
+    case "waiting":
+      return "Waiting on you";
     default:
       return "";
   }
@@ -120,6 +137,7 @@ export default function AgentBlockComponent(
   const [pending, setPending] = useState<AgentLogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [logOpen, setLogOpen] = useState(false);
+  const [cards, setCards] = useState<AgentPermissionCard[]>([]);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -155,6 +173,7 @@ export default function AgentBlockComponent(
     const turn = turnRef.current;
     turnRef.current = null;
     setPending([]);
+    setCards([]);
     setLive({ phase: "idle" });
     if (!turn) return;
     const entries = turn.interrupted
@@ -180,12 +199,17 @@ export default function AgentBlockComponent(
       setPending([...turn.entries]);
     }
     if (event.type === "error" && !stopped) setError(event.message);
+    if (event.type === "permission" || event.type === "permission-resolved") {
+      setCards((current) => applyCardEvent(current, event));
+    }
+    // Main's word on what it applies; the block's copy follows it.
+    if (event.type === "grants") writeNode(() => ({ grants: event.grants }));
     if (event.type === "turn-end") {
       finishTurn();
       return;
     }
     setLive((current) => nextLiveStatus(current, event));
-  }, [finishTurn]);
+  }, [finishTurn, writeNode]);
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
 
@@ -296,7 +320,7 @@ export default function AgentBlockComponent(
     const sessionId = sessionRef.current;
     if (sessionId) {
       connect(sessionId);
-      const sent = await host.send(sessionId, prompt, context);
+      const sent = await host.send(sessionId, prompt, context, data.grants);
       if (!sent.ok) undoPrompt(sent.error);
       return;
     }
@@ -314,6 +338,7 @@ export default function AgentBlockComponent(
     agentHost,
     connect,
     data.context,
+    data.grants,
     data.prompts.length,
     draft,
     editor,
@@ -330,8 +355,26 @@ export default function AgentBlockComponent(
     void host.interrupt(sessionId);
   }, [host]);
 
+  const answer = useCallback(
+    (requestId: string, decision: AgentPermissionDecision) => {
+      if (!host) return;
+      setCards((current) => markAnswering(current, requestId));
+      host.answerPermission(requestId, decision);
+    },
+    [host],
+  );
+
+  /** Withdraw a grant. Main drops it on the next send, which names the rest. */
+  const revokeGrant = useCallback((grant: string) => {
+    writeNode((current) => ({
+      grants: current.grants.filter((g) => g !== grant),
+    }));
+  }, [writeNode]);
+
   const log = [...data.log, ...pending];
-  const status = statusLabel(live);
+  const shown = displayedStatus(live, cards);
+  const waiting = shown.phase === "waiting";
+  const status = statusLabel(shown);
 
   return (
     <div
@@ -355,11 +398,15 @@ export default function AgentBlockComponent(
           ? (
             <span
               aria-live="polite"
-              className={cx(css.chip, css.statusRunning)}
+              className={cx(css.chip, waiting ? css.statusWaiting : css.statusRunning)}
               role="status"
             >
-              <Spinner size="sm" />
-              <span className={cx(css.chipText, css.live)}>{status}</span>
+              {waiting
+                ? <ShieldQuestion aria-hidden size={ICON_SIZE.micro} />
+                : <Spinner size="sm" />}
+              <span className={cx(css.chipText, !waiting && css.live)}>
+                {status}
+              </span>
             </span>
           )
           : data.status === "error"
@@ -423,12 +470,49 @@ export default function AgentBlockComponent(
         </blockquote>
       ))}
 
+      {cards.map((card) => (
+        <PermissionCard
+          card={card}
+          key={card.requestId}
+          onAnswer={(decision) => answer(card.requestId, decision)}
+        />
+      ))}
+
+      {data.grants.length > 0 && (
+        <div aria-label="Always allowed in this session" className={css.grants} role="group">
+          <span className={css.grantsLabel}>
+            <ShieldCheck aria-hidden size={ICON_SIZE.micro} />
+            Always allowed
+          </span>
+          {data.grants.map((grant) => (
+            <span className={css.grant} key={grant} title={grant}>
+              <span className={css.chipText}>{grantLabel(grant)}</span>
+              {canRun && (
+                <button
+                  aria-label={`Stop always allowing ${grantLabel(grant)}`}
+                  className={css.grantRemove}
+                  disabled={running}
+                  onClick={() => revokeGrant(grant)}
+                  title={running
+                    ? "Can be withdrawn once the turn ends"
+                    : "Withdraw — the next turn asks again"}
+                  type="button"
+                >
+                  <X aria-hidden size={ICON_SIZE.micro} />
+                </button>
+              )}
+            </span>
+          ))}
+        </div>
+      )}
+
       {data.prompts.length === 0 && (
         <p className={css.hint}>
           {canRun
             ? "Ask Claude to write in this post — paragraphs, lists, tables. " +
-              "It edits the post directly, and you choose the folder it works " +
-              "in when you send."
+              "It edits the post directly. You choose the folder it works in " +
+              "when you send, and approve each command or file change it " +
+              "makes there."
             : host
             ? "This post is in read mode."
             : "Agent sessions run in the desktop app."}
@@ -459,6 +543,8 @@ export default function AgentBlockComponent(
                 >
                   {entry.kind === "tool"
                     ? <Wrench aria-hidden className={css.logIcon} size={ICON_SIZE.micro} />
+                    : entry.kind === "permission"
+                    ? <ShieldCheck aria-hidden className={css.logIcon} size={ICON_SIZE.micro} />
                     : entry.kind === "error"
                     ? <AlertCircle aria-hidden className={css.logIcon} size={ICON_SIZE.micro} />
                     : <MessageSquare aria-hidden className={css.logIcon} size={ICON_SIZE.micro} />}
@@ -521,7 +607,11 @@ export default function AgentBlockComponent(
           </div>
           <div className={css.footer}>
             <span>
-              {running ? "Esc to stop" : "Ctrl+Enter to send"}
+              {waiting
+                ? "Esc stops the turn and denies open requests"
+                : running
+                ? "Esc to stop"
+                : "Ctrl+Enter to send"}
             </span>
             {!running && data.prompts.length === 0 && log.length === 0 && (
               <span className={css.empty}>No turns yet</span>
@@ -529,6 +619,96 @@ export default function AgentBlockComponent(
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * One permission card. Three states: pending (the choices), answered (what the
+ * author chose) and expired (denied without an answer — the timeout, a stop,
+ * the window going). Every string in it came from main and is rendered as
+ * text; an MCP server's name is configuration, not markup.
+ */
+function PermissionCard(
+  { card, onAnswer }: {
+    card: AgentPermissionCard;
+    onAnswer: (decision: AgentPermissionDecision) => void;
+  },
+) {
+  const resume = card.kind === "resume";
+  const heading = card.title ||
+    (resume ? "Resume this session?" : `Claude wants to use ${card.tool}`);
+  const minutes = Math.max(1, Math.round(card.expiresInMs / 60_000));
+  const always = card.always && card.always.length ? card.always : null;
+  const busy = card.state === "pending" && card.answering;
+
+  const deny = (
+    <ActionButton
+      disabled={busy}
+      onClick={() => onAnswer("deny")}
+      size="sm"
+      variant="outline"
+    >
+      {resume ? "Cancel" : "Deny"}
+    </ActionButton>
+  );
+
+  return (
+    <div
+      aria-label={resume ? "Resume confirmation" : "Permission request"}
+      className={css.permission}
+      data-state={card.state}
+      role="group"
+    >
+      <div className={css.permissionHead}>
+        {card.state === "pending"
+          ? <ShieldQuestion aria-hidden className={css.permissionIcon} size={ICON_SIZE.dense} />
+          : <ShieldCheck aria-hidden className={css.permissionIcon} size={ICON_SIZE.dense} />}
+        <span>{heading}</span>
+      </div>
+      {!resume && card.summary && <code className={css.permissionSummary}>{card.summary}</code>}
+      {card.detail && <p className={css.permissionDetail}>{card.detail}</p>}
+      {card.reason && <p className={css.permissionDetail}>{card.reason}</p>}
+
+      {card.state === "pending"
+        ? (
+          <div className={css.permissionActions}>
+            {card.defaultToNo && deny}
+            <ActionButton
+              disabled={busy}
+              onClick={() => onAnswer("allow")}
+              size="sm"
+              variant="accent"
+            >
+              {resume ? "Resume" : "Allow once"}
+            </ActionButton>
+            {always && (
+              <ActionButton
+                disabled={busy}
+                onClick={() => onAnswer("always")}
+                size="sm"
+                title={`Always allow for this session: ${always.join(", ")}`}
+                variant="outline"
+              >
+                Always: {always.map(grantLabel).join(", ")}
+              </ActionButton>
+            )}
+            {!card.defaultToNo && deny}
+            <span className={css.permissionNote}>
+              {busy ? "Sending…" : `Denied automatically after ${minutes} min`}
+            </span>
+          </div>
+        )
+        : (
+          <p
+            className={cx(
+              css.permissionOutcome,
+              card.decision === "deny" && css.permissionDenied,
+            )}
+          >
+            {card.text}
+          </p>
+        )}
     </div>
   );
 }

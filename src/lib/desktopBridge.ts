@@ -102,6 +102,9 @@ export type AgentStartResult =
 
 export type AgentSendResult = { ok: true } | { ok: false; error: string };
 
+/** An answer to a permission card (docs/plans/agent-block.md phase 2). */
+export type AgentPermissionDecision = "allow" | "always" | "deny";
+
 /**
  * Text the block hands main for §4.5's system prompt. Never a path, an argv
  * element or an environment: main caps every field and only ever puts them in
@@ -143,6 +146,30 @@ export type AgentEvent = { sessionId: string } & (
     costUsd: number;
   }
   | { type: "error"; message: string }
+  | {
+    type: "permission";
+    requestId: string;
+    kind: "tool" | "resume";
+    tool: string;
+    title: string;
+    summary: string;
+    detail: string;
+    reason: string;
+    blockedPath: string;
+    defaultToNo: boolean;
+    label: string;
+    /** What "always" would grant, or `null` when the card does not offer it. */
+    always: string[] | null;
+    expiresInMs: number;
+  }
+  | {
+    type: "permission-resolved";
+    requestId: string;
+    decision: AgentPermissionDecision;
+    reason: "answered" | "expired" | "interrupted" | "closed" | "cancelled";
+    label: string;
+  }
+  | { type: "grants"; grants: string[] }
   | { type: "turn-end" }
 );
 
@@ -162,9 +189,13 @@ export interface AgentToolCall {
  */
 export interface DesktopAgent {
   start(options: { prompt: string; context: AgentTurnContext }): Promise<AgentStartResult>;
+  /**
+   * `grants` are the "always" rules the block still shows. Main only ever
+   * narrows its own record to them; it never applies one it did not record.
+   */
   send(
     sessionId: string,
-    options: { prompt: string; context: AgentTurnContext },
+    options: { prompt: string; context: AgentTurnContext; grants: string[] },
   ): Promise<AgentSendResult>;
   interrupt(sessionId: string): Promise<boolean>;
   /** Subscribe to one session's events. Returns the unsubscribe. */
@@ -172,6 +203,8 @@ export interface DesktopAgent {
   /** Subscribe to doc-tool calls for every session this window owns. */
   onToolCall(cb: (call: AgentToolCall) => void): () => void;
   toolResult(callId: string, result: unknown): void;
+  /** Answer a `permission` event's card. Main checks the id, owner and choice. */
+  answerPermission(requestId: string, decision: AgentPermissionDecision): void;
 }
 
 export interface DesktopBridge {

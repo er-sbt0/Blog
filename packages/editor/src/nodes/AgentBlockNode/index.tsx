@@ -54,6 +54,7 @@ export type SerializedAgentBlockNode = Spread<
     log: AgentBlockData["log"];
     status: AgentBlockData["status"];
     context?: AgentBlockData["context"];
+    grants?: string[];
   },
   SerializedLexicalNode
 >;

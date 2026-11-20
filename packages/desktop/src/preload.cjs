@@ -62,8 +62,7 @@ const { contextBridge, ipcRenderer } = require("electron");
  *   in a main-process folder dialog when `start` runs and only handed back for
  *   display; a resume reads it from main's own record, never from the block.
  *   So a script in the renderer cannot point a session at a directory of its
- *   choosing. Which tools the session has is fixed in `agent.js`; phase 1 has
- *   the doc tools and no built-in tools at all.
+ *   choosing. Which tools the session has is fixed in `agent.js`.
  * - Session ids and tool-call ids are minted in the main process, and every
  *   message naming one is checked against the WebContents that owns it
  *   (`agentIpc.js`). A `toolResult` can only answer a call that is pending.
@@ -71,6 +70,17 @@ const { contextBridge, ipcRenderer } = require("electron");
  *   names with a one-line description, a result — and doc-tool calls whose
  *   names main defined. The renderer executes those against the editor holding
  *   the session's block; main never writes a document.
+ * - **Permissions add one call, `answerPermission(requestId, decision)`, and no
+ *   new subscription** (phase 2). The card arrives as a `permission` event on
+ *   the session's existing `onEvent` stream. The answer is one of three fixed
+ *   strings for an id main minted: main ignores it unless the id is pending,
+ *   the card was sent to *this* window, and the card offered that choice. It
+ *   cannot name a tool, a command or a rule — "always" grants exactly the rule
+ *   main derived from the CLI's suggestion and showed on the card — so the
+ *   most a renderer can do with it is say yes to a question main asked, which
+ *   it could already do by typing a prompt. Grants the block shows go back on
+ *   each send as `grants`, and main uses them only to *narrow* its own record:
+ *   a grant main did not record is dropped, never applied.
  *
  * Channel names are repeated from `pty.js` and `remoteSessionsIpc.js` rather
  * than imported: a sandboxed preload cannot import an ES module from the
@@ -115,13 +125,18 @@ function size(value) {
 }
 
 /**
- * A turn's prompt and context, copied out by hand for the reason `size` is:
+ * A turn's prompt, context and the grants the block shows (strings, at most
+ * 50; main validates each and only narrows by them), copied out by hand for
+ * the reason `size` is:
  * only these fields, as strings (the selection as the plain JSON object
  * `captureSelection` makes), so nothing else the caller hung on the object
  * crosses — and nothing that cannot be cloned turns a send into an exception.
  */
 function turn(value) {
   const context = value?.context ?? {};
+  const grants = Array.isArray(value?.grants)
+    ? value.grants.filter((grant) => typeof grant === "string").slice(0, 50)
+    : [];
   let selection = null;
   try {
     selection = context.selection ? JSON.parse(JSON.stringify(context.selection)) : null;
@@ -130,6 +145,7 @@ function turn(value) {
   }
   return {
     prompt: typeof value?.prompt === "string" ? value.prompt : "",
+    grants,
     context: {
       title: typeof context.title === "string" ? context.title : "",
       blockId: typeof context.blockId === "string" ? context.blockId : "",
@@ -188,5 +204,15 @@ contextBridge.exposeInMainWorld("desktop", {
     onToolCall: (callback) => subscribe("agent:tool-call", callback),
     /** Answer a pending tool call. The result is structured-cloned as plain data. */
     toolResult: (callId, result) => ipcRenderer.send("agent:tool-result", callId, result),
+    /**
+     * Answer a permission card: `"allow"`, `"always"` or `"deny"`. Only the two
+     * strings cross; main checks both (see the file comment).
+     */
+    answerPermission: (requestId, decision) =>
+      ipcRenderer.send(
+        "agent:permission-answer",
+        typeof requestId === "string" ? requestId : "",
+        typeof decision === "string" ? decision : "",
+      ),
   },
 });

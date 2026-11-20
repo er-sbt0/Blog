@@ -1,10 +1,9 @@
-import os from "node:os";
 import { randomUUID } from "node:crypto";
 import { createSdkMcpServer, query, tool } from "@anthropic-ai/claude-agent-sdk";
 import { z } from "zod";
 import { BLOCK_DOC, opSchema, RECOVERY_DOC } from "./generated/docSchema.mjs";
-import { buildTerminalEnv } from "./terminal.js";
-import { buildSystemPrompt, DOC_SERVER, DOC_TOOLS, project } from "./agentProtocol.js";
+import { agentEnv, buildSystemPrompt, DOC_SERVER, DOC_TOOLS, project } from "./agentProtocol.js";
+import { grantsToOptions } from "./agentPermissions.js";
 
 export { DOC_SERVER, DOC_TOOLS, TOOL_TIMEOUT_MS } from "./agentProtocol.js";
 
@@ -36,15 +35,37 @@ export { DOC_SERVER, DOC_TOOLS, TOOL_TIMEOUT_MS } from "./agentProtocol.js";
  * describes them, and the renderer validates with the same schema again before
  * it touches the editor.
  *
- * ### Phase 1's scope, stated where it is enforced
+ * ### Full Claude Code, behind `canUseTool` (phase 2, §2.7)
  *
- * - **No built-in tools** (`tools: []`) and `permissionMode: "dontAsk"`, so
- *   anything not in `allowedTools` is denied rather than prompted. The folder
- *   picker exists now (`agentIpc.js`), but §2.7's full Claude Code — Bash,
- *   file edits, web, the user's MCP servers — comes back in phase 2 together
- *   with `canUseTool` and the in-block permission cards, not before.
- * - **No filesystem settings** (`settingSources: []`): no user hooks, no
- *   CLAUDE.md, no user MCP servers. Same reason, same phase.
+ * A session given a `canUseTool` runs with Claude Code's own tools (the
+ * `claude_code` preset: Bash, file edits, web, the user's MCP servers),
+ * `settingSources` user + project + local (so the user's settings and the
+ * folder's CLAUDE.md load) and `permissionMode: "default"` — passed
+ * explicitly, because when it is omitted the CLI takes `defaultMode` from the
+ * settings it loads, and a `bypassPermissions` there would skip every card.
+ * The session's grants (`agentPermissions.js`) go in `allowedTools`;
+ * everything else that needs permission reaches `canUseTool`, which allows
+ * the doc tools outright and turns the rest into a card in the block.
+ *
+ * **Without a `canUseTool` it stays sealed** exactly as phase 1 was:
+ * `tools: []`, `dontAsk`, `settingSources: []`. So the switch to a shell is
+ * one argument, and a caller that forgets it gets the doc tools and nothing
+ * else rather than a shell nobody is asked about. `scripts/spike-agent-sdk.mjs`
+ * is such a caller.
+ *
+ * `AskUserQuestion` is disallowed: the block has no surface for it, and a
+ * question belongs in the reply, which the author answers with a follow-up.
+ *
+ * ### `ANTHROPIC_API_KEY` is stripped
+ *
+ * The terminal keeps it, because a terminal must behave like the user's own
+ * (`buildTerminalEnv`). This child is not a terminal: it is the app running
+ * Claude on the author's behalf, phase 0 verified it on the author's Claude
+ * Code login, and a key that happens to be in the launching shell — a dev
+ * `.env`, an exported variable from some other project — would otherwise
+ * silently take precedence and bill a different account (§7). A user who
+ * wants a key can still set one through Claude Code's own settings
+ * (`apiKeyHelper`, `env`), which `settingSources` loads.
  *
  * No `electron` import, deliberately: `scripts/spike-agent-sdk.mjs` drives this
  * module under plain Node with a fake `executeTool`.
@@ -153,6 +174,8 @@ export function createAgentSession({
   onEvent,
   log = () => {},
   pathToClaudeCodeExecutable,
+  canUseTool,
+  grants = () => [],
 }) {
   // Whether the SDK has a `<sessionId>.jsonl` to resume. Set by the first
   // turn's init, so a first turn that failed before starting is retried as a
@@ -161,45 +184,26 @@ export function createAgentSession({
   /** The running turn, or null. One at a time. */
   let current = null;
 
-  function send(prompt, context) {
+  /**
+   * One turn. `gate`, when given, runs first and may decline the turn — the
+   * resume confirmation (`agentIpc.js`). The turn counts as running from the
+   * moment `send` answers, gate included, so a second send is refused and an
+   * interrupt reaches it.
+   */
+  function send(prompt, context, { gate } = {}) {
     if (current) {
       return { ok: false, error: "The agent is still working on the last prompt." };
     }
     const abortController = new AbortController();
-    const run = query({
-      prompt,
-      options: {
-        cwd,
-        ...(hasTranscript ? { resume: sessionId } : { sessionId }),
-        abortController,
-        tools: [],
-        allowedTools: DOC_TOOLS.map((name) => `mcp__${DOC_SERVER}__${name}`),
-        permissionMode: "dontAsk",
-        settingSources: [],
-        mcpServers: { [DOC_SERVER]: docServer(executeTool) },
-        systemPrompt: {
-          type: "preset",
-          preset: "claude_code",
-          append: buildSystemPrompt(context),
-        },
-        // The terminal's environment rule, reused rather than restated: open,
-        // minus `ELECTRON_RUN_AS_NODE`, plus `~/.local/bin` on `PATH`. Passing
-        // `env` *replaces* the child's environment in the SDK, so this has to
-        // be the whole thing, not a delta.
-        env: {
-          ...buildTerminalEnv(process.env, { home: os.homedir() }),
-          CLAUDE_AGENT_SDK_CLIENT_APP: "blog-desktop/0.0.0",
-        },
-        ...(pathToClaudeCodeExecutable ? { pathToClaudeCodeExecutable } : {}),
-        stderr: (data) => log(`agent ${sessionId}: ${String(data).trimEnd()}`),
-      },
-    });
-    const turn = { run, abortController, interrupted: false };
+    const turn = { run: null, abortController, interrupted: false };
     current = turn;
 
     void (async () => {
       try {
-        for await (const message of run) {
+        if (gate && !(await gate(abortController.signal))) return;
+        if (turn.interrupted || abortController.signal.aborted) return;
+        turn.run = query({ prompt, options: turnOptions(context, abortController) });
+        for await (const message of turn.run) {
           if (message?.type === "system" && message.subtype === "init") {
             hasTranscript = true;
           }
@@ -221,6 +225,45 @@ export function createAgentSession({
     return { ok: true };
   }
 
+  function turnOptions(context, abortController) {
+    const docTools = DOC_TOOLS.map((name) => `mcp__${DOC_SERVER}__${name}`);
+    const { allowedRules, permissionMode } = grantsToOptions(grants());
+    const tools = canUseTool
+      ? {
+        tools: { type: "preset", preset: "claude_code" },
+        // The doc tools are *not* listed here: a bare allowedTools entry
+        // shadows `canUseTool` (the SDK warns, CLAUDE_SDK_CAN_USE_TOOL_SHADOWED,
+        // every turn), and `canUseTool` allows them anyway, keyed on the
+        // server's `sdk` source rather than on the name.
+        allowedTools: allowedRules,
+        disallowedTools: ["AskUserQuestion"],
+        permissionMode,
+        settingSources: ["user", "project", "local"],
+        canUseTool,
+      }
+      : {
+        tools: [],
+        allowedTools: docTools,
+        permissionMode: "dontAsk",
+        settingSources: [],
+      };
+    return {
+      cwd,
+      ...(hasTranscript ? { resume: sessionId } : { sessionId }),
+      abortController,
+      ...tools,
+      mcpServers: { [DOC_SERVER]: docServer(executeTool) },
+      systemPrompt: {
+        type: "preset",
+        preset: "claude_code",
+        append: buildSystemPrompt(context),
+      },
+      env: agentEnv(process.env),
+      ...(pathToClaudeCodeExecutable ? { pathToClaudeCodeExecutable } : {}),
+      stderr: (data) => log(`agent ${sessionId}: ${String(data).trimEnd()}`),
+    };
+  }
+
   return {
     sessionId,
     cwd,
@@ -232,7 +275,7 @@ export function createAgentSession({
     interrupt() {
       if (!current) return false;
       current.interrupted = true;
-      current.run.interrupt().catch(() => {});
+      current.run?.interrupt().catch(() => {});
       return true;
     },
     /** Abort outright — the window or the app is going. */

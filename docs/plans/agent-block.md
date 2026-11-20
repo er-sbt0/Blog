@@ -1,6 +1,6 @@
 # `/agent` — a Claude Code session as a block in the post
 
-**Status: phases 0 and 1 done (14–15 Nov 2026) — see §7 and §8. Phases 2–6
+**Status: phase 2 done (20 Nov 2026); phases 0–2 logged in §7–§9. Phases 3–6
 not started.** Supersedes
 [claude-code-notebook.md](./claude-code-notebook.md), which stays for its §2.1
 (the transcript is already block-shaped) and §5 (the autosave/streaming
@@ -467,3 +467,193 @@ the app, were not driven: there is no way to answer a GTK dialog from CDP.
   login (§7). That matters more once sessions run real tools under the user's
   account.
 
+## 9. Phase 2 log (20 Nov 2026)
+
+A block's session is now full Claude Code in its folder: Bash, file edits, web,
+the user's MCP servers, settings and the folder's CLAUDE.md, plus the doc
+tools. Every call that needs permission appears in the block as a card with
+three choices: allow once, always for this session, and deny. Nothing reaches
+a tool without a card or a grant that main holds.
+
+**What was built.**
+
+- `packages/desktop/src/agentPermissions.js` is pure, with no `electron` and
+  no SDK. It holds the broker, `createCanUseTool`, card descriptions and the
+  grant rules. Its broker is a third round trip shaped like the tool calls:
+  main mints the id, sends the card to the owning window, and accepts an
+  answer only from that window, only for a pending id, and only with a
+  choice the card offered.
+  Every unanswered ending is a **deny**: the 10-minute timeout, an interrupt,
+  the window closing, its page navigating away (`did-start-navigation`, main
+  frame, not same-document), the SDK cancelling the request, and the app
+  quitting.
+- `agent.js`: with a `canUseTool`, a turn runs the `claude_code` tool preset
+  with `settingSources: ["user", "project", "local"]`, an explicit
+  `permissionMode` (`default`, or `acceptEdits` when granted), the session's
+  grants as `allowedTools`, and `AskUserQuestion` disallowed. **Without a
+  `canUseTool` it is still sealed** exactly as phase 1 was, so a caller
+  that forgets the argument (the spike script, for one) gets no shell. `send`
+  takes an optional `gate`, which runs inside the turn before `query()`.
+- `agentIpc.js`: the broker, `agent:permission-answer`, grants on the session
+  entry, the resume gate, and deny-on-interrupt.
+- `agentSessions.js` records each session's grants next to its folder.
+- `preload.cjs` adds `answerPermission(requestId, decision)` and nothing
+  else. The card arrives as a `permission` event on the existing `onEvent`
+  stream. `turn()` also copies the block's grant claims, up to 50 strings.
+  The comment there argues why this is narrow.
+- On the block (`model.ts`, `AgentBlockComponent.tsx`, `styles.css.ts`):
+  - The card has three states: pending, answered, and expired (denied
+    without an answer). It also has a "Sending…" sub-state, because only
+    main's `permission-resolved` closes a card, so a click main ignores
+    leaves the card open rather than lying.
+  - There is a "Waiting on you" status chip.
+  - Grants show as chips with ×.
+  - Each card becomes one `permission` log entry at the turn's end.
+  - `grants` is stored on the node for display.
+
+**Decisions taken, and why.**
+
+- **"Always" is a Claude Code rule string, derived from the CLI's own
+  suggestion.** Examples are `Bash(touch a.txt)`,
+  `WebFetch(domain:example.com)`, and `@acceptEdits` for the `setMode`
+  suggestion a `Write` gets. If there is no suggestion, or
+  `suppressAlwaysAllowRule` is set, "always" is not offered. A bare tool name
+  would grant more than the card asked about.
+  - The suggestion's destination is rewritten from `localSettings` to
+    `session`. Otherwise "always" would write into the folder's
+    `.claude/settings.local.json` and outlive the block.
+  - `addDirectories` suggestions are dropped: the folder is the picker's
+    decision.
+  - The button names exactly what it grants.
+- **Main enforces grants per turn, because the CLI cannot.** Each turn is its
+  own `query()`, so the CLI's session rules die with the turn. This was
+  measured: an `updatedPermissions` rule covered the rest of its turn and the
+  next turn asked again. Main keeps the grants, persists them, and passes them
+  as `allowedTools` each turn, where the CLI's own matcher applies them
+  (measured: no card).
+  - On every send the block names the grants it still shows, and main keeps
+    the **intersection** (`reconcileGrants`). So the × on a chip withdraws a
+    grant for good, a grant edited into a revision does nothing, and a
+    renderer can never add a grant.
+  - When the intersection differs from the claim, main sends a `grants` event
+    and the block's copy follows it.
+- **The doc tools are no longer in `allowedTools` once `canUseTool` exists.**
+  A bare entry there shadows the callback, and the SDK warns about that on
+  every turn (`CLAUDE_SDK_CAN_USE_TOOL_SHADOWED`). `canUseTool` allows them
+  instead, keyed on `mcpServer.source === "sdk"` rather than on the name, so
+  a user's configured server that happens to be called `doc` still gets a
+  card.
+- **A denial never sets `interrupt: true`.** An SDK-side interrupt ends the
+  turn with an error result, which the block would show as Failed (measured).
+  An expired card instead tells the model to stop, and it does. An Esc or a
+  closed window stops the turn by its own path.
+- **Session claiming (phase 1's widening) costs a confirmation.** A session
+  restored from `agent-sessions.json`, or taken over by a different window,
+  runs its next turn only after a "Resume this session in <cwd>?" card is
+  allowed. This is the same broker, offered as Resume / Cancel with no
+  "always". The confirmation is per entry, so it is asked again after the next
+  restart. A declined or unanswered resume leaves the turn unrun, and the block
+  records it as Interrupted, not Failed.
+- **`ANTHROPIC_API_KEY` is stripped** from the SDK child (`agentEnv` in
+  `agentProtocol.js`). The terminal keeps it, and its code says why: a
+  terminal must behave like the user's own. This child is the app running
+  Claude for the author on their Claude Code login, and a stray key in the
+  launching shell would otherwise take precedence and bill another account
+  (§7). A user who wants a key can set it through Claude Code's own settings
+  (`env`, `apiKeyHelper`), which `settingSources` now loads. Verified: with a
+  bogus key in main's environment every turn ran and reported `apiKeySource:
+  "none"`.
+- **`permissionMode` is passed explicitly.** If it is omitted, the CLI takes
+  `defaultMode` from the settings it loads, and a `bypassPermissions` there
+  would skip every card.
+
+**What this does not defend against, said plainly.** A card is answered in
+the renderer, so a script running there can answer one as easily as it can
+type a prompt. The same goes for the resume card. The cards protect the
+*author* from actions they did not see. What keeps a script from choosing
+where a shell runs is still the native folder dialog. Two consequences
+follow:
+
+- The user's and the folder's own settings apply. An allow rule in
+  `~/.claude/settings.json`, or in a cloned repo's `.claude/settings.json`,
+  allows its calls with no card, and that folder's hooks run. This is what
+  §2.7 asked for ("the user's settings"). The CLI's workspace-trust prompt
+  does not exist under the SDK, so picking the folder *is* the trust
+  decision.
+- A stronger resume confirmation would be a native `dialog.showMessageBox`
+  from main, which no renderer script can click. It needs no preload surface.
+  It was not done because the brief asked for the confirmation in the block.
+  It is worth revisiting in phase 6.
+
+**Verified.**
+
+- `tsc`, lint (including `eslint` run directly on the touched `packages/`
+  files), `check:nodes`, `check:codecs` and `check:theme` all pass. The full
+  vitest suite passes: 103 files, 1826 tests, 6.4 s.
+- New specs:
+  - `desktop/__tests__/agentPermissions.test.ts`, which covers the broker
+    (timeout deny, owner-only answers, "always" only where offered,
+    interrupt/close/cancel deny), `canUseTool` (doc tools allowed, a
+    same-named configured server asked, the CLI's suggestion as the grant
+    with destination `session`, no forged "always") and the grant rules.
+  - `desktop/__tests__/agentIpc.test.ts`, which drives `agentIpc.js` over a
+    fake `ipcMain` and a fake `agent.js`. It covers the owner check,
+    "always" surviving a restart only when the block still claims it, a
+    claim main never recorded being ignored, a withdrawn grant staying gone,
+    the resume card (offered once per claim, declined, allowed, asked again
+    for a new window) and interrupt denying open cards.
+  - Card, status and outcome cases added to `nodes/__tests__/agentBlock.test.ts`.
+  - `agentEnv` added to `agent.test.ts`.
+- Against the real SDK (0.3.309 / claude 2.1.309), with throwaway scripts in
+  the session scratchpad driving `agent.js` and `agentPermissions.js` wired as
+  `agentIpc.js` wires them:
+  - A Bash `touch` reached `canUseTool` as a card.
+  - Deny meant no file was created.
+  - Allow once created the file.
+  - Always recorded `Bash(touch …)` + `@acceptEdits`, and the next turn ran
+    without a card.
+  - The doc tool ran with no card and no shadowing warning.
+  - An unanswered card expired as a deny, with no file and no error event.
+  - Interrupting while a card was open denied it, with no file and no error
+    event.
+  - A declined `gate` produced only `turn-end`, and an allowed one ran the
+    turn.
+- **Not driven:** the cards in the running desktop app. There is no CDP
+  answer to the GTK folder dialog that starts a session (§8), and the IPC half
+  is covered by the spec above.
+
+**What phases 3–6 need to know.**
+
+- **Phase 3 (math + image).** `insert_image { path }` is the first doc tool
+  that reads the filesystem, and it must read in **main**, not the renderer:
+  - Run `resolveWithin(cwd, path)` against the session entry's `cwd` (main's
+    record, never the block's), then `realpath` and re-check containment so
+    that a symlink in the folder cannot point out of it.
+  - Cap the size and sniff the type.
+  - Pass bytes (or a data URI) to the renderer, which uploads them as a blob.
+
+  `resolveWithin` lives in `src/lib/safePath.ts` (TypeScript, app side), so
+  main needs either a small JS twin with its own spec or an esbuild bundle like
+  `build-agent-schema.mjs`. Do not let the renderer name a path.
+
+  Doc tools are auto-allowed by `canUseTool` on `source === "sdk"`, so a new
+  doc tool needs no card. Add it to `DOC_TOOLS`, and the router and executor
+  will refuse anything else. Note that a file the agent *wrote* with Bash or
+  Write and then inserts was already approved on its own card.
+- **Phase 6 (lifecycle).**
+  - Undoing past a turn's end now also rolls back that turn's `grants`
+    write, just as it does the log. The `grants` event re-syncs the block on
+    the next send, so this costs a stale chip, never a stale grant.
+  - Closing the pane interrupts the turn, which denies its open cards. A
+    renderer reload denies them through `did-start-navigation`, but the turn
+    itself keeps running with no block attached (its doc calls fail with
+    `NOT_OPEN`). Decide whether a reload should interrupt as well.
+  - Consider the native resume dialog (above).
+- **The SDK binary (§6 q6).** Phase 2 leaned on CLI behaviour that is
+  version-sensitive: suggestion shapes, the shadowing warning, the
+  interrupt-as-error result, and acceptEdits allowing `touch`. That is
+  another argument for keeping the version-matched bundled binary.
+- **Suggestions are generous.** For a file-creating Bash command, the CLI
+  offers the exact command *and* accept-edits mode, and "always" grants both.
+  The button says so. If that proves too broad in use, split it into two
+  choices rather than silently dropping one.

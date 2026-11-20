@@ -22,7 +22,14 @@ import type { CapturedSelection } from "@/lib/ai/selection";
  * cannot name a directory, so neither can this interface.
  */
 
-/** A projected SDK event, as `packages/desktop/src/agentProtocol.js` makes it. */
+/** An answer to a permission card. */
+export type AgentPermissionDecision = "allow" | "always" | "deny";
+
+/**
+ * A projected SDK event, as `packages/desktop/src/agentProtocol.js` makes it,
+ * plus the permission broker's own (`agentPermissions.js`): a card opening,
+ * a card closing, and the session's current "always" grants.
+ */
 export type AgentSessionEvent = { sessionId: string } & (
   | {
     type: "init";
@@ -46,6 +53,30 @@ export type AgentSessionEvent = { sessionId: string } & (
     costUsd: number;
   }
   | { type: "error"; message: string }
+  | {
+    type: "permission";
+    requestId: string;
+    kind: "tool" | "resume";
+    tool: string;
+    title: string;
+    summary: string;
+    detail: string;
+    reason: string;
+    blockedPath: string;
+    defaultToNo: boolean;
+    label: string;
+    /** What "always" would grant, or `null` when the card does not offer it. */
+    always: string[] | null;
+    expiresInMs: number;
+  }
+  | {
+    type: "permission-resolved";
+    requestId: string;
+    decision: AgentPermissionDecision;
+    reason: "answered" | "expired" | "interrupted" | "closed" | "cancelled";
+    label: string;
+  }
+  | { type: "grants"; grants: string[] }
   | { type: "turn-end" }
 );
 
@@ -88,13 +119,24 @@ export interface AgentHost {
    * `{ ok: false, cancelled: true }` when the author dismisses the dialog.
    */
   start(prompt: string, context: AgentTurnContext): Promise<AgentStartResult>;
-  /** A follow-up turn; resumes the SDK session if main no longer holds it. */
+  /**
+   * A follow-up turn; resumes the SDK session if main no longer holds it.
+   * `grants` are the ones the block shows — main uses them only to narrow its
+   * own record, so a block can withdraw a grant but never add one.
+   */
   send(
     sessionId: string,
     prompt: string,
     context: AgentTurnContext,
+    grants: string[],
   ): Promise<AgentSendResult>;
+  /** Interrupt the turn; main also denies its open permission cards. */
   interrupt(sessionId: string): Promise<boolean>;
+  /**
+   * Answer a card. Fire and forget: the card closes when main says so, with a
+   * `permission-resolved` event, never on the click alone.
+   */
+  answerPermission(requestId: string, decision: AgentPermissionDecision): void;
   /** Subscribe to one session's events. Returns the unsubscribe. */
   onEvent(sessionId: string, cb: (event: AgentSessionEvent) => void): () => void;
   /**

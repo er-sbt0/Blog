@@ -27,9 +27,13 @@ let host: AgentHost | null | undefined;
 export function getAgentHost(): AgentHost | null {
   if (host !== undefined) return host;
   const agent = getDesktopBridge()?.agent;
-  if (!agent || typeof agent.send !== "function") {
-    // A shell from before phase 1 has no `send`; treat it as no capability
-    // rather than offering a block that cannot follow up.
+  if (
+    !agent || typeof agent.send !== "function" ||
+    typeof agent.answerPermission !== "function"
+  ) {
+    // A shell from before phase 1 has no `send`, and one from before phase 2
+    // no `answerPermission`; treat either as no capability rather than offer a
+    // block that cannot follow up or answer a card.
     host = null;
     return host;
   }
@@ -44,9 +48,11 @@ export function getAgentHost(): AgentHost | null {
 
   host = {
     start: (prompt, context) => agent.start({ prompt, context }),
-    send: (sessionId, prompt, context) =>
-      agent.send(sessionId, { prompt, context }),
+    send: (sessionId, prompt, context, grants) =>
+      agent.send(sessionId, { prompt, context, grants }),
     interrupt: (sessionId) => agent.interrupt(sessionId),
+    answerPermission: (requestId, decision) =>
+      agent.answerPermission(requestId, decision),
     onEvent: (sessionId, cb) =>
       agent.onEvent(sessionId, (event) => cb(asSessionEvent(event))),
     attach: (sessionId, target) => router.attach(sessionId, target),

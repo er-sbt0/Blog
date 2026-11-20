@@ -1,7 +1,16 @@
 import fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import { BrowserWindow, dialog, ipcMain } from "electron";
-import { CONTEXT_LIMITS, DOC_TOOLS, TOOL_TIMEOUT_MS } from "./agentProtocol.js";
+import {
+  addGrants,
+  createCanUseTool,
+  createPermissionBroker,
+  describeResume,
+  isGrant,
+  MAX_GRANTS,
+  reconcileGrants,
+} from "./agentPermissions.js";
+import { CONTEXT_LIMITS, DOC_SERVER, DOC_TOOLS, TOOL_TIMEOUT_MS } from "./agentProtocol.js";
 import { createSessionStore, isSessionId } from "./agentSessions.js";
 
 /**
@@ -19,19 +28,46 @@ import { createSessionStore, isSessionId } from "./agentSessions.js";
  *   post's stored `cwd` moves a label and nothing else.
  * - **The renderer chooses no argv, environment or tools.** It sends a prompt
  *   and a context of capped strings (`sanitizeContext`), which are text for a
- *   model, not a command line. Which tools exist — and that phase 1 has no Bash
- *   — is decided in `agent.js`.
+ *   model, not a command line. Which tools exist is decided in `agent.js`,
+ *   and the renderer cannot widen them: it can answer a card main sent and
+ *   narrow a session's grants, nothing else.
  * - **Ids are minted here and checked against their owner.** Session ids and
  *   tool-call ids are `randomUUID()`s from this process; every message naming
  *   one is refused unless it comes from the WebContents that owns it; a result
  *   can answer only a call that is pending.
  *
- * One honest widening, for phase 2 to weigh: a block that is reopened claims
- * its session on first send (the owner of a restored session is whichever
- * window sends first). Anything that can read the post can therefore resume its
- * session in the folder the author chose for it. In phase 1 that session has
- * the doc tools and nothing else; once phase 2 gives it a shell, the same claim
- * needs the permission cards in front of it.
+ * ### Permissions (phase 2)
+ *
+ * The third round trip. `canUseTool` (built in `agentPermissions.js`) asks the
+ * broker, which mints a request id, sends the card to the window that owns the
+ * session on the session's event stream, and accepts an answer
+ * (`agent:permission-answer`) only from that window and only for a pending id.
+ * Unanswered is **deny**: after `PERMISSION_TIMEOUT_MS`, on an interrupt, when
+ * the window closes, and when its page navigates away (a reload loses the card,
+ * so the question must not outlive it).
+ *
+ * "Always" is enforced here, not in the block: the session's grants live on
+ * its entry and in `agent-sessions.json`, every turn gets them as
+ * `allowedTools`, and a send can only *narrow* them to what the block still
+ * claims (`reconcileGrants`).
+ *
+ * ### Claiming a session
+ *
+ * A block that is reopened claims its session on first send — the owner of a
+ * restored session is whichever window sends first, so anything that can read
+ * the post could resume its session in the folder the author chose. Phase 1
+ * accepted that because the session had only the doc tools. Now that it can
+ * reach a shell, **a claim costs a confirmation**: a session restored from
+ * `agent-sessions.json`, or taken over by a different window, runs its next
+ * turn only after a "Resume this session in <cwd>?" card is allowed. The card
+ * is the same broker round trip as a tool's, so a decline, a timeout and an
+ * interrupt all leave the turn unrun.
+ *
+ * What none of this defends against, said plainly: a card is answered by the
+ * renderer, so a script running in it can answer one as easily as it can type
+ * a prompt. The cards keep the *author* from being surprised; the folder
+ * dialog, which is native and main-owned, is what keeps a script from choosing
+ * where a shell runs.
  */
 
 export function installAgent({ workspace, sessionsFile, log }) {
@@ -47,17 +83,38 @@ export function installAgent({ workspace, sessionsFile, log }) {
     if (!owner.isDestroyed()) owner.send(channel, payload);
   }
 
+  const broker = createPermissionBroker({
+    notify: (owner, payload) => send(owner, "agent:event", payload),
+  });
+
   /** A window that goes away takes its sessions with it, mid-turn or not. */
   function watch(owner) {
     if (watched.has(owner)) return;
     watched.add(owner);
     owner.once("destroyed", () => {
+      broker.denyOwner(owner, "closed");
       for (const [id, entry] of sessions) {
         if (entry.owner !== owner) continue;
         entry.session.close();
         sessions.delete(id);
       }
     });
+    // A reload or a navigation drops the page holding the cards. Electron 44
+    // passes a details object; the positional form is the older spelling.
+    owner.on("did-start-navigation", (details, _url, isInPlace, isMainFrame) => {
+      const sameDocument = details?.isSameDocument ?? isInPlace;
+      const mainFrame = details?.isMainFrame ?? isMainFrame;
+      if (mainFrame && !sameDocument) broker.denyOwner(owner, "closed");
+    });
+  }
+
+  function persistGrants(entry) {
+    try {
+      store.setGrants(entry.session.sessionId, entry.grants);
+    } catch (cause) {
+      // Costs the grant its survival across a restart, nothing now.
+      console.error("[desktop] could not record the agent session's grants", cause);
+    }
   }
 
   /** The bridge's `executeTool`: one call to the renderer, one answer back. */
@@ -79,11 +136,25 @@ export function installAgent({ workspace, sessionsFile, log }) {
     });
   }
 
-  async function createSession({ owner, sessionId, resume, cwd }) {
+  async function createSession({ owner, sessionId, resume, cwd, grants, confirmed }) {
     const agent = await loadAgent();
     // `entry` is read when a call arrives, so a session re-claimed by another
     // window (see the file comment) sends its calls to the window that has it.
-    const entry = { owner, session: null };
+    const entry = { owner, session: null, cwd, grants, confirmed };
+    const canUseTool = createCanUseTool({
+      docServer: DOC_SERVER,
+      ask: (card, signal) =>
+        broker.request({ owner: entry.owner, sessionId: entry.session.sessionId, card, signal }),
+      onGrant: (granted) => {
+        entry.grants = addGrants(entry.grants, granted);
+        persistGrants(entry);
+        send(entry.owner, "agent:event", {
+          sessionId: entry.session.sessionId,
+          type: "grants",
+          grants: entry.grants,
+        });
+      },
+    });
     entry.session = agent.createAgentSession({
       ...(sessionId ? { sessionId } : {}),
       resume,
@@ -92,6 +163,8 @@ export function installAgent({ workspace, sessionsFile, log }) {
         callRenderer(entry.owner, entry.session.sessionId, name, input),
       onEvent: (payload) => send(entry.owner, "agent:event", payload),
       log,
+      canUseTool,
+      grants: () => entry.grants,
     });
     sessions.set(entry.session.sessionId, entry);
     watch(owner);
@@ -104,6 +177,10 @@ export function installAgent({ workspace, sessionsFile, log }) {
     if (prompt.length > CONTEXT_LIMITS.prompt) return { error: "That prompt is too long." };
     return { prompt };
   };
+
+  /** The grants a block still shows. Only ever used to narrow main's record. */
+  const claimsOf = (options) =>
+    Array.isArray(options?.grants) ? options.grants.filter(isGrant).slice(0, MAX_GRANTS) : [];
 
   ipcMain.handle("agent:start", async (event, options) => {
     const { prompt, error } = promptOf(options);
@@ -129,7 +206,9 @@ export function installAgent({ workspace, sessionsFile, log }) {
 
     let entry;
     try {
-      entry = await createSession({ owner, resume: false, cwd });
+      // The folder dialog the author just answered is this session's
+      // confirmation; it starts with no grants.
+      entry = await createSession({ owner, resume: false, cwd, grants: [], confirmed: true });
     } catch (cause) {
       console.error("[desktop] could not start an agent session", cause);
       return { ok: false, error: cause instanceof Error ? cause.message : String(cause) };
@@ -159,6 +238,7 @@ export function installAgent({ workspace, sessionsFile, log }) {
         return { ok: false, error: "This session is running in another window." };
       }
       entry.owner = owner;
+      entry.confirmed = false;
       watch(owner);
     }
     if (!entry) {
@@ -175,20 +255,63 @@ export function installAgent({ workspace, sessionsFile, log }) {
         return { ok: false, error: `The session's folder no longer exists: ${cwd}` };
       }
       try {
-        entry = await createSession({ owner, sessionId, resume: true, cwd });
+        entry = await createSession({
+          owner,
+          sessionId,
+          resume: true,
+          cwd,
+          grants: store.grantsOf(sessionId),
+          confirmed: false,
+        });
       } catch (cause) {
         console.error("[desktop] could not resume an agent session", cause);
         return { ok: false, error: cause instanceof Error ? cause.message : String(cause) };
       }
       log(`agent: resumed ${sessionId} in ${cwd}`);
     }
-    return entry.session.send(prompt, options?.context);
+    if (entry.session.running) {
+      return { ok: false, error: "The agent is still working on the last prompt." };
+    }
+
+    // Narrow to what the block still shows; tell it if that differs from what
+    // it claimed, so it never displays a grant main is not applying.
+    const claims = claimsOf(options);
+    const narrowed = reconcileGrants(entry.grants, claims);
+    if (narrowed.length !== entry.grants.length) {
+      entry.grants = narrowed;
+      persistGrants(entry);
+    }
+    if (narrowed.length !== claims.length || narrowed.some((grant, i) => grant !== claims[i])) {
+      send(owner, "agent:event", { sessionId, type: "grants", grants: narrowed });
+    }
+
+    const gate = entry.confirmed
+      ? undefined
+      : async (signal) => {
+        const { decision } = await broker.request({
+          owner: entry.owner,
+          sessionId,
+          card: describeResume(entry.cwd),
+          signal,
+        });
+        if (decision !== "allow") return false;
+        entry.confirmed = true;
+        return true;
+      };
+    return entry.session.send(prompt, options?.context, { gate });
   });
 
   ipcMain.handle("agent:interrupt", (event, sessionId) => {
     const entry = sessions.get(sessionId);
     if (!entry || entry.owner !== event.sender) return false;
+    // Cards first: a turn blocked on one would otherwise wait for an answer
+    // nobody will give before it noticed the interrupt.
+    broker.denySession(sessionId, "interrupted");
     return entry.session.interrupt();
+  });
+
+  ipcMain.on("agent:permission-answer", (event, requestId, decision) => {
+    broker.answer(event.sender, requestId, decision);
   });
 
   ipcMain.on("agent:tool-result", (event, callId, result) => {
@@ -211,6 +334,7 @@ export function installAgent({ workspace, sessionsFile, log }) {
      * `ipcMain.handle` throws on a second registration for a channel.
      */
     dispose() {
+      broker.denyAll("closed");
       for (const { session } of sessions.values()) session.close();
       sessions.clear();
       for (const call of pending.values()) {
@@ -222,6 +346,7 @@ export function installAgent({ workspace, sessionsFile, log }) {
       ipcMain.removeHandler("agent:send");
       ipcMain.removeHandler("agent:interrupt");
       ipcMain.removeAllListeners("agent:tool-result");
+      ipcMain.removeAllListeners("agent:permission-answer");
     },
   };
 }

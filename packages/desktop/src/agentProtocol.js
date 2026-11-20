@@ -5,6 +5,10 @@
  * run without the generated doc-schema bundle and without a `claude` binary.
  */
 
+import os from "node:os";
+import { summarizeToolInput } from "./agentPermissions.js";
+import { buildTerminalEnv } from "./terminal.js";
+
 /** The in-process MCP server's name, and so the `mcp__doc__*` tool prefix. */
 export const DOC_SERVER = "doc";
 
@@ -77,6 +81,10 @@ export function buildSystemPrompt(context) {
     "Your writes are live: they land in the open editor, on the author's undo " +
       "stack, and are saved like their typing. There is no review step, so " +
       "change only what you were asked to.",
+    "You also have Claude Code's own tools in your working folder (shell, " +
+      "files, web). The author approves each call that needs it from a card " +
+      "in your block; a denied call is their answer — do not retry it or work " +
+      "around it.",
   ];
   if (blockId) {
     lines.push(
@@ -99,9 +107,13 @@ export function buildSystemPrompt(context) {
   return lines.join("\n\n");
 }
 
-/** One line saying what a doc-tool call asked for, without its payload. */
+/**
+ * One line saying what a tool call asked for, without its payload: the ops of
+ * a doc-tool call, the command or file of a built-in one (phase 2).
+ */
 export function describeToolCall(name, input) {
   const args = input && typeof input === "object" ? input : {};
+  if (!String(name).startsWith("mcp__doc__")) return clip(summarizeToolInput(String(name), input), 160);
   const short = String(name).replace(/^mcp__doc__/, "");
   if (short === "read_blocks" && Array.isArray(args.blocks)) {
     return clip(args.blocks.join(", "), 120);
@@ -189,3 +201,23 @@ export function project(message) {
       return null;
   }
 }
+
+/**
+ * The SDK child's environment: the terminal's rule (open, minus
+ * `ELECTRON_RUN_AS_NODE`, plus `~/.local/bin` on `PATH`), minus
+ * `ANTHROPIC_API_KEY` — see `agent.js`'s file comment. Passing `env` *replaces* the
+ * child's environment in the SDK, so this is the whole thing, not a delta.
+ *
+ * @param {Record<string, string | undefined> | undefined} parentEnv
+ * @param {string} [home]
+ * @returns {Record<string, string>}
+ */
+export function agentEnv(parentEnv, home = os.homedir()) {
+  const env = {
+    ...buildTerminalEnv(parentEnv, { home }),
+    CLAUDE_AGENT_SDK_CLIENT_APP: "blog-desktop/0.0.0",
+  };
+  delete env.ANTHROPIC_API_KEY;
+  return env;
+}
+

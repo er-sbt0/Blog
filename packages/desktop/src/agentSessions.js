@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { isGrant, MAX_GRANTS } from "./agentPermissions.js";
 
 /**
  * Which folder each agent session runs in, remembered by the main process
@@ -12,6 +13,12 @@ import path from "node:path";
  * main minted, and a resume reads it back from here, never from the block. A
  * renderer that edits the stored `cwd` in a post changes what the chip says and
  * nothing else.
+ *
+ * Phase 2 adds each session's **grants** ("always for this session",
+ * `agentPermissions.js`) to the same record, for the same reason: a reopened
+ * block shows its grants and claims them on send, and main re-applies one only
+ * if it is recorded here too. A grant the renderer names that this file does
+ * not hold is never applied.
  *
  * Sync I/O on a small file, like `windowState.js`: it is read once per resume
  * and written once per new session. A missing or corrupt file reads as empty —
@@ -49,14 +56,34 @@ export function createSessionStore(file, { now = () => Date.now() } = {}) {
     /** Record a new session's folder, dropping the oldest past the cap. */
     remember(sessionId, cwd) {
       if (!isSessionId(sessionId) || !path.isAbsolute(cwd)) return;
-      const sessions = { ...read(), [sessionId]: { cwd, at: now() } };
-      const kept = Object.entries(sessions)
-        .sort(([, a], [, b]) => (b?.at ?? 0) - (a?.at ?? 0))
-        .slice(0, MAX_REMEMBERED);
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      const temp = `${file}.tmp`;
-      fs.writeFileSync(temp, JSON.stringify({ version: 1, sessions: Object.fromEntries(kept) }));
-      fs.renameSync(temp, file);
+      write({ ...read(), [sessionId]: { cwd, at: now(), grants: [] } });
+    },
+
+    /** The grants recorded for `sessionId`; `[]` for none or an unknown id. */
+    grantsOf(sessionId) {
+      if (!isSessionId(sessionId)) return [];
+      const grants = read()[sessionId]?.grants;
+      return Array.isArray(grants) ? grants.filter(isGrant).slice(0, MAX_GRANTS) : [];
+    },
+
+    /** Replace a known session's grants. An id with no folder record is ignored. */
+    setGrants(sessionId, grants) {
+      if (!isSessionId(sessionId)) return;
+      const sessions = read();
+      const entry = sessions[sessionId];
+      if (!entry || typeof entry.cwd !== "string") return;
+      const kept = (Array.isArray(grants) ? grants : []).filter(isGrant).slice(0, MAX_GRANTS);
+      write({ ...sessions, [sessionId]: { ...entry, grants: kept } });
     },
   };
+
+  function write(sessions) {
+    const kept = Object.entries(sessions)
+      .sort(([, a], [, b]) => (b?.at ?? 0) - (a?.at ?? 0))
+      .slice(0, MAX_REMEMBERED);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    const temp = `${file}.tmp`;
+    fs.writeFileSync(temp, JSON.stringify({ version: 1, sessions: Object.fromEntries(kept) }));
+    fs.renameSync(temp, file);
+  }
 }
