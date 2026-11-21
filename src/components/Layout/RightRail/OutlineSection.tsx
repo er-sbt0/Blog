@@ -1,12 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Box, LinearProgress, Link, Typography } from "@mui/material";
-import { postsSelectors, useSelector } from "@/store";
-import {
-  countWords,
-  type OutlineHeading,
-  readingMinutes,
-} from "@/utils/editorContent";
+import { type OutlineHeading, readingMinutes } from "@/utils/editorContent";
+import { useLiveWordCount } from "@/components/Layout/useLiveWordCount";
 import { documentScrollerFor } from "@/components/EditDocument/paneChrome";
 
 interface OutlineSectionProps {
@@ -33,12 +29,9 @@ export default function OutlineSection(
 ) {
   const [scrollPct, setScrollPct] = useState(0);
 
-  const docData = useSelector((state) => {
-    if (!activeDocId) return undefined;
-    return postsSelectors.selectById(state, activeDocId)?.data;
-  });
-
-  const wordCount = countWords(docData);
+  // The live editor's count, not the store's `post.data`, which autosave never
+  // writes back (docs/plans/archive/agent-bar.md §6.8).
+  const wordCount = useLiveWordCount(activeDocId) ?? 0;
   const readMinutes = readingMinutes(wordCount);
 
   /*

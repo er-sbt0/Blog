@@ -211,7 +211,8 @@ wording in §2.3 is the one edit, in `agentProtocol.js`.
    refresh, so after the agent's first write it said "No content yet" until
    the post was reopened. Cosmetic and not agent-specific. **Fixed:** the bar
    now counts the focused pane's live editor (`Layout/useLiveWordCount.ts`,
-   idle-scheduled) and never reads `post.data`.
+   idle-scheduled) and never reads `post.data`. The right rail's Outline
+   (reading progress) and Properties (words · minutes) use the same hook.
 9. **§2.3's system-prompt edit: done after phase 4.** `agentProtocol.js` now
    says prompts come from the bar, replies live only in the block's collapsed
    log, and anything meant for readers goes in with a doc tool. The selection

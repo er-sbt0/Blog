@@ -8,7 +8,8 @@ import type { RootState } from "@/store";
 import { shallowEqual } from "react-redux";
 import { DateDisplay } from "@/components/shared/DateDisplay";
 import { DocumentStatus } from "@/types";
-import { countWords, readingMinutes } from "@/utils/editorContent";
+import { readingMinutes } from "@/utils/editorContent";
+import { useLiveWordCount } from "@/components/Layout/useLiveWordCount";
 import { seriesPositionOf } from "@/utils/posts/seriesGrouping";
 import { selectFocusedPane } from "@/store/selectors/layoutSelectors";
 import { MONO_FONT } from "@/components/Layout/SideBar/constants";
@@ -80,7 +81,9 @@ export default function PropertiesSection({
     activeDocId ? postsSelectors.selectById(state, activeDocId) : undefined
   );
 
-  const wordCount = countWords(activeLocalDoc?.data);
+  // The live editor's count, not `activeLocalDoc.data`, which autosave never
+  // writes back (docs/plans/archive/agent-bar.md §6.8).
+  const wordCount = useLiveWordCount(activeDocId) ?? 0;
   const readMin = readingMinutes(wordCount);
 
   const statusColors: Record<DocumentStatus, string> = {
