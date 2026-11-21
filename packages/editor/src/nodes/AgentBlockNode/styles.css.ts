@@ -116,35 +116,6 @@ export const hint = style({
   color: vars.color.textSecondary,
 });
 
-export const composer = style({
-  display: "flex",
-  alignItems: "flex-end",
-  gap: SPACE.sm,
-});
-
-export const input = style({
-  flex: 1,
-  minWidth: 0,
-  padding: `${SPACE.sm} ${SPACE.md}`,
-  border: `1px solid ${vars.color.border}`,
-  borderRadius: RADIUS.md,
-  backgroundColor: vars.color.bg,
-  color: vars.color.text,
-  fontFamily: "inherit",
-  fontSize: FONT.lg,
-  lineHeight: 1.5,
-  resize: "none",
-  outline: "none",
-  selectors: {
-    "&:focus-visible": {
-      borderColor: vars.color.accent,
-      boxShadow: `0 0 0 3px ${vars.color.accentSoft}`,
-    },
-    "&:disabled": { color: vars.color.textTertiary, cursor: "not-allowed" },
-    "&::placeholder": { color: vars.color.textTertiary },
-  },
-});
-
 export const footer = style({
   display: "flex",
   alignItems: "center",
@@ -240,11 +211,6 @@ export const logIcon = style({
   flex: "0 0 auto",
   marginTop: "3px",
   color: vars.color.textTertiary,
-});
-
-export const empty = style({
-  color: vars.color.textTertiary,
-  fontStyle: "italic",
 });
 
 const pulse = keyframes({

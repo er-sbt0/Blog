@@ -45,6 +45,7 @@ const FIELDS = [
   "status",
   "grants",
   "dropped",
+  "context",
 ] as const satisfies readonly (keyof AgentBlockData)[];
 
 type Record_ = Pick<AgentBlockData, (typeof FIELDS)[number]> & {

@@ -1,15 +1,32 @@
 /**
- * "Focus the prompt of the block that was just inserted" (§4.4).
+ * "Focus the bar": what `/agent` asks for once it has inserted an empty
+ * session node (docs/plans/agent-bar.md §2.10).
  *
- * The insert happens in a Lexical update, before React has mounted the block's
- * component, so there is no element to focus yet. The plugin records the new
- * node's key here and the component claims it on mount — once, so a later
- * remount (a split, a reload) does not steal focus from wherever the author is.
+ * The node has no prompt editor any more — the bar is the input (§2.1) — and
+ * the bar is app code the editor package cannot import. So the request is an
+ * event the app listens for. With no listener (the VPS build, a shell before
+ * the bar's composer exists, a test) it goes nowhere, which is correct: the
+ * node is still inserted and the next send from the bar continues it.
  */
-const pending = new Set<string>();
+import type { LexicalEditor, NodeKey } from "lexical";
 
-export const requestAgentFocus = (key: string): void => {
-  pending.add(key);
-};
+export interface AgentBarFocusRequest {
+  /** The editor holding the node, so the bar can make it the active one. */
+  editor: LexicalEditor;
+  nodeKey: NodeKey;
+}
 
-export const takeAgentFocus = (key: string): boolean => pending.delete(key);
+const listeners = new Set<(request: AgentBarFocusRequest) => void>();
+
+export function onAgentBarFocusRequest(
+  listener: (request: AgentBarFocusRequest) => void,
+): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+export function requestAgentBarFocus(request: AgentBarFocusRequest): void {
+  for (const listener of [...listeners]) listener(request);
+}

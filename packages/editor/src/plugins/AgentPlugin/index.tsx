@@ -1,57 +1,59 @@
 /**
- * Inserting an `/agent` block (docs/plans/archive/agent-block.md §4.4).
+ * The agent's commands (docs/plans/archive/agent-block.md §4.4,
+ * docs/plans/agent-bar.md §4.1), and the editor package's surface for the
+ * app's bar.
  *
- * The command captures the selection *before* inserting — the insert moves it —
- * and stores it on the block as the first turn's context (§2.9). Typed through
- * the slash menu the selection is a collapsed caret, which `$captureSelection`
- * answers as `null` on purpose (a caret is where the author is, not what they
- * mean); the block's own position in the outline carries that instead.
+ * Offering `/agent` is the picker's business and depends on an injected agent
+ * host; this plugin mounts wherever the node is registered and reads the host
+ * only to refuse a send there is nothing to run it.
  *
- * Offering the command is the picker's business and depends on an injected
- * agent host; this plugin only knows how to insert, so it mounts wherever the
- * node is registered.
+ * What the bar (phase 2) uses, all from this module:
+ *
+ * - `SEND_AGENT_PROMPT_COMMAND` — dispatch into the active editor; `false`
+ *   back means nothing was sent;
+ * - `getCurrentAgentSession(editor)` — the session chip;
+ * - `getAgentTurns` / `subscribeAgentTurns` — Stop and "waiting on you",
+ *   with `interruptAgentTurn(editor, nodeKey)` behind Stop and `Esc`;
+ * - `onAgentBarFocusRequest` — `/agent` asking for the bar.
  */
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $insertNodeToNearestRoot } from "@lexical/utils";
-import {
-  $setState,
-  COMMAND_PRIORITY_EDITOR,
-  createCommand,
-  type LexicalCommand,
-} from "lexical";
-import { useEffect } from "react";
-import { blockIdState } from "@/lib/content-bridge";
-import { mintBlockId } from "@/lib/content-bridge/blockId";
-import {
-  $createAgentBlockNode,
-  AgentBlockNode,
-} from "@/editor/nodes/AgentBlockNode";
-import { requestAgentFocus } from "@/editor/nodes/AgentBlockNode/focus";
-import { $captureSelection } from "@/editor/utils/captureSelection";
+import { useEffect, useRef } from "react";
+import { AgentBlockNode } from "@/editor/nodes/AgentBlockNode";
+import { useAgentHost } from "@/editor/context/AgentHostContext";
+import { registerAgentCommands } from "./session";
 
-export const INSERT_AGENT_BLOCK_COMMAND: LexicalCommand<undefined> =
-  createCommand("INSERT_AGENT_BLOCK_COMMAND");
+export {
+  getCurrentAgentSession,
+  INSERT_AGENT_BLOCK_COMMAND,
+  SEND_AGENT_PROMPT_COMMAND,
+} from "./session";
+export type { AgentSessionSummary, SendAgentPromptPayload } from "./session";
+export {
+  getAgentTurns,
+  interruptAgentTurn,
+  subscribeAgentTurns,
+} from "@/editor/nodes/AgentBlockNode/turns";
+export type {
+  AgentTurnPhase,
+  AgentTurnState,
+} from "@/editor/nodes/AgentBlockNode/turns";
+export { onAgentBarFocusRequest } from "@/editor/nodes/AgentBlockNode/focus";
+export type { AgentBarFocusRequest } from "@/editor/nodes/AgentBlockNode/focus";
+export { MAX_PROMPT as MAX_AGENT_PROMPT } from "@/editor/nodes/AgentBlockNode/model";
 
 export default function AgentPlugin() {
   const [editor] = useLexicalComposerContext();
+  const hasHost = Boolean(useAgentHost());
+  const hostRef = useRef(hasHost);
+  hostRef.current = hasHost;
 
   useEffect(() => {
     if (!editor.hasNodes([AgentBlockNode])) {
       throw new Error("AgentPlugin: AgentBlockNode is not registered on editor");
     }
-    return editor.registerCommand(
-      INSERT_AGENT_BLOCK_COMMAND,
-      () => {
-        const context = $captureSelection();
-        const node = $createAgentBlockNode({ context });
-        // Stamped from birth, so the system prompt can name it exactly and an
-        // insert with no placement has an anchor (`agentDocTools.ts`).
-        $setState(node, blockIdState, mintBlockId());
-        $insertNodeToNearestRoot(node);
-        requestAgentFocus(node.getKey());
-        return true;
-      },
-      COMMAND_PRIORITY_EDITOR,
+    return registerAgentCommands(
+      editor,
+      () => hostRef.current && editor.isEditable(),
     );
   }, [editor]);
 

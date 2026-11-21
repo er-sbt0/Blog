@@ -1,6 +1,7 @@
 # The agent in the bar — the post as the session's display
 
-**Status: proposed, 21 Nov 2026. Not started.** The decisions in §2 were taken
+**Status: phase 1 shipped 21 Nov 2026 (the command, the hand-off and the slim
+node — see "Phase 1 log" at the end); phases 2–4 not started.** The decisions in §2 were taken
 interactively on 21 Nov 2026. This plan builds on
 [archive/agent-block.md](./archive/agent-block.md), which shipped the day
 before. Read that plan's §2–§4 first: almost everything here reuses it, and
@@ -187,3 +188,38 @@ wording in §2.3 is the one edit, in `agentProtocol.js`.
    - spike Codex's approval model against the permission cards before designing
      anything shared. `canUseTool` maps cleanly to the cards, and it isn't yet
      known whether Codex's approvals do.
+
+---
+
+## Phase 1 log
+
+Shipped 21 Nov 2026. Only what departs from, or pins down, §4.1:
+
+- **The bar's API lives in `@/editor/plugins/AgentPlugin`.** The package has no
+  barrel, so that module re-exports everything phase 2 needs:
+  `SEND_AGENT_PROMPT_COMMAND`, `getCurrentAgentSession(editor)`,
+  `getAgentTurns` / `subscribeAgentTurns` / `interruptAgentTurn(editor,
+  nodeKey)` (from `nodes/AgentBlockNode/turns.ts`), `onAgentBarFocusRequest`
+  (from `focus.ts`) and `MAX_AGENT_PROMPT`.
+- **"Most recent turn" is remembered in memory, per editor** (`turns.ts`).
+  Nothing on the node says when a turn ran, so "derivable from the nodes"
+  falls back to document order after a reload: the last node that has run a
+  turn, else the last node.
+- **The command can refuse, and says so.** `dispatchCommand` answers `false`
+  for no host, read mode, an empty or oversized prompt, or a current session
+  whose turn is still running — the bar should keep its draft. A start that
+  fails *after* the hand-off (the folder dialog cancelled, an IPC error) takes
+  the prompt back off the node and shows "Not sent: …" in the node; the bar
+  has already let go of it. Phase 2 may want that outcome surfaced too.
+- **A new node goes after the top-level block holding the selection's end**,
+  not its start, so no block the captured selection names by structural path
+  shifts. A node that would be last in the post gets an empty paragraph after
+  it, as `$insertNodeToNearestRoot` does for `/agent`.
+- **`context` joined the bookkeeping record** (`bookkeeping.ts`). A node
+  inserted by `/agent` has no selection; its first turn's is stored, and an
+  undo must not take that back.
+- **`focus.ts` is now the bar-focus event**, emitted on a microtask after
+  `/agent`'s update commits. The pending-key hand-off is `handoff.ts`.
+- **The spec mounts the node under jsdom** (`agentBar.test.tsx`) rather than
+  using a bare headless editor, because the prompt is claimed by the node's
+  component — which is the point of §3's "the node still owns the session".

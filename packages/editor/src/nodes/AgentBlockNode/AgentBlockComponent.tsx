@@ -1,9 +1,17 @@
 "use client";
 /**
- * The `/agent` block's UI (docs/plans/archive/agent-block.md §3.3): the prompt that
- * locks once sent, follow-ups below it, live status with an interrupt (button
- * and `Esc`), permission cards, the session's "always" grants, the collapsed
- * log and the folder chip.
+ * The session node's UI (docs/plans/archive/agent-block.md §3.3, slimmed by
+ * docs/plans/agent-bar.md §4.1): the prompts as read-only lines, live status
+ * with an interrupt (button and `Esc`), permission cards, the session's
+ * "always" grants, the collapsed log and the folder chip.
+ *
+ * There is no prompt editor: the bar is the input (agent-bar §2.1). A prompt
+ * arrives through `SEND_AGENT_PROMPT_COMMAND`, which queues it under this
+ * node's key (`handoff.ts`); the component claims it on mount or when
+ * notified, and runs the turn exactly as the block's own Send used to. Each
+ * turn carries the selection the bar captured for it; only the first is
+ * stored, for display. The turn's phase is published to `turns.ts`, which is
+ * all the bar can see of it.
  *
  * A card is main's question, shown here: allow once, always for this session,
  * or deny. A click sends the answer and disables the card; only main's
@@ -51,7 +59,6 @@ import {
   FileText,
   Folder,
   MessageSquare,
-  Send,
   ShieldCheck,
   ShieldQuestion,
   Square,
@@ -73,8 +80,13 @@ import { useEditorDocumentId } from "../../context/DocumentContext";
 import { ActionButton, Alert, Spinner } from "../../ui";
 import { cx } from "../../ui/cx";
 import { agentOutlineText } from "../../utils/agentDocTools";
-import { takeAgentFocus } from "./focus";
 import { writeAgentBookkeeping } from "./bookkeeping";
+import {
+  type AgentPromptHandOff,
+  onAgentPrompt,
+  takeAgentPrompt,
+} from "./handoff";
+import { publishAgentTurn, touchAgentBlock, withdrawAgentTurn } from "./turns";
 import {
   type AgentBlockData,
   type AgentLiveStatus,
@@ -116,9 +128,7 @@ const ISOLATED_EVENTS = [
 ] as const;
 
 const isControl = (target: EventTarget | null): boolean =>
-  target instanceof HTMLElement &&
-  (target.tagName === "TEXTAREA" || target.tagName === "INPUT" ||
-    target.tagName === "BUTTON");
+  target instanceof HTMLElement && target.tagName === "BUTTON";
 
 const basename = (path: string): string =>
   path.replace(/\/+$/, "").split("/").pop() || path;
@@ -147,7 +157,6 @@ export default function AgentBlockComponent(
   const host = agentHost?.host ?? null;
   const documentId = useEditorDocumentId();
 
-  const [draft, setDraft] = useState("");
   const [live, setLive] = useState<AgentLiveStatus>({ phase: "idle" });
   const [pending, setPending] = useState<AgentLogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +164,6 @@ export default function AgentBlockComponent(
   const [cards, setCards] = useState<AgentPermissionCard[]>([]);
 
   const cardRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
   const turnRef = useRef<Turn | null>(null);
   const sessionRef = useRef<string | null>(data.sessionId);
   const connection = useRef<{ sessionId: string; off: () => void } | null>(
@@ -278,40 +286,55 @@ export default function AgentBlockComponent(
     };
   }, []);
 
-  useEffect(() => {
-    if (takeAgentFocus(nodeKey)) inputRef.current?.focus();
-  }, [nodeKey]);
-
-  const send = useCallback(async () => {
-    const prompt = draft.trim();
-    if (!host || !agentHost || !prompt || running) return;
+  /**
+   * Run one turn from a handed-off prompt. The node's record is written as
+   * before; a turn that fails to start takes its prompt back out and shows
+   * why here — the bar has already let go of it.
+   */
+  const runTurn = useCallback(async ({ prompt, selection }: AgentPromptHandOff) => {
+    if (!host || !agentHost) return;
     if (prompt.length > MAX_PROMPT) {
       setError(`That prompt is over ${MAX_PROMPT.toLocaleString()} characters.`);
       return;
     }
-    const index = data.prompts.length;
-    const previous = data.status;
     setError(null);
-    setDraft("");
+    touchAgentBlock(editor, nodeKey);
 
     // The prompt goes in first and the outline is taken after, so the
     // stateHash the model starts from already counts this turn. The outcome
     // is `interrupted` until the turn's end says otherwise: a turn that never
-    // gets there (a reload, a crash) was one.
+    // gets there (a reload, a crash) was one. Only the first turn's selection
+    // is kept on the node, for display; every turn's is sent.
+    // Read from the node, not from props: a prompt claimed as the previous
+    // turn ends can run before this component has re-rendered.
     let blockId = "";
+    let index = 0;
+    let previous: AgentBlockData["status"] = "idle";
+    let previousContext: AgentBlockData["context"] = null;
+    let grants: string[] = [];
     writeAgentBookkeeping(editor, nodeKey, (current, node) => {
+      index = current.prompts.length;
+      previous = current.status;
+      previousContext = current.context;
+      grants = current.grants;
       blockId = $getState(node, blockIdState);
       if (!blockId) {
         blockId = mintBlockId();
         $setState(node, blockIdState, blockId);
       }
-      return { prompts: [...current.prompts, prompt], status: "interrupted" };
+      return {
+        prompts: [...current.prompts, prompt],
+        status: "interrupted",
+        ...(index === 0 && !current.context && selection
+          ? { context: selection }
+          : {}),
+      };
     });
     const context = {
       title: agentHost.postTitle,
       blockId,
       outline: agentOutlineText(editor, nodeKey),
-      selection: index === 0 ? data.context : null,
+      selection,
     };
 
     turnRef.current = { index, events: [], entries: [], interrupted: false };
@@ -325,15 +348,15 @@ export default function AgentBlockComponent(
       writeNode((current) => ({
         prompts: current.prompts.slice(0, index),
         status: previous,
+        context: previousContext,
       }));
-      setDraft(prompt);
-      setError(message);
+      setError(message && `Not sent: ${message}`);
     };
 
     const sessionId = sessionRef.current;
     if (sessionId) {
       connect(sessionId);
-      const sent = await host.send(sessionId, prompt, context, data.grants);
+      const sent = await host.send(sessionId, prompt, context, grants);
       if (!sent.ok) undoPrompt(sent.error);
       return;
     }
@@ -347,20 +370,22 @@ export default function AgentBlockComponent(
     sessionRef.current = started.sessionId;
     connect(started.sessionId);
     writeNode(() => ({ sessionId: started.sessionId, cwd: started.cwd }));
-  }, [
-    agentHost,
-    connect,
-    data.context,
-    data.grants,
-    data.prompts.length,
-    data.status,
-    draft,
-    editor,
-    host,
-    nodeKey,
-    running,
-    writeNode,
-  ]);
+  }, [agentHost, connect, editor, host, nodeKey, writeNode]);
+
+  // Claim a handed-off prompt: on mount, when notified, and when a turn ends
+  // (a prompt queued while one ran waits for it). Never two turns at once.
+  const runTurnRef = useRef(runTurn);
+  runTurnRef.current = runTurn;
+  const [claimTick, setClaimTick] = useState(0);
+  useEffect(
+    () => onAgentPrompt(editor, nodeKey, () => setClaimTick((t) => t + 1)),
+    [editor, nodeKey],
+  );
+  useEffect(() => {
+    if (!canRun || running || turnRef.current) return;
+    const turn = takeAgentPrompt(editor, nodeKey);
+    if (turn) void runTurnRef.current(turn);
+  }, [canRun, claimTick, editor, nodeKey, running]);
 
   const interrupt = useCallback(() => {
     const sessionId = sessionRef.current;
@@ -394,6 +419,16 @@ export default function AgentBlockComponent(
   const shown = displayedStatus(live, cards);
   const waiting = shown.phase === "waiting";
   const status = statusLabel(shown);
+
+  // What the bar sees of this turn (`turns.ts`): Stop, and "waiting on you".
+  const phase = !running ? "idle" : waiting ? "waiting" : "running";
+  useEffect(() => {
+    publishAgentTurn(
+      { editor, nodeKey, sessionId: data.sessionId, phase },
+      interrupt,
+    );
+  }, [data.sessionId, editor, interrupt, nodeKey, phase]);
+  useEffect(() => () => withdrawAgentTurn(editor, nodeKey), [editor, nodeKey]);
 
   return (
     <div
@@ -528,10 +563,10 @@ export default function AgentBlockComponent(
       {data.prompts.length === 0 && (
         <p className={css.hint}>
           {canRun
-            ? "Ask Claude to write in this post — paragraphs, lists, tables. " +
-              "It edits the post directly. You choose the folder it works in " +
-              "when you send, and approve each command or file change it " +
-              "makes there."
+            ? "Ask Claude in the bar below to write in this post — " +
+              "paragraphs, lists, tables. It edits the post directly. You " +
+              "choose the folder it works in when you send, and approve each " +
+              "command or file change it makes there."
             : host
             ? "This post is in read mode."
             : "Agent sessions run in the desktop app."}
@@ -610,51 +645,14 @@ export default function AgentBlockComponent(
         </Alert>
       )}
 
-      {canRun && (
-        <>
-          <div className={css.composer}>
-            <textarea
-              aria-label={data.prompts.length ? "Follow-up for the agent" : "Prompt for the agent"}
-              className={css.input}
-              maxLength={MAX_PROMPT}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-                  event.preventDefault();
-                  void send();
-                }
-              }}
-              placeholder={data.prompts.length
-                ? "Follow up…"
-                : "What should the agent write?"}
-              ref={inputRef}
-              rows={data.prompts.length ? 1 : 3}
-              value={draft}
-            />
-            <ActionButton
-              aria-label={data.prompts.length ? "Send the follow-up" : "Send the prompt"}
-              disabled={running || draft.trim() === ""}
-              onClick={() => void send()}
-              size="md"
-              variant="accent"
-            >
-              <Send aria-hidden size={ICON_SIZE.inline} />
-              Send
-            </ActionButton>
-          </div>
-          <div className={css.footer}>
-            <span>
-              {waiting
-                ? "Esc stops the turn and denies open requests"
-                : running
-                ? "Esc to stop"
-                : "Ctrl+Enter to send"}
-            </span>
-            {!running && data.prompts.length === 0 && log.length === 0 && (
-              <span className={css.empty}>No turns yet</span>
-            )}
-          </div>
-        </>
+      {running && (
+        <div className={css.footer}>
+          <span>
+            {waiting
+              ? "Esc stops the turn and denies open requests"
+              : "Esc to stop"}
+          </span>
+        </div>
       )}
     </div>
   );
