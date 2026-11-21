@@ -1,4 +1,4 @@
-import { getCachedRevision, isPendingProposal } from "@/repositories/revision";
+import { findRevision, findRevisionStamp } from "@/repositories/revision";
 import { generateServerHtml } from "@/editor/utils/generateServerHtml";
 import { unstable_cache } from "next/cache";
 
@@ -46,8 +46,8 @@ export type RenderedRevision =
  * the cache, which at this cache's lifetime (see below) would be a blank post
  * for a year.
  */
-const getRevisionHtml = async (id: string) => {
-  const revision = await getCachedRevision(id);
+const getRevisionHtml = async (id: string, _stamp: string) => {
+  const revision = await findRevision(id);
   if (!revision) return null;
   return await generateServerHtml(revision.data);
 };
@@ -62,9 +62,12 @@ const getRevisionHtml = async (id: string) => {
  * JSON — a stale hit was byte-identical input. Adding `revalidate: 3600` here
  * would therefore *change* behaviour rather than preserve it.
  *
- * A year is also the right answer: a revision row is immutable content
- * addressed by id, so its rendered HTML can only go stale when the renderer
- * changes, which is a deploy.
+ * A year is right only because the key carries the row's `createdAt` as well
+ * as its id. A revision id does **not** name immutable content: autosaves fold
+ * a writing stretch into one row and rewrite its `createdAt` each time (see
+ * `findRevision`). Keyed by id alone, `/view` showed whatever the row held on
+ * the first render. With the stamp, a rewrite is a new key, and a key can
+ * only go stale when the renderer changes, which is a deploy.
  *
  * Known wart, untouched here: `"html"` and `"thumbnail"` are **global** tags.
  * `/api/revalidate` with either one invalidates every post's cached render, not
@@ -79,8 +82,8 @@ const cachedRevisionHtml = unstable_cache(getRevisionHtml, [], {
  * The first three blocks of a revision, rendered — see `getRevisionHtml` for
  * why this is a direct call and why a render failure throws.
  */
-const getRevisionThumbnail = async (id: string) => {
-  const revision = await getCachedRevision(id);
+const getRevisionThumbnail = async (id: string, _stamp: string) => {
+  const revision = await findRevision(id);
   if (!revision) return null;
 
   // Make sure we have valid data
@@ -123,8 +126,9 @@ const cachedRevisionThumbnail = unstable_cache(getRevisionThumbnail, [], {
  */
 const findRevisionHtml = async (id: string): Promise<RenderedRevision> => {
   try {
-    if (await isPendingProposal(id)) return { status: "empty" };
-    const html = await cachedRevisionHtml(id);
+    const row = await findRevisionStamp(id);
+    if (!row || row.pending) return { status: "empty" };
+    const html = await cachedRevisionHtml(id, row.stamp);
     return html === null ? { status: "empty" } : { status: "ok", html };
   } catch (error) {
     // Reached only by a real failure now. The `catch` this replaced excused
@@ -146,8 +150,9 @@ const findRevisionHtml = async (id: string): Promise<RenderedRevision> => {
  */
 const findRevisionThumbnail = async (id: string): Promise<string | null> => {
   try {
-    if (await isPendingProposal(id)) return null;
-    return await cachedRevisionThumbnail(id);
+    const row = await findRevisionStamp(id);
+    if (!row || row.pending) return null;
+    return await cachedRevisionThumbnail(id, row.stamp);
   } catch (error) {
     console.error("Failed to render revision thumbnail:", id, error);
     return null;

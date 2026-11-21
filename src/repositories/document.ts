@@ -10,7 +10,7 @@ import {
 } from "@/types";
 import { validate } from "uuid";
 import { historyOf, selectHead } from "@/lib/proposals";
-import { getCachedRevision, markProposalsStale } from "./revision";
+import { findRevision, markProposalsStale } from "./revision";
 import {
   addToOrder,
   containerOf,
@@ -731,7 +731,7 @@ const findEditorDocument = async (handle: string) => {
 
   if (!doc) return null;
 
-  let revision = doc.headRevisionId ? await getCachedRevision(doc.headRevisionId) : null;
+  let revision = doc.headRevisionId ? await findRevision(doc.headRevisionId) : null;
   // A `head` naming a pending proposal is a broken state rather than an
   // impossible one — nothing constrains the pointer — and serving it would put
   // an unapproved agent write in the editor. Treat it as missing and repair.

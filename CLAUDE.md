@@ -104,7 +104,7 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 111 specs, 2010 tests, of which the list below walks the ones worth
+Coverage is 111 specs, 2011 tests, of which the list below walks the ones worth
 knowing about rather than all of them. The newest fifteen are the agent block's
 (docs/plans/archive/agent-block.md), and they split by process. In the editor
 package, `packages/editor/src/utils/__tests__/` holds `agentDocTools` (the

@@ -1,7 +1,7 @@
 import { ApiError, optionalUserRoute } from "@/lib/api-utils";
 import { requireDocument } from "@/lib/access";
 import { NextResponse } from "next/server";
-import { getCachedRevision } from "@/repositories/revision";
+import { findRevision } from "@/repositories/revision";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export const GET = optionalUserRoute<{ id: string }>(
     if (!cloudDocument.headRevisionId) {
       throw new ApiError(404, "Document not found");
     }
-    const revision = await getCachedRevision(
+    const revision = await findRevision(
       revisionId ?? cloudDocument.headRevisionId,
     );
     // A pending agent proposal is not history and not the document, so it is

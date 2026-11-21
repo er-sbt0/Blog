@@ -1,7 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { Revision } from "@/types";
-import { unstable_cache } from "next/cache";
 import { randomUUID } from "node:crypto";
 import {
   type ApprovalDecisions,
@@ -55,53 +54,39 @@ const findRevisionById = async (id: string): Promise<StoredRevision | null> => {
   };
 };
 
-const cachedRevision = unstable_cache(findRevisionById, [], {
-  tags: ["revision"],
-});
+/**
+ * A revision, read from the database every time.
+ *
+ * This used to sit behind `unstable_cache` keyed by id alone, on the premise
+ * that a revision id names immutable content. It does not: autosaves fold a
+ * writing stretch into one row (`useSave`, `createRevision`'s update pass), and
+ * a proposal is rewritten on every agent batch. The app reads the head after
+ * each save, so the cache caught a mid-stretch copy, and reopening the post
+ * served that copy. The editor then autosaved it over the newer head, which
+ * lost everything written after the cached read. Found driving an agent turn
+ * in the desktop app (docs/plans/agent-bar.md, phase 0).
+ */
+const findRevision = findRevisionById;
 
 /**
- * A revision, from cache unless it is a proposal.
+ * What a render cache keys on: the row's `createdAt`, which every folded save
+ * rewrites, plus whether the row is a pending proposal. Null when there is no
+ * such revision.
  *
- * `unstable_cache` here has no `revalidate` and nothing in the app calls
- * `revalidateTag("revision")`, which was harmless while a revision id named
- * immutable content. A proposal is the opposite: one id is **rewritten in
- * place** on every agent batch (§3.2), and `GET /api/revisions/[id]` is how the
- * review UI fetches it — so a cached proposal means reviewing batch one while
- * batch five is what approval would apply.
- *
- * Of the two fixes §2.1 offers, this is the bypass rather than the
- * revalidation: `upsertProposal` is called from `mcp/content-server.ts`, a
- * plain stdio process with no Next request scope, where `revalidateTag` throws.
- * A guard the writer cannot always run is not a guard.
- *
- * The cached value is only ever *consulted* for the flag — an id that was
- * cached while pending re-reads for the rest of the process's life, including
- * after approval clears the flag, which costs one query on a handful of ids and
- * cannot serve stale content.
+ * Uncached, and narrow on purpose. It is the cheap read that tells `/view`
+ * and `/embed` whether their cached HTML still describes the row (see
+ * `src/app/api/utils.ts`). The answer must not be a stale `pending` that
+ * outlives approval.
  */
-const getCachedRevision = async (
+const findRevisionStamp = async (
   id: string,
-): Promise<StoredRevision | null> => {
-  const cached = await cachedRevision(id);
-  if (cached && cached.proposedAt) return findRevisionById(id);
-  return cached;
-};
-
-/**
- * Is this revision id a pending agent proposal?
- *
- * For the callers that render a revision straight from an id and have nothing
- * else to branch on — see `src/app/api/utils.ts`, where `/embed` and `/view`
- * take one from `?v=`. Deliberately uncached and deliberately narrow: the row is
- * rewritten in place on every batch, and the answer must not be a stale `true`
- * that outlives approval.
- */
-const isPendingProposal = async (id: string): Promise<boolean> => {
+): Promise<{ stamp: string; pending: boolean } | null> => {
   const row = await prisma.revision.findUnique({
     where: { id },
-    select: { proposedAt: true },
+    select: { createdAt: true, proposedAt: true },
   });
-  return !!row?.proposedAt;
+  if (!row) return null;
+  return { stamp: row.createdAt.toISOString(), pending: !!row.proposedAt };
 };
 
 /** The document a revision belongs to, or undefined if there is no such revision. */
@@ -934,8 +919,8 @@ export {
   findPendingProposalsByAuthor,
   findRevisionAuthorId,
   findRevisionDocumentId,
-  getCachedRevision,
-  isPendingProposal,
+  findRevision,
+  findRevisionStamp,
   markProposalsStale,
   rejectProposal,
   upsertProposal,

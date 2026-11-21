@@ -6,7 +6,7 @@ import { findThreadById } from "@/repositories/copilotThread";
 import { findCanvasById, findNoteById } from "@/repositories/notes";
 import { findProjectById } from "@/repositories/project";
 import { findRemoteHostById, findRemoteSessionOwner } from "@/repositories/remoteSessions";
-import { getCachedRevision } from "@/repositories/revision";
+import { findRevision } from "@/repositories/revision";
 import { findSeriesById } from "@/repositories/series";
 import type { CloudPost } from "@/types";
 import type { Blob } from "@prisma/client";
@@ -140,7 +140,7 @@ export async function requireRevision(
   access: DocumentAccess,
   subtitle?: string,
 ) {
-  const revision = await getCachedRevision(revisionId);
+  const revision = await findRevision(revisionId);
   if (!revision) {
     throw new ApiError(404, "Document Revision not found");
   }
