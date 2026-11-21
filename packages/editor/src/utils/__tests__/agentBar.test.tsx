@@ -48,6 +48,8 @@ import AgentPlugin, {
   getCurrentAgentSession,
   INSERT_AGENT_BLOCK_COMMAND,
   onAgentBarFocusRequest,
+  onAgentPromptReturned,
+  type AgentPromptReturn,
   SEND_AGENT_PROMPT_COMMAND,
 } from "@/editor/plugins/AgentPlugin";
 import { createAgentRouter } from "../agentRouter";
@@ -279,6 +281,28 @@ describe("SEND_AGENT_PROMPT_COMMAND", () => {
     const editor = mount(null);
     expect(await send(editor, "go")).toBe(false);
     expect(outline(editor)).toEqual(["A", "B", "C"]);
+  });
+});
+
+describe("a send that fails after the hand-off", () => {
+  it("takes the prompt off the node and offers it back to the bar", async () => {
+    const fake = fakeHost();
+    fake.start.mockImplementationOnce(async () =>
+      ({ ok: false, error: "cancelled", cancelled: true }) as never
+    );
+    const editor = mount(fake.host);
+    const returned: AgentPromptReturn[] = [];
+    const off = onAgentPromptReturned((r) => returned.push(r));
+    try {
+      expect(await send(editor, "draw it")).toBe(true);
+      await until(() => returned.length === 1);
+      // Identity, not structure: an editor is a graph with the DOM hanging off it.
+      expect(returned[0].editor).toBe(editor);
+      expect(returned[0]).toMatchObject({ prompt: "draw it", message: null });
+      expect(agents(editor)[0].prompts).toEqual([]);
+    } finally {
+      off();
+    }
   });
 });
 

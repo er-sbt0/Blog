@@ -198,8 +198,34 @@ export const composerSurfaceSx = (
   ...theme.applyStyles("dark", { boxShadow: SHADOW.floating.dark }),
 });
 
-/** Attach · `/` · voice — 32px, transparent until hovered. */
-const toolButtonSx = {
+/**
+ * The model picker's pill — a labelled control in the tool row. Exported so
+ * the agent's session chip (`AgentComposer`) is the same control, not a
+ * lookalike.
+ */
+export const composerPillSx = {
+  display: "flex",
+  alignItems: "center",
+  gap: "7px",
+  height: C.toolButton,
+  pl: "10px",
+  pr: "9px",
+  borderRadius: C.toolRadius,
+  color: "text.secondary",
+  typography: "dense",
+  fontWeight: 500,
+  whiteSpace: "nowrap",
+  flexShrink: 0,
+  transition: `background-color ${MOTION.fast}ms, color ${MOTION.fast}ms`,
+  "&:hover": { bgcolor: "action.hover", color: "text.primary" },
+  "&:focus-visible": { outline: "none", boxShadow: FOCUS_RING.chrome },
+} as const;
+
+/**
+ * Attach · `/` · voice — 32px, transparent until hovered. Exported for the
+ * agent's own tool row, for the same reason as {@link composerPillSx}.
+ */
+export const composerToolButtonSx = {
   width: C.toolButton,
   height: C.toolButton,
   p: 0,
@@ -214,7 +240,7 @@ const toolButtonSx = {
 
 /** `/` is a mono glyph, not an icon — it is what the user types. */
 const glyphSx = {
-  ...toolButtonSx,
+  ...composerToolButtonSx,
   fontFamily: MONO_FONT,
   typography: "body2",
   fontWeight: 500,
@@ -245,12 +271,35 @@ interface ComposerProps {
   /** Disables every control and replaces the model picker with this text. */
   disabledReason?: string;
   inputRef?: React.Ref<HTMLTextAreaElement>;
-  llmConfig: { provider: string; model: string };
-  setLlmConfig: (config: { provider: string; model: string }) => void;
-  slashOpen: boolean;
-  slashMatches: AIAction[];
-  onPickSlash: (action: AIAction) => void;
+  llmConfig?: { provider: string; model: string };
+  setLlmConfig?: (config: { provider: string; model: string }) => void;
+  slashOpen?: boolean;
+  slashMatches?: AIAction[];
+  onPickSlash?: (action: AIAction) => void;
+  /**
+   * Replaces Copilot's own toolbar — attach, `/`, the model picker and voice —
+   * with the caller's controls, in the model picker's place in the row. The
+   * desktop agent's composer (`AgentComposer`) uses it: its engine has no
+   * model to pick and no slash commands, and its row holds the session chip
+   * instead (docs/plans/agent-bar.md §4.2). Everything else — the surface, the
+   * field, the compact/open move and send/stop — is shared, which is what
+   * keeps the two bars the same size.
+   */
+  tools?: React.ReactNode;
+  /** The field's accessible name. */
+  inputLabel?: string;
+  /** The stop button's accessible name and tooltip; Copilot's by default. */
+  stopLabel?: string;
+  /**
+   * Keep the field typeable while `busy`. Copilot locks it for the length of a
+   * streamed answer; an agent turn can take minutes, and the next prompt is
+   * worth drafting in the meantime.
+   */
+  editableWhileBusy?: boolean;
 }
+
+const NO_SLASH: AIAction[] = [];
+const NO_MODEL = { provider: "", model: "" };
 
 /**
  * The composer body: the field, its toolbar, the model picker and send/stop.
@@ -294,11 +343,15 @@ const Composer: React.FC<ComposerProps> = ({
   compactPlaceholder,
   disabledReason,
   inputRef,
-  llmConfig,
+  llmConfig = NO_MODEL,
   setLlmConfig,
-  slashOpen,
-  slashMatches,
+  slashOpen = false,
+  slashMatches = NO_SLASH,
   onPickSlash,
+  tools,
+  inputLabel = "Message Copilot",
+  stopLabel,
+  editableWhileBusy = false,
 }) => {
   // State rather than a ref: the slash Popper needs a re-render once the
   // element it anchors to exists.
@@ -428,12 +481,14 @@ const Composer: React.FC<ComposerProps> = ({
         flexShrink: 0,
       }}
     >
+      {tools ?? (
+      <>
       <Tooltip title="Attach files">
         <span>
           <IconButton
             disabled={disabled}
             aria-label="Attach files"
-            sx={toolButtonSx}
+            sx={composerToolButtonSx}
           >
             <Plus size={ICON_SIZE.dense} />
           </IconButton>
@@ -478,27 +533,7 @@ const Composer: React.FC<ComposerProps> = ({
             aria-label={`Model: ${
               currentModel?.name ?? llmConfig.model
             }. Change model`}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: "7px",
-              height: C.toolButton,
-              pl: "10px",
-              pr: "9px",
-              borderRadius: C.toolRadius,
-              color: "text.secondary",
-              typography: "dense",
-              fontWeight: 500,
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-              transition:
-                `background-color ${MOTION.fast}ms, color ${MOTION.fast}ms`,
-              "&:hover": { bgcolor: "action.hover", color: "text.primary" },
-              "&:focus-visible": {
-                outline: "none",
-                boxShadow: FOCUS_RING.chrome,
-              },
-            }}
+            sx={composerPillSx}
           >
             <Box component="span" sx={dotSx(providerColor, true)} />
             {
@@ -527,6 +562,8 @@ const Composer: React.FC<ComposerProps> = ({
             />
           </ButtonBase>
         )}
+      </>
+      )}
 
       <Menu
         anchorEl={modelMenuAnchor}
@@ -551,7 +588,7 @@ const Composer: React.FC<ComposerProps> = ({
             selected={m.id === llmConfig.model}
             disabled={!usable}
             onClick={() => {
-              setLlmConfig({ provider: m.provider, model: m.id });
+              setLlmConfig?.({ provider: m.provider, model: m.id });
               setModelMenuAnchor(null);
             }}
             sx={{
@@ -620,14 +657,14 @@ const Composer: React.FC<ComposerProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
-          disabled={busy || disabled}
+          disabled={(busy && !editableWhileBusy) || disabled}
           // Keyed to placement, not to size: opening swaps it while the field
           // is still zero-height, and closing swaps it under the fade. Either
           // way the text never changes in front of you.
           placeholder={inlineLayout
             ? compactPlaceholder ?? placeholder
             : placeholder}
-          inputProps={{ "aria-label": "Message Copilot" }}
+          inputProps={{ "aria-label": inputLabel }}
           sx={{
             p: 0,
             width: "100%",
@@ -675,7 +712,7 @@ const Composer: React.FC<ComposerProps> = ({
           {slashMatches.map((action, idx) => (
             <Box
               key={action.id}
-              onClick={() => onPickSlash(action)}
+              onClick={() => onPickSlash?.(action)}
               sx={{
                 mx: 0.75,
                 px: 1.25,
@@ -715,24 +752,26 @@ const Composer: React.FC<ComposerProps> = ({
       }
       <Box sx={{ flex: inlineLayout ? "0 0 0px" : "1 1 auto" }} />
 
-      <Tooltip title="Voice input">
-        <span>
-          <IconButton
-            disabled={disabled}
-            aria-label="Voice input"
-            sx={toolButtonSx}
-          >
-            <Mic size={ICON_SIZE.dense} />
-          </IconButton>
-        </span>
-      </Tooltip>
+      {!tools && (
+        <Tooltip title="Voice input">
+          <span>
+            <IconButton
+              disabled={disabled}
+              aria-label="Voice input"
+              sx={composerToolButtonSx}
+            >
+              <Mic size={ICON_SIZE.dense} />
+            </IconButton>
+          </span>
+        </Tooltip>
+      )}
 
       {busy
         ? (
-          <Tooltip title="Stop">
+          <Tooltip title={stopLabel ?? "Stop"}>
             <IconButton
               onClick={onStop}
-              aria-label="Stop generating"
+              aria-label={stopLabel ?? "Stop generating"}
               sx={{
                 width: C.sendButton,
                 height: C.sendButton,

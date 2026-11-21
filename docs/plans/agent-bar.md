@@ -1,7 +1,8 @@
 # The agent in the bar — the post as the session's display
 
-**Status: phase 1 shipped 21 Nov 2026 (the command, the hand-off and the slim
-node — see "Phase 1 log" at the end); phases 2–4 not started.** The decisions in §2 were taken
+**Status: phases 1–2 shipped 21 Nov 2026 (the command, the hand-off and the
+slim node; then `AgentComposer` in the desktop bar — see the phase logs at the
+end); phases 3–4 not started.** The decisions in §2 were taken
 interactively on 21 Nov 2026. This plan builds on
 [archive/agent-block.md](./archive/agent-block.md), which shipped the day
 before. Read that plan's §2–§4 first: almost everything here reuses it, and
@@ -223,3 +224,66 @@ Shipped 21 Nov 2026. Only what departs from, or pins down, §4.1:
 - **The spec mounts the node under jsdom** (`agentBar.test.tsx`) rather than
   using a bare headless editor, because the prompt is claimed by the node's
   component — which is the point of §3's "the node still owns the session".
+
+## Phase 2 log
+
+Shipped 21 Nov 2026. `AgentComposer` (`src/components/CopilotPanel/`) is what
+`InlineCopilotBar` renders on desktop. Only what departs from, or pins down,
+§4.2:
+
+- **The shared surface is `Composer` itself.** It gained a `tools` slot that
+  replaces Copilot's toolbar (attach, `/`, the model picker, voice), plus
+  `inputLabel`, `stopLabel` and `editableWhileBusy`. The field stays typeable
+  during a turn, so the next prompt can be drafted; Send is replaced by Stop
+  until the turn ends. The web bar renders exactly as before.
+- **"New session" is a toggle that arms the next send.** It does not send on
+  its own. While armed, the chip reads "new session". It is hidden for a post
+  with no session, where any send makes one. A node inserted by `/agent`
+  reads "session · not started".
+- **A send that fails after the hand-off gives the draft back.** That is the
+  phase 1 gap. `onAgentPromptReturned` (in `handoff.ts`, exported from
+  `AgentPlugin`) fires from the node's `undoPrompt`. The bar restores the
+  prompt if it sent that prompt and its field is still empty. A cancelled
+  folder dialog restores it quietly. An error also shows "Not sent: …" in the
+  bar. The empty node stays where it was inserted and becomes the current
+  session, so the retry lands in the same place.
+- **Agent updates stole focus from the bar.** This was found in the app. An
+  update whose selection is dirty puts the DOM selection back into the
+  editor, which focuses it. So the bar's send (the node insert), the node's
+  bookkeeping and the agent's own writes each pulled the caret out of the
+  bar mid-sentence. `keepFocusTags(editor)` (`focus.ts`) adds
+  `SKIP_DOM_SELECTION_TAG` to all three, but only when the editor does not
+  already hold focus.
+- **The jump to a card.** `EditorTabPanel` marks its root with
+  `data-editor-pane` / `data-editor-doc`. `revealAgentNode` uses those to
+  focus the pane, activate the tab, scroll the node to centre and focus the
+  card's first enabled choice. That choice is "Deny" when the card is
+  `defaultToNo`. The scroll runs in a task and is instant. A smooth scroll,
+  or anything after `requestAnimationFrame`, stalls in a window that is not
+  painting, which an occluded Electron window under CDP was.
+- **How the bar knows the focused post's editor** (for phase 3).
+  `ActiveEditorContext` is a ref that the focused `EditorTabPanel` publishes
+  when its pane takes focus. On a fresh open that happens *before* the post
+  loads, while `ref.current` is still `null`, and a ref filling in does not
+  re-render. So `useFocusedEditor` takes `selectFocusedDocId` as "a post is
+  focused" and polls the ref every 250 ms until a connected editor with
+  `AgentBlockNode` appears ("Opening the post…"). After that it follows the
+  editor's root listener (unmount) and editable listener (read mode). With no
+  focused doc id the bar is disabled with "Open a post to ask the agent". On
+  `/posts` the workspace can still hold a focused doc whose editor has
+  unmounted. That editor's `null` root reads as "loading", which phase 3's
+  picker should treat as "no post".
+- **Verified in the app** (`dev:no-sandbox` on a scratch data dir, over
+  CDP and AT-SPI):
+  - a text selection inside a paragraph, then "New session" and a send. The
+    node went after that paragraph, the agent's paragraph after the node, and
+    `context` held the selection;
+  - cancelling the folder dialog restored the draft;
+  - a Write permission card about 800 px above the viewport. The bar showed
+    "waiting on you", and one click brought the card to centre with
+    "Allow once" focused;
+  - `Esc` in the bar stopped that turn, the file was not written, and the bar
+    stayed open;
+  - `/posts` showed the disabled hint, and `/agent` focused the bar.
+  Not verified: the cross-post "waiting on you" (it needs a split pane), and
+  open question 3 (Stop during a slow `plot_graph`).

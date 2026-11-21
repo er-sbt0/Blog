@@ -69,6 +69,7 @@ import { parseInline, renderInline } from "@/lib/content-bridge/inline";
 import { opSchema } from "@/lib/content-bridge/schema";
 import type { SerializedNode, StoredState } from "@/lib/content-bridge/types";
 import type { AgentToolTarget } from "../context/AgentHostContext";
+import { keepFocusTags } from "../nodes/AgentBlockNode/focus";
 import { AGENT_BLOCK_TYPE } from "../nodes/AgentBlockNode/model";
 import { agentWriteTags, agentWrote } from "./agentHistory";
 
@@ -401,7 +402,7 @@ function runBatch(
   if (target.detached) return BLOCK_GONE;
   let result: AgentToolResult = { ok: false, error: "The edit did not run." };
   let changed = 0;
-  const tags = agentWriteTags(editor, target.turn);
+  const tags = [...agentWriteTags(editor, target.turn), ...keepFocusTags(editor)];
 
   editor.update(
     () => {

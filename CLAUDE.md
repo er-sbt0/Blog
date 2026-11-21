@@ -104,13 +104,17 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 112 specs, 2017 tests, of which the list below walks the ones worth
-knowing about rather than all of them. The newest is agent-bar phase 1's
+Coverage is 113 specs, 2029 tests, of which the list below walks the ones worth
+knowing about rather than all of them. The newest is agent-bar phase 2's
+`src/components/CopilotPanel/__tests__/agentBar.test.ts`: what the desktop bar
+shows — when it may send, which turn Stop acts on (this post's only), and that
+"waiting on you" is found in any post. Before it, phase 1's
 (docs/plans/agent-bar.md §4.1): `packages/editor/src/utils/__tests__/agentBar.test.tsx`
 mounts the real session node under jsdom and pins that `SEND_AGENT_PROMPT_COMMAND`
 inserts the node where §3.1 says or finds the current one, that the handed-off
-prompt starts a session attached to the router, and that the next command
-continues it with its own selection. Before it, fifteen are the agent block's
+prompt starts a session attached to the router, that the next command
+continues it with its own selection, and that a send failing after the
+hand-off offers the prompt back to the bar. Before those, fifteen are the agent block's
 (docs/plans/archive/agent-block.md), and they split by process. In the editor
 package, `packages/editor/src/utils/__tests__/` holds `agentDocTools` (the
 executor on a real headless editor: node keys survive a write, the agent block

@@ -84,6 +84,7 @@ import { writeAgentBookkeeping } from "./bookkeeping";
 import {
   type AgentPromptHandOff,
   onAgentPrompt,
+  returnAgentPrompt,
   takeAgentPrompt,
 } from "./handoff";
 import { publishAgentTurn, touchAgentBlock, withdrawAgentTurn } from "./turns";
@@ -351,6 +352,8 @@ export default function AgentBlockComponent(
         context: previousContext,
       }));
       setError(message && `Not sent: ${message}`);
+      // The bar let go of this prompt when the command answered; offer it back.
+      returnAgentPrompt({ editor, nodeKey, prompt, message });
     };
 
     const sessionId = sessionRef.current;

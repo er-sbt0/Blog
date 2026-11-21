@@ -267,7 +267,15 @@ const EditorTabPanel: React.FC<EditorTabPanelProps> = ({
   }, [restoredFromPending, documentForEditor, save]);
 
   return (
-    <Box ref={scrollAnchorRef} sx={{ display: isActive ? "block" : "none" }}>
+    <Box
+      ref={scrollAnchorRef}
+      // Which pane and tab hold this editor, for a caller that has only the
+      // editor — the agent bar jumping to a permission card in another post
+      // (`CopilotPanel/agentJump.ts`).
+      data-editor-pane={paneId}
+      data-editor-doc={docId}
+      sx={{ display: isActive ? "block" : "none" }}
+    >
       {error && <SplashScreen title={error.title} subtitle={error.subtitle} />}
       {
         /* No toolbar band: `PaneHeader` is mounted above this and is already

@@ -14,7 +14,9 @@
  * - `getCurrentAgentSession(editor)` — the session chip;
  * - `getAgentTurns` / `subscribeAgentTurns` — Stop and "waiting on you",
  *   with `interruptAgentTurn(editor, nodeKey)` behind Stop and `Esc`;
- * - `onAgentBarFocusRequest` — `/agent` asking for the bar.
+ * - `onAgentBarFocusRequest` — `/agent` asking for the bar;
+ * - `onAgentPromptReturned` — a prompt the node took and could not send (the
+ *   folder dialog cancelled, an IPC error), so the bar can restore its draft.
  */
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useEffect, useRef } from "react";
@@ -38,6 +40,8 @@ export type {
   AgentTurnState,
 } from "@/editor/nodes/AgentBlockNode/turns";
 export { onAgentBarFocusRequest } from "@/editor/nodes/AgentBlockNode/focus";
+export { onAgentPromptReturned } from "@/editor/nodes/AgentBlockNode/handoff";
+export type { AgentPromptReturn } from "@/editor/nodes/AgentBlockNode/handoff";
 export type { AgentBarFocusRequest } from "@/editor/nodes/AgentBlockNode/focus";
 export { MAX_PROMPT as MAX_AGENT_PROMPT } from "@/editor/nodes/AgentBlockNode/model";
 

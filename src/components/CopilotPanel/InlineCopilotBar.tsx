@@ -9,6 +9,9 @@ import { useAIModel } from "@/contexts/AIModelContext";
 import { ICON_SIZE } from "@/theme/icons";
 import { MOTION } from "@/theme/tokens";
 import { isTerminalFocused } from "@/lib/terminalFocus";
+import { IS_DESKTOP_CLIENT } from "@/lib/desktop";
+import { onAgentBarFocusRequest } from "@/editor/plugins/AgentPlugin";
+import AgentComposer from "./AgentComposer";
 import CopilotChat from "./CopilotChat";
 import { composerSurfaceSx, composerWrapperSx, GROW } from "./Composer";
 
@@ -90,6 +93,11 @@ interface InlineCopilotBarProps {
  * Its thread is a scratch thread: in-memory only, and cleared whenever the
  * route or document changes — the panel remains the only writer of
  * `copilotStorage`, so the two surfaces can never disagree about history.
+ *
+ * **On desktop it is the agent's input instead** (docs/plans/agent-bar.md
+ * §2.4): `AgentComposer` replaces `CopilotChat`, and there is no thread —
+ * the conversation is the session node in the post, so the bar never expands.
+ * The card, its sizing, ⌘/ and Escape-to-step-away are shared.
  */
 const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
   const pathname = usePathname();
@@ -181,6 +189,13 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [restore]);
+
+  // `/agent` inserted an empty session node: the next thing to do is type the
+  // prompt, and the bar is where that happens now (agent-bar §2.10).
+  useEffect(
+    () => (IS_DESKTOP_CLIENT ? onAgentBarFocusRequest(restore) : undefined),
+    [restore],
+  );
 
   const handleRegisterAcceptAll = useCallback((fn: () => void) => {
     acceptAllRef.current = fn;
@@ -329,6 +344,15 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
             </Box>
           )}
 
+          {IS_DESKTOP_CLIENT
+            ? (
+              <AgentComposer
+                documentId={documentId}
+                compact={!focused}
+                inputRef={inputRef}
+              />
+            )
+            : (
           <CopilotChat
             key={scopeKey}
             variant="inline"
@@ -344,6 +368,7 @@ const InlineCopilotBar: React.FC<InlineCopilotBarProps> = ({ documentId }) => {
             inputRef={inputRef}
             disabledReason={user ? undefined : "Sign in to use AI"}
           />
+            )}
         </Box>
       </Box>
     </Box>

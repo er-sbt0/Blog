@@ -69,3 +69,32 @@ export function onAgentPrompt(
     if (map.get(nodeKey) === notify) map.delete(nodeKey);
   };
 }
+
+/**
+ * A prompt the node took and then could not send — the folder dialog
+ * cancelled, an IPC error (docs/plans/agent-bar.md, phase 2 log). The node has
+ * already taken it back off its record and shows "Not sent: …"; this is the
+ * bar's chance to put it back in the field, since the bar let go of its draft
+ * when the command answered `true`. `message` is `null` for a cancel.
+ */
+export interface AgentPromptReturn {
+  editor: LexicalEditor;
+  nodeKey: NodeKey;
+  prompt: string;
+  message: string | null;
+}
+
+const returnListeners = new Set<(returned: AgentPromptReturn) => void>();
+
+export function onAgentPromptReturned(
+  listener: (returned: AgentPromptReturn) => void,
+): () => void {
+  returnListeners.add(listener);
+  return () => {
+    returnListeners.delete(listener);
+  };
+}
+
+export function returnAgentPrompt(returned: AgentPromptReturn): void {
+  for (const listener of [...returnListeners]) listener(returned);
+}

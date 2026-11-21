@@ -13,6 +13,7 @@
  */
 import { $dfs, $insertNodeToNearestRoot, mergeRegister } from "@lexical/utils";
 import {
+  $addUpdateTag,
   $createParagraphNode,
   $getNodeByKey,
   $getRoot,
@@ -36,7 +37,10 @@ import {
   $isAgentBlockNode,
   type AgentBlockNode,
 } from "@/editor/nodes/AgentBlockNode";
-import { requestAgentBarFocus } from "@/editor/nodes/AgentBlockNode/focus";
+import {
+  keepFocusTags,
+  requestAgentBarFocus,
+} from "@/editor/nodes/AgentBlockNode/focus";
 import {
   handAgentPrompt,
   hasAgentPrompt,
@@ -162,6 +166,8 @@ export function registerAgentCommands(
       ({ prompt, selection, newSession }) => {
         const text = prompt.trim();
         if (!canRun() || !text || text.length > MAX_PROMPT) return false;
+        // Sent from the bar: inserting a node must not pull the caret out of it.
+        for (const tag of keepFocusTags(editor)) $addUpdateTag(tag);
         let node = newSession ? null : $findCurrentAgentBlock(editor);
         if (node) {
           const key = node.getKey();

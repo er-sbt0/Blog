@@ -34,6 +34,7 @@ import {
 } from "lexical";
 import { blockIdState } from "@/lib/content-bridge";
 import { $isAgentBlockNode, type AgentBlockNode } from ".";
+import { keepFocusTags } from "./focus";
 import { AGENT_BOOKKEEPING_TAG, type AgentBlockData } from "./model";
 
 /** Everything on the node that is the session's record rather than the author's. */
@@ -103,7 +104,7 @@ function recordsFor(editor: LexicalEditor): Map<NodeKey, Record_> {
         const record = kept.get(key);
         if ($isAgentBlockNode(node) && record) $restore(node, record);
       }
-    }, { tag: BOOKKEEPING_TAGS });
+    }, { tag: [...BOOKKEEPING_TAGS, ...keepFocusTags(editor)] });
   });
   return map;
 }
@@ -126,6 +127,6 @@ export function writeAgentBookkeeping(
       const writable = node.setData(change(node.getData(), node));
       map.set(nodeKey, $recordOf(writable));
     },
-    { discrete: true, tag: BOOKKEEPING_TAGS },
+    { discrete: true, tag: [...BOOKKEEPING_TAGS, ...keepFocusTags(editor)] },
   );
 }
