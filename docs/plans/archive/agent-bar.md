@@ -209,7 +209,9 @@ wording in §2.3 is the one edit, in `agentProtocol.js`.
 8. **The status bar's word count goes stale after an autosave** (found in
    phase 0). It reads the store's `post.data`, which autosave does not
    refresh, so after the agent's first write it said "No content yet" until
-   the post was reopened. Cosmetic, not agent-specific, and not fixed.
+   the post was reopened. Cosmetic and not agent-specific. **Fixed:** the bar
+   now counts the focused pane's live editor (`Layout/useLiveWordCount.ts`,
+   idle-scheduled) and never reads `post.data`.
 9. **§2.3's system-prompt edit: done after phase 4.** `agentProtocol.js` now
    says prompts come from the bar, replies live only in the block's collapsed
    log, and anything meant for readers goes in with a doc tool. The selection

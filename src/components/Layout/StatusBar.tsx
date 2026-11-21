@@ -1,16 +1,16 @@
 "use client";
 import * as React from "react";
 import { Box, Skeleton, Tooltip } from "@mui/material";
-import { postsSelectors, selectAnySaveTrouble, useSelector } from "@/store";
-import type { RootState } from "@/store";
+import { selectAnySaveTrouble, useSelector } from "@/store";
 import {
   selectFocusedDocId,
   selectFocusedDocMode,
 } from "@/store/selectors/layoutSelectors";
 import { uiCommands } from "@/commands";
 import { useCommandRun } from "@/commands/CommandProvider";
-import { countWords, readingMinutes } from "@/utils/editorContent";
+import { readingMinutes } from "@/utils/editorContent";
 import { CHROME_RING } from "@/theme/treeRow";
+import { useLiveWordCount } from "./useLiveWordCount";
 
 /** DESIGN.md §17.1 — the status bar's row height. */
 const STATUS_BAR_H = 26;
@@ -86,18 +86,12 @@ const StatusBar: React.FC = () => {
   const docId = useSelector(selectFocusedDocId);
   const mode = useSelector(selectFocusedDocMode);
 
-  const post = useSelector((state: RootState) =>
-    docId ? postsSelectors.selectById(state, docId) : undefined
-  );
-
-  // `data` is a whole document tree; walking it on every unrelated render of
-  // the shell is not free on a long post.
-  const words = React.useMemo(() => countWords(post?.data), [post?.data]);
-
-  // `list()` returns metadata without content, so a post can be in the store
-  // with no `data` yet — that is "opening", not "empty". An opened document
-  // with an empty root is the genuinely empty one.
-  const loading = docId !== null && !post?.data;
+  // Counted off the focused document's live editor, never the store's
+  // `post.data`: that is the content as it was loaded, autosave does not write
+  // it back (quiet autosave), and on a reopen it can be older than what the
+  // editor is about to show — the bar read "No content yet" over a post the
+  // agent had just written (docs/plans/archive/agent-bar.md §6.8).
+  const words = useLiveWordCount(docId);
 
   const troubleLabel = trouble === "error"
     ? "Couldn't save"
@@ -219,7 +213,12 @@ const StatusBar: React.FC = () => {
         </>
       )}
 
-      {docId === null ? <Item>No document</Item> : loading
+      {
+        /* No count yet is "opening", not "empty": a panel's editor exists once
+          its content has loaded into it. An editor with an empty root is the
+          genuinely empty one. */
+      }
+      {docId === null ? <Item>No document</Item> : words === null
         ? (
           <Skeleton
             variant="rounded"

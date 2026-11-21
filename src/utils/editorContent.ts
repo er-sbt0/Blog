@@ -47,14 +47,28 @@ export function extractHeadings(
   return headings;
 }
 
+/**
+ * Words in one text node's text: its whitespace-separated runs.
+ *
+ * A document's count is the sum of this over its `text` nodes, because the
+ * nodes are separated as words too — "bo" and a bold "ld" are two. Summing per
+ * node rather than joining first is what lets the status bar count a live
+ * editor in node-map order without building a string of the whole post
+ * (`Layout/useLiveWordCount.ts`); `countWords` is defined the same way so the
+ * status bar's live count and the right rail's stored one cannot disagree.
+ */
+export function wordsInText(text: string): number {
+  return text.match(/\S+/g)?.length ?? 0;
+}
+
 export function countWords(data: SerializedEditorState | undefined): number {
   const root = data?.root as SerializedNode | undefined;
   if (!root?.children) return 0;
-  const parts: string[] = [];
+  let count = 0;
   traverse(root.children, (node) => {
-    if (node.type === "text" && node.text) parts.push(node.text);
+    if (node.type === "text" && node.text) count += wordsInText(node.text);
   });
-  return parts.join(" ").trim().split(/\s+/).filter(Boolean).length;
+  return count;
 }
 
 /**

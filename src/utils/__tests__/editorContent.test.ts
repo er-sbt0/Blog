@@ -1,4 +1,10 @@
-import { readingMinutes, WORDS_PER_MIN } from "../editorContent";
+import type { SerializedEditorState } from "lexical";
+import {
+  countWords,
+  readingMinutes,
+  wordsInText,
+  WORDS_PER_MIN,
+} from "../editorContent";
 
 /**
  * The read-time derivation, which until now was written out twice — once
@@ -35,5 +41,46 @@ describe("readingMinutes", () => {
   it("scales linearly with the rate", () => {
     expect(readingMinutes(WORDS_PER_MIN * 2)).toBe(2);
     expect(readingMinutes(WORDS_PER_MIN * 10)).toBe(10);
+  });
+});
+
+/**
+ * The status bar counts a live editor node by node (`useLiveWordCount`); the
+ * right rail still counts the stored tree with `countWords`. Both are sums of
+ * `wordsInText` over `text` nodes, so one post cannot read two ways.
+ */
+describe("wordsInText", () => {
+  it("counts whitespace-separated runs", () => {
+    expect(wordsInText("")).toBe(0);
+    expect(wordsInText("   ")).toBe(0);
+    expect(wordsInText("one")).toBe(1);
+    expect(wordsInText("  two\twords\n ")).toBe(2);
+  });
+
+  it("sums to countWords over a tree, nodes being word boundaries", () => {
+    const texts = ["Hello wor", "ld", "  ", "a b", "end."];
+    const data = {
+      root: {
+        type: "root",
+        children: [
+          {
+            type: "paragraph",
+            children: texts.slice(0, 3).map((text) => ({ type: "text", text })),
+          },
+          {
+            type: "quote",
+            children: [{
+              type: "paragraph",
+              children: texts.slice(3).map((text) => ({ type: "text", text })),
+            }],
+          },
+          // Not a `text` node: neither count sees it.
+          { type: "code", children: [{ type: "code-highlight", text: "x y" }] },
+        ],
+      },
+    } as unknown as SerializedEditorState;
+    const summed = texts.reduce((n, t) => n + wordsInText(t), 0);
+    expect(countWords(data)).toBe(summed);
+    expect(summed).toBe(6);
   });
 });
