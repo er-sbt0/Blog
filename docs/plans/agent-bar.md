@@ -1,8 +1,8 @@
 # The agent in the bar — the post as the session's display
 
-**Status: phases 1–2 shipped 21 Nov 2026 (the command, the hand-off and the
-slim node; then `AgentComposer` in the desktop bar — see the phase logs at the
-end); phases 3–4 not started.** The decisions in §2 were taken
+**Status: phases 1–3 shipped 21 Nov 2026 (the command, the hand-off and the
+slim node; then `AgentComposer` in the desktop bar; then the no-post picker —
+see the phase logs at the end); phase 4 not started.** The decisions in §2 were taken
 interactively on 21 Nov 2026. This plan builds on
 [archive/agent-block.md](./archive/agent-block.md), which shipped the day
 before. Read that plan's §2–§4 first: almost everything here reuses it, and
@@ -287,3 +287,47 @@ Shipped 21 Nov 2026. `AgentComposer` (`src/components/CopilotPanel/`) is what
   - `/posts` showed the disabled hint, and `/agent` focused the bar.
   Not verified: the cross-post "waiting on you" (it needs a split pane), and
   open question 3 (Stop during a slow `plot_graph`).
+
+## Phase 3 log
+
+Shipped 21 Nov 2026. `AgentPostPicker` is the dialog; the hand-off after it is
+`advancePending` in `agentPick.ts`, a pure step the bar runs on every change
+and pinned by `agentPick.test.ts`. Only what departs from, or pins down, §4.3:
+
+- **"No post" is decided by the route, not the store.** The bar reads the
+  focused doc id only under `/edit`. Elsewhere the workspace can still name a
+  pane nobody can see (the phase 2 caveat, and the home pane too), and that
+  now reads as "no post" — Send opens the picker.
+- **The picker is the palette's search narrowed to posts:** titles from the
+  store, every word matched, most recent first, eight at most. Enter in the
+  search takes the first match. **New post** makes an untitled draft
+  (unpublished, at the top of the library) the way the sidebar's "+" does, and
+  the dialog stays open on it, with its error in the dialog, until the create
+  lands.
+- **Opening goes through the deep-link entry,** `openPane` and then a push of
+  `/edit/<id>`, not `document.open`'s bare `/edit`. Found in the app:
+  `WorkspacePanes` closes every pane in an unmount cleanup, and StrictMode's
+  replayed effects run that cleanup as the route mounts, so in development a
+  pane opened from outside the workspace was gone on arrival and the stored
+  layout came back instead. The seam replays an entry after the restore
+  whatever came before it. `document.open` from the palette on `/` has the
+  same development-only loss; it is not fixed here.
+- **The wait does not fail on another post being in front.** On arrival the
+  restored layout shows first and the picked post replaces it a beat later.
+  Only the picked post's editor, in the focused pane, ready, is sent to; read
+  mode fails; anything else waits up to 30 s (`PICK_OPEN_TIMEOUT_MS`), then
+  "Not sent: the post did not open in time" with the draft kept. That error
+  survives the editor changing under it, which clears every other bar error.
+- **After the send the node is scrolled into view,** since it goes at the end
+  of a post the author has not looked at yet (§3.1, no caret).
+- **The dialog's search takes focus in `onEntered`.** `autoFocus` alone lost
+  to the focus trap under StrictMode, which restored the bar's field and then
+  focused the dialog's container. The dialog also stops key events at its
+  root: React events cross the portal, and Escape would otherwise have
+  minimized the bar behind it.
+- **Verified in the app** (`dev:no-sandbox` on a scratch data dir, CDP and
+  AT-SPI): from `/`, Cancel (and Escape) kept the draft; an existing post that
+  was *not* the stored layout's opened, got a new node at its end and ran the
+  turn ("Hi!" written after the node); **New post** created "Untitled
+  Document", opened it and ran the turn the same way. Not verified in the app:
+  the create failure and the timeout, which the spec covers.

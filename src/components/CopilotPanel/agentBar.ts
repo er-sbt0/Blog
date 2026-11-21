@@ -24,6 +24,8 @@ export type AgentEditorState = "none" | "loading" | "readonly" | "ready";
 
 export type AgentBarAvailability =
   | { state: "ready" }
+  /** No post is open: a send asks where to work first (§2.7, `agentPick.ts`). */
+  | { state: "pick" }
   | { state: "loading"; reason: string }
   | { state: "disabled"; reason: string };
 
@@ -47,8 +49,7 @@ export function agentBarAvailability(
     case "loading":
       return { state: "loading", reason: "Opening the post…" };
     case "none":
-      // Phase 3 replaces this with the no-post picker (§4.3).
-      return { state: "disabled", reason: "Open a post to ask the agent" };
+      return { state: "pick" };
     case "readonly":
       return { state: "disabled", reason: "This post is in read mode" };
     default:

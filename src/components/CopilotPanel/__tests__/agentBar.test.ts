@@ -25,7 +25,7 @@ describe("agentBarAvailability", () => {
       state: "loading",
       reason: "Opening the post…",
     });
-    expect(agentBarAvailability("present", "none").state).toBe("disabled");
+    expect(agentBarAvailability("present", "none")).toEqual({ state: "pick" });
     expect(agentBarAvailability("present", "readonly")).toEqual({
       state: "disabled",
       reason: "This post is in read mode",

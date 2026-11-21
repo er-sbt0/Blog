@@ -104,8 +104,12 @@ globals; `compilerOptions.types` is deliberately left unset, because setting it
 would restrict resolution to only its entries and drop every other ambient
 package.
 
-Coverage is 113 specs, 2029 tests, of which the list below walks the ones worth
-knowing about rather than all of them. The newest is agent-bar phase 2's
+Coverage is 114 specs, 2036 tests, of which the list below walks the ones worth
+knowing about rather than all of them. The newest is agent-bar phase 3's
+`src/components/CopilotPanel/__tests__/agentPick.test.ts`: with no post open,
+a prompt waits for the post it was sent to and goes to that post's editor
+exactly once, never to whichever post the restored layout shows first, and
+gives up at a bound. Before it, phase 2's
 `src/components/CopilotPanel/__tests__/agentBar.test.ts`: what the desktop bar
 shows — when it may send, which turn Stop acts on (this post's only), and that
 "waiting on you" is found in any post. Before it, phase 1's
