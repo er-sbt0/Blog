@@ -202,7 +202,10 @@ wording in §2.3 is the one edit, in `agentProtocol.js`.
    is gone on arrival and the saved layout comes back instead. The picker
    sidesteps it through the deep-link entry; the palette's command does not,
    and is not fixed. Development only, since production does not replay
-   effects.
+   effects. **Fixed after phase 4:** an open before the restore now waits in
+   `ui.workspacePendingOpen`, which `closeAllPanes` leaves alone and
+   `restoreWorkspace` replays over the layout (`workspace.test.ts`); the
+   picker uses `document.open` again.
 8. **The status bar's word count goes stale after an autosave** (found in
    phase 0). It reads the store's `post.data`, which autosave does not
    refresh, so after the agent's first write it said "No content yet" until

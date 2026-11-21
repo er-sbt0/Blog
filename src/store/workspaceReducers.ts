@@ -161,6 +161,82 @@ const commitLayout = (state: AppState) => {
   state.ui.workspaceProvisional = false;
 };
 
+/** What `openPane` carries once `prepare` has filled in the defaults. */
+interface OpenPanePayload {
+  paneId: string | null;
+  rootId: string;
+  mode: PaneMode | null;
+  activeTabId: string | null;
+  entry: boolean;
+}
+
+/**
+ * The body of {@link workspaceReducers.openPane}, callable from
+ * `restoreWorkspace` too, which replays a pending open through it.
+ */
+const applyOpenPane = (state: AppState, payload: OpenPanePayload) => {
+  const { paneId, rootId, mode, activeTabId, entry } = payload;
+
+  // (1) Already open — focus, never duplicate.
+  const existing = paneShowing(state, rootId);
+  if (existing && existing.id !== paneId) {
+    state.ui.workspace.focusedPaneId = existing.id;
+    if (existing.tabIds.includes(rootId)) existing.activeTabId = rootId;
+    if (mode) existing.mode = mode;
+    if (diffOpenFor(state, rootId)) existing.diffOpen = true;
+    // Nothing was evicted: an entry naming a document the restored layout
+    // already holds only moved the focus, and that is worth recording.
+    if (!entry) commitLayout(state);
+    enforceMaximizeInvariant(state);
+    return;
+  }
+
+  // (2)/(3) Which viewport is being retargeted.
+  const target = paneId ? paneOf(state, paneId) : focusedPaneOf(state);
+  if (target) {
+    // Whatever this pane was showing is about to be gone from it. For an
+    // entry that is the eviction nobody asked for, and the layout stops
+    // being recordable until the user says otherwise.
+    if (!entry) commitLayout(state);
+    else if (target.rootId !== rootId) state.ui.workspaceProvisional = true;
+    target.rootId = rootId;
+    target.tabIds = [];
+    target.activeTabId = activeTabId;
+    // An omitted mode means "however this pane is already being read".
+    if (mode) target.mode = mode;
+    // A different document means a different review, so the previous
+    // one's diff goes — that is what stops a pane retargeted mid-review
+    // from showing a stale comparison. The *same* document means this is
+    // the open half of a "Review" click (or the deep-link replay of one),
+    // and the diff it asked for comes with it. See {@link diffOpenFor}.
+    target.diffOpen = diffOpenFor(state, rootId);
+    state.ui.workspace.focusedPaneId = target.id;
+    enforceMaximizeInvariant(state);
+    return;
+  }
+
+  if (state.ui.workspace.panes.length >= MAX_PANES) return;
+  // Minting rather than retargeting, so there was nothing here to lose:
+  // a first-ever visit, or a workspace with nothing stored. Its pane is
+  // recorded like any other, entry or not — suppressing it would mean a
+  // new user's first document is never remembered.
+  commitLayout(state);
+  const id = paneId ?? uuidv4();
+  state.ui.workspace.panes.push({
+    id,
+    rootId,
+    tabIds: [],
+    activeTabId,
+    mode: mode ?? "write",
+    diffOpen: diffOpenFor(state, rootId),
+  });
+  state.ui.workspace.focusedPaneId = id;
+  // The pane that was filling the row is not the new one, so the split is
+  // back — otherwise `pane.split` off a maximized pane would put the new
+  // document straight behind the `display: none`.
+  enforceMaximizeInvariant(state);
+};
+
 /** Spread into `appSlice`'s `reducers` map. See the module docstring. */
 export const workspaceReducers = {
   // ── Workspace: panes ──────────────────────────────────────────────────
@@ -211,76 +287,19 @@ export const workspaceReducers = {
    * never stored at all.
    */
   openPane: {
-    reducer: (
-      state: AppState,
-      action: PayloadAction<{
-        paneId: string | null;
-        rootId: string;
-        mode: PaneMode | null;
-        activeTabId: string | null;
-        entry: boolean;
-      }>,
-    ) => {
-      const { paneId, rootId, mode, activeTabId, entry } = action.payload;
-
-      // (1) Already open — focus, never duplicate.
-      const existing = paneShowing(state, rootId);
-      if (existing && existing.id !== paneId) {
-        state.ui.workspace.focusedPaneId = existing.id;
-        if (existing.tabIds.includes(rootId)) existing.activeTabId = rootId;
-        if (mode) existing.mode = mode;
-        if (diffOpenFor(state, rootId)) existing.diffOpen = true;
-        // Nothing was evicted: an entry naming a document the restored layout
-        // already holds only moved the focus, and that is worth recording.
-        if (!entry) commitLayout(state);
-        enforceMaximizeInvariant(state);
-        return;
+    reducer: (state: AppState, action: PayloadAction<OpenPanePayload>) => {
+      // Not on screen yet — off `/edit`, or `/edit` before its restore has
+      // landed. The pane is still minted below, so anything reading the
+      // workspace sees the document at once, but the *request* is kept apart
+      // from it: the restore installs the stored layout and replays this on
+      // top, and `closeAllPanes` (StrictMode's replayed unmount, on the way
+      // in) cannot reach it. An entry is the seam's own replay, which only
+      // ever runs hydrated, so it never lands here.
+      if (!state.ui.workspaceHydrated && !action.payload.entry) {
+        const { rootId, mode, activeTabId } = action.payload;
+        state.ui.workspacePendingOpen = { rootId, mode, activeTabId };
       }
-
-      // (2)/(3) Which viewport is being retargeted.
-      const target = paneId ? paneOf(state, paneId) : focusedPaneOf(state);
-      if (target) {
-        // Whatever this pane was showing is about to be gone from it. For an
-        // entry that is the eviction nobody asked for, and the layout stops
-        // being recordable until the user says otherwise.
-        if (!entry) commitLayout(state);
-        else if (target.rootId !== rootId) state.ui.workspaceProvisional = true;
-        target.rootId = rootId;
-        target.tabIds = [];
-        target.activeTabId = activeTabId;
-        // An omitted mode means "however this pane is already being read".
-        if (mode) target.mode = mode;
-        // A different document means a different review, so the previous
-        // one's diff goes — that is what stops a pane retargeted mid-review
-        // from showing a stale comparison. The *same* document means this is
-        // the open half of a "Review" click (or the deep-link replay of one),
-        // and the diff it asked for comes with it. See {@link diffOpenFor}.
-        target.diffOpen = diffOpenFor(state, rootId);
-        state.ui.workspace.focusedPaneId = target.id;
-        enforceMaximizeInvariant(state);
-        return;
-      }
-
-      if (state.ui.workspace.panes.length >= MAX_PANES) return;
-      // Minting rather than retargeting, so there was nothing here to lose:
-      // a first-ever visit, or a workspace with nothing stored. Its pane is
-      // recorded like any other, entry or not — suppressing it would mean a
-      // new user's first document is never remembered.
-      commitLayout(state);
-      const id = paneId ?? uuidv4();
-      state.ui.workspace.panes.push({
-        id,
-        rootId,
-        tabIds: [],
-        activeTabId,
-        mode: mode ?? "write",
-        diffOpen: diffOpenFor(state, rootId),
-      });
-      state.ui.workspace.focusedPaneId = id;
-      // The pane that was filling the row is not the new one, so the split is
-      // back — otherwise `pane.split` off a maximized pane would put the new
-      // document straight behind the `display: none`.
-      enforceMaximizeInvariant(state);
+      applyOpenPane(state, action.payload);
     },
     prepare: (input: {
       rootId: string;
@@ -338,6 +357,10 @@ export const workspaceReducers = {
     // Nothing is open, so nothing is provisional. Re-entering `/edit` restores
     // and the seam decides again — the flag is a fact about *this* entry.
     state.ui.workspaceProvisional = false;
+    // `workspacePendingOpen` is left alone on purpose. This also runs as
+    // `/edit` *mounts* — StrictMode replays the unmount cleanup that dispatches
+    // it — and the open that sent the user there must survive that to be
+    // replayed by the restore (docs/plans/archive/agent-bar.md §6.7).
   },
   /**
    * Install a layout read back from storage (plan §8.2).
@@ -367,10 +390,16 @@ export const workspaceReducers = {
    *
    * - **Restore twice.** `workspaceHydrated` gates it, so a second read
    *   landing late cannot replace a layout the user has since changed.
-   * - **Overwrite what is already open.** The flag is still set — the caller
-   *   asked and got an answer — but the panes are left alone. The IndexedDB
-   *   read is asynchronous, and a click on a sidebar row in that window is a
-   *   deliberate act; a stored record from last Tuesday is not.
+   * - **Lose what was opened before it landed.** The IndexedDB read is
+   *   asynchronous, and an open in that window — a sidebar click, or the
+   *   palette on `/` that is the reason `/edit` is mounting at all — is a
+   *   deliberate act; a stored record from last Tuesday is not. So
+   *   `ui.workspacePendingOpen` is replayed over the installed layout, which
+   *   keeps the rest of a stored split and puts the document where the user
+   *   is looking. It is replayed from that field, not kept in the pane it
+   *   minted, because the pane may not be there by now: `WorkspacePanes`'
+   *   unmount cleanup empties the workspace, and StrictMode runs that cleanup
+   *   as the route mounts (docs/plans/archive/agent-bar.md §6.7).
    */
   restoreWorkspace: (
     state: AppState,
@@ -384,16 +413,25 @@ export const workspaceReducers = {
     // Derived on every restore rather than only when it is raised, so a flag
     // set by one entry cannot survive into the layout of the next.
     state.ui.workspaceProvisional = false;
-    // Before the pane guard below, and deliberately: which view the right panel
-    // shows is independent of which documents are open, so a deep link that has
-    // already minted a pane must still get its panel choices back.
+    // Before the layout, and deliberately: which view the right panel shows is
+    // independent of which documents are open, so it lands whatever the
+    // layout does.
     state.ui.railPanel = sanitizePanelViews(
       read.ok && typeof read.stored === "object" && read.stored !== null
         ? (read.stored as { railPanel?: unknown }).railPanel
         : undefined,
     );
-    if (state.ui.workspace.panes.length > 0) return;
+    const pending = state.ui.workspacePendingOpen;
+    state.ui.workspacePendingOpen = null;
+    if (!pending && state.ui.workspace.panes.length > 0) return;
     state.ui.workspace = sanitizeWorkspace(read.ok ? read.stored : undefined);
+    // The open asked for before the layout was in, replayed over it as the
+    // person's act it was: it retargets the focused pane (or focuses the pane
+    // already showing it) and commits, exactly as it would have once hydrated.
+    // In the same reducer, so no render ever shows the layout without it and
+    // nothing that runs between the two — StrictMode's replayed
+    // `closeAllPanes` above all — can come between them.
+    if (pending) applyOpenPane(state, { ...pending, paneId: null, entry: false });
   },
   /**
    * The session turned out to belong to someone else than the layout does.

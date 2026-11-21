@@ -1681,3 +1681,147 @@ describe("ui.workspace — focus is what 'active' means now", () => {
   });
 });
 
+
+/**
+ * An open from outside the workspace, arriving at `/edit`
+ * (docs/plans/archive/agent-bar.md §6.7).
+ *
+ * The palette's `document.open` on `/` or `/posts` dispatches `openPane` and
+ * then pushes bare `/edit`. `WorkspacePanes` mounts, starts the restore, and —
+ * in development — StrictMode replays its unmount cleanup, which dispatches
+ * `closeAllPanes` before the read lands. The pane the palette minted used to be
+ * the only record of the request, so it was gone and the stored layout came
+ * back instead. The request now waits in `ui.workspacePendingOpen`, which that
+ * cleanup does not touch, and the restore replays it over the layout.
+ */
+describe("ui.workspace — an open from outside, arriving at /edit", () => {
+  const storedPane = (id: string, rootId: string) => ({
+    id,
+    rootId,
+    tabIds: [rootId],
+    activeTabId: rootId,
+    mode: "write",
+  });
+  const storedPair = () => ({
+    panes: [storedPane("p1", "doc-a"), storedPane("p2", "doc-b")],
+    focusedPaneId: "p2",
+    splitRatio: 0.65,
+  });
+  const land = (state: AppState, stored: unknown): AppState =>
+    reducer(
+      state,
+      actions.restoreWorkspace({ key: "user-1", read: { ok: true, stored } }),
+    );
+  /** On `/`, after a visit to `/edit` has already come and gone. */
+  const offWorkspace = (): AppState =>
+    reducer(land(initial(), storedPair()), actions.closeAllPanes());
+  const strictModeReplay = (state: AppState): AppState =>
+    reducer(state, actions.closeAllPanes());
+
+  it("survives StrictMode's replayed cleanup and lands over the layout", () => {
+    let state = reducer(offWorkspace(), actions.openPane({ rootId: "doc-c" }));
+    state = strictModeReplay(state);
+    state = land(state, storedPair());
+
+    expect(workspaceOf(state).panes.map((p) => p.rootId))
+      .toEqual(["doc-a", "doc-c"]);
+    expect(workspaceOf(state).focusedPaneId).toBe("p2");
+    expect(workspaceOf(state).splitRatio).toBe(0.65);
+    // A person's open, not a bookmark's: recorded like a sidebar click.
+    expect(state.ui.workspaceProvisional).toBe(false);
+    expect(workspaceWriteKey(state.ui)).toBe("user-1");
+    expect(state.ui.workspacePendingOpen).toBeNull();
+  });
+
+  it("ends the same without the replay, so development matches production", () => {
+    const replayed = land(
+      strictModeReplay(
+        reducer(offWorkspace(), actions.openPane({ rootId: "doc-c" })),
+      ),
+      storedPair(),
+    );
+    const direct = land(
+      reducer(offWorkspace(), actions.openPane({ rootId: "doc-c" })),
+      storedPair(),
+    );
+
+    expect(workspaceOf(direct)).toEqual(workspaceOf(replayed));
+  });
+
+  it("focuses the stored pane already showing the document", () => {
+    const state = land(
+      strictModeReplay(
+        reducer(offWorkspace(), actions.openPane({ rootId: "doc-a" })),
+      ),
+      storedPair(),
+    );
+
+    expect(workspaceOf(state).panes.map((p) => p.rootId))
+      .toEqual(["doc-a", "doc-b"]);
+    expect(workspaceOf(state).focusedPaneId).toBe("p1");
+  });
+
+  it("mints the first pane, in the mode asked for, when nothing is stored", () => {
+    const state = land(
+      strictModeReplay(
+        reducer(initial(), actions.openPane({ rootId: "doc-c", mode: "read" })),
+      ),
+      undefined,
+    );
+
+    expect(workspaceOf(state).panes.map((p) => p.rootId)).toEqual(["doc-c"]);
+    expect(workspaceOf(state).panes[0].mode).toBe("read");
+    expect(workspaceWriteKey(state.ui)).toBe("user-1");
+  });
+
+  it("still opens the document when the read failed, and writes nothing", () => {
+    const opened = strictModeReplay(
+      reducer(offWorkspace(), actions.openPane({ rootId: "doc-c" })),
+    );
+    const state = reducer(
+      opened,
+      actions.restoreWorkspace({
+        key: "user-1",
+        read: { ok: false, reason: "timeout" },
+      }),
+    );
+
+    expect(workspaceOf(state).panes.map((p) => p.rootId)).toEqual(["doc-c"]);
+    expect(workspaceWriteKey(state.ui)).toBeNull();
+  });
+
+  it("is replayed once: the next visit restores the layout alone", () => {
+    let state = land(
+      reducer(offWorkspace(), actions.openPane({ rootId: "doc-c" })),
+      storedPair(),
+    );
+    state = land(reducer(state, actions.closeAllPanes()), storedPair());
+
+    expect(workspaceOf(state).panes.map((p) => p.rootId))
+      .toEqual(["doc-a", "doc-b"]);
+  });
+
+  it("is not recorded by an open once the workspace is hydrated", () => {
+    const state = reducer(
+      land(initial(), storedPair()),
+      actions.openPane({ rootId: "doc-c" }),
+    );
+    expect(state.ui.workspacePendingOpen).toBeNull();
+  });
+
+  it("a deep link replayed after it changes nothing more", () => {
+    // `/edit/<id>` after the same open: the seam's `entry` replay names the
+    // document the restore just put in front, so it only confirms the focus.
+    let state = land(
+      strictModeReplay(
+        reducer(offWorkspace(), actions.openPane({ rootId: "doc-c" })),
+      ),
+      storedPair(),
+    );
+    state = reducer(state, actions.openPane({ rootId: "doc-c", entry: true }));
+
+    expect(workspaceOf(state).panes.map((p) => p.rootId))
+      .toEqual(["doc-a", "doc-c"]);
+    expect(workspaceWriteKey(state.ui)).toBe("user-1");
+  });
+});

@@ -70,9 +70,9 @@ export function advancePending(
       return fail("the post opened in read mode");
     }
   }
-  // Another post in front is not a reason to give up: arriving at the
-  // workspace restores the stored layout first and replays the picked post
-  // over it. It is a reason not to send — only `named` sends, and the bound
+  // Another post in front is not a reason to give up: the editor that
+  // mounts first on arrival may not be the picked post's yet. It is a reason
+  // not to send — only `named` sends, and the bound
   // ends a wait for a post the author has since navigated away from.
   if (now - pending.since >= timeoutMs) {
     return fail("the post did not open in time");

@@ -49,7 +49,7 @@ import {
 } from "@mui/material";
 import { Bot, MessageSquarePlus, ShieldQuestion } from "lucide-react";
 import type { LexicalEditor } from "lexical";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { documentCommands } from "@/commands";
 import { useCommandRun } from "@/commands/CommandProvider";
 import { ActiveEditorContext } from "@/contexts/ActiveEditorContext";
@@ -194,7 +194,6 @@ const AgentComposer: React.FC<AgentComposerProps> = (
 ) => {
   const dispatch = useDispatch();
   const run = useCommandRun();
-  const router = useRouter();
   const inWorkspace = usePathname().startsWith("/edit");
   const documentId = inWorkspace ? focusedDocId : null;
   const focusedPane = useSelector(selectFocusedPane);
@@ -326,21 +325,11 @@ const AgentComposer: React.FC<AgentComposerProps> = (
     setPending(next);
     setPickerOpen(false);
     setError(null);
-    if (inWorkspace) {
-      void run(documentCommands.open, { id: docId });
-      return;
-    }
-    // From outside the workspace, through the deep-link entry rather than
-    // `document.open`'s bare `/edit`. `WorkspacePanes` closes every pane on
-    // unmount, and StrictMode's replayed effects run that cleanup as the
-    // route mounts — so in development a pane opened before the navigation
-    // was gone on arrival, and the stored layout came back in its place. The
-    // entry is replayed by the seam after the restore whatever happened
-    // before it; the `openPane` first is what makes it an open by a person,
-    // not a URL, wherever that cleanup does not run.
-    dispatch(actions.openPane({ rootId: docId, mode: "write" }));
-    router.push(`/edit/${docId}`);
-  }, [dispatch, draft, inWorkspace, router, run]);
+    // From inside the workspace or outside it alike: an open from `/` waits
+    // in the store for the layout restore to replay it, StrictMode's
+    // replayed unmount on the way in included (agent-bar.md §6.7).
+    void run(documentCommands.open, { id: docId });
+  }, [draft, run]);
 
   const pick = useCallback(async (choice: AgentPostChoice) => {
     if (choice.kind === "existing") return openForPrompt(choice.id);

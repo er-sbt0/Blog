@@ -337,6 +337,13 @@ const WorkspacePanes: React.FC<WorkspacePanesProps> = ({ rootId }) => {
   // re-adopted by an unrelated route. What is *stored* survives — the
   // persistence middleware will not write an empty workspace, precisely so this
   // cleanup cannot erase the layout on the way out.
+  //
+  // In development StrictMode also runs this cleanup as the route *mounts*,
+  // before the restore has landed. That is harmless by construction: nothing
+  // that must survive arrival lives in the panes it empties. A URL entry is
+  // the `rootId` prop and the ref above; an open from outside the workspace
+  // (the palette on `/`) is `ui.workspacePendingOpen`, which this leaves alone
+  // and `restoreWorkspace` replays (docs/plans/archive/agent-bar.md §6.7).
   useEffect(() => () => void dispatch(actions.closeAllPanes()), [dispatch]);
 
   // A reload within the write debounce would otherwise lose the change that

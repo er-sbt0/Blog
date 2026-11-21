@@ -459,6 +459,24 @@ export interface AppState {
      * and by every restore, so it cannot outlive the entry that raised it.
      */
     workspaceProvisional: boolean;
+    /**
+     * A document asked for while the workspace was not hydrated — from the
+     * palette on `/` or `/posts`, a sidebar click in the restore's window —
+     * waiting for `restoreWorkspace` to replay it over the layout it installs
+     * (docs/plans/archive/agent-bar.md §6.7).
+     *
+     * The request has to live here rather than in the pane it also mints,
+     * because panes are what `closeAllPanes` empties, and `WorkspacePanes`
+     * dispatches that from an unmount cleanup that StrictMode replays as `/edit`
+     * mounts. `closeAllPanes` leaves this alone, so that cleanup is harmless;
+     * the restore consumes it. Only the latest request is kept, and only what
+     * "show this where I am looking" needs — no pane id.
+     */
+    workspacePendingOpen: {
+      rootId: string;
+      mode: PaneMode | null;
+      activeTabId: string | null;
+    } | null;
     sidebarView: SidebarView;
     /** Agent work awaiting review — see {@link ProposalsState}. */
     proposals: ProposalsState;

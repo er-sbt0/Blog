@@ -443,6 +443,7 @@ const initialState: AppState = {
     workspaceKey: null,
     workspaceRestoreFailed: false,
     workspaceProvisional: false,
+    workspacePendingOpen: null,
     railPanel: {},
     sidebarView: "explorer",
     proposals: {
