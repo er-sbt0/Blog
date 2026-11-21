@@ -1,0 +1,189 @@
+# The agent in the bar — the post as the session's display
+
+**Status: proposed, 21 Nov 2026. Not started.** The decisions in §2 were taken
+interactively on 21 Nov 2026. This plan builds on
+[archive/agent-block.md](./archive/agent-block.md), which shipped the day
+before. Read that plan's §2–§4 first: almost everything here reuses it, and
+this plan only changes where you type and what the block looks like.
+
+**Desktop only**, like the agent block, and read through `src/lib/desktop.ts`.
+The web build's bar stays Copilot.
+
+---
+
+## 1. What is being asked
+
+The agent block does three jobs at once:
+
+1. **Input:** a prompt editor inside the block.
+2. **Session display:** status, permission cards and the collapsed log.
+3. **Output:** the artifacts. Those are already ordinary blocks beside the
+   block (agent-block §3.3).
+
+The ask is to split those up. The **bottom bar** (`InlineCopilotBar`) becomes
+the input. The **post** shows the session and holds what it produces. You
+type once, in one place, everywhere, and the post is still where the work
+appears.
+
+The splitting is cheap because the expensive parts of the agent block are
+engine-level, not block-level. The SDK session, the permission broker,
+`agent-sessions.json`, the cwd dialog, the doc tools and their codecs,
+`agentRouter` and one undo step per turn all stay. What changes is mostly the
+entry point and the node's UI.
+
+## 2. Decisions
+
+Taken on 21 Nov 2026. Each row lists the alternative that was turned down.
+
+| # | Decision | Declined |
+| --- | --- | --- |
+| 2.1 | **The bar is the input; the post is the display.** On desktop the bar sends prompts to an agent session whose session node lives in the post. | Keeping the prompt editor in the block. Two composers, and the block's one can never see a selection (§2.9). |
+| 2.2 | **The session node is the agent block slimmed down.** It holds the prompts (read-only), the status, permission cards, the collapsed log and the cwd chip. It has no prompt editor. It is still never exported (agent-block §2.5, and CLAUDE.md's fourth invariant). | **The full transcript as ordinary blocks.** Tool output is where credentials and file contents end up. As content they would flow into revisions, `/view`, export bundles and the content bridge, and every revision would grow with the session (`claude-code-notebook.md` §5). |
+| 2.3 | **Conversational replies stay in the session node.** Only what the agent writes with a doc tool becomes content. To put an answer into the post, the agent writes it there. | Replies landing as paragraphs (posts fill with chat), or a per-turn toggle (one more control, and the agent can already choose). |
+| 2.4 | **On desktop, the agent replaces Copilot in the bar.** The web build keeps Copilot. | A mode switch: two engines behind one box, with two write semantics, so you'd have to know which one is active. Or keeping them separate: the agent would need its own entry point again. |
+| 2.5 | **One write rule: live into the visible editor, propose everywhere else.** The doc tools reach only the post holding the session's node, live and undoable per turn, as agent-block §2.3 already allows. Any other write goes through `blog-content` and proposes, which agent-gating already requires. | Proposing in the session's own post. That loses the reason for writing into the live editor (agent-block §3.2). |
+| 2.6 | **One current session per post, resumed from the bar.** Sending in a post with a session continues the most recently used one. "New session" in the bar starts another, with its own node. | One session per window, which would write into whichever post you clicked last (the phase-0 bug that `agentRouter` fixed). One session per pane, which breaks when a post moves between panes. |
+| 2.7 | **With no post open, the bar asks where to work:** a new post, or an existing post picked from the library. Either way the post opens in a pane, the node goes into it, and the prompt is sent. | Disabling the agent there, or bringing back a `SESSION` document type, which agent-block §2.1 turned down. |
+| 2.8 | **Claude only for now; Codex later.** The doc tools stay in the SDK's in-process server (`createSdkMcpServer`, `packages/desktop/src/agent.js`). The constraint for later is to keep SDK-specific event shapes inside `agent.js`, so the renderer only ever sees the existing projection. | Moving the doc tools to a loopback MCP server now. That is the right first step for Codex (§6.6) and pointless work before it. |
+| 2.9 | **The bar captures the selection on every turn.** `CopilotChat` already does this through `ActiveEditorContext` and `captureSelection`. That fixes agent-block §14's "selection-first entry" with no floating toolbar. | The floating-toolbar "Ask agent" button that §14 proposed. |
+| 2.10 | **`/agent` stays, and now means "new session here".** It inserts an empty session node at the caret and focuses the bar. | Removing it. It is still the only way to choose *where* in a post a session's node and default anchor go. |
+
+### 2.5 deserves a note
+
+This doesn't widen agent-block §2.3's exception. The exception was safe because
+the writes are visible as they land, undo in one step per turn, and save like
+typing. All of that still holds, because the target is still the editor holding
+the node. The bar changes who types the prompt, not where the writes go.
+
+### 2.3 needs a matching system-prompt change
+
+Today the system prompt (`agentProtocol.js`) assumes the agent's text is shown
+in the block's log. That's still true, but the agent should be told so
+directly: its replies are seen in a collapsed node and never become part of the
+post, so anything meant for readers has to be written with a doc tool.
+
+## 3. Shape
+
+```
+app (bar)                         editor (the post's)                    main
+─────────                         ───────────────────                    ────
+AgentComposer ──prompt, sel──▶ SEND_AGENT_PROMPT_COMMAND
+  (via ActiveEditorContext)       AgentPlugin: find/insert node
+                                  AgentBlockNode runs the turn ──start/send──▶ agent.js
+                                  router.attach(sessionId) ◀──doc-tool calls──
+  ◀──turn status (subscription)── writes land as sibling blocks
+```
+
+The important choice: **the node still owns the session.** The bar doesn't call
+`agentHost.start` itself. It dispatches a Lexical command into the active
+editor, and the node runs the turn exactly as it does now (`host.start` /
+`host.send`, `router.attach`, one undo tag per turn). That leaves every
+agent-block invariant where it was. Routing is still per block, and closing the
+pane or deleting the node still interrupts the turn. A call whose block is gone
+is still refused.
+
+The bar keeps a light view of the turn so it can show **Stop** (and `Esc`) and,
+more importantly, **"waiting on you"**. A permission card in a node scrolled out
+of view is otherwise a silent stall. "Waiting on you" is the one state the bar
+shows loudly, and it jumps to the card. Everything else stays quiet, following
+the quiet-UI rule: a running turn is shown in the node, not narrated in the bar.
+
+### 3.1 Where the node goes
+
+- **Continuing a session:** nowhere new. The turn appends to the current node.
+- **New session, with a selection or caret:** after the top-level block
+  containing the selection.
+- **New session, with no caret** (the editor was never focused): at the end of
+  the post.
+- **`/agent`:** at the caret, as it is today.
+
+The agent's output keeps anchoring after its own node by default
+(agent-block §3.3), so deleting the node still leaves the work in place.
+
+## 4. The pieces
+
+### 4.1 Editor: the command, and a slimmer node
+
+- `SEND_AGENT_PROMPT_COMMAND` with `{ prompt, selection, newSession }`, handled
+  by `AgentPlugin`. It finds the post's current session node, or inserts one
+  (§3.1), and hands the prompt over. The node component isn't mounted when an
+  insert happens in an update, so the hand-off uses the same pending-key pattern
+  as `focus.ts` (`requestAgentFocus` / `takeAgentFocus`): the plugin queues the
+  prompt under the node's key, and the component claims it on mount.
+- "Current session" means the node in this post with the most recent turn. That
+  is derivable from the nodes themselves, so nothing new is stored.
+- `AgentBlockComponent` loses its prompt editor and its draft state, and shows
+  the prompts as read-only lines. The run-a-turn path (`AgentBlockComponent.tsx`,
+  around the `host.start` / `host.send` calls) is kept and called from the
+  hand-off instead of from the textarea.
+- **Selection on every turn.** Today only the first turn's `context` is sent
+  (`selection: index === 0 ? data.context : null`). From the bar, each turn
+  carries its own selection. Only the first is stored on the node, for display.
+  Later ones are sent and not kept.
+- **Serialized shape unchanged.** Blocks written by the shipped build load as
+  they are. Their prompts were already an array. Run `pnpm check:nodes`.
+
+### 4.2 App: the bar on desktop
+
+- On desktop, `InlineCopilotBar` renders an `AgentComposer` instead of
+  `CopilotChat`. It reuses `Composer.tsx`'s surface, so the bar looks and sizes
+  the same, and adds:
+  - a session chip ("session · N turns", or nothing for a post with none) with
+    a **New session** action;
+  - Stop / `Esc` while a turn runs;
+  - the "waiting on you" state, which jumps to the open card.
+- There is no thread in the bar. The conversation is the node, so the
+  expand-to-50vh transcript is gone on desktop.
+- Follow DESIGN.md conventions, including the loading, empty, error and
+  disabled states. Disabled covers "no agent host": a shell from before phase 2,
+  where `getAgentHost()` returns `null`.
+
+### 4.3 App: the no-post picker (§2.7)
+
+On sending with no post focused, a small dialog offers **New post** or a search
+over the library. Whichever is chosen opens in a pane. The prompt and
+`newSession: true` are dispatched once that pane's editor is the active one.
+Cancelling keeps the draft in the bar.
+
+### 4.4 Main
+
+**No change expected.** `agentIpc.js` checks ownership per window and per
+session, and both are unaffected by who typed the prompt. The system-prompt
+wording in §2.3 is the one edit, in `agentProtocol.js`.
+
+## 5. Phases
+
+| Phase | What | Done when |
+| --- | --- | --- |
+| 0 | **One full turn by hand in the shipped build** (`HANDOFF_AGENT_BLOCK.md`, "Never verified"). | A real turn has written into a real post in the running app, and the transcript dialog, the dropped-count row and the permission cards have been seen. This plan builds on that path, so it comes first. |
+| 1 | The command, the hand-off and the slim node (§4.1). `/agent` inserts a node and focuses the bar. | A spec on a headless editor: the command inserts or finds the right node, a prompt sent by command starts a session and attaches it to the router, and a second command continues that session. The existing agent specs still pass. |
+| 2 | `AgentComposer` in the bar (§4.2): selection capture, the session chip, Stop, "waiting on you". | A turn started from the bar, with a selection, writes after the right block, and a permission card off-screen is reachable from the bar. |
+| 3 | The no-post picker (§4.3). | From the home pane, both "new post" and "existing post" end with the node in that post and the turn running. |
+| 4 | Docs: CLAUDE.md's agent-block paragraph, the handoff, and this plan archived with its logs. | — |
+
+## 6. Open questions
+
+1. **The Copilot side panel on desktop.** §2.4 covers the bar only. Does the
+   right rail's Copilot panel stay on desktop, as the way to reach BYO-key
+   models, or go too?
+2. **Several sessions in one post.** §2.6 makes the most recent one current.
+   Does the chip need to switch between them, or is clicking into an older node
+   to make it current enough?
+3. **A Stop from the bar mid-tool.** Interrupting is per session today, so this
+   should just work. Confirm it in phase 2 with a slow `plot_graph`.
+4. **Carried over from agent-block §14, unchanged by this plan:** the bundled
+   `claude` binary, the native resume dialog, the post-wide stale-write check,
+   and losing the in-progress log on reload. The stale check is no worse: typing
+   in the bar isn't typing in the post.
+5. **A second post's agent.** With the bar in post A, can a session in post B
+   still be running? Yes, each node owns its own. Does the bar show anything
+   for it? The quiet-UI answer is no, except "waiting on you", which probably
+   should show whichever post it's in.
+6. **Codex, when it's wanted (§2.8).** The order would be:
+   - move the doc tools to a loopback MCP server in main that relays to the
+     renderer as today;
+   - normalise both engines' events into the projection the renderer already
+     consumes;
+   - spike Codex's approval model against the permission cards before designing
+     anything shared. `canUseTool` maps cleanly to the cards, and it isn't yet
+     known whether Codex's approvals do.
