@@ -207,12 +207,10 @@ wording in §2.3 is the one edit, in `agentProtocol.js`.
    phase 0). It reads the store's `post.data`, which autosave does not
    refresh, so after the agent's first write it said "No content yet" until
    the post was reopened. Cosmetic, not agent-specific, and not fixed.
-9. **§2.3's system-prompt edit was not made.** `agentProtocol.js` still has
-   agent-block's wording: replies go "into a log the author sees in your
-   block, not into the post". That already gives the agent the rule. What it
-   lacks is §2.3's "anything meant for readers has to be written with a doc
-   tool", and "block" now means the slim node. A one-line change whenever
-   `agentProtocol.js` is next touched.
+9. **§2.3's system-prompt edit: done after phase 4.** `agentProtocol.js` now
+   says prompts come from the bar, replies live only in the block's collapsed
+   log, and anything meant for readers goes in with a doc tool. The selection
+   line now says "when the author sent this prompt", since it is sent per turn.
 
 ---
 

@@ -169,6 +169,7 @@ describe("the system prompt", () => {
     expect(prompt).toContain('"On tides"');
     expect(prompt).toContain("blk_abc12");
     expect(prompt).toContain("prefer them over replying");
+    expect(prompt).toContain("never becomes part of the post");
     expect(prompt).toMatch(/diagram[^]*use draw_sketch/);
     expect(prompt).toMatch(/function, curve or geometric construction[^]*plot_graph/);
     expect(prompt).toMatch(/plot of data[^]*insert_image \{ path \}/);

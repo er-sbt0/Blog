@@ -104,9 +104,10 @@ export function buildSystemPrompt(context) {
       "mcp__doc__read_blocks, mcp__doc__apply_ops, mcp__doc__insert_math, " +
       "mcp__doc__insert_image, mcp__doc__draw_sketch, mcp__doc__plot_graph) — " +
       "prefer them over " +
-      "replying in prose. Text you " +
-      "reply with goes into a log the author sees in your block, not into the " +
-      "post, so keep replies to a sentence or two.",
+      "replying in prose. The author types prompts in the app's bottom bar; " +
+      "text you reply with is shown only in your block's collapsed log and " +
+      "never becomes part of the post, so keep replies to a sentence or two " +
+      "and write anything meant for readers with a doc tool.",
     "For a diagram — boxes and arrows, a flow, an architecture, a sequence — " +
       "use draw_sketch: mermaid when it is a graph (it lays itself out), " +
       "shapes when the placement matters. It becomes a sketch the author can " +
@@ -139,7 +140,7 @@ export function buildSystemPrompt(context) {
   );
   if (selection) {
     lines.push(
-      `When the author added your block they had this selected (addresses as ` +
+      `When the author sent this prompt they had this selected (addresses as ` +
         `in the outline): ${selection}`,
     );
   }
