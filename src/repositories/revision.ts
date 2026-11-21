@@ -64,7 +64,7 @@ const findRevisionById = async (id: string): Promise<StoredRevision | null> => {
  * each save, so the cache caught a mid-stretch copy, and reopening the post
  * served that copy. The editor then autosaved it over the newer head, which
  * lost everything written after the cached read. Found driving an agent turn
- * in the desktop app (docs/plans/agent-bar.md, phase 0).
+ * in the desktop app (docs/plans/archive/agent-bar.md, phase 0).
  */
 const findRevision = findRevisionById;
 

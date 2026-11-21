@@ -94,7 +94,7 @@ interface InlineCopilotBarProps {
  * route or document changes — the panel remains the only writer of
  * `copilotStorage`, so the two surfaces can never disagree about history.
  *
- * **On desktop it is the agent's input instead** (docs/plans/agent-bar.md
+ * **On desktop it is the agent's input instead** (docs/plans/archive/agent-bar.md
  * §2.4): `AgentComposer` replaces `CopilotChat`, and there is no thread —
  * the conversation is the session node in the post, so the bar never expands.
  * The card, its sizing, ⌘/ and Escape-to-step-away are shared.

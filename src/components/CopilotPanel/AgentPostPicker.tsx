@@ -1,7 +1,7 @@
 "use client";
 /**
  * "Where should the agent work?" — what a send from the desktop bar asks when
- * no post is open (docs/plans/agent-bar.md §2.7, §4.3). A new post, or one
+ * no post is open (docs/plans/archive/agent-bar.md §2.7, §4.3). A new post, or one
  * picked from the library; the bar does the rest (`agentPick.ts`).
  *
  * The search is the command palette's (titles, from the store) narrowed to

@@ -1,5 +1,5 @@
 /**
- * Sending from the bar with no post open (docs/plans/agent-bar.md §2.7, §4.3):
+ * Sending from the bar with no post open (docs/plans/archive/agent-bar.md §2.7, §4.3):
  * the author picks a post — a new one, or one from the library — it opens in
  * a pane, and the prompt goes to that pane's editor once it can take one.
  *

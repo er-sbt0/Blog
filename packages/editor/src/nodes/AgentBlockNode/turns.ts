@@ -1,6 +1,6 @@
 /**
  * What the app can see of a session node's turn, and the one thing it can do
- * to one (docs/plans/agent-bar.md §3, §4.1).
+ * to one (docs/plans/archive/agent-bar.md §3, §4.1).
  *
  * The node owns the session (§3): the bar never calls the agent host itself,
  * so whatever the bar shows of a turn — Stop, "waiting on you" — has to be

@@ -1,6 +1,6 @@
 # Archived plans — closed work
 
-These twenty-three plans are **closed**: twenty-one shipped, one
+These twenty-four plans are **closed**: twenty-two shipped, one
 ([storage-uploads.md](./storage-uploads.md)) was superseded before it was built,
 and one ([series-as-node.md](./series-as-node.md)) was **declined** after being
 costed against the finished tree. Neither of the two unbuilt ones is deleted,
@@ -52,6 +52,7 @@ extraction. Do not read one as a description of the current tree.
 | [bloat-remediation.md](./bloat-remediation.md)             | 31 Aug 2026, 7 steps       | A review's findings turned into seven steps — dead dependencies, an unreachable list mode, panel geometry, the loading audit, and the tree-model unification that made `/posts` and the sidebar build one tree with one pair of functions. Step 3 closed last and is the one to read: `knip` went **578 hits → 51** across three phases, the first of which was teaching it that `packages/editor/src/ui` is a ported vendor surface rather than a backlog. All 51 survivors are deliberate keeps, listed there by name, because every future run reports them again. Its closing note records the four drag gestures verified in Postgres on 30 Aug |
 | [ide-redesign.md](./ide-redesign.md)                       | 2 Sep 2026, 4 phases       | Converge the app shell on the **Blog IDE** proposal in place, keeping DESIGN.md tokens: ⌘K palette, title-bar search + Read/Edit toggle, Explorer restyle, the far-left activity rail, and `Layout/StatusBar.tsx`. Closed by **deleting** its last two items rather than building them — an AI-panel restyle and a tabs/breadcrumb polish that specified their target by reference to a proposal bundle no longer in the repo. Both sat on the live index for a month waiting for a respecification nobody wanted to write, which is the finding worth carrying: a task that cannot say what it wants is an open question, not scheduled work. The status-bar section is the one to read — two of its five proposed fields were dropped, with reasons |
 | [agent-block.md](./agent-block.md)                         | 20 Nov 2026, 7 phases (0–6) | `/agent`: a Claude Code session (Agent SDK, Electron main) as a block in the post, writing into the **live editor** — sketch, math, graph and image codecs for every agent surface, in-block permission cards enforced in main, one undo step per turn. §14 lists what is still open |
+| [agent-bar.md](./agent-bar.md)                             | 21 Nov 2026, 5 phases (0–4) | The agent block's input moved to the desktop bottom bar (`AgentComposer` replaces Copilot there) and the post became its display: a slim, never-exported session node, `/agent` as "new session here", a picker when no post is open. Phase 0 fixed a stale-head cache bug (`b8aefe10`). §6 lists what is still open |
 
 Deliberately left undone, recorded so they are not re-proposed as oversights:
 

@@ -113,7 +113,7 @@ gives up at a bound. Before it, phase 2's
 `src/components/CopilotPanel/__tests__/agentBar.test.ts`: what the desktop bar
 shows — when it may send, which turn Stop acts on (this post's only), and that
 "waiting on you" is found in any post. Before it, phase 1's
-(docs/plans/agent-bar.md §4.1): `packages/editor/src/utils/__tests__/agentBar.test.tsx`
+(docs/plans/archive/agent-bar.md §4.1): `packages/editor/src/utils/__tests__/agentBar.test.tsx`
 mounts the real session node under jsdom and pins that `SEND_AGENT_PROMPT_COMMAND`
 inserts the node where §3.1 says or finds the current one, that the handed-off
 prompt starts a session attached to the router, that the next command
@@ -815,13 +815,31 @@ Three things there are invariants rather than conventions:
   user as "Claude Code cannot see any posts" (§10.2). `verify-package.mjs`
   asserts it loads, not merely that it exists.
 
-**The agent block** (docs/plans/archive/agent-block.md) is desktop-only too:
-`/agent` in a post inserts a block that runs a Claude Agent SDK session in the main
-process, and the agent writes into the post's **live editor**. That is a
-deliberate exception to agent-gating, and it is safe only because those writes
-are visible as they land, undo in one step per turn, and save like typing.
-Four things there are invariants rather than conventions:
+**The agent block** (docs/plans/archive/agent-block.md, then
+docs/plans/archive/agent-bar.md) is desktop-only too: a Claude Agent SDK session
+in the main process that writes into a post's **live editor**. On desktop the
+bottom bar is its input — `InlineCopilotBar` renders `AgentComposer` there
+instead of Copilot, which the web build keeps — and the post is its display: a
+slim session node holding the prompts read-only, the status, permission cards
+and the collapsed log, with the agent's output as ordinary blocks beside it.
+Replies stay in the node; only what a doc tool writes becomes content. `/agent`
+now means "new session here" — it inserts an empty node at the caret and
+focuses the bar. A send with no post open opens a picker (a new post, or one
+from the library), and the prompt goes once that post's editor is ready. The
+live-editor write is a deliberate exception to agent-gating, and it is safe
+only because those writes are visible as they land, undo in one step per turn,
+and save like typing; the bar changes who types the prompt, not where the
+writes go. These are invariants rather than conventions:
 
+- **The node owns the session, not the bar.** The bar dispatches
+  `SEND_AGENT_PROMPT_COMMAND` into the focused editor, and the node runs the
+  turn (`host.start`/`host.send`, `router.attach`, the undo tag). The bar never
+  calls the agent host itself, so routing stays per block and closing a pane or
+  deleting a node still interrupts its turn.
+- **A send is either taken or handed back.** The command answers `false` when
+  it refuses, and a start that fails after the hand-off fires
+  `onAgentPromptReturned`; either way the bar keeps the draft. A prompt is
+  never silently dropped, and a picked post receives it exactly once.
 - **Doc tools are defined in main and executed only in the renderer**, against
   the editor holding the session's block (`agentRouter.ts`). Main never writes a
   document. A call whose block has gone — the pane closed, the block deleted —

@@ -1,5 +1,5 @@
 /**
- * Handing a prompt from the bar to a session node (docs/plans/agent-bar.md
+ * Handing a prompt from the bar to a session node (docs/plans/archive/agent-bar.md
  * §4.1).
  *
  * `SEND_AGENT_PROMPT_COMMAND` runs inside a Lexical update, and a node it has
@@ -72,7 +72,7 @@ export function onAgentPrompt(
 
 /**
  * A prompt the node took and then could not send — the folder dialog
- * cancelled, an IPC error (docs/plans/agent-bar.md, phase 2 log). The node has
+ * cancelled, an IPC error (docs/plans/archive/agent-bar.md, phase 2 log). The node has
  * already taken it back off its record and shows "Not sent: …"; this is the
  * bar's chance to put it back in the field, since the bar let go of its draft
  * when the command answered `true`. `message` is `null` for a cancel.

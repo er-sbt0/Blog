@@ -1,7 +1,7 @@
 "use client";
 /**
  * Taking the author from the bar to a session node — and, when one is open,
- * its permission card (docs/plans/agent-bar.md §3, §4.2).
+ * its permission card (docs/plans/archive/agent-bar.md §3, §4.2).
  *
  * The bar knows a turn only by its editor and node key (`turns.ts`), so where
  * that editor lives is read off the DOM: `EditorTabPanel` marks its root with

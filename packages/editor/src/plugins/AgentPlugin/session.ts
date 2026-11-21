@@ -1,5 +1,5 @@
 /**
- * The bar's way into a post's agent session (docs/plans/agent-bar.md §3, §4.1).
+ * The bar's way into a post's agent session (docs/plans/archive/agent-bar.md §3, §4.1).
  *
  * The bar dispatches `SEND_AGENT_PROMPT_COMMAND` into the active editor and
  * nothing else: it never calls the agent host. This finds the post's current

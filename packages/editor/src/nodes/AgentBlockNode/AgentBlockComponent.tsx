@@ -1,7 +1,7 @@
 "use client";
 /**
  * The session node's UI (docs/plans/archive/agent-block.md §3.3, slimmed by
- * docs/plans/agent-bar.md §4.1): the prompts as read-only lines, live status
+ * docs/plans/archive/agent-bar.md §4.1): the prompts as read-only lines, live status
  * with an interrupt (button and `Esc`), permission cards, the session's
  * "always" grants, the collapsed log and the folder chip.
  *

@@ -1,6 +1,6 @@
 /**
  * The agent's commands (docs/plans/archive/agent-block.md §4.4,
- * docs/plans/agent-bar.md §4.1), and the editor package's surface for the
+ * docs/plans/archive/agent-bar.md §4.1), and the editor package's surface for the
  * app's bar.
  *
  * Offering `/agent` is the picker's business and depends on an injected agent

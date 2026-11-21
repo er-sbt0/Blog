@@ -1,10 +1,12 @@
 # The agent in the bar — the post as the session's display
 
-**Status: phases 1–3 shipped 21 Nov 2026 (the command, the hand-off and the
-slim node; then `AgentComposer` in the desktop bar; then the no-post picker —
-see the phase logs at the end); phase 4 not started.** The decisions in §2 were taken
+**Status: shipped 21 Nov 2026, all five phases (0–4)** — `b8aefe10` (phase 0's
+stale-head fix), `1eb660e8` (the command, the hand-off and the slim node),
+`02c54625` (`AgentComposer` in the desktop bar), `df326e3c` (the no-post
+picker), then phase 4's docs and this archive. The phase logs are at the end;
+§6 records what is still open. The decisions in §2 were taken
 interactively on 21 Nov 2026. This plan builds on
-[archive/agent-block.md](./archive/agent-block.md), which shipped the day
+[agent-block.md](./agent-block.md), which shipped the day
 before. Read that plan's §2–§4 first: almost everything here reuses it, and
 this plan only changes where you type and what the block looks like.
 
@@ -172,7 +174,10 @@ wording in §2.3 is the one edit, in `agentProtocol.js`.
    Does the chip need to switch between them, or is clicking into an older node
    to make it current enough?
 3. **A Stop from the bar mid-tool.** Interrupting is per session today, so this
-   should just work. Confirm it in phase 2 with a slow `plot_graph`.
+   should just work. **Still unverified at close:** phase 2 confirmed `Esc`
+   stopping a turn parked on a permission card, not one inside a slow
+   `plot_graph`. `agentLifecycle.test.ts` covers the renderer half (a slow
+   tool whose block goes refuses), but not an interrupt arriving mid-render.
 4. **Carried over from agent-block §14, unchanged by this plan:** the bundled
    `claude` binary, the native resume dialog, the post-wide stale-write check,
    and losing the in-progress log on reload. The stale check is no worse: typing
@@ -180,7 +185,9 @@ wording in §2.3 is the one edit, in `agentProtocol.js`.
 5. **A second post's agent.** With the bar in post A, can a session in post B
    still be running? Yes, each node owns its own. Does the bar show anything
    for it? The quiet-UI answer is no, except "waiting on you", which probably
-   should show whichever post it's in.
+   should show whichever post it's in. **Built that way in phase 2** — the bar
+   finds a waiting card in any post (`agentBar.test.ts`) — **but never seen in
+   the app**, because it needs a split pane with a second post's card open.
 6. **Codex, when it's wanted (§2.8).** The order would be:
    - move the doc tools to a loopback MCP server in main that relays to the
      renderer as today;
@@ -189,6 +196,23 @@ wording in §2.3 is the one edit, in `agentProtocol.js`.
    - spike Codex's approval model against the permission cards before designing
      anything shared. `canUseTool` maps cleanly to the cards, and it isn't yet
      known whether Codex's approvals do.
+7. **⌘K `document.open` from `/` loses its post in development** (found in
+   phase 3). `WorkspacePanes` closes every pane in an unmount cleanup, and
+   StrictMode's replayed effects run it as `/edit` mounts, so the opened pane
+   is gone on arrival and the saved layout comes back instead. The picker
+   sidesteps it through the deep-link entry; the palette's command does not,
+   and is not fixed. Development only, since production does not replay
+   effects.
+8. **The status bar's word count goes stale after an autosave** (found in
+   phase 0). It reads the store's `post.data`, which autosave does not
+   refresh, so after the agent's first write it said "No content yet" until
+   the post was reopened. Cosmetic, not agent-specific, and not fixed.
+9. **§2.3's system-prompt edit was not made.** `agentProtocol.js` still has
+   agent-block's wording: replies go "into a log the author sees in your
+   block, not into the post". That already gives the agent the rule. What it
+   lacks is §2.3's "anything meant for readers has to be written with a doc
+   tool", and "block" now means the slim node. A one-line change whenever
+   `agentProtocol.js` is next touched.
 
 ---
 
@@ -331,3 +355,12 @@ and pinned by `agentPick.test.ts`. Only what departs from, or pins down, §4.3:
   turn ("Hi!" written after the node); **New post** created "Untitled
   Document", opened it and ran the turn the same way. Not verified in the app:
   the create failure and the timeout, which the spec covers.
+
+## Phase 4 log
+
+Shipped 21 Nov 2026, docs only. CLAUDE.md's agent-block paragraph now
+describes the bar as the input and the slim node as the display, with two
+invariants added from the logs (the node owns the session; the bar's send can
+refuse and keeps its draft). §6 gained items 7–9 and records which of
+questions 3 and 5 were never seen in the app. The suite at close: 114 specs,
+2036 tests, about 7 s.

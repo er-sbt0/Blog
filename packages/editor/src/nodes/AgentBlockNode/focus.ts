@@ -1,6 +1,6 @@
 /**
  * "Focus the bar": what `/agent` asks for once it has inserted an empty
- * session node (docs/plans/agent-bar.md §2.10).
+ * session node (docs/plans/archive/agent-bar.md §2.10).
  *
  * The node has no prompt editor any more — the bar is the input (§2.1) — and
  * the bar is app code the editor package cannot import. So the request is an
@@ -32,7 +32,7 @@ export function requestAgentBarFocus(request: AgentBarFocusRequest): void {
 }
 
 /**
- * Tags that keep an agent's update from taking focus (docs/plans/agent-bar.md,
+ * Tags that keep an agent's update from taking focus (docs/plans/archive/agent-bar.md,
  * phase 2 log). An update whose selection is dirty puts the DOM selection back
  * into the editor, and putting a selection into a `contenteditable` focuses
  * it — so the bar's send, the node's bookkeeping and the agent's writes each

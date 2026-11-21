@@ -281,7 +281,7 @@ interface ComposerProps {
    * with the caller's controls, in the model picker's place in the row. The
    * desktop agent's composer (`AgentComposer`) uses it: its engine has no
    * model to pick and no slash commands, and its row holds the session chip
-   * instead (docs/plans/agent-bar.md §4.2). Everything else — the surface, the
+   * instead (docs/plans/archive/agent-bar.md §4.2). Everything else — the surface, the
    * field, the compact/open move and send/stop — is shared, which is what
    * keeps the two bars the same size.
    */

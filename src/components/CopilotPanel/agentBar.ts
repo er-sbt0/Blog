@@ -1,5 +1,5 @@
 /**
- * What the desktop bar shows of the agent (docs/plans/agent-bar.md §4.2), as
+ * What the desktop bar shows of the agent (docs/plans/archive/agent-bar.md §4.2), as
  * plain functions over plain values so a spec can answer them without an
  * editor or a window.
  *

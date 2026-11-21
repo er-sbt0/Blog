@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * The bar's way into a session: `SEND_AGENT_PROMPT_COMMAND`
- * (docs/plans/agent-bar.md §3, §3.1, §4.1, phase 1).
+ * (docs/plans/archive/agent-bar.md §3, §3.1, §4.1, phase 1).
  *
  * Mounted for real — `LexicalComposer`, a `ContentEditable` so decorators
  * render, the real `AgentPlugin` and the real session node component — with a

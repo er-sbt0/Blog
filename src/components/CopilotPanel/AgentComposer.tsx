@@ -1,7 +1,7 @@
 "use client";
 /**
  * The desktop bar's composer: the input to the focused post's agent session
- * (docs/plans/agent-bar.md §2.1, §2.4, §4.2).
+ * (docs/plans/archive/agent-bar.md §2.1, §2.4, §4.2).
  *
  * It dispatches `SEND_AGENT_PROMPT_COMMAND` into the focused post's editor and
  * does nothing else to the session: the node in the post owns it (§3) — it
